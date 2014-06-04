@@ -1,0 +1,46 @@
+# Logfile created on 2014-06-04 11:42:33 +0800 by logger.rb/44203
+I, [2014-06-04T11:42:35.797425 #2920]  INFO -- : login_server[ 0.0.0.0, 50561 ]启动完成
+I, [2014-06-04T12:07:49.523760 #3494]  INFO -- : login_server[ 0.0.0.0, 50561 ]启动完成
+I, [2014-06-04T12:08:43.567495 #3589]  INFO -- : login_server[ 0.0.0.0, 50561 ]启动完成
+I, [2014-06-04T12:10:03.960619 #3647]  INFO -- : login_server[ 0.0.0.0, 50561 ]启动完成
+I, [2014-06-04T12:11:36.429170 #3792]  INFO -- : login_server[ 0.0.0.0, 50561 ]启动完成
+I, [2014-06-04T18:10:36.451953 #9669]  INFO -- : login_server[ 0.0.0.0, 50561 ]启动完成
+I, [2014-06-04T18:10:49.910049 #9707]  INFO -- : login_server[ 0.0.0.0, 50561 ]启动完成
+I, [2014-06-04T18:16:13.745563 #10214]  INFO -- : login_server[ 0.0.0.0, 50561 ]启动完成
+I, [2014-06-04T18:16:41.113205 #10284]  INFO -- : login_server[ 0.0.0.0, 50561 ]启动完成
+I, [2014-06-04T18:23:59.255482 #10655]  INFO -- : login_server[ 0.0.0.0, 50561 ]启动完成
+I, [2014-06-04T18:24:15.689421 #10689]  INFO -- : login_server[ 0.0.0.0, 50561 ]启动完成
+I, [2014-06-04T18:28:19.354892 #11079]  INFO -- : login_server[ 0.0.0.0, 50561 ]启动完成
+I, [2014-06-04T18:31:40.853336 #11279]  INFO -- : login_server[ 0.0.0.0, 50561 ]启动完成
+I, [2014-06-04T18:32:29.405633 #11321]  INFO -- : login_server[ 0.0.0.0, 50561 ]启动完成
+I, [2014-06-04T18:32:37.465076 #11343]  INFO -- : login_server[ 0.0.0.0, 50561 ]启动完成
+I, [2014-06-04T18:35:00.594576 #11510]  INFO -- : login_server[ 0.0.0.0, 50561 ]启动完成
+I, [2014-06-04T18:39:00.778201 #11709]  INFO -- : login_server[ 0.0.0.0, 50561 ]启动完成
+I, [2014-06-04T18:39:37.891876 #11768]  INFO -- : login_server[ 0.0.0.0, 50561 ]启动完成
+E, [2014-06-04T18:39:44.421772 #11768] ERROR -- : uninitialized constant GameCMDS::CMDPropertyUpdate
+E, [2014-06-04T18:39:44.421885 #11768] ERROR -- : /Users/kay/Documents/xcode/FSNet/FSNet/game_server/src/boomman/cmds/game_cmds.rb:26:in `version'
+E, [2014-06-04T18:39:44.421938 #11768] ERROR -- : /Users/kay/Documents/xcode/FSNet/FSNet/game_server/src/gamelib/game_server.rb:222:in `call'
+E, [2014-06-04T18:39:44.421985 #11768] ERROR -- : /Users/kay/Documents/xcode/FSNet/FSNet/game_server/src/gamelib/game_server.rb:222:in `handle_pack'
+E, [2014-06-04T18:39:44.422036 #11768] ERROR -- : /Users/kay/Documents/xcode/FSNet/FSNet/game_server/src/gamelib/game_server.rb:209:in `on_handle_agent'
+E, [2014-06-04T18:39:44.422082 #11768] ERROR -- : /Users/kay/Documents/xcode/FSNet/FSNet/game_server/src/gamelib/game_server.rb:222:in `call'
+E, [2014-06-04T18:39:44.422127 #11768] ERROR -- : /Users/kay/Documents/xcode/FSNet/FSNet/game_server/src/gamelib/game_server.rb:222:in `handle_pack'
+E, [2014-06-04T18:39:44.422171 #11768] ERROR -- : /Users/kay/Documents/xcode/FSNet/FSNet/game_server/src/gamelib/game_server.rb:254:in `on_handle_pack'
+E, [2014-06-04T18:41:04.684692 #11768] ERROR -- : uninitialized constant GameCMDS::CMDPropertyUpdate
+E, [2014-06-04T18:41:04.684822 #11768] ERROR -- : /Users/kay/Documents/xcode/FSNet/FSNet/game_server/src/boomman/cmds/game_cmds.rb:26:in `version'
+E, [2014-06-04T18:41:04.684869 #11768] ERROR -- : /Users/kay/Documents/xcode/FSNet/FSNet/game_server/src/gamelib/game_server.rb:222:in `call'
+E, [2014-06-04T18:41:04.684909 #11768] ERROR -- : /Users/kay/Documents/xcode/FSNet/FSNet/game_server/src/gamelib/game_server.rb:222:in `handle_pack'
+E, [2014-06-04T18:41:04.684948 #11768] ERROR -- : /Users/kay/Documents/xcode/FSNet/FSNet/game_server/src/gamelib/game_server.rb:209:in `on_handle_agent'
+E, [2014-06-04T18:41:04.684985 #11768] ERROR -- : /Users/kay/Documents/xcode/FSNet/FSNet/game_server/src/gamelib/game_server.rb:222:in `call'
+E, [2014-06-04T18:41:04.685024 #11768] ERROR -- : /Users/kay/Documents/xcode/FSNet/FSNet/game_server/src/gamelib/game_server.rb:222:in `handle_pack'
+E, [2014-06-04T18:41:04.685082 #11768] ERROR -- : /Users/kay/Documents/xcode/FSNet/FSNet/game_server/src/gamelib/game_server.rb:254:in `on_handle_pack'
+I, [2014-06-04T18:41:36.303768 #11892]  INFO -- : login_server[ 0.0.0.0, 50561 ]启动完成
+E, [2014-06-04T18:41:42.226002 #11892] ERROR -- : uninitialized constant GameCMDS::CMDPropertyUpdate
+E, [2014-06-04T18:41:42.226133 #11892] ERROR -- : /Users/kay/Documents/xcode/FSNet/FSNet/game_server/src/boomman/cmds/game_cmds.rb:26:in `version'
+E, [2014-06-04T18:41:42.226181 #11892] ERROR -- : /Users/kay/Documents/xcode/FSNet/FSNet/game_server/src/gamelib/game_server.rb:222:in `call'
+E, [2014-06-04T18:41:42.226226 #11892] ERROR -- : /Users/kay/Documents/xcode/FSNet/FSNet/game_server/src/gamelib/game_server.rb:222:in `handle_pack'
+E, [2014-06-04T18:41:42.226268 #11892] ERROR -- : /Users/kay/Documents/xcode/FSNet/FSNet/game_server/src/gamelib/game_server.rb:209:in `on_handle_agent'
+E, [2014-06-04T18:41:42.226336 #11892] ERROR -- : /Users/kay/Documents/xcode/FSNet/FSNet/game_server/src/gamelib/game_server.rb:222:in `call'
+E, [2014-06-04T18:41:42.226385 #11892] ERROR -- : /Users/kay/Documents/xcode/FSNet/FSNet/game_server/src/gamelib/game_server.rb:222:in `handle_pack'
+E, [2014-06-04T18:41:42.226423 #11892] ERROR -- : /Users/kay/Documents/xcode/FSNet/FSNet/game_server/src/gamelib/game_server.rb:254:in `on_handle_pack'
+I, [2014-06-04T19:55:09.101751 #12153]  INFO -- : login_server[ 0.0.0.0, 50561 ]启动完成
+I, [2014-06-04T19:56:08.859576 #12244]  INFO -- : login_server[ 0.0.0.0, 50561 ]启动完成
