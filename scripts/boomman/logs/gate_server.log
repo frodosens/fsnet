@@ -1,0 +1,580 @@
+# Logfile created on 2014-06-04 11:42:33 +0800 by logger.rb/44203
+I, [2014-06-04T11:42:33.614135 #2920]  INFO -- : Connecting to LoginServer
+I, [2014-06-04T11:42:33.614360 #2920]  INFO -- : Connecting to LoginServer successful
+I, [2014-06-04T11:42:35.242321 #2920]  INFO -- : Connecting to RunServer
+I, [2014-06-04T11:42:35.242512 #2920]  INFO -- : Connecting to RunServer successful
+I, [2014-06-04T12:07:47.721930 #3494]  INFO -- : Connecting to LoginServer
+I, [2014-06-04T12:07:49.193205 #3494]  INFO -- : Connecting to LoginServer successful
+I, [2014-06-04T12:07:49.193403 #3494]  INFO -- : Connecting to RunServer
+I, [2014-06-04T12:07:49.523488 #3494]  INFO -- : Connecting to RunServer successful
+I, [2014-06-04T12:08:42.076362 #3589]  INFO -- : Connecting to LoginServer
+I, [2014-06-04T12:08:43.336437 #3589]  INFO -- : Connecting to LoginServer successful
+I, [2014-06-04T12:08:43.336602 #3589]  INFO -- : Connecting to RunServer
+I, [2014-06-04T12:08:43.567245 #3589]  INFO -- : Connecting to RunServer successful
+I, [2014-06-04T12:10:02.807404 #3647]  INFO -- : Connecting to LoginServer
+I, [2014-06-04T12:10:03.676369 #3647]  INFO -- : Connecting to LoginServer successful
+I, [2014-06-04T12:10:03.676595 #3647]  INFO -- : Connecting to RunServer
+I, [2014-06-04T12:10:03.676802 #3647]  INFO -- : Connecting to RunServer successful
+I, [2014-06-04T12:11:35.388319 #3792]  INFO -- : Connecting to LoginServer
+I, [2014-06-04T12:11:36.034917 #3792]  INFO -- : Connecting to LoginServer successful
+I, [2014-06-04T12:11:36.035128 #3792]  INFO -- : Connecting to RunServer
+I, [2014-06-04T12:11:36.428911 #3792]  INFO -- : Connecting to RunServer successful
+I, [2014-06-04T18:10:34.931900 #9669]  INFO -- : Connecting to LoginServer
+I, [2014-06-04T18:10:36.134318 #9669]  INFO -- : Connecting to LoginServer successful
+I, [2014-06-04T18:10:36.134519 #9669]  INFO -- : Connecting to RunServer
+I, [2014-06-04T18:10:36.451428 #9669]  INFO -- : Connecting to RunServer successful
+I, [2014-06-04T18:10:48.628540 #9707]  INFO -- : Connecting to LoginServer
+I, [2014-06-04T18:10:49.358010 #9707]  INFO -- : Connecting to LoginServer successful
+I, [2014-06-04T18:10:49.358214 #9707]  INFO -- : Connecting to RunServer
+I, [2014-06-04T18:10:49.909788 #9707]  INFO -- : Connecting to RunServer successful
+I, [2014-06-04T18:15:51.523367 #10162]  INFO -- : Connecting to LoginServer
+I, [2014-06-04T18:16:12.490834 #10214]  INFO -- : Connecting to LoginServer
+I, [2014-06-04T18:16:13.174695 #10214]  INFO -- : Connecting to LoginServer successful
+I, [2014-06-04T18:16:13.174864 #10214]  INFO -- : Connecting to RunServer
+I, [2014-06-04T18:16:13.175046 #10214]  INFO -- : Connecting to RunServer successful
+I, [2014-06-04T18:16:39.785106 #10284]  INFO -- : Connecting to LoginServer
+I, [2014-06-04T18:16:39.785850 #10284]  INFO -- : Connecting to LoginServer successful
+I, [2014-06-04T18:16:40.863411 #10284]  INFO -- : Connecting to RunServer
+I, [2014-06-04T18:16:41.112951 #10284]  INFO -- : Connecting to RunServer successful
+I, [2014-06-04T18:23:07.970458 #10583]  INFO -- : Connecting to LoginServer
+I, [2014-06-04T18:23:21.400324 #10605]  INFO -- : Connecting to LoginServer
+I, [2014-06-04T18:23:57.206040 #10655]  INFO -- : Connecting to LoginServer
+I, [2014-06-04T18:23:59.019733 #10655]  INFO -- : Connecting to LoginServer successful
+I, [2014-06-04T18:23:59.019925 #10655]  INFO -- : Connecting to RunServer
+I, [2014-06-04T18:23:59.255237 #10655]  INFO -- : Connecting to RunServer successful
+I, [2014-06-04T18:24:12.290534 #10689]  INFO -- : Connecting to LoginServer
+I, [2014-06-04T18:24:13.153844 #10689]  INFO -- : Connecting to LoginServer successful
+I, [2014-06-04T18:24:13.154040 #10689]  INFO -- : Connecting to RunServer
+I, [2014-06-04T18:24:13.154263 #10689]  INFO -- : Connecting to RunServer successful
+I, [2014-06-04T18:28:19.355405 #11079]  INFO -- : Connecting to LoginServer
+I, [2014-06-04T18:31:40.853875 #11279]  INFO -- : Connecting to LoginServer
+I, [2014-06-04T18:31:40.854139 #11279]  INFO -- : Connecting to LoginServer successful
+I, [2014-06-04T18:31:44.123965 #11279]  INFO -- : Connecting to RunServer
+I, [2014-06-04T18:31:45.007788 #11279]  INFO -- : Connecting to RunServer successful
+I, [2014-06-04T18:32:29.406178 #11321]  INFO -- : Connecting to LoginServer
+I, [2014-06-04T18:32:37.465721 #11343]  INFO -- : Connecting to LoginServer
+I, [2014-06-04T18:32:38.937836 #11343]  INFO -- : Connecting to LoginServer successful
+I, [2014-06-04T18:32:38.938024 #11343]  INFO -- : Connecting to RunServer
+I, [2014-06-04T18:32:38.938227 #11343]  INFO -- : Connecting to RunServer successful
+I, [2014-06-04T18:35:00.595122 #11510]  INFO -- : Connecting to LoginServer
+I, [2014-06-04T18:35:01.291752 #11510]  INFO -- : Connecting to LoginServer successful
+I, [2014-06-04T18:35:01.291905 #11510]  INFO -- : Connecting to RunServer
+I, [2014-06-04T18:35:03.215313 #11510]  INFO -- : Connecting to RunServer successful
+I, [2014-06-04T18:39:00.778737 #11709]  INFO -- : Connecting to LoginServer
+I, [2014-06-04T18:39:01.615963 #11709]  INFO -- : Connecting to LoginServer successful
+I, [2014-06-04T18:39:01.616135 #11709]  INFO -- : Connecting to RunServer
+I, [2014-06-04T18:39:02.200103 #11709]  INFO -- : Connecting to RunServer successful
+I, [2014-06-04T18:39:37.894148 #11768]  INFO -- : Connecting to LoginServer
+I, [2014-06-04T18:39:37.894487 #11768]  INFO -- : Connecting to LoginServer successful
+I, [2014-06-04T18:39:37.894607 #11768]  INFO -- : Connecting to RunServer
+I, [2014-06-04T18:39:39.265813 #11768]  INFO -- : Connecting to RunServer successful
+I, [2014-06-04T18:41:36.304527 #11892]  INFO -- : Connecting to LoginServer
+I, [2014-06-04T18:41:37.122475 #11892]  INFO -- : Connecting to LoginServer successful
+I, [2014-06-04T18:41:37.122814 #11892]  INFO -- : Connecting to RunServer
+I, [2014-06-04T18:41:37.123010 #11892]  INFO -- : Connecting to RunServer successful
+I, [2014-06-04T19:55:09.101808 #12153]  INFO -- : Connecting to LoginServer
+I, [2014-06-04T19:55:09.102203 #12153]  INFO -- : Connecting to LoginServer successful
+I, [2014-06-04T19:55:09.679595 #12153]  INFO -- : Connecting to RunServer
+I, [2014-06-04T19:55:09.679897 #12153]  INFO -- : Connecting to RunServer successful
+I, [2014-06-04T19:56:08.860177 #12244]  INFO -- : Connecting to LoginServer
+I, [2014-06-04T19:56:09.744840 #12244]  INFO -- : Connecting to LoginServer successful
+I, [2014-06-04T19:56:09.745313 #12244]  INFO -- : Connecting to RunServer
+I, [2014-06-04T19:56:09.745560 #12244]  INFO -- : Connecting to RunServer successful
+I, [2014-06-05T11:18:16.186010 #1798]  INFO -- : Connecting to LoginServer
+I, [2014-06-05T11:18:18.724170 #1798]  INFO -- : Connecting to LoginServer successful
+I, [2014-06-05T11:18:18.724375 #1798]  INFO -- : Connecting to RunServer
+I, [2014-06-05T11:18:19.252520 #1798]  INFO -- : Connecting to RunServer successful
+I, [2014-06-05T11:23:51.141389 #2076]  INFO -- : Connecting to LoginServer
+I, [2014-06-05T11:23:51.141608 #2076]  INFO -- : Connecting to LoginServer successful
+I, [2014-06-05T11:23:52.474561 #2076]  INFO -- : Connecting to RunServer
+I, [2014-06-05T11:23:52.474805 #2076]  INFO -- : Connecting to RunServer successful
+I, [2014-06-05T11:24:06.102657 #2081]  INFO -- : Connecting to LoginServer
+I, [2014-06-05T11:24:06.102952 #2081]  INFO -- : Connecting to LoginServer successful
+I, [2014-06-05T11:24:07.213338 #2081]  INFO -- : Connecting to RunServer
+I, [2014-06-05T11:24:07.213577 #2081]  INFO -- : Connecting to RunServer successful
+I, [2014-06-05T11:29:08.428972 #2129]  INFO -- : Connecting to LoginServer
+I, [2014-06-05T11:29:09.923198 #2129]  INFO -- : Connecting to LoginServer successful
+I, [2014-06-05T11:29:09.923413 #2129]  INFO -- : Connecting to RunServer
+I, [2014-06-05T11:29:10.421256 #2129]  INFO -- : Connecting to RunServer successful
+I, [2014-06-05T11:34:33.605416 #2242]  INFO -- : Connecting to LoginServer
+I, [2014-06-05T11:34:33.605613 #2242]  INFO -- : Connecting to LoginServer successful
+I, [2014-06-05T11:34:35.306324 #2242]  INFO -- : Connecting to RunServer
+I, [2014-06-05T11:34:35.690008 #2242]  INFO -- : Connecting to RunServer successful
+I, [2014-06-05T11:51:32.907340 #2405]  INFO -- : Connecting to LoginServer
+I, [2014-06-05T11:51:34.211979 #2405]  INFO -- : Connecting to LoginServer successful
+I, [2014-06-05T11:51:34.212223 #2405]  INFO -- : Connecting to RunServer
+I, [2014-06-05T11:51:34.705710 #2405]  INFO -- : Connecting to RunServer successful
+I, [2014-06-05T15:51:10.175197 #4636]  INFO -- : Connecting to LoginServer
+I, [2014-06-05T15:51:10.175405 #4636]  INFO -- : Connecting to LoginServer successful
+I, [2014-06-05T15:51:11.166653 #4636]  INFO -- : Connecting to RunServer
+I, [2014-06-05T15:51:11.166888 #4636]  INFO -- : Connecting to RunServer successful
+I, [2014-06-05T16:04:34.376879 #4806]  INFO -- : gate_server[ 0.0.0.0, 50560 ]启动完成
+I, [2014-06-05T16:04:34.376922 #4806]  INFO -- : Connecting to LoginServer
+I, [2014-06-05T16:04:34.377189 #4806]  INFO -- : Connecting to LoginServer successful
+I, [2014-06-05T16:04:35.832267 #4806]  INFO -- : Connecting to RunServer
+I, [2014-06-05T16:04:36.345565 #4806]  INFO -- : Connecting to RunServer successful
+E, [2014-06-05T16:31:44.613230 #4806] ERROR -- : integer 1401957104613134 too big to convert to `int'
+E, [2014-06-05T16:31:44.613386 #4806] ERROR -- : /Users/kay/Documents/xcode/FSNet/FSNet/game_server/src/boomman/cmds/game_cmds.rb:20:in `write_int64'
+E, [2014-06-05T16:31:44.613458 #4806] ERROR -- : /Users/kay/Documents/xcode/FSNet/FSNet/game_server/src/boomman/cmds/game_cmds.rb:20:in `regiest_session'
+E, [2014-06-05T16:31:44.613523 #4806] ERROR -- : /Users/kay/Documents/xcode/FSNet/FSNet/game_server/src/gamelib/game_server.rb:222:in `call'
+E, [2014-06-05T16:31:44.613586 #4806] ERROR -- : /Users/kay/Documents/xcode/FSNet/FSNet/game_server/src/gamelib/game_server.rb:222:in `handle_pack'
+E, [2014-06-05T16:31:44.613697 #4806] ERROR -- : /Users/kay/Documents/xcode/FSNet/FSNet/game_server/src/gamelib/game_server.rb:254:in `on_handle_pack'
+E, [2014-06-05T16:34:57.892523 #4806] ERROR -- : integer 1401957297892486 too big to convert to `int'
+E, [2014-06-05T16:34:57.892644 #4806] ERROR -- : /Users/kay/Documents/xcode/FSNet/FSNet/game_server/src/boomman/cmds/game_cmds.rb:20:in `write_int64'
+E, [2014-06-05T16:34:57.892706 #4806] ERROR -- : /Users/kay/Documents/xcode/FSNet/FSNet/game_server/src/boomman/cmds/game_cmds.rb:20:in `regiest_session'
+E, [2014-06-05T16:34:57.892774 #4806] ERROR -- : /Users/kay/Documents/xcode/FSNet/FSNet/game_server/src/gamelib/game_server.rb:222:in `call'
+E, [2014-06-05T16:34:57.892851 #4806] ERROR -- : /Users/kay/Documents/xcode/FSNet/FSNet/game_server/src/gamelib/game_server.rb:222:in `handle_pack'
+E, [2014-06-05T16:34:57.892902 #4806] ERROR -- : /Users/kay/Documents/xcode/FSNet/FSNet/game_server/src/gamelib/game_server.rb:254:in `on_handle_pack'
+I, [2014-06-05T16:36:08.313382 #5378]  INFO -- : gate_server[ 0.0.0.0, 50560 ]启动完成
+I, [2014-06-05T16:36:08.313435 #5378]  INFO -- : Connecting to LoginServer
+I, [2014-06-05T16:36:09.148695 #5378]  INFO -- : Connecting to LoginServer successful
+I, [2014-06-05T16:36:09.148879 #5378]  INFO -- : Connecting to RunServer
+I, [2014-06-05T16:36:09.149101 #5378]  INFO -- : Connecting to RunServer successful
+E, [2014-06-05T16:36:31.651167 #5378] ERROR -- : integer 1401957391651 too big to convert to `int'
+E, [2014-06-05T16:36:31.651319 #5378] ERROR -- : /Users/kay/Documents/xcode/FSNet/FSNet/game_server/src/boomman/cmds/game_cmds.rb:20:in `write_int64'
+E, [2014-06-05T16:36:31.651380 #5378] ERROR -- : /Users/kay/Documents/xcode/FSNet/FSNet/game_server/src/boomman/cmds/game_cmds.rb:20:in `regiest_session'
+E, [2014-06-05T16:36:31.651444 #5378] ERROR -- : /Users/kay/Documents/xcode/FSNet/FSNet/game_server/src/gamelib/game_server.rb:222:in `call'
+E, [2014-06-05T16:36:31.651495 #5378] ERROR -- : /Users/kay/Documents/xcode/FSNet/FSNet/game_server/src/gamelib/game_server.rb:222:in `handle_pack'
+E, [2014-06-05T16:36:31.651595 #5378] ERROR -- : /Users/kay/Documents/xcode/FSNet/FSNet/game_server/src/gamelib/game_server.rb:254:in `on_handle_pack'
+I, [2014-06-05T16:38:43.059780 #5426]  INFO -- : gate_server[ 0.0.0.0, 50560 ]启动完成
+I, [2014-06-05T16:38:43.059845 #5426]  INFO -- : Connecting to LoginServer
+I, [2014-06-05T16:38:43.967885 #5426]  INFO -- : Connecting to LoginServer successful
+I, [2014-06-05T16:38:43.968076 #5426]  INFO -- : Connecting to RunServer
+I, [2014-06-05T16:38:44.563291 #5426]  INFO -- : Connecting to RunServer successful
+E, [2014-06-05T16:39:06.692588 #5426] ERROR -- : wrong argument type Fixnum (expected Bignum)
+E, [2014-06-05T16:39:06.692787 #5426] ERROR -- : /Users/kay/Documents/xcode/FSNet/FSNet/game_server/src/boomman/cmds/game_cmds.rb:20:in `write_int64'
+E, [2014-06-05T16:39:06.692867 #5426] ERROR -- : /Users/kay/Documents/xcode/FSNet/FSNet/game_server/src/boomman/cmds/game_cmds.rb:20:in `regiest_session'
+E, [2014-06-05T16:39:06.692933 #5426] ERROR -- : /Users/kay/Documents/xcode/FSNet/FSNet/game_server/src/gamelib/game_server.rb:222:in `call'
+E, [2014-06-05T16:39:06.693000 #5426] ERROR -- : /Users/kay/Documents/xcode/FSNet/FSNet/game_server/src/gamelib/game_server.rb:222:in `handle_pack'
+E, [2014-06-05T16:39:06.693100 #5426] ERROR -- : /Users/kay/Documents/xcode/FSNet/FSNet/game_server/src/gamelib/game_server.rb:254:in `on_handle_pack'
+I, [2014-06-05T16:39:54.212052 #5480]  INFO -- : gate_server[ 0.0.0.0, 50560 ]启动完成
+I, [2014-06-05T16:39:54.212146 #5480]  INFO -- : Connecting to LoginServer
+I, [2014-06-05T16:39:54.966008 #5480]  INFO -- : Connecting to LoginServer successful
+I, [2014-06-05T16:39:54.966255 #5480]  INFO -- : Connecting to RunServer
+I, [2014-06-05T16:39:54.966482 #5480]  INFO -- : Connecting to RunServer successful
+I, [2014-06-05T17:16:54.163632 #6518]  INFO -- : gate_server[ 0.0.0.0, 50560 ]启动完成
+I, [2014-06-05T17:16:54.163722 #6518]  INFO -- : Connecting to LoginServer
+I, [2014-06-05T17:16:55.132765 #6518]  INFO -- : Connecting to LoginServer successful
+I, [2014-06-05T17:16:55.132952 #6518]  INFO -- : Connecting to RunServer
+I, [2014-06-05T17:16:55.765944 #6518]  INFO -- : Connecting to RunServer successful
+W, [2014-06-05T18:25:55.469659 #6518]  WARN -- : 无法找到处理9协议的方法
+W, [2014-06-05T18:25:56.787257 #6518]  WARN -- : 无法找到处理9协议的方法
+W, [2014-06-05T18:25:56.857659 #6518]  WARN -- : 无法找到处理9协议的方法
+W, [2014-06-05T18:25:57.013231 #6518]  WARN -- : 无法找到处理9协议的方法
+W, [2014-06-05T18:25:57.242882 #6518]  WARN -- : 无法找到处理9协议的方法
+W, [2014-06-05T18:25:57.377408 #6518]  WARN -- : 无法找到处理9协议的方法
+W, [2014-06-05T18:25:57.660519 #6518]  WARN -- : 无法找到处理9协议的方法
+I, [2014-06-05T21:06:50.340336 #10639]  INFO -- : gate_server[ 0.0.0.0, 50560 ]启动完成
+I, [2014-06-05T21:06:50.340372 #10639]  INFO -- : Connecting to LoginServer
+I, [2014-06-05T21:06:50.340630 #10639]  INFO -- : Connecting to LoginServer successful
+I, [2014-06-05T21:06:53.532539 #10639]  INFO -- : Connecting to RunServer
+I, [2014-06-05T21:06:53.848098 #10639]  INFO -- : Connecting to RunServer successful
+I, [2014-06-05T21:09:36.186700 #10683]  INFO -- : gate_server[ 0.0.0.0, 50560 ]启动完成
+I, [2014-06-05T21:09:36.186737 #10683]  INFO -- : Connecting to LoginServer
+I, [2014-06-05T21:09:37.927418 #10683]  INFO -- : Connecting to LoginServer successful
+I, [2014-06-05T21:09:37.927587 #10683]  INFO -- : Connecting to RunServer
+I, [2014-06-05T21:09:37.927782 #10683]  INFO -- : Connecting to RunServer successful
+I, [2014-06-05T21:09:58.751284 #10714]  INFO -- : gate_server[ 0.0.0.0, 50560 ]启动完成
+I, [2014-06-05T21:09:58.751334 #10714]  INFO -- : Connecting to LoginServer
+I, [2014-06-05T21:10:01.259546 #10714]  INFO -- : Connecting to LoginServer successful
+I, [2014-06-05T21:10:01.259722 #10714]  INFO -- : Connecting to RunServer
+I, [2014-06-05T21:10:02.082901 #10714]  INFO -- : Connecting to RunServer successful
+I, [2014-06-05T21:13:02.227436 #10749]  INFO -- : gate_server[ 0.0.0.0, 50560 ]启动完成
+I, [2014-06-05T21:13:02.228332 #10749]  INFO -- : Connecting to LoginServer
+I, [2014-06-05T21:14:09.423283 #10824]  INFO -- : gate_server[ 0.0.0.0, 50560 ]启动完成
+I, [2014-06-05T21:14:09.423331 #10824]  INFO -- : Connecting to LoginServer
+I, [2014-06-05T21:14:11.709509 #10824]  INFO -- : Connecting to LoginServer successful
+I, [2014-06-05T21:14:11.709769 #10824]  INFO -- : Connecting to RunServer
+I, [2014-06-05T21:14:12.248198 #10824]  INFO -- : Connecting to RunServer successful
+I, [2014-06-05T21:18:10.124428 #10963]  INFO -- : gate_server[ 0.0.0.0, 50560 ]启动完成
+I, [2014-06-05T21:18:10.124477 #10963]  INFO -- : Connecting to LoginServer
+I, [2014-06-05T21:18:11.777835 #10963]  INFO -- : Connecting to LoginServer successful
+I, [2014-06-05T21:18:11.778004 #10963]  INFO -- : Connecting to RunServer
+I, [2014-06-05T21:18:12.244665 #10963]  INFO -- : Connecting to RunServer successful
+I, [2014-06-05T21:33:03.661464 #28499]  INFO -- : gate_server[ 0.0.0.0, 50560 ]启动完成
+I, [2014-06-05T21:33:03.661783 #28499]  INFO -- : Connecting to LoginServer
+I, [2014-06-05T21:33:03.661995 #28499]  INFO -- : Connecting to LoginServer successful
+I, [2014-06-05T21:33:05.513839 #28499]  INFO -- : Connecting to RunServer
+I, [2014-06-05T21:33:05.514062 #28499]  INFO -- : Connecting to RunServer successful
+I, [2014-06-05T21:33:16.561878 #30679]  INFO -- : gate_server[ 0.0.0.0, 50560 ]启动完成
+I, [2014-06-05T21:33:16.561926 #30679]  INFO -- : Connecting to LoginServer
+I, [2014-06-05T21:33:16.562160 #30679]  INFO -- : Connecting to LoginServer successful
+I, [2014-06-05T21:33:17.481235 #30679]  INFO -- : Connecting to RunServer
+I, [2014-06-05T21:33:17.481462 #30679]  INFO -- : Connecting to RunServer successful
+I, [2014-06-05T21:35:33.164850 #35932]  INFO -- : gate_server[ 0.0.0.0, 50560 ]启动完成
+I, [2014-06-05T21:35:33.164908 #35932]  INFO -- : Connecting to LoginServer
+I, [2014-06-05T21:35:34.660060 #35932]  INFO -- : Connecting to LoginServer successful
+I, [2014-06-05T21:35:34.660270 #35932]  INFO -- : Connecting to RunServer
+I, [2014-06-05T21:35:35.193509 #35932]  INFO -- : Connecting to RunServer successful
+I, [2014-06-05T21:35:53.405601 #35974]  INFO -- : gate_server[ 0.0.0.0, 50560 ]启动完成
+I, [2014-06-05T21:35:53.405657 #35974]  INFO -- : Connecting to LoginServer
+I, [2014-06-05T21:36:15.905552 #36022]  INFO -- : gate_server[ 0.0.0.0, 50560 ]启动完成
+I, [2014-06-05T21:36:15.905603 #36022]  INFO -- : Connecting to LoginServer
+I, [2014-06-05T21:36:17.118264 #36022]  INFO -- : Connecting to LoginServer successful
+I, [2014-06-05T21:36:17.118516 #36022]  INFO -- : Connecting to RunServer
+I, [2014-06-05T21:36:17.651578 #36022]  INFO -- : Connecting to RunServer successful
+I, [2014-06-05T21:36:25.412059 #36049]  INFO -- : gate_server[ 0.0.0.0, 50560 ]启动完成
+I, [2014-06-05T21:36:25.412150 #36049]  INFO -- : Connecting to LoginServer
+I, [2014-06-05T21:36:27.378470 #36049]  INFO -- : Connecting to LoginServer successful
+I, [2014-06-05T21:36:27.378655 #36049]  INFO -- : Connecting to RunServer
+I, [2014-06-05T21:36:27.378875 #36049]  INFO -- : Connecting to RunServer successful
+I, [2014-06-05T21:37:05.074684 #36096]  INFO -- : gate_server[ 0.0.0.0, 50560 ]启动完成
+I, [2014-06-05T21:37:05.074719 #36096]  INFO -- : Connecting to LoginServer
+I, [2014-06-05T21:37:06.053374 #36096]  INFO -- : Connecting to LoginServer successful
+I, [2014-06-05T21:37:06.053573 #36096]  INFO -- : Connecting to RunServer
+I, [2014-06-05T21:37:06.607496 #36096]  INFO -- : Connecting to RunServer successful
+I, [2014-06-05T21:39:13.399466 #36283]  INFO -- : gate_server[ 0.0.0.0, 50560 ]启动完成
+I, [2014-06-05T21:39:13.399522 #36283]  INFO -- : Connecting to LoginServer
+I, [2014-06-05T21:39:14.566105 #36283]  INFO -- : Connecting to LoginServer successful
+I, [2014-06-05T21:39:14.566325 #36283]  INFO -- : Connecting to RunServer
+I, [2014-06-05T21:39:15.121580 #36283]  INFO -- : Connecting to RunServer successful
+I, [2014-06-05T21:45:05.572170 #36988]  INFO -- : gate_server[ 0.0.0.0, 50560 ]启动完成
+I, [2014-06-05T21:45:05.572218 #36988]  INFO -- : Connecting to LoginServer
+I, [2014-06-05T21:45:05.572457 #36988]  INFO -- : Connecting to LoginServer successful
+I, [2014-06-05T21:45:07.121977 #36988]  INFO -- : Connecting to RunServer
+I, [2014-06-05T21:45:07.122221 #36988]  INFO -- : Connecting to RunServer successful
+I, [2014-06-05T21:45:17.065233 #37021]  INFO -- : gate_server[ 0.0.0.0, 50560 ]启动完成
+I, [2014-06-05T21:45:17.065275 #37021]  INFO -- : Connecting to LoginServer
+I, [2014-06-05T21:45:17.065484 #37021]  INFO -- : Connecting to LoginServer successful
+I, [2014-06-05T21:45:17.511957 #37021]  INFO -- : Connecting to RunServer
+I, [2014-06-05T21:45:17.934549 #37021]  INFO -- : Connecting to RunServer successful
+I, [2014-06-05T21:45:51.370654 #37076]  INFO -- : gate_server[ 0.0.0.0, 50560 ]启动完成
+I, [2014-06-05T21:45:51.370705 #37076]  INFO -- : Connecting to LoginServer
+I, [2014-06-05T21:45:51.370919 #37076]  INFO -- : Connecting to LoginServer successful
+I, [2014-06-05T21:45:53.682988 #37076]  INFO -- : Connecting to RunServer
+I, [2014-06-05T21:45:53.683237 #37076]  INFO -- : Connecting to RunServer successful
+I, [2014-06-06T10:56:56.347370 #1217]  INFO -- : gate_server[ 0.0.0.0, 50560 ]启动完成
+I, [2014-06-06T10:56:56.347625 #1217]  INFO -- : Connecting to LoginServer
+I, [2014-06-06T10:56:57.954791 #1217]  INFO -- : Connecting to LoginServer successful
+I, [2014-06-06T10:56:57.954947 #1217]  INFO -- : Connecting to RunServer
+I, [2014-06-06T10:56:57.955193 #1217]  INFO -- : Connecting to RunServer successful
+I, [2014-06-06T11:07:15.098123 #1520]  INFO -- : gate_server[ 0.0.0.0, 50560 ]启动完成
+I, [2014-06-06T11:07:15.098191 #1520]  INFO -- : Connecting to LoginServer
+I, [2014-06-06T11:07:24.373570 #1530]  INFO -- : gate_server[ 0.0.0.0, 50560 ]启动完成
+I, [2014-06-06T11:07:24.373638 #1530]  INFO -- : Connecting to LoginServer
+I, [2014-06-06T11:07:25.603243 #1530]  INFO -- : Connecting to LoginServer successful
+I, [2014-06-06T11:07:25.603438 #1530]  INFO -- : Connecting to RunServer
+I, [2014-06-06T11:07:26.136658 #1530]  INFO -- : Connecting to RunServer successful
+I, [2014-06-06T11:12:35.872303 #1667]  INFO -- : gate_server[ 0.0.0.0, 50560 ]启动完成
+I, [2014-06-06T11:12:35.872353 #1667]  INFO -- : Connecting to LoginServer
+I, [2014-06-06T11:12:37.420376 #1667]  INFO -- : Connecting to LoginServer successful
+I, [2014-06-06T11:12:37.420605 #1667]  INFO -- : Connecting to RunServer
+I, [2014-06-06T11:12:37.920889 #1667]  INFO -- : Connecting to RunServer successful
+I, [2014-06-06T17:04:29.686201 #12990]  INFO -- : gate_server[ 0.0.0.0, 50560 ]启动完成
+I, [2014-06-06T17:04:29.686564 #12990]  INFO -- : Connecting to LoginServer
+I, [2014-06-06T17:04:30.492061 #12990]  INFO -- : Connecting to LoginServer successful
+I, [2014-06-06T17:06:28.744856 #13020]  INFO -- : gate_server[ 0.0.0.0, 50560 ]启动完成
+I, [2014-06-06T17:06:28.744907 #13020]  INFO -- : Connecting to LoginServer
+I, [2014-06-06T17:06:30.169050 #13020]  INFO -- : Connecting to LoginServer successful
+I, [2014-06-06T17:06:58.901456 #13066]  INFO -- : gate_server[ 0.0.0.0, 50560 ]启动完成
+I, [2014-06-06T17:06:58.901495 #13066]  INFO -- : Connecting to LoginServer
+I, [2014-06-06T17:07:00.145765 #13066]  INFO -- : Connecting to LoginServer successful
+I, [2014-06-06T17:07:07.815424 #13085]  INFO -- : gate_server[ 0.0.0.0, 50560 ]启动完成
+I, [2014-06-06T17:07:07.815461 #13085]  INFO -- : Connecting to LoginServer
+I, [2014-06-06T17:07:07.815701 #13085]  INFO -- : Connecting to LoginServer successful
+I, [2014-06-06T17:09:20.780813 #13294]  INFO -- : gate_server[ 0.0.0.0, 50560 ]启动完成
+I, [2014-06-06T17:09:20.780884 #13294]  INFO -- : Connecting to LoginServer
+I, [2014-06-06T17:09:20.781258 #13294]  INFO -- : Connecting to LoginServer successful
+I, [2014-06-06T17:10:31.322653 #13409]  INFO -- : gate_server[ 0.0.0.0, 50560 ]启动完成
+I, [2014-06-06T17:10:31.322699 #13409]  INFO -- : Connecting to LoginServer
+I, [2014-06-06T17:10:31.322966 #13409]  INFO -- : Connecting to LoginServer successful
+I, [2014-06-06T17:11:24.436191 #13471]  INFO -- : gate_server[ 0.0.0.0, 50560 ]启动完成
+I, [2014-06-06T17:11:24.436225 #13471]  INFO -- : Connecting to LoginServer
+I, [2014-06-06T17:11:24.436465 #13471]  INFO -- : Connecting to LoginServer successful
+I, [2014-06-06T17:11:31.213835 #13489]  INFO -- : gate_server[ 0.0.0.0, 50560 ]启动完成
+I, [2014-06-06T17:11:31.213892 #13489]  INFO -- : Connecting to LoginServer
+I, [2014-06-06T17:11:31.719882 #13489]  INFO -- : Connecting to LoginServer successful
+I, [2014-06-06T17:11:41.342350 #13522]  INFO -- : gate_server[ 0.0.0.0, 50560 ]启动完成
+I, [2014-06-06T17:11:41.342413 #13522]  INFO -- : Connecting to LoginServer
+I, [2014-06-06T17:11:42.230031 #13522]  INFO -- : Connecting to LoginServer successful
+I, [2014-06-06T17:11:54.211921 #13560]  INFO -- : gate_server[ 0.0.0.0, 50560 ]启动完成
+I, [2014-06-06T17:11:54.211970 #13560]  INFO -- : Connecting to LoginServer
+I, [2014-06-06T17:11:54.916520 #13560]  INFO -- : Connecting to LoginServer successful
+I, [2014-06-06T17:12:01.610985 #13584]  INFO -- : gate_server[ 0.0.0.0, 50560 ]启动完成
+I, [2014-06-06T17:12:01.611036 #13584]  INFO -- : Connecting to LoginServer
+I, [2014-06-06T17:12:01.611298 #13584]  INFO -- : Connecting to LoginServer successful
+I, [2014-06-06T17:12:22.313793 #13620]  INFO -- : gate_server[ 0.0.0.0, 50560 ]启动完成
+I, [2014-06-06T17:12:22.313850 #13620]  INFO -- : Connecting to LoginServer
+I, [2014-06-06T17:12:22.872004 #13620]  INFO -- : Connecting to LoginServer successful
+I, [2014-06-06T17:12:37.914783 #13662]  INFO -- : gate_server[ 0.0.0.0, 50560 ]启动完成
+I, [2014-06-06T17:12:37.914845 #13662]  INFO -- : Connecting to LoginServer
+I, [2014-06-06T17:12:37.915141 #13662]  INFO -- : Connecting to LoginServer successful
+I, [2014-06-06T17:13:21.420484 #13706]  INFO -- : gate_server[ 0.0.0.0, 50560 ]启动完成
+I, [2014-06-06T17:13:21.420535 #13706]  INFO -- : Connecting to LoginServer
+I, [2014-06-06T17:13:22.232564 #13706]  INFO -- : Connecting to LoginServer successful
+I, [2014-06-06T17:13:43.525415 #13752]  INFO -- : gate_server[ 0.0.0.0, 50560 ]启动完成
+I, [2014-06-06T17:13:43.525489 #13752]  INFO -- : Connecting to LoginServer
+I, [2014-06-06T17:13:43.939118 #13752]  INFO -- : Connecting to LoginServer successful
+I, [2014-06-06T17:13:52.279743 #13770]  INFO -- : gate_server[ 0.0.0.0, 50560 ]启动完成
+I, [2014-06-06T17:13:52.279790 #13770]  INFO -- : Connecting to LoginServer
+I, [2014-06-06T17:13:52.280013 #13770]  INFO -- : Connecting to LoginServer successful
+I, [2014-06-06T17:14:05.682004 #13808]  INFO -- : gate_server[ 0.0.0.0, 50560 ]启动完成
+I, [2014-06-06T17:14:05.682056 #13808]  INFO -- : Connecting to LoginServer
+I, [2014-06-06T17:14:06.238144 #13808]  INFO -- : Connecting to LoginServer successful
+I, [2014-06-06T17:14:27.805362 #13841]  INFO -- : gate_server[ 0.0.0.0, 50560 ]启动完成
+I, [2014-06-06T17:14:27.805437 #13841]  INFO -- : Connecting to LoginServer
+I, [2014-06-06T17:14:27.805808 #13841]  INFO -- : Connecting to LoginServer successful
+I, [2014-06-06T17:15:01.239376 #13898]  INFO -- : gate_server[ 0.0.0.0, 50560 ]启动完成
+I, [2014-06-06T17:15:01.239486 #13898]  INFO -- : Connecting to LoginServer
+I, [2014-06-06T17:15:01.938047 #13898]  INFO -- : Connecting to LoginServer successful
+I, [2014-06-06T17:15:01.938256 #13898]  INFO -- : Connecting to RunServer
+I, [2014-06-06T17:15:02.550059 #13898]  INFO -- : Connecting to RunServer successful
+I, [2014-06-06T17:20:10.224363 #13996]  INFO -- : gate_server[ 0.0.0.0, 50560 ]启动完成
+I, [2014-06-06T17:20:10.224608 #13996]  INFO -- : Connecting to LoginServer
+I, [2014-06-06T17:20:11.181068 #13996]  INFO -- : Connecting to LoginServer successful
+I, [2014-06-06T17:20:11.181263 #13996]  INFO -- : Connecting to RunServer
+I, [2014-06-06T17:20:11.672239 #13996]  INFO -- : Connecting to RunServer successful
+I, [2014-06-06T17:25:40.715394 #14076]  INFO -- : gate_server[ 0.0.0.0, 50560 ]启动完成
+I, [2014-06-06T17:25:40.715455 #14076]  INFO -- : Connecting to LoginServer
+I, [2014-06-06T17:25:41.731506 #14076]  INFO -- : Connecting to LoginServer successful
+I, [2014-06-06T17:25:41.731677 #14076]  INFO -- : Connecting to RunServer
+I, [2014-06-06T17:25:42.044110 #14076]  INFO -- : Connecting to RunServer successful
+I, [2014-06-06T17:32:21.374813 #14417]  INFO -- : gate_server[ 0.0.0.0, 50560 ]启动完成
+I, [2014-06-06T17:32:21.374855 #14417]  INFO -- : Connecting to LoginServer
+I, [2014-06-06T17:32:21.375138 #14417]  INFO -- : Connecting to LoginServer successful
+I, [2014-06-06T17:32:22.616123 #14417]  INFO -- : Connecting to RunServer
+I, [2014-06-06T17:32:23.207472 #14417]  INFO -- : Connecting to RunServer successful
+I, [2014-06-06T17:34:31.890738 #14493]  INFO -- : gate_server[ 0.0.0.0, 50560 ]启动完成
+I, [2014-06-06T17:34:31.890771 #14493]  INFO -- : Connecting to LoginServer
+I, [2014-06-06T17:34:31.891058 #14493]  INFO -- : Connecting to LoginServer successful
+I, [2014-06-06T17:34:33.099651 #14493]  INFO -- : Connecting to RunServer
+I, [2014-06-06T17:34:33.099859 #14493]  INFO -- : Connecting to RunServer successful
+I, [2014-06-06T17:36:00.072401 #14558]  INFO -- : gate_server[ 0.0.0.0, 50560 ]启动完成
+I, [2014-06-06T17:36:00.072706 #14558]  INFO -- : Connecting to LoginServer
+I, [2014-06-06T17:36:00.072933 #14558]  INFO -- : Connecting to LoginServer successful
+I, [2014-06-06T17:36:00.657072 #14558]  INFO -- : Connecting to RunServer
+I, [2014-06-06T17:36:00.657323 #14558]  INFO -- : Connecting to RunServer successful
+I, [2014-06-06T17:41:42.791775 #14631]  INFO -- : gate_server[ 0.0.0.0, 50560 ]启动完成
+I, [2014-06-06T17:41:42.792023 #14631]  INFO -- : Connecting to LoginServer
+I, [2014-06-06T17:41:43.888004 #14631]  INFO -- : Connecting to LoginServer successful
+I, [2014-06-06T17:41:43.888169 #14631]  INFO -- : Connecting to RunServer
+I, [2014-06-06T17:41:45.784361 #14631]  INFO -- : Connecting to RunServer successful
+I, [2014-06-06T17:44:24.159262 #14799]  INFO -- : gate_server[ 0.0.0.0, 50560 ]启动完成
+I, [2014-06-06T17:44:24.159315 #14799]  INFO -- : Connecting to LoginServer
+I, [2014-06-06T17:44:25.763886 #14799]  INFO -- : Connecting to LoginServer successful
+I, [2014-06-06T17:44:25.764077 #14799]  INFO -- : Connecting to RunServer
+I, [2014-06-06T17:44:25.968541 #14799]  INFO -- : Connecting to RunServer successful
+I, [2014-06-06T17:45:17.021663 #14822]  INFO -- : gate_server[ 0.0.0.0, 50560 ]启动完成
+I, [2014-06-06T17:45:17.021706 #14822]  INFO -- : Connecting to LoginServer
+I, [2014-06-06T17:45:17.574095 #14822]  INFO -- : Connecting to LoginServer successful
+I, [2014-06-06T17:45:17.574279 #14822]  INFO -- : Connecting to RunServer
+I, [2014-06-06T17:45:19.027175 #14822]  INFO -- : Connecting to RunServer successful
+I, [2014-06-06T18:17:24.632486 #15831]  INFO -- : gate_server[ 0.0.0.0, 50560 ]启动完成
+I, [2014-06-06T18:17:24.632529 #15831]  INFO -- : Connecting to LoginServer
+I, [2014-06-06T18:17:26.160379 #15831]  INFO -- : Connecting to LoginServer successful
+I, [2014-06-06T18:17:26.160572 #15831]  INFO -- : Connecting to RunServer
+I, [2014-06-06T18:17:26.749845 #15831]  INFO -- : Connecting to RunServer successful
+I, [2014-06-06T18:21:20.323861 #16170]  INFO -- : gate_server[ 0.0.0.0, 50560 ]启动完成
+I, [2014-06-06T18:21:20.323908 #16170]  INFO -- : Connecting to LoginServer
+I, [2014-06-06T18:21:20.324212 #16170]  INFO -- : Connecting to LoginServer successful
+I, [2014-06-06T18:21:21.248710 #16170]  INFO -- : Connecting to RunServer
+I, [2014-06-06T18:21:21.456768 #16170]  INFO -- : Connecting to RunServer successful
+I, [2014-06-06T18:24:48.229272 #16288]  INFO -- : gate_server[ 0.0.0.0, 50560 ]启动完成
+I, [2014-06-06T18:24:48.229316 #16288]  INFO -- : Connecting to LoginServer
+I, [2014-06-06T18:24:49.088687 #16288]  INFO -- : Connecting to LoginServer successful
+I, [2014-06-06T18:24:49.088866 #16288]  INFO -- : Connecting to RunServer
+I, [2014-06-06T18:24:49.387565 #16288]  INFO -- : Connecting to RunServer successful
+I, [2014-06-06T18:35:00.621924 #16794]  INFO -- : gate_server[ 0.0.0.0, 50560 ]启动完成
+I, [2014-06-06T18:35:00.621974 #16794]  INFO -- : Connecting to LoginServer
+I, [2014-06-06T18:35:01.514857 #16794]  INFO -- : Connecting to LoginServer successful
+I, [2014-06-06T18:35:01.515037 #16794]  INFO -- : Connecting to RunServer
+I, [2014-06-06T18:35:01.515273 #16794]  INFO -- : Connecting to RunServer successful
+I, [2014-06-06T18:36:45.076617 #16932]  INFO -- : gate_server[ 0.0.0.0, 50560 ]启动完成
+I, [2014-06-06T18:36:45.076676 #16932]  INFO -- : Connecting to LoginServer
+I, [2014-06-06T18:36:45.076904 #16932]  INFO -- : Connecting to LoginServer successful
+I, [2014-06-06T18:36:46.009124 #16932]  INFO -- : Connecting to RunServer
+I, [2014-06-06T18:36:46.009340 #16932]  INFO -- : Connecting to RunServer successful
+I, [2014-06-06T18:37:23.806984 #16994]  INFO -- : gate_server[ 0.0.0.0, 50560 ]启动完成
+I, [2014-06-06T18:37:23.807039 #16994]  INFO -- : Connecting to LoginServer
+I, [2014-06-06T18:37:24.517572 #16994]  INFO -- : Connecting to LoginServer successful
+I, [2014-06-06T18:37:24.517765 #16994]  INFO -- : Connecting to RunServer
+I, [2014-06-06T18:37:25.145072 #16994]  INFO -- : Connecting to RunServer successful
+I, [2014-06-06T18:37:39.581851 #17038]  INFO -- : gate_server[ 0.0.0.0, 50560 ]启动完成
+I, [2014-06-06T18:37:39.581900 #17038]  INFO -- : Connecting to LoginServer
+I, [2014-06-06T18:37:40.598198 #17038]  INFO -- : Connecting to LoginServer successful
+I, [2014-06-06T18:37:40.598406 #17038]  INFO -- : Connecting to RunServer
+I, [2014-06-06T18:37:40.598624 #17038]  INFO -- : Connecting to RunServer successful
+I, [2014-06-06T18:39:24.831903 #17229]  INFO -- : gate_server[ 0.0.0.0, 50560 ]启动完成
+I, [2014-06-06T18:39:24.831935 #17229]  INFO -- : Connecting to LoginServer
+I, [2014-06-06T18:39:27.529754 #17229]  INFO -- : Connecting to LoginServer successful
+I, [2014-06-06T18:39:27.529937 #17229]  INFO -- : Connecting to RunServer
+I, [2014-06-06T18:39:28.219931 #17229]  INFO -- : Connecting to RunServer successful
+I, [2014-06-06T18:39:33.530126 #17254]  INFO -- : gate_server[ 0.0.0.0, 50560 ]启动完成
+I, [2014-06-06T18:39:33.530173 #17254]  INFO -- : Connecting to LoginServer
+I, [2014-06-06T18:39:34.253609 #17254]  INFO -- : Connecting to LoginServer successful
+I, [2014-06-06T18:39:34.253802 #17254]  INFO -- : Connecting to RunServer
+I, [2014-06-06T18:39:34.821280 #17254]  INFO -- : Connecting to RunServer successful
+I, [2014-06-06T18:40:21.942890 #17338]  INFO -- : gate_server[ 0.0.0.0, 50560 ]启动完成
+I, [2014-06-06T18:40:21.942939 #17338]  INFO -- : Connecting to LoginServer
+I, [2014-06-06T18:40:21.943186 #17338]  INFO -- : Connecting to LoginServer successful
+I, [2014-06-06T18:40:22.598344 #17338]  INFO -- : Connecting to RunServer
+I, [2014-06-06T18:40:22.598613 #17338]  INFO -- : Connecting to RunServer successful
+I, [2014-06-06T18:40:31.590374 #17377]  INFO -- : gate_server[ 0.0.0.0, 50560 ]启动完成
+I, [2014-06-06T18:40:31.590424 #17377]  INFO -- : Connecting to LoginServer
+I, [2014-06-06T18:40:32.316707 #17377]  INFO -- : Connecting to LoginServer successful
+I, [2014-06-06T18:40:32.316907 #17377]  INFO -- : Connecting to RunServer
+I, [2014-06-06T18:40:42.848059 #17411]  INFO -- : gate_server[ 0.0.0.0, 50560 ]启动完成
+I, [2014-06-06T18:40:42.848116 #17411]  INFO -- : Connecting to LoginServer
+I, [2014-06-06T18:40:46.802193 #17411]  INFO -- : Connecting to LoginServer successful
+I, [2014-06-06T18:40:46.802390 #17411]  INFO -- : Connecting to RunServer
+I, [2014-06-06T18:40:47.008626 #17411]  INFO -- : Connecting to RunServer successful
+I, [2014-06-06T18:40:50.176283 #17435]  INFO -- : gate_server[ 0.0.0.0, 50560 ]启动完成
+I, [2014-06-06T18:40:50.176335 #17435]  INFO -- : Connecting to LoginServer
+I, [2014-06-06T18:40:50.897963 #17435]  INFO -- : Connecting to LoginServer successful
+I, [2014-06-06T18:40:50.898142 #17435]  INFO -- : Connecting to RunServer
+I, [2014-06-06T18:41:06.093216 #17470]  INFO -- : gate_server[ 0.0.0.0, 50560 ]启动完成
+I, [2014-06-06T18:41:06.093291 #17470]  INFO -- : Connecting to LoginServer
+I, [2014-06-06T18:41:06.656492 #17470]  INFO -- : Connecting to LoginServer successful
+I, [2014-06-06T18:41:06.656700 #17470]  INFO -- : Connecting to RunServer
+I, [2014-06-06T18:41:06.656940 #17470]  INFO -- : Connecting to RunServer successful
+I, [2014-06-06T19:13:58.917669 #18202]  INFO -- : gate_server[ 0.0.0.0, 50560 ]启动完成
+I, [2014-06-06T19:13:58.917713 #18202]  INFO -- : Connecting to LoginServer
+I, [2014-06-06T19:14:54.533194 #18345]  INFO -- : gate_server[ 0.0.0.0, 50560 ]启动完成
+I, [2014-06-06T19:14:54.533242 #18345]  INFO -- : Connecting to LoginServer
+I, [2014-06-06T19:19:41.662551 #18853]  INFO -- : gate_server[ 0.0.0.0, 50560 ]启动完成
+I, [2014-06-06T19:19:41.662608 #18853]  INFO -- : Connecting to LoginServer
+I, [2014-06-06T19:20:11.587698 #18906]  INFO -- : gate_server[ 0.0.0.0, 50560 ]启动完成
+I, [2014-06-06T19:20:11.587727 #18906]  INFO -- : Connecting to LoginServer
+I, [2014-06-06T19:20:25.721909 #18934]  INFO -- : gate_server[ 0.0.0.0, 50560 ]启动完成
+I, [2014-06-06T19:20:25.722000 #18934]  INFO -- : Connecting to LoginServer
+I, [2014-06-06T19:20:32.723127 #18969]  INFO -- : gate_server[ 0.0.0.0, 50560 ]启动完成
+I, [2014-06-06T19:20:32.723156 #18969]  INFO -- : Connecting to LoginServer
+I, [2014-06-06T19:20:43.205015 #19005]  INFO -- : gate_server[ 0.0.0.0, 50560 ]启动完成
+I, [2014-06-06T19:20:43.205074 #19005]  INFO -- : Connecting to LoginServer
+I, [2014-06-06T19:20:57.464204 #19039]  INFO -- : gate_server[ 0.0.0.0, 50560 ]启动完成
+I, [2014-06-06T19:20:57.464256 #19039]  INFO -- : Connecting to LoginServer
+I, [2014-06-06T19:20:57.464534 #19039]  INFO -- : Connecting to LoginServer successful
+I, [2014-06-06T19:20:58.879174 #19039]  INFO -- : Connecting to RunServer
+I, [2014-06-06T19:20:59.430861 #19039]  INFO -- : Connecting to RunServer successful
+I, [2014-06-06T19:21:14.056721 #19057]  INFO -- : gate_server[ 0.0.0.0, 50560 ]启动完成
+I, [2014-06-06T19:21:14.056771 #19057]  INFO -- : Connecting to LoginServer
+I, [2014-06-06T19:22:03.847295 #19127]  INFO -- : gate_server[ 0.0.0.0, 50560 ]启动完成
+I, [2014-06-06T19:22:03.847341 #19127]  INFO -- : Connecting to LoginServer
+I, [2014-06-06T19:22:03.847604 #19127]  INFO -- : Connecting to LoginServer successful
+I, [2014-06-06T19:22:25.628332 #19180]  INFO -- : gate_server[ 0.0.0.0, 50560 ]启动完成
+I, [2014-06-06T19:22:25.628379 #19180]  INFO -- : Connecting to LoginServer
+I, [2014-06-06T19:27:11.616573 #19575]  INFO -- : gate_server[ 0.0.0.0, 50560 ]启动完成
+I, [2014-06-06T19:27:11.616653 #19575]  INFO -- : Connecting to LoginServer
+I, [2014-06-06T19:27:13.822224 #19575]  INFO -- : Connecting to LoginServer successful
+I, [2014-06-06T19:27:13.822440 #19575]  INFO -- : Connecting to RunServer
+I, [2014-06-06T19:27:14.460790 #19575]  INFO -- : Connecting to RunServer successful
+I, [2014-06-06T19:27:43.767399 #19631]  INFO -- : gate_server[ 0.0.0.0, 50560 ]启动完成
+I, [2014-06-06T19:27:43.767459 #19631]  INFO -- : Connecting to LoginServer
+I, [2014-06-06T19:27:52.693788 #19631]  INFO -- : Connecting to LoginServer successful
+I, [2014-06-06T19:27:52.693948 #19631]  INFO -- : Connecting to RunServer
+I, [2014-06-06T19:27:52.694172 #19631]  INFO -- : Connecting to RunServer successful
+I, [2014-06-06T20:05:34.838923 #20105]  INFO -- : gate_server[ 0.0.0.0, 50560 ]启动完成
+I, [2014-06-06T20:05:34.839171 #20105]  INFO -- : Connecting to LoginServer
+I, [2014-06-06T20:05:35.666240 #20105]  INFO -- : Connecting to LoginServer successful
+I, [2014-06-06T20:05:35.666426 #20105]  INFO -- : Connecting to RunServer
+I, [2014-06-06T20:05:36.117934 #20105]  INFO -- : Connecting to RunServer successful
+I, [2014-06-06T20:06:00.067184 #20178]  INFO -- : gate_server[ 0.0.0.0, 50560 ]启动完成
+I, [2014-06-06T20:06:00.067239 #20178]  INFO -- : Connecting to LoginServer
+I, [2014-06-06T20:06:00.757194 #20178]  INFO -- : Connecting to LoginServer successful
+I, [2014-06-06T20:06:00.757381 #20178]  INFO -- : Connecting to RunServer
+I, [2014-06-06T20:06:01.090147 #20178]  INFO -- : Connecting to RunServer successful
+I, [2014-06-06T20:06:40.092423 #20222]  INFO -- : gate_server[ 0.0.0.0, 50560 ]启动完成
+I, [2014-06-06T20:06:40.092474 #20222]  INFO -- : Connecting to LoginServer
+I, [2014-06-06T20:06:42.694316 #20222]  INFO -- : Connecting to LoginServer successful
+I, [2014-06-06T20:06:42.694470 #20222]  INFO -- : Connecting to RunServer
+I, [2014-06-06T20:06:43.245640 #20222]  INFO -- : Connecting to RunServer successful
+I, [2014-06-06T20:12:18.605529 #20634]  INFO -- : gate_server[ 0.0.0.0, 50560 ]启动完成
+I, [2014-06-06T20:12:18.605802 #20634]  INFO -- : Connecting to LoginServer
+I, [2014-06-06T20:12:19.596854 #20634]  INFO -- : Connecting to LoginServer successful
+I, [2014-06-06T20:12:19.597032 #20634]  INFO -- : Connecting to RunServer
+I, [2014-06-06T20:12:19.921852 #20634]  INFO -- : Connecting to RunServer successful
+I, [2014-06-06T20:13:22.322030 #20653]  INFO -- : gate_server[ 0.0.0.0, 50560 ]启动完成
+I, [2014-06-06T20:13:22.322095 #20653]  INFO -- : Connecting to LoginServer
+I, [2014-06-06T20:13:23.113994 #20653]  INFO -- : Connecting to LoginServer successful
+I, [2014-06-06T20:13:23.114182 #20653]  INFO -- : Connecting to RunServer
+I, [2014-06-06T20:13:23.448418 #20653]  INFO -- : Connecting to RunServer successful
+I, [2014-06-06T20:13:44.754560 #20664]  INFO -- : gate_server[ 0.0.0.0, 50560 ]启动完成
+I, [2014-06-06T20:13:44.754608 #20664]  INFO -- : Connecting to LoginServer
+I, [2014-06-06T20:13:45.491501 #20664]  INFO -- : Connecting to LoginServer successful
+I, [2014-06-06T20:13:45.491681 #20664]  INFO -- : Connecting to RunServer
+I, [2014-06-06T20:13:45.786071 #20664]  INFO -- : Connecting to RunServer successful
+I, [2014-06-06T20:14:07.444688 #20672]  INFO -- : gate_server[ 0.0.0.0, 50560 ]启动完成
+I, [2014-06-06T20:14:07.444733 #20672]  INFO -- : Connecting to LoginServer
+I, [2014-06-06T20:14:07.444930 #20672]  INFO -- : Connecting to LoginServer successful
+I, [2014-06-06T20:14:08.140104 #20672]  INFO -- : Connecting to RunServer
+I, [2014-06-06T20:14:08.523101 #20672]  INFO -- : Connecting to RunServer successful
+I, [2014-06-07T13:08:50.075813 #16173]  INFO -- : gate_server[ 0.0.0.0, 50560 ]启动完成
+I, [2014-06-07T13:08:50.076043 #16173]  INFO -- : Connecting to LoginServer
+I, [2014-06-07T13:08:51.803731 #16173]  INFO -- : Connecting to LoginServer successful
+I, [2014-06-07T13:08:51.803935 #16173]  INFO -- : Connecting to RunServer
+I, [2014-06-07T13:08:51.804132 #16173]  INFO -- : Connecting to RunServer successful
+I, [2014-06-07T13:09:34.855607 #16220]  INFO -- : gate_server[ 0.0.0.0, 50560 ]启动完成
+I, [2014-06-07T13:09:34.855656 #16220]  INFO -- : Connecting to LoginServer
+I, [2014-06-07T13:09:34.855900 #16220]  INFO -- : Connecting to LoginServer successful
+I, [2014-06-07T13:09:38.216401 #16220]  INFO -- : Connecting to RunServer
+I, [2014-06-07T13:09:38.749746 #16220]  INFO -- : Connecting to RunServer successful
+I, [2014-06-07T13:10:56.274169 #16273]  INFO -- : gate_server[ 0.0.0.0, 50560 ]启动完成
+I, [2014-06-07T13:10:56.274481 #16273]  INFO -- : Connecting to LoginServer
+I, [2014-06-07T13:10:56.274692 #16273]  INFO -- : Connecting to LoginServer successful
+I, [2014-06-07T13:11:01.387416 #16273]  INFO -- : Connecting to RunServer
+I, [2014-06-07T13:11:02.063217 #16273]  INFO -- : Connecting to RunServer successful
+I, [2014-06-07T13:21:18.720860 #16615]  INFO -- : gate_server[ 0.0.0.0, 50560 ]启动完成
+I, [2014-06-07T13:21:18.721177 #16615]  INFO -- : Connecting to LoginServer
+I, [2014-06-07T13:21:18.721415 #16615]  INFO -- : Connecting to LoginServer successful
+I, [2014-06-07T13:21:22.895794 #16615]  INFO -- : Connecting to RunServer
+I, [2014-06-07T13:21:23.853316 #16615]  INFO -- : Connecting to RunServer successful
+I, [2014-06-07T13:42:58.543739 #17892]  INFO -- : gate_server[ 0.0.0.0, 50560 ]启动完成
+I, [2014-06-07T13:42:58.543980 #17892]  INFO -- : Connecting to LoginServer
+I, [2014-06-07T13:42:59.310328 #17892]  INFO -- : Connecting to LoginServer successful
+I, [2014-06-07T13:42:59.310515 #17892]  INFO -- : Connecting to RunServer
+I, [2014-06-07T13:42:59.642164 #17892]  INFO -- : Connecting to RunServer successful
+I, [2014-06-07T13:56:48.356934 #18885]  INFO -- : gate_server[ 0.0.0.0, 50560 ]启动完成
+I, [2014-06-07T13:56:48.356982 #18885]  INFO -- : Connecting to LoginServer
+I, [2014-06-07T13:56:48.993953 #18885]  INFO -- : Connecting to LoginServer successful
+I, [2014-06-07T13:56:48.994113 #18885]  INFO -- : Connecting to RunServer
+I, [2014-06-07T13:56:49.342988 #18885]  INFO -- : Connecting to RunServer successful
+I, [2014-06-07T14:22:45.607360 #19389]  INFO -- : gate_server[ 0.0.0.0, 50560 ]启动完成
+I, [2014-06-07T14:22:45.607735 #19389]  INFO -- : Connecting to LoginServer
+I, [2014-06-07T14:22:45.608040 #19389]  INFO -- : Connecting to LoginServer successful
+I, [2014-06-07T14:22:45.608170 #19389]  INFO -- : Connecting to RunServer
+I, [2014-06-07T14:22:45.608646 #19389]  INFO -- : Connecting to RunServer successful
+I, [2014-06-07T14:23:33.896282 #19442]  INFO -- : gate_server[ 0.0.0.0, 50560 ]启动完成
+I, [2014-06-07T14:23:33.896337 #19442]  INFO -- : Connecting to LoginServer
+I, [2014-06-07T14:23:33.900881 #19442]  INFO -- : Connecting to LoginServer successful
+I, [2014-06-07T14:23:34.466265 #19442]  INFO -- : Connecting to RunServer
+I, [2014-06-07T14:23:34.466508 #19442]  INFO -- : Connecting to RunServer successful
+I, [2014-06-07T14:25:46.251184 #19548]  INFO -- : gate_server[ 0.0.0.0, 50560 ]启动完成
+I, [2014-06-07T14:25:46.251712 #19548]  INFO -- : Connecting to LoginServer
+I, [2014-06-07T14:25:46.252042 #19548]  INFO -- : Connecting to LoginServer successful
+I, [2014-06-07T14:25:47.027689 #19548]  INFO -- : Connecting to RunServer
+I, [2014-06-07T14:25:47.596148 #19548]  INFO -- : Connecting to RunServer successful
+I, [2014-06-07T14:26:12.678910 #19591]  INFO -- : gate_server[ 0.0.0.0, 50560 ]启动完成
+I, [2014-06-07T14:26:12.678967 #19591]  INFO -- : Connecting to LoginServer
+I, [2014-06-07T14:26:12.679229 #19591]  INFO -- : Connecting to LoginServer successful
+I, [2014-06-07T14:26:13.293615 #19591]  INFO -- : Connecting to RunServer
+I, [2014-06-07T14:26:13.293948 #19591]  INFO -- : Connecting to RunServer successful
+I, [2014-06-07T14:27:21.962834 #19625]  INFO -- : gate_server[ 0.0.0.0, 50560 ]启动完成
+I, [2014-06-07T14:27:21.962888 #19625]  INFO -- : Connecting to LoginServer
+I, [2014-06-07T14:27:21.963237 #19625]  INFO -- : Connecting to LoginServer successful
+I, [2014-06-07T14:27:21.963594 #19625]  INFO -- : Connecting to RunServer
+I, [2014-06-07T14:27:22.469686 #19625]  INFO -- : Connecting to RunServer successful
+I, [2014-06-07T14:27:48.806397 #19666]  INFO -- : gate_server[ 0.0.0.0, 50560 ]启动完成
+I, [2014-06-07T14:27:48.806450 #19666]  INFO -- : Connecting to LoginServer
+I, [2014-06-07T14:27:48.811762 #19666]  INFO -- : Connecting to LoginServer successful
+I, [2014-06-07T14:27:48.812626 #19666]  INFO -- : Connecting to RunServer
+I, [2014-06-07T14:27:48.817888 #19666]  INFO -- : Connecting to RunServer successful
+I, [2014-06-07T14:28:20.153487 #19706]  INFO -- : gate_server[ 0.0.0.0, 50560 ]启动完成
+I, [2014-06-07T14:28:20.153547 #19706]  INFO -- : Connecting to LoginServer
+I, [2014-06-07T14:28:20.153911 #19706]  INFO -- : Connecting to LoginServer successful
+I, [2014-06-07T14:28:20.154068 #19706]  INFO -- : Connecting to RunServer
+I, [2014-06-07T14:28:20.846359 #19706]  INFO -- : Connecting to RunServer successful
+I, [2014-06-07T14:29:05.741853 #19747]  INFO -- : gate_server[ 0.0.0.0, 50560 ]启动完成
+I, [2014-06-07T14:29:05.741910 #19747]  INFO -- : Connecting to LoginServer
+I, [2014-06-07T14:29:05.746514 #19747]  INFO -- : Connecting to LoginServer successful
+I, [2014-06-07T14:29:05.747453 #19747]  INFO -- : Connecting to RunServer
+I, [2014-06-07T14:29:05.748335 #19747]  INFO -- : Connecting to RunServer successful
+I, [2014-06-07T14:40:16.678334 #12354]  INFO -- : gate_server[ 0.0.0.0, 50560 ]启动完成
+I, [2014-06-07T14:40:16.678982 #12354]  INFO -- : Connecting to LoginServer
+I, [2014-06-07T14:40:16.679538 #12354]  INFO -- : Connecting to LoginServer successful
+I, [2014-06-07T14:40:16.679971 #12354]  INFO -- : Connecting to RunServer
+I, [2014-06-07T14:40:16.680332 #12354]  INFO -- : Connecting to RunServer successful
+I, [2014-06-07T14:42:47.506447 #12484]  INFO -- : gate_server[ 0.0.0.0, 50560 ]启动完成
+I, [2014-06-07T14:42:47.506740 #12484]  INFO -- : Connecting to LoginServer
+I, [2014-06-07T14:42:47.507265 #12484]  INFO -- : Connecting to LoginServer successful
+I, [2014-06-07T14:42:47.508408 #12484]  INFO -- : Connecting to RunServer
+I, [2014-06-07T14:42:47.508908 #12484]  INFO -- : Connecting to RunServer successful

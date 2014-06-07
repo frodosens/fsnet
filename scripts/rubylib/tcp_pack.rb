@@ -1,0 +1,31 @@
+
+class FSPack
+
+  def byte_order 
+    return 0; 
+  end
+  
+  def write_only?
+    return read_data.nil?
+  end
+    
+  def read_only?
+    return write_data.nil?
+  end
+    
+
+end
+module FSNET
+
+
+class TCPPack < FSPack
+  
+  def initialize()
+    super()  
+  end
+  
+	
+end
+
+
+end
