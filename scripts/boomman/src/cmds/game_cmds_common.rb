@@ -1,0 +1,5 @@
+
+module GameCMDCommon
+	
+	
+end

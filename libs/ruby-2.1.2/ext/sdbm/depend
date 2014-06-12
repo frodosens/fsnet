@@ -1,0 +1,2 @@
+_sdbm.o: _sdbm.c sdbm.h $(HDRS) $(ruby_headers)
+init.o: init.c sdbm.h $(HDRS) $(ruby_headers)

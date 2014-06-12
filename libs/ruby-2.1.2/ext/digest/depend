@@ -1,0 +1,1 @@
+digest.o: digest.c digest.h $(HDRS) $(ruby_headers)
