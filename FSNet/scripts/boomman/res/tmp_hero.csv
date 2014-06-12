@@ -1,4 +1,0 @@
-id,name,type,init_level,max_level,init_starlevel,max_starlevel,init_qualitylevel,init_strelevel,max_strelevel,model_id_list,tmp_skill_id,icon,bigicon,describe,tmp_hero_equip_id_1,tmp_hero_equip_id_2,tmp_hero_equip_id_3,tmp_hero_equip_id_4,tmp_hero_equip_id_5
-1,路飞,1,1,20,1,4,2,0,60,10001,10001,10001,10002,我要成为海贼王的男人!,111001,121001,131001,141001,151001
-2,樱木,2,1,30,2,5,3,0,80,11001,11001,11001,11002,"晴子,当我女朋友吧!",112001,122001,132001,142001,152001
-3,地精,3,1,40,3,6,4,0,100,12001,12001,12001,12002,爆炸一切!,113001,123001,133001,143001,153001

@@ -1,1 +1,0 @@
-tracepoint.o: $(HDRS) $(ruby_headers) $(hdrdir)/ruby/debug.h
