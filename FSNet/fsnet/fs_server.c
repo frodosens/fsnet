@@ -283,7 +283,9 @@ fs_server_io_thread(void* data){
     
     event_add(server->signal_event, NULL);
     
+#ifdef __APPLE__
     pthread_setname_np(server->name);
+#endif
     
     struct event* event = NULL;
     while (server->running) {

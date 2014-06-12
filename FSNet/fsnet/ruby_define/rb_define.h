@@ -11,7 +11,6 @@
 
 #include <stdio.h>
 #include <ruby.h>
-#include "../fs_define.h"
 
 
 struct fs_invoke_call_function{
@@ -22,7 +21,7 @@ struct fs_invoke_call_function{
 
 void fs_rb_init(int argc,  char** argv);
 void fs_rb_loop(const char* main_file, int pathc, const char** pathv);
-fs_bool fs_ruby_invoke(struct fs_invoke_call_function*);
+int fs_ruby_invoke(struct fs_invoke_call_function*);
 struct fs_invoke_call_function* fs_ruby_pop_call_invoke();
 
 

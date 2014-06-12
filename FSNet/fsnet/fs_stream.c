@@ -5,7 +5,7 @@
 //  Created by Vincent on 14-5-22.
 //  Copyright (c) 2014年 Vincent. All rights reserved.
 //
-
+#include <stdint.h>
 #include <stdio.h>
 #include <string.h>
 #include "fs_define.h"
@@ -277,7 +277,7 @@ stream->pos += sizeof(v); \
 return v;
 
 BYTE fs_stream_read_byte( struct fs_input_stream* stream){
-    _stream_read(BYTE, );
+    _stream_read(BYTE, htonl);
 }
 uint32_t fs_stream_read_uint32( struct fs_input_stream* stream){
     _stream_read(uint32_t, htonl);

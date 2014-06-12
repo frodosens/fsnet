@@ -519,6 +519,7 @@ rb_Server_stop(VALUE self){
 void
 rb_define_fs_server(){
     
+    
     rb_cServer = rb_define_class("FSServer", rb_cObject);
     
     rb_define_alloc_func(rb_cServer, wrap_Server_allocate);
@@ -1030,15 +1031,17 @@ IS_GETER_FUNC( rb_IStream_read_byte,    fs_stream_read_byte,    INT2FIX ,       
 IS_GETER_FUNC( rb_IStream_read_long,   fs_stream_read_long,     INT2FIX ,       long,    ret, fs_true);
 IS_GETER_FUNC( rb_IStream_read_ulong,   fs_stream_read_ulong,   INT2FIX ,       unsigned long,    ret, fs_true);
 IS_GETER_FUNC( rb_IStream_read_int64,   fs_stream_read_int64,   INT2FIX ,       int64_t, ret, fs_true);
-IS_GETER_FUNC( rb_IStream_read_uint64,   fs_stream_read_uint64, INT2FIX ,     uint64_t, ret, fs_true);
+IS_GETER_FUNC( rb_IStream_read_uint64,   fs_stream_read_uint64, INT2NUM ,     uint64_t, ret, fs_true);
 IS_GETER_FUNC( rb_IStream_read_int32,   fs_stream_read_int32,   INT2FIX ,       int32_t, ret, fs_true);
 IS_GETER_FUNC( rb_IStream_read_int16,   fs_stream_read_int16,   INT2FIX ,       int16_t, ret, fs_true);
-IS_GETER_FUNC( rb_IStream_read_float,   fs_stream_read_float,   rb_float_new ,  float,   ret, fs_true);
-IS_GETER_FUNC( rb_IStream_read_double,  fs_stream_read_double,  rb_float_new ,  double,  ret, fs_true);
+IS_GETER_FUNC( rb_IStream_read_float,   fs_stream_read_float,   rb_float_new_in_heap ,  float,   ret, fs_true);
+IS_GETER_FUNC( rb_IStream_read_double,  fs_stream_read_double,  rb_float_new_in_heap ,  double,  ret, fs_true);
 IS_GETER_FUNC( rb_IStream_pos,          fs_input_stream_get_pos,INT2FIX ,       size_t,  ret, fs_false);
 IS_GETER_FUNC( rb_IStream_len,          fs_input_stream_get_len,INT2FIX ,       size_t,  ret, fs_false);
 IS_SETTER_FUNC( rb_IStream_skip,         fs_input_stream_skip_to, FIX2INT,       T_FIXNUM);
 IS_GETER_FUNC( rb_IStream_data,          fs_input_stream_get_data_ptr,(VALUE) , const BYTE*,  rb_str_new((const char*)ret,fs_input_stream_get_len(is)), fs_false);
+
+#define RFLOAT2CFLOAT(FV) RFLOAT(FV)->float_value
 
 OS_WRITE_FUNC( rb_OStream_write_byte, fs_stream_write_byte, FIX2INT, T_FIXNUM);
 OS_WRITE_FUNC( rb_OStream_write_long, fs_stream_write_long, FIX2INT, T_FIXNUM);
@@ -1049,8 +1052,8 @@ OS_WRITE_FUNC( rb_OStream_write_int32, fs_stream_write_int32, FIX2INT, T_FIXNUM)
 OS_WRITE_FUNC( rb_OStream_write_int16, fs_stream_write_int16, FIX2INT, T_FIXNUM);
 OS_WRITE_FUNC( rb_OStream_write_uint32, fs_stream_write_uint32, FIX2INT, T_FIXNUM);
 OS_WRITE_FUNC( rb_OStream_write_uint16, fs_stream_write_uint16, FIX2INT, T_FIXNUM);
-OS_WRITE_FUNC( rb_OStream_write_float, fs_stream_write_float, rb_float_value, T_FLOAT);
-OS_WRITE_FUNC( rb_OStream_write_double, fs_stream_write_double, rb_float_value, T_FLOAT);
+OS_WRITE_FUNC( rb_OStream_write_float, fs_stream_write_float, RFLOAT_VALUE, T_FLOAT);
+OS_WRITE_FUNC( rb_OStream_write_double, fs_stream_write_double, RFLOAT2CFLOAT, T_FLOAT);
 OS_WRITE_FUNC( rb_OStream_skip,         fs_output_stream_skip_to, FIX2INT, T_FIXNUM);
 OS_GETER_FUNC( rb_OStream_len,          fs_output_stream_get_len, INT2FIX , size_t, ret);
 OS_GETER_FUNC( rb_OStream_data, fs_output_stream_get_dataptr, (VALUE), const BYTE*, rb_str_new((const char*)ret, fs_output_stream_get_len(is)));
@@ -1079,7 +1082,6 @@ rb_define_fs_stream(){
     rb_define_method(rb_cInputStream, "post", RUBY_METHOD_FUNC(rb_IStream_pos), 0);
     rb_define_method(rb_cInputStream, "data", RUBY_METHOD_FUNC(rb_IStream_data), 0);
     rb_define_method(rb_cInputStream, "post=", RUBY_METHOD_FUNC(rb_IStream_skip), 1);
-    
     
     
     rb_cOutputStream = rb_define_class("FSOutputStream", rb_cObject);
@@ -1162,6 +1164,8 @@ fs_rb_init(int argc,  char** argv){
     ruby_sysinit(&argc, &argv);
     ruby_init();
     ruby_init_loadpath();
+    
+    
     
     rb_define_fs_server();
     rb_define_fs_node();

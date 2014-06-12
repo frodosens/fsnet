@@ -90,7 +90,7 @@ fs_rb_loop(const char* main_file, int pathc, const char** pathv){
 }
 
 
-fs_bool
+int
 fs_ruby_invoke(struct fs_invoke_call_function* invoke){
     
     pthread_mutex_lock(&pthread_ruby_invoke_call_invoke_mutex);
@@ -102,6 +102,7 @@ fs_ruby_invoke(struct fs_invoke_call_function* invoke){
         do{
             ret = fs_loop_queue_push(ruby_invoke_loop_que, invoke);
             pthread_cond_signal(&pthread_ruby_invoke_call_invoke_cond);
+            pthread_mutex_unlock(&pthread_ruby_invoke_call_invoke_mutex);
             usleep(5000);
         }while (!ret);
     }

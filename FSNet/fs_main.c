@@ -9,8 +9,12 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <string.h>
+#include <pthread.h>
 
-#include "fsnet/ruby_define/rb_define.h"
+
+void fs_rb_init(int argc,  char** argv);
+void fs_rb_loop(const char* main_file, int pathc, const char** pathv);
+void* recv_stdin(void*);
 
 
 int main(int argc,  char * argv[])
@@ -18,15 +22,21 @@ int main(int argc,  char * argv[])
     
     fs_rb_init(argc, argv);
     
-    int pathc = 4;
+    pthread_t stdin_thread;
+    pthread_create(&stdin_thread, NULL, recv_stdin, NULL);
+    
+    int pathc = 1;
     const char* paths[] = {
-        "/Users/kay/Documents/xcode/FSNet/FSNet",
-        "/Users/kay/Documents/xcode/FSNet/FSNet/rubylib",
-        "/Users/kay/Documents/xcode/FSNet/FSNet/game_server",
-        "/usr/local/lib/ruby/2.1.0"
+        "/Users/kay/Documents/xcode/FSNet/FSNet/scripts",
     };
     
-    fs_rb_loop("main.rb", pathc, paths);
+    const char* main_rb = "main.rb";
+    
+    if(argc > 1){
+        main_rb = argv[1];
+    }
+    
+    fs_rb_loop(main_rb, pathc, paths);
     
     printf(":) \n");
     
@@ -34,3 +44,8 @@ int main(int argc,  char * argv[])
     return 0;
 }
 
+void* recv_stdin(void* data){
+    
+    return NULL;
+    
+}

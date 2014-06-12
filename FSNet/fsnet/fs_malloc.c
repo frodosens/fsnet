@@ -10,25 +10,27 @@
 #include <string.h>
 #include <stdlib.h>
 #include "fs_define.h"
-#include <ruby.h>
+#include <jemalloc.h>
+
 void*
 fs_malloc(size_t len){
-    return ruby_xmalloc(len);//je_malloc(len);
+//    return ruby_xmalloc(len);
+    return je_malloc(len);
 //   return malloc(len);
 }
 
 
 void
 fs_free(void* ptr){
-    ruby_xfree(ptr);
-    //je_free(ptr);
+//    ruby_xfree(ptr);
+    je_free(ptr);
 //    free(ptr);
 }
 
 void*
 fs_realloc(void* ptr, size_t len) {
-    return ruby_xrealloc(ptr, len);
-//    return je_realloc(ptr, len);
+//    return ruby_xrealloc(ptr, len);
+    return je_realloc(ptr, len);
 //    return realloc(ptr, len);
 }
 

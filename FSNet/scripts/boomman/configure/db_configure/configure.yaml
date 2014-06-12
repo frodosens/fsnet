@@ -1,0 +1,8 @@
+base_configure: 
+  server_name: db_server
+  logger_file: logs/db_server.log
+  byte_order: 0
+  addr_ip: 0.0.0.0
+  addr_port: 50563
+pack_handle:
+  PACK_TYPE_EXECUTE_SQL: execute_sql
