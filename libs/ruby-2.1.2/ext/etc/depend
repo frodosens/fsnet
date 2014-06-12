@@ -1,3 +1,0 @@
-etc.o : etc.c $(HDRS) $(ruby_headers) \
-  $(hdrdir)/ruby/encoding.h \
-  $(hdrdir)/ruby/oniguruma.h

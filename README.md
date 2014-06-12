@@ -6,6 +6,38 @@ fsnet
 =======
 一个c+ruby支持分布式部署开源的网络游戏库
 
-# 如何使用
-你需要先下载最新的ruby和libevent编译，并且安装,得到libruby.so 和 libevent 后再编译fsnet :)
->>>>>>> 69aad92430230196a3289e644a7bf1d4d76bf3ed
+
+# 如何编译,安装
+
+#libevent
+解压libs里的libevent-2.1.4-alpha.zip
+cd libevent-2.1.4-alpha
+./configure 
+make
+sudo make install
+
+#ruby
+解压libs 里的ruby-2.1.2.zip 
+cd ruby-2.1.2
+./configure --enable-shared
+make
+sudo make install
+
+
+#fsnet
+cd fanet
+make
+sudo make install
+
+
+#编译你的游戏载体
+会到项目根路径
+make
+这样你就会的得到一个game 
+
+#编写你的游戏服务器脚本
+进入/scripts
+
+boomman 是测试服务器的demo,可以看看
+
+

@@ -1,2 +1,0 @@
-syslog.o: syslog.c $(HDRS) $(ruby_headers) \
-  $(hdrdir)/util.h
