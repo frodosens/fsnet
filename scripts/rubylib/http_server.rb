@@ -51,9 +51,9 @@ class HTTPServer < FSServer
     def on_request(session_id, pack)
         
         request = HTTPRequest.parse(pack);
-        
-        
-        response(request, on_handle_request(request));
+				resp = on_handle_request(request);
+		 		resp.set_cookies(request.cookies);
+        response(request, resp);
         
     end
 		

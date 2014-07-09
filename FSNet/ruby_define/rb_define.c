@@ -1119,19 +1119,6 @@ rb_define_fs_stream(){
     rb_define_method(rb_cOutputStream, "write_data", RUBY_METHOD_FUNC(rb_OStream_write_data), 2);
 }
 
-
-int
-_request_hash_each(VALUE key, VALUE value, VALUE callback_data){
-    
-    Check_Type(key, T_STRING);
-    Check_Type(value, T_STRING);
-    
-    
-    struct evhttp_request* req = (struct evhttp_request*)FIX2LONG(callback_data);
-    evhttp_add_header(req->output_headers, StringValueCStr(key), StringValueCStr(value));
-    
-    return ST_CONTINUE;
-}
 VALUE
 rb_HTTPRequest_response(VALUE self, VALUE argv){
     
@@ -1143,15 +1130,23 @@ rb_HTTPRequest_response(VALUE self, VALUE argv){
     
     Check_Type(r_code, T_FIXNUM);
     Check_Type(r_data, T_STRING);
-    Check_Type(r_header, T_HASH);
+    Check_Type(r_header, T_ARRAY);
     
+    long i = 0;
+    struct evbuffer *buf;
     struct evhttp_request* req = (struct evhttp_request*)FIX2LONG(evhttp_p);
     
-    struct evbuffer *buf;
     buf = evbuffer_new();
     evbuffer_add_printf(buf, "%s", StringValueCStr(r_data));
-    rb_hash_foreach(r_header, _request_hash_each, evhttp_p);
-    evhttp_send_reply(req, HTTP_OK, "OK", buf);
+    
+    for(i = 0 ; i < RARRAY_LEN(r_header) ; i++){
+        VALUE header = RARRAY_AREF(r_header, i);
+        VALUE key = rb_funcall(header, rb_intern("key"), 0);
+        VALUE value = rb_funcall(header, rb_intern("value"), 0);
+        evhttp_add_header(req->output_headers, StringValueCStr(key), StringValueCStr(value));
+    }
+    
+    evhttp_send_reply(req, FIX2INT(r_code), "OK", buf);
     evbuffer_free(buf);
     
     return self;
