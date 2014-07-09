@@ -12,7 +12,6 @@
 #include <stdio.h>
 #include <ruby.h>
 
-
 struct fs_invoke_call_function{
     VALUE* argv;
     int    argc;

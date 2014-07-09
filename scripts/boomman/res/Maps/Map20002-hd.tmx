@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map version="1.0" orientation="orthogonal" width="19" height="14" tilewidth="64" tileheight="64">
+<properties>
+  <property name="MODE" value="INFINITE"/>
+ </properties>
+ <tileset firstgid="1" name="hmpy" tilewidth="64" tileheight="64">
+  <image source="hmpy-hd.png" width="1000" height="2048"/>
+ </tileset>
+ <layer name="PASS" width="19" height="14">
+  <data encoding="base64" compression="zlib">
+   eJxjZGBgYAJiZiBmAWJGCvgCQCwIxEJALEwhH2YuJQDdXSCgjqaGWD6t3UUuGHUX5e4iN03Q0l2DLT8CAEh9Bac=
+  </data>
+ </layer>
+ <layer name="块层 2" width="19" height="14">
+  <data encoding="base64" compression="zlib">
+   eJzN0KcOgEAQRdHhs2kBSQt2KZ7maX/HlasnQ7IvOfaKJ2K7GAlShQy516pQo1Fo0XkthwGjwoT5h1YRSWnV6g1bof4VcmvBik1hx+G1Tly4FR68Yr8PXkh7/A==
+  </data>
+ </layer>
+ <layer name="块层 8" width="19" height="14">
+  <data encoding="base64" compression="zlib">
+   eJzNzrkNwkAQheFdCZsCwDTClYNNA0A74AagKsAFYCNxBhwFYC6H/EiOVgRo1gFP+pLRzNO0tQpbaKKBOpSRNTbYYoc9DuYS6XEbwEcXnS9dReeBJ17I4CP4/CLoKmmlHLgoo89sgKGgq8J9FR5q+vc7m//N2PxfdGaYY4HIsmuJGAlW+WyEsaDriBPOuOSzCaaCritS3HAX3P9z3uoZJEU=
+  </data>
+ </layer>
+ <layer name="块层 6" width="19" height="14">
+  <data encoding="base64" compression="zlib">
+   eJxjYEAF9xgYGu4C8R0gvg3CjAwMdxgZMIAxUMwEiE2B2AyIzbGoIRY4AfU6A7ELELsCsRsFZtEDxFOuv4Ea7qAlyKdcfwM13IEORsOeKP0N1HAHMgAAQjYOyw==
+  </data>
+ </layer>
+ <layer name="块层 10" width="19" height="14">
+  <data encoding="base64" compression="zlib">
+   eJxjYIAAPSDWB2IDMtggsJuRAQ5sgdgOiO3JYIPAKahZjgyUAaD+hptQswIoNAuovwHGdoLSTWhqNNH4Zmh8mHonJLMCKXRXIJJZCRSalYBkFjXCHsamRdiTC2gd9g1oatDTwD40Pkx9AppWSvMQtQEAMDsazg==
+  </data>
+ </layer>
+ <layer name="块层 11" width="19" height="14">
+  <data encoding="base64" compression="zlib">
+   eJzN0bENgDAQQ1FnAmAByAKQBSCzZXTsgoKaX2DJ7ZPOJ/0zU9EADM3uClg2tLk7YNnQ4Z6AZUNX+aq8k80WyMxmFbKyWQMs3zayWQesCvzwSQOtDlrJDQ1ZB7U=
+  </data>
+ </layer>
+ <layer name="块层 4" width="19" height="14">
+  <data encoding="base64" compression="zlib">
+   eJxjYBhZoBiNL4XGVyegfhQMD7CbEcEuRJNDTwPr0fjo6k8xMlAN3ASatYmK5lELAADjXQX0
+  </data>
+ </layer>
+ <layer name="块层 3" width="19" height="14">
+  <data encoding="base64" compression="zlib">
+   eJztk8ENACEIBLFTypAKvArwaymU5lzoQF4mkkzgs/NiexMx8CbrlAE9t3wwuU8hvyy9v6c05MOT53quK1z8vtIBnQXIB10MOqls9QKWnth3+Xc/
+  </data>
+ </layer>
+ <layer name="SHELTER 11" width="19" height="14">
+  <data encoding="base64" compression="zlib">
+   eJxjYBgFo2AUUAPoAbE+EBuQwR7sAAAU3gLC
+  </data>
+ </layer>
+ <layer name="SHELTER 9" width="19" height="14">
+  <data encoding="base64" compression="zlib">
+   eJxjYBgFo2DogSQ0vgQafwEB9aOANAAA/pcBfQ==
+  </data>
+ </layer>
+ <layer name="SHELTER 2" width="19" height="14">
+  <data encoding="base64" compression="zlib">
+   eJxjYBj8IAWNz43GlyCgfhSMglFAGQAAKBEA7A==
+  </data>
+ </layer>
+ <objectgroup name="对象层 1" width="38" height="28">
+  <object name="ITEM_POINT" type="ITEM_POINT" x="192" y="512" width="64" height="64"/>
+  <object name="ITEM_POINT" type="ITEM_POINT" x="768" y="512" width="64" height="64"/>
+  <object name="ITEM_POINT" type="ITEM_POINT" x="960" y="576" width="64" height="64"/>
+  <object name="ITEM_POINT" type="ITEM_POINT" x="384" y="192" width="64" height="64"/>
+  <object name="monster" type="START_POINT" x="256" y="576" width="64" height="64"/>
+  <object name="ITEM_POINT" type="ITEM_POINT" x="128" y="704" width="64" height="64"/>
+  <object name="ITEM_POINT" type="ITEM_POINT" x="640" y="192" width="64" height="64"/>
+  <object name="left_edge" type="EDGE" x="64" y="64" width="64" height="768"/>
+  <object name="monster" type="START_POINT" x="896" y="256" width="64" height="64"/>
+  <object name="ITEM_POINT" type="ITEM_POINT" x="768" y="192" width="64" height="64"/>
+  <object name="ITEM_POINT" type="ITEM_POINT" x="256" y="640" width="64" height="64"/>
+  <object name="ITEM_POINT" type="ITEM_POINT" x="960" y="320" width="64" height="64"/>
+  <object name="ITEM_POINT" type="ITEM_POINT" x="960" y="448" width="64" height="64"/>
+  <object name="up_edge" type="EDGE" x="128" y="64" width="960" height="64"/>
+  <object name="ITEM_POINT" type="ITEM_POINT" x="192" y="448" width="64" height="64"/>
+  <object name="ITEM_POINT" type="ITEM_POINT" x="192" y="384" width="64" height="64"/>
+  <object name="ITEM_POINT" type="ITEM_POINT" x="768" y="640" width="64" height="64"/>
+  <object name="ITEM_POINT" type="ITEM_POINT" x="832" y="640" width="64" height="64"/>
+  <object name="ITEM_POINT" type="ITEM_POINT" x="960" y="384" width="64" height="64"/>
+  <object name="ITEM_POINT" type="ITEM_POINT" x="320" y="192" width="64" height="64"/>
+  <object name="ITEM_POINT" type="ITEM_POINT" x="768" y="320" width="64" height="64"/>
+  <object name="ITEM_POINT" type="ITEM_POINT" x="384" y="512" width="64" height="64"/>
+  <object name="ITEM_POINT" type="ITEM_POINT" x="832" y="192" width="64" height="64"/>
+  <object name="ITEM_POINT" type="ITEM_POINT" x="512" y="192" width="64" height="64"/>
+  <object name="ITEM_POINT" type="ITEM_POINT" x="128" y="128" width="64" height="64"/>
+  <object name="ITEM_POINT" type="ITEM_POINT" x="320" y="640" width="64" height="64"/>
+  <object name="ITEM_POINT" type="ITEM_POINT" x="896" y="640" width="64" height="64"/>
+  <object name="ITEM_POINT" type="ITEM_POINT" x="1024" y="704" width="64" height="64"/>
+  <object name="ITEM_POINT" type="ITEM_POINT" x="960" y="512" width="64" height="64"/>
+  <object name="ITEM_POINT" type="ITEM_POINT" x="640" y="640" width="64" height="64"/>
+  <object name="monster" type="START_POINT" x="896" y="576" width="64" height="64"/>
+  <object name="down_edge" type="EDGE" x="128" y="768" width="960" height="64"/>
+  <object name="ITEM_POINT" type="ITEM_POINT" x="384" y="320" width="64" height="64"/>
+  <object name="ITEM_POINT" type="ITEM_POINT" x="320" y="448" width="64" height="64"/>
+  <object name="ITEM_POINT" type="ITEM_POINT" x="320" y="384" width="64" height="64"/>
+  <object name="ITEM_POINT" type="ITEM_POINT" x="192" y="576" width="64" height="64"/>
+  <object name="ITEM_POINT" type="ITEM_POINT" x="512" y="640" width="64" height="64"/>
+  <object name="ITEM_POINT" type="ITEM_POINT" x="448" y="320" width="64" height="64"/>
+  <object name="ITEM_POINT" type="ITEM_POINT" x="256" y="192" width="64" height="64"/>
+  <object name="ITEM_POINT" type="ITEM_POINT" x="1024" y="128" width="64" height="64"/>
+  <object name="ITEM_POINT" type="ITEM_POINT" x="384" y="640" width="64" height="64"/>
+  <object name="ITEM_POINT" type="ITEM_POINT" x="576" y="640" width="64" height="64"/>
+  <object name="ITEM_POINT" type="ITEM_POINT" x="576" y="192" width="64" height="64"/>
+  <object name="ITEM_POINT" type="ITEM_POINT" x="896" y="192" width="64" height="64"/>
+  <object name="monster" type="START_POINT" x="256" y="256" width="64" height="64"/>
+  <object name="ITEM_POINT" type="ITEM_POINT" x="704" y="512" width="64" height="64"/>
+  <object name="ITEM_POINT" type="ITEM_POINT" x="448" y="512" width="64" height="64"/>
+  <object name="ITEM_POINT" type="ITEM_POINT" x="704" y="320" width="64" height="64"/>
+  <object name="ITEM_POINT" type="ITEM_POINT" x="832" y="384" width="64" height="64"/>
+  <object name="BOSS" type="START_POINT" x="576" y="320" width="64" height="64"/>
+  <object name="ITEM_POINT" type="ITEM_POINT" x="832" y="448" width="64" height="64"/>
+  <object name="ITEM_POINT" type="ITEM_POINT" x="192" y="320" width="64" height="64"/>
+  <object name="right_edge" type="EDGE" x="1088" y="64" width="64" height="768"/>
+  <object name="PLAYER" type="PLAYER" x="576" y="448" width="64" height="64"/>
+  <object name="ITEM_POINT" type="ITEM_POINT" x="960" y="256" width="64" height="64"/>
+  <object name="ITEM_POINT" type="ITEM_POINT" x="192" y="256" width="64" height="64"/>
+ </objectgroup>
+</map>

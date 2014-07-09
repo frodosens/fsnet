@@ -13,7 +13,13 @@ class CMDDBExecute < Pack
 		def execute_sqls(sqls)
 			
 			for sql in sqls
-				$game_database.execute(sql)
+				
+				begin
+					$game_database.execute(sql)
+				rescue => err
+					$game.err(err.message)
+				end
+				
 			end
 			
 		end

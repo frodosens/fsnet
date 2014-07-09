@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map version="1.0" orientation="orthogonal" width="17" height="12" tilewidth="64" tileheight="64">
+ <properties>
+  <property name="DESTRY1" value="149"/>
+  <property name="DESTRY2" value="224"/>
+  <property name="DESTRY3" value="144"/>
+  <property name="DESTRY4" value="177"/>
+  <property name="DESTRY5" value="141"/>
+  <property name="DESTRY6" value="170"/>
+  <property name="DESTRY7" value="173"/>
+  <property name="DESTRY_COUNT" value="7"/>
+  <property name="EXP" value="35"/>
+  <property name="ITEM" value="D001"/>
+  <property name="LOSE_SCRIPT" value=""/>
+  <property name="MONEY" value="53"/>
+  <property name="START_SCRIPT" value="lv1"/>
+  <property name="WIN_SCRIPT" value=""/>
+ </properties>
+ <tileset firstgid="1" name="xzdxc" tilewidth="64" tileheight="64">
+  <image source="xzdxc-hd.png" width="1000" height="1808"/>
+ </tileset>
+ <layer name="PASS" width="17" height="12">
+  <data encoding="base64" compression="zlib">
+   eJwTZGBgEAJiQQpoBSBWpJCmxH5auoMYQMgd+IAMlCbkDhkseqnpDhgYKvEyUO4AAPeXEJ0=
+  </data>
+ </layer>
+ <layer name="块层 1" width="17" height="12">
+  <data encoding="base64" compression="zlib">
+   eJz7zMDA8AWIPwMxEyOEhvGJoZkZIfpgNMwcdHF8NLq5uMRxqcNGyzMyNDxhYHB4CsR46APyjLj9zQYUFwTSQgz4aaC6BlzuEQViBaCcIgN+GqiuYbC74xsQA8ON4QkBGqgOpztISV/kpEdS0wmpNADnAGMt
+  </data>
+ </layer>
+ <layer name="块层 5" width="17" height="12">
+  <data encoding="base64" compression="zlib">
+   eJydUsENwjAMvFEqoU5RHrxhibwpMENHYRT+qciz6+CTbGSlVlP1JCvJyXdx7CzAZQY+OQjyxa01x/MCdF/gDcEZa/QBZxh0Fb9ED+beNvIjXPUOemStg3ju1N8lRt2LPs3q8dihHQNO9F1xdRxB/ZYjyM7jpVxUbwTLL9oPznXYElSw3nMu7Afr4Fw5q1ND2+ppS2/31nnyv5L8VfaFfnzbf581igvPWZ7opx839Egj
+  </data>
+ </layer>
+ <layer name="块层 3" width="17" height="12">
+  <data encoding="base64" compression="zlib">
+   eJxjYBicQB+IDYBYDw+bELADYnsgtsXDxgcciXQrUF0DLrkAIs0IwGPGYHEHCFAapkMdAADNUwpI
+  </data>
+ </layer>
+ <layer name="SHELTER 5" width="17" height="12">
+  <data encoding="base64" compression="zlib">
+   eJxjYBgFIwXoA7EBEOvhYY8C/AAAAEYBqA==
+  </data>
+ </layer>
+ <objectgroup name="Object Layer 1" width="34" height="24">
+  <object name="PLAYER" type="PLAYER" x="320" y="320" width="64" height="64"/>
+  <object name="tqm" type="PLAYER_AI" x="640" y="256" width="64" height="64">
+   <properties>
+    <property name="quality" value="tqm1.quality"/>
+   </properties>
+  </object>
+  <object name="arrow_up" type="TRAP" x="320" y="256" width="64" height="64">
+   <properties>
+    <property name="trap_ani" value="guider_arrow_up.actor"/>
+    <property name="trap_floor" value="true"/>
+    <property name="trap_visit" value="true"/>
+   </properties>
+  </object>
+  <object name="arrow_left" type="TRAP" x="256" y="256" width="64" height="64">
+   <properties>
+    <property name="trap_ani" value="guider_arrow_left.actor"/>
+    <property name="trap_floor" value="true"/>
+    <property name="trap_visit" value="false"/>
+   </properties>
+  </object>
+  <object name="arrow_down" type="TRAP" x="256" y="320" width="64" height="64">
+   <properties>
+    <property name="trap_ani" value="guider_arrow_down.actor"/>
+    <property name="trap_floor" value="true"/>
+    <property name="trap_visit" value="false"/>
+   </properties>
+  </object>
+  <object name="arrow_right" type="TRAP" x="320" y="320" width="64" height="64">
+   <properties>
+    <property name="trap_ani" value="guider_arrow_right.actor"/>
+    <property name="trap_floor" value="true"/>
+    <property name="trap_visit" value="false"/>
+   </properties>
+  </object>
+  <object name="arrow_target" type="TRAP" x="640" y="128" width="64" height="64">
+   <properties>
+    <property name="trap_ani" value="guider_arrow_target.actor"/>
+    <property name="trap_floor" value="true"/>
+    <property name="trap_visit" value="false"/>
+   </properties>
+  </object>
+  <object name="line1" type="TRAP" x="384" y="320" width="64" height="64">
+   <properties>
+    <property name="trap_ani" value="guider_white_line.actor"/>
+    <property name="trap_floor" value="true"/>
+    <property name="trap_visit" value="false"/>
+   </properties>
+  </object>
+  <object name="line2" type="TRAP" x="448" y="320" width="64" height="64">
+   <properties>
+    <property name="trap_ani" value="guider_white_line.actor"/>
+    <property name="trap_floor" value="true"/>
+    <property name="trap_visit" value="false"/>
+   </properties>
+  </object>
+  <object name="line3" type="TRAP" x="512" y="320" width="64" height="64">
+   <properties>
+    <property name="trap_ani" value="guider_white_line.actor"/>
+    <property name="trap_floor" value="true"/>
+    <property name="trap_visit" value="false"/>
+   </properties>
+  </object>
+  <object name="line_end" type="TRAP" x="576" y="320" width="64" height="64">
+   <properties>
+    <property name="trap_ani" value="guider_white_arrow.actor"/>
+    <property name="trap_floor" value="true"/>
+    <property name="trap_visit" value="false"/>
+   </properties>
+  </object>
+ </objectgroup>
+</map>

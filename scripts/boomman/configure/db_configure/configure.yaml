@@ -5,4 +5,4 @@ base_configure:
   addr_ip: 0.0.0.0
   addr_port: 50563
 pack_handle:
-  PACK_TYPE_EXECUTE_SQL: execute_sql
+  PACK_TYPE_EXECUTE_SQL: cmd_execute_sql

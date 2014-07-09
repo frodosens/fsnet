@@ -1,0 +1,246 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map version="1.0" orientation="orthogonal" width="18" height="14" tilewidth="32" tileheight="32">
+ <properties>
+  <property name="DESTRY1" value="22"/>
+  <property name="DESTRY2" value="224"/>
+  <property name="DESTRY3" value="253"/>
+  <property name="DESTRY4" value="255"/>
+  <property name="DESTRY5" value="222"/>
+  <property name="DESTRY6" value="235"/>
+  <property name="DESTRY_COUNT" value="6"/>
+  <property name="EXP" value="755"/>
+  <property name="FOG" value="true"/>
+  <property name="ITEM" value="D025"/>
+  <property name="MONEY" value="1133"/>
+ </properties>
+ <tileset firstgid="1" name="yhmd" tilewidth="32" tileheight="32">
+  <image source="yhmd.png" width="500" height="1024"/>
+ </tileset>
+ <layer name="PASS" width="18" height="14">
+  <data encoding="base64" compression="zlib">
+   eJxTYmBgUAZiJQppQyA2ogINMw8GNkAxLoAuj+4efGrxieNyDwj8xaIHxv8Lxfjc8xdN3QY0jK7mLxb3oMvj8gu6OnzhgwwIhTu+8CHFHGLcgx42A+0eYsxBd89gyV8AliA4Gw==
+  </data>
+ </layer>
+ <layer name="块层 2" width="18" height="14">
+  <data encoding="base64" compression="zlib">
+   eJxjYBicgBGImYCYmUQ2OhAAYkEgFiKRjQ7kgVgBiBVJZI/6a9RfgwkAAFlECHE=
+  </data>
+ </layer>
+ <layer name="块层 18" width="18" height="14">
+  <data encoding="base64" compression="zlib">
+   eJyN0rcOwkAQhGH7gUgmVBhMqsjgihwqcnj/gv8KpJO1oBnpa06nW+3o4jAIGmgiQQttdNBFD9nkOMujgCJKGGCIEcaYYIoZ5kiNd+qcxZn5S6ywxgZb7LDHAUfjnb4x/4wLrrjhjgeeeOFtvLMw5ldRC3/vHaGMinf3ZMz3u7T2Vnp38bu09lZ6d/G7tPZWenfxu7T2VnpXo/SvROlfidL/v3/yjdK/8k+U/j/zdDho
+  </data>
+ </layer>
+ <layer name="块层 19" width="18" height="14">
+  <data encoding="base64" compression="zlib">
+   eJzzZGRo8ABidyBmGILAGuhuKyC2BGILCvzgBdTrSUJYAO1iANrJALQb5AayAdAuBqCdDEC7QW4YBWiAHvFLq7i0plKeArmdWuEAAIUFFw0=
+  </data>
+ </layer>
+ <layer name="块层 17" width="18" height="14">
+  <data encoding="base64" compression="zlib">
+   eJy9ktENwjAMRJ01gAUKM7RkgMIC8JFRPEpG8TxlCZ5aVY3aipoiYelkJdJdLj6LTNWBl+yvGjTgOkC9vRXJcPOow1lu4D5AP/VDEDmCU+g5uSl0HuDp9F7BP4NL6LUzvnI36UR04rfzgGNwbY+fmY7C1UJn4ceT3b/8kIWSiZKNrtDdfshCyUSrbZ3N+azVfGZzP+xSYqcS94mdiMA8HY61hQ67nTgntBN7FYF5Ou9bXej8UuNf3xfqTHc=
+  </data>
+ </layer>
+ <layer name="块层 4" width="18" height="14">
+  <data encoding="base64" compression="zlib">
+   eJxjYEAFQowMeAEh+cEKIoA4kgJ5ZHAIiA9jET8IlcMGgOHWQIy9pLgDHUxF0j+VTDNgAJ9fSAGU+AcZ4ApzGFAhMl1Syz30Ch9kf+FKQ6QAALMlD9w=
+  </data>
+ </layer>
+ <layer name="块层 20" width="18" height="14">
+  <data encoding="base64" compression="zlib">
+   eJxbxcDQsBKIGZCAOxB7MKCCVCBOA+IaIK4F4jogrmeAaGwE4p1A5g40c/CBbiDuAeJeIO4D4n4gngDEJ4BmHCfBHFxgPiPlZoDAOiqZMwpGAbkAmJZRgCAjdnXYwFcg/gZlA9MyAwBIkhSR
+  </data>
+ </layer>
+ <layer name="块层 3" width="18" height="14">
+  <data encoding="base64" compression="zlib">
+   eJxjYICAK0B8FYivAfF1IL5MpBgIhDEgwGMgfgLET4H4GRA/IlIMBFKh9E0G6oAXFOj9joNNKmBjxM4mFYgyYmeTCpD9AgznBhhbgEQzkf3yAskcXACX+ch++U6EObgAWnw1kOofmHpK3IAPUJIvqAkAXL0ytg==
+  </data>
+ </layer>
+ <layer name="块层 6" width="18" height="14">
+  <data encoding="base64" compression="zlib">
+   eJzNkk0OgjAQhYfj4alm1SPgCTTBpUKCa01wDfumR/ERZ5Jm7I9h5Ze8BZR+DOURfbjQPnrZe2yIO2SnhibkjpzhOEWeFjkU9tn1GXkhIxyDmeeGDAnHVdZSPOF4GI9PvFevg8SywrGIx0fZcNF+J/eCicXTtyf1LTVPjtq5/0ruzC3oEKNLnOthbR7tITrE6BLnniv96w3tITrEc8FTm0d7+G+8ActsObY=
+  </data>
+ </layer>
+ <layer name="块层 21" width="18" height="14">
+  <data encoding="base64" compression="zlib">
+   eJzd0LcRgEAMBVFdV3RAW1SByzEFcECOy3H1sD18RWhmQ73RyOxfkwezIuhOg9E6OANGdHAWjJUSs0xxToyLUtHxnpKbKqrFX3Xs9w7/HjEmmkVrY3+nQ3Ru9h96RecDpZQStQ==
+  </data>
+ </layer>
+ <layer name="SHELTER 11" width="18" height="14">
+  <data encoding="base64" compression="zlib">
+   eJxjYBgFo2AU4AJXgPgqEF8D4utAfJlIscEKAE2cC6k=
+  </data>
+ </layer>
+ <layer name="SHELTER 10" width="18" height="14">
+  <data encoding="base64" compression="zlib">
+   eJxjYBgFo2D4gZWM2MWtgNiari4ZXAAAMgIBIA==
+  </data>
+ </layer>
+ <layer name="SHELTER 9" width="18" height="14">
+  <data encoding="base64" compression="zlib">
+   eJxjYBgFo2Dwg8VAvGSgHTEMAACkZwFI
+  </data>
+ </layer>
+ <layer name="SHELTER 8" width="18" height="14">
+  <data encoding="base64" compression="zlib">
+   eJxjYBgFo4B2wAqIrQfaEaMADgC51AB2
+  </data>
+ </layer>
+ <layer name="SHELTER 7" width="18" height="14">
+  <data encoding="base64" compression="zlib">
+   eJxjYBgFowATLAHipQPtiFFAdQAAYBIBSg==
+  </data>
+ </layer>
+ <layer name="SHELTER 6" width="18" height="14">
+  <data encoding="base64" compression="zlib">
+   eJxjYBgFwwlYAbH1QDtiFAxaAAD7pAB2
+  </data>
+ </layer>
+ <layer name="SHELTER 5" width="18" height="14">
+  <data encoding="base64" compression="zlib">
+   eJxjYBgF9ATn0TAMLAbiJUj8i2h4FIwCagAAq6YHyA==
+  </data>
+ </layer>
+ <layer name="SHELTER 4" width="18" height="14">
+  <data encoding="base64" compression="zlib">
+   eJxjYBgFxILzSBgEyoHYCoitoWwQuIiGR8EoGEwAAObuBxU=
+  </data>
+ </layer>
+ <layer name="SHELTER 3" width="18" height="14">
+  <data encoding="base64" compression="zlib">
+   eJxjYBg54DwQWwGxNZIYjH8RikfBKBjOAADlFwNc
+  </data>
+ </layer>
+ <layer name="SHELTER 2" width="18" height="14">
+  <data encoding="base64" compression="zlib">
+   eJxjYBj8YAkQL8UivhgqNwpGwSggDgAAU1wCkQ==
+  </data>
+ </layer>
+ <layer name="SHELTER 1" width="18" height="14">
+  <data encoding="base64" compression="zlib">
+   eJxjYKANsAJiawrkR8EoGAXUBwA8lQDr
+  </data>
+ </layer>
+ <objectgroup name="对象层 1" width="18" height="14">
+  <object name="PLAYER" type="PLAYER" x="64" y="64" width="32" height="32"/>
+  <object name="zi_dan_left2" type="TRAP" x="224" y="288" width="32" height="32">
+   <properties>
+    <property name="trap_ani" value="poison_tree.actor"/>
+    <property name="trap_delay" value="2"/>
+    <property name="trap_id" value="0"/>
+    <property name="trap_script" value="trap(&quot;zi_dan_left2&quot;):setAtkPower(target(&quot;PLAYER&quot;):getHP()*0.1);trap(&quot;zi_dan_left2&quot;):turnLeft(); trap(&quot;zi_dan_left2&quot;):getAI():getActions():addObject( AIUseSkill:create(   SkillLua:create(&quot;skill_0002&quot;)  )  );"/>
+    <property name="trap_start_mode" value="2"/>
+    <property name="trap_state" value="open"/>
+    <property name="trap_turn" value="left"/>
+   </properties>
+  </object>
+  <object name="mp1" type="TRAP" x="224" y="352" width="32" height="32">
+   <properties>
+    <property name="trap_ani" value="mp.actor"/>
+    <property name="trap_floor" value="true"/>
+    <property name="trap_id" value="0"/>
+    <property name="trap_script" value="trap_moveto(&quot;PLAYER&quot;, &quot;mp1&quot;,target(&quot;mp2&quot;):getX(),target(&quot;mp2&quot;):getY() );"/>
+    <property name="trap_sound_id" value="1"/>
+    <property name="trap_start_mode" value="0"/>
+    <property name="trap_state" value="open"/>
+   </properties>
+  </object>
+  <object name="mp2" type="TRAP" x="480" y="352" width="32" height="32">
+   <properties>
+    <property name="trap_ani" value="mp.actor"/>
+    <property name="trap_floor" value="true"/>
+    <property name="trap_id" value="0"/>
+    <property name="trap_script" value="trap_moveto(&quot;PLAYER&quot;, &quot;mp2&quot;,target(&quot;mp1&quot;):getX(),target(&quot;mp1&quot;):getY() );"/>
+    <property name="trap_sound_id" value="1"/>
+    <property name="trap_start_mode" value="0"/>
+    <property name="trap_state" value="open"/>
+   </properties>
+  </object>
+  <object name="mp3" type="TRAP" x="480" y="64" width="32" height="32">
+   <properties>
+    <property name="trap_ani" value="mp.actor"/>
+    <property name="trap_floor" value="true"/>
+    <property name="trap_id" value="0"/>
+    <property name="trap_script" value="trap_moveto(&quot;PLAYER&quot;, &quot;mp3&quot;,target(&quot;mp4&quot;):getX(),target(&quot;mp4&quot;):getY() );"/>
+    <property name="trap_sound_id" value="1"/>
+    <property name="trap_start_mode" value="0"/>
+    <property name="trap_state" value="open"/>
+   </properties>
+  </object>
+  <object name="mp4" type="TRAP" x="256" y="64" width="32" height="32">
+   <properties>
+    <property name="trap_ani" value="mp.actor"/>
+    <property name="trap_floor" value="true"/>
+    <property name="trap_id" value="0"/>
+    <property name="trap_script" value="trap_moveto(&quot;PLAYER&quot;, &quot;mp4&quot;,target(&quot;mp3&quot;):getX(),target(&quot;mp3&quot;):getY() );"/>
+    <property name="trap_sound_id" value="1"/>
+    <property name="trap_start_mode" value="0"/>
+    <property name="trap_state" value="open"/>
+   </properties>
+  </object>
+  <object name="staff_driger_control" type="TRAP" x="0" y="416" width="32" height="32">
+   <properties>
+    <property name="trap_delay" value="10"/>
+    <property name="trap_id" value="0"/>
+    <property name="trap_script" value="trap(&quot;staff_driger&quot;):setOpened(true);"/>
+    <property name="trap_start_mode" value="2"/>
+    <property name="trap_state" value="open"/>
+   </properties>
+  </object>
+  <object name="staff_driger" type="TRAP" x="320" y="64" width="32" height="32">
+   <properties>
+    <property name="trap_ani" value="driger.actor"/>
+    <property name="trap_floor" value="true"/>
+    <property name="trap_id" value="0"/>
+    <property name="trap_script" value="target(&quot;PLAYER&quot;):setCurrentUseSkill(  make_thunder_staff_skill()  );target(&quot;PLAYER&quot;):setEffectAnimateName(&quot;find_player.ani&quot;);trap(&quot;staff_driger&quot;):setOpened(false)"/>
+    <property name="trap_start_mode" value="0"/>
+    <property name="trap_state" value="open"/>
+   </properties>
+  </object>
+  <object name="xeklg3" x="384" y="224" width="32" height="32">
+   <properties>
+    <property name="buff_type" value="thunder_shell"/>
+    <property name="lua_ai" value="monster_xeklg_ai"/>
+    <property name="quality" value="xeklg3.quality"/>
+   </properties>
+  </object>
+  <object name="xeklg3" x="288" y="128" width="32" height="32">
+   <properties>
+    <property name="buff_type" value="thunder_shell"/>
+    <property name="lua_ai" value="monster_xeklg_ai"/>
+    <property name="quality" value="xeklg3.quality"/>
+   </properties>
+  </object>
+  <object name="xeklg3" x="96" y="352" width="32" height="32">
+   <properties>
+    <property name="buff_type" value="thunder_shell"/>
+    <property name="lua_ai" value="monster_xeklg_ai"/>
+    <property name="quality" value="xeklg3.quality"/>
+   </properties>
+  </object>
+  <object name="light1" type="TRAP" x="160" y="256" width="32" height="32">
+   <properties>
+    <property name="trap_ani" value="candle.actor"/>
+    <property name="trap_id" value="0"/>
+    <property name="trap_script" value="target(&quot;light1&quot;):setVisitRange(450);trap(&quot;light1&quot;):setOpened(false);"/>
+    <property name="trap_state" value="open"/>
+   </properties>
+  </object>
+  <object name="light2" type="TRAP" x="416" y="320" width="32" height="32">
+   <properties>
+    <property name="trap_ani" value="candle.actor"/>
+    <property name="trap_id" value="0"/>
+    <property name="trap_script" value="target(&quot;light2&quot;):setVisitRange(450);trap(&quot;light2&quot;):setOpened(false);"/>
+    <property name="trap_state" value="open"/>
+   </properties>
+  </object>
+  <object name="light3" type="TRAP" x="416" y="96" width="32" height="32">
+   <properties>
+    <property name="trap_ani" value="candle.actor"/>
+    <property name="trap_id" value="0"/>
+    <property name="trap_script" value="target(&quot;light3&quot;):setVisitRange(450);trap(&quot;light3&quot;):setOpened(false);"/>
+    <property name="trap_state" value="open"/>
+   </properties>
+  </object>
+ </objectgroup>
+</map>

@@ -1,7 +1,6 @@
 
 class Hero
 
-
 	# 英雄星级属性模板
 	class HeroStarLevel
 	
@@ -16,7 +15,7 @@ class Hero
 	
 		def init_from_hash(hash)
 	
-			@quality = hash["starlevel"].to_i
+			@level = hash["starlevel"].to_i
 			@value = hash["starlevel_value"].to_i
 	
 		end

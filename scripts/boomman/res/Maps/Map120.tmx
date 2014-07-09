@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map version="1.0" orientation="orthogonal" width="16" height="12" tilewidth="32" tileheight="32">
+ <properties>
+  <property name="DESTRY1" value="25"/>
+  <property name="DESTRY2" value="27"/>
+  <property name="DESTRY_COUNT" value="2"/>
+  <property name="EXP" value="1070"/>
+  <property name="ITEM" value="D040"/>
+  <property name="LOSE_SCRIPT" value=""/>
+  <property name="MONEY" value="1605"/>
+  <property name="START_SCRIPT" value="lv120"/>
+  <property name="WIN_SCRIPT" value=""/>
+ </properties>
+ <tileset firstgid="1" name="yjbl" tilewidth="32" tileheight="32">
+  <image source="yjbl.png" width="450" height="600"/>
+ </tileset>
+ <layer name="PASS" width="16" height="12">
+  <data encoding="base64" compression="zlib">
+   eJyzZ2BgcABiOyC2J4PtC8R+QOxDJtsQiI0YEEAaB0aXN4DqhbmHVIDuflIBLvcTCwa7+0FhHArF0ljk8bkfV/wh87GlH5ibSEk/5KRZZDYAKo8btw==
+  </data>
+ </layer>
+ <layer name="块层 2" width="16" height="12">
+  <data encoding="base64" compression="zlib">
+   eJzVzsENglAQhOFXklqAWoBa01QiF8QLYCJ4EUykAWjJP5nogcPL05uHL5ndZLKbhxBOKHA2FRad6SjHlV2DFjdTa9G5cVdPdgMWWGKVmAd3NZInrLHBNjFP7n7u77DHITHP73/7//v+kZz98H/m7t//X5Ir1LiYaovOlbu6s+vQ42HqLTp37uoFUbZy4Q==
+  </data>
+ </layer>
+ <layer name="块层 4" width="16" height="12">
+  <data encoding="base64" compression="zlib">
+   eJxjYBh4wMnA0ACiPZEwMvDEgjmR5MWx6CeExdHsx2c3OsBmPyluJ9V+YvyPTT8uvQx47MelD10cW/ijq2kF4jYc+pHtRwfE2E8K8ESjkQEAi7YcSg==
+  </data>
+ </layer>
+ <layer name="块层 3" width="16" height="12">
+  <data encoding="base64" compression="zlib">
+   eJztkkEKgDAMBOdi1XNb+wy/6NM7EPDQk3iRggsDm2ySUwB2uDZZJckSoMceZoy1O7ea84dUKZID9NjDjLFu/Hqrc5KbT/Xl/3QjPAqH
+  </data>
+ </layer>
+ <layer name="块层 6" width="16" height="12">
+  <data encoding="base64" compression="zlib">
+   eJxjYBhcQBoHRpcfBbQFoDAuB+IKBtLDG1f8YYvPgQYAiuEC1g==
+  </data>
+ </layer>
+ <layer name="SHELTER 9" width="16" height="12">
+  <data encoding="base64" compression="zlib">
+   eJxjYBgFo4AywMnA0MABxOxAzAbErBDMAGQzAMUYgHIM6HzOgXMuCgAA+jsC4Q==
+  </data>
+ </layer>
+ <layer name="SHELTER 8" width="16" height="12">
+  <data encoding="base64" compression="zlib">
+   eJxjYBgFowAV8GLB6OLDBQAAXJQAaQ==
+  </data>
+ </layer>
+ <layer name="SHELTER 7" width="16" height="12">
+  <data encoding="base64" compression="zlib">
+   eJxjYBgFwxHwAnEmEnsUYAcAmDgAhA==
+  </data>
+ </layer>
+ <layer name="SHELTER 1" width="16" height="12">
+  <data encoding="base64" compression="zlib">
+   eJxjYKAu4MWB0eVHwSgYDAAAFA8AaQ==
+  </data>
+ </layer>
+ <objectgroup name="对象层 1" width="16" height="12">
+  <object name="PLAYER" type="PLAYER" x="64" y="64" width="32" height="32"/>
+  <object name="bossyswb" type="BOSS" x="256" y="224" width="32" height="32">
+   <properties>
+    <property name="quality" value="bossyswb.quality"/>
+   </properties>
+  </object>
+  <object name="staff_driger" type="TRAP" x="352" y="64" width="32" height="32">
+   <properties>
+    <property name="trap_ani" value="driger.actor"/>
+    <property name="trap_floor" value="true"/>
+    <property name="trap_id" value="0"/>
+    <property name="trap_script" value="target(&quot;PLAYER&quot;):setCurrentUseSkill(  make_ice_staff_skill()  );target(&quot;PLAYER&quot;):setEffectAnimateName(&quot;find_player.ani&quot;);trap(&quot;staff_driger&quot;):setOpened(false)"/>
+    <property name="trap_start_mode" value="0"/>
+    <property name="trap_state" value="open"/>
+   </properties>
+  </object>
+  <object name="staff_driger_control" type="TRAP" x="0" y="352" width="32" height="32">
+   <properties>
+    <property name="trap_delay" value="10"/>
+    <property name="trap_id" value="0"/>
+    <property name="trap_script" value="trap(&quot;staff_driger&quot;):setOpened(true);"/>
+    <property name="trap_start_mode" value="2"/>
+    <property name="trap_state" value="open"/>
+   </properties>
+  </object>
+ </objectgroup>
+</map>

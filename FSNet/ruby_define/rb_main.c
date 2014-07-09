@@ -13,7 +13,7 @@
 #include "../fs_malloc.h"
 
 
-#define INVOKE_LEN 1024
+#define INVOKE_LEN 20480
 
 pthread_mutex_t pthread_ruby_invoke_call_invoke_mutex;
 pthread_cond_t pthread_ruby_invoke_call_invoke_cond;
@@ -34,30 +34,34 @@ fs_rb_print_error(){
 void
 fs_rb_loop(const char* main_file, int pathc, const char** pathv){
     
-
-    for(int i = 0 ; i < pathc ; i++){
-        char path[128];
-        snprintf(path, 128, " $: << '%s' ", pathv[i]);
-        rb_eval_string(path);
-    }
-    
+    int i = 0;
+    int ret = 0;
+    struct fs_invoke_call_function* invoke = NULL;
     
     ruby_invoke_loop_que = fs_create_loop_queue(INVOKE_LEN);
-    
-    
     
     pthread_mutex_init(&pthread_ruby_invoke_call_invoke_mutex, NULL);
     pthread_cond_init(&pthread_ruby_invoke_call_invoke_cond, NULL);
     
     
-    int ret = 0;
-    rb_load_protect(rb_str_buf_new_cstr(main_file), 0, &ret);
-    if(ret != 0){
-        fs_rb_print_error();
+    for(i = 0 ; i < pathc ; i++){
+        char path[128];
+        snprintf(path, 128, " $: << '%s' ", pathv[i]);
+        rb_eval_string(path);
     }
     
-    struct fs_invoke_call_function* invoke = NULL;
+    ruby_show_version();
+    ruby_script("fsnet");
+    rb_load_protect(rb_str_buf_new_cstr(main_file), 0, &ret);
+    
+    if(ret != 0){
+        fs_rb_print_error();
+        return;
+    }
+    
+    
     do{
+    
     retry:
         while((invoke = fs_ruby_pop_call_invoke()) != NULL){
             int ret = 0;
@@ -68,16 +72,16 @@ fs_rb_loop(const char* main_file, int pathc, const char** pathv){
             if(ret != 0){
                 fs_rb_print_error();
             }
-        
         }
         pthread_mutex_lock(&pthread_ruby_invoke_call_invoke_mutex);
         
-        // 过了临界点.发现有数据,就回去/// 效率 * 2 .....XDDD
+        // 过了临界点.发现有数据,就回去
+        // 效率 * 2
         if(!fs_loop_queue_empty(ruby_invoke_loop_que)){
             pthread_mutex_unlock(&pthread_ruby_invoke_call_invoke_mutex);
             goto retry;
         }
-        
+    
         pthread_cond_wait(&pthread_ruby_invoke_call_invoke_cond,
                           &pthread_ruby_invoke_call_invoke_mutex);
         
@@ -86,6 +90,7 @@ fs_rb_loop(const char* main_file, int pathc, const char** pathv){
         
     }while (fs_true);
     
+    ruby_show_copyright();
     
 }
 
@@ -101,8 +106,8 @@ fs_ruby_invoke(struct fs_invoke_call_function* invoke){
     }else{
         do{
             ret = fs_loop_queue_push(ruby_invoke_loop_que, invoke);
-            pthread_cond_signal(&pthread_ruby_invoke_call_invoke_cond);
             pthread_mutex_unlock(&pthread_ruby_invoke_call_invoke_mutex);
+            pthread_cond_signal(&pthread_ruby_invoke_call_invoke_cond);
             usleep(5000);
         }while (!ret);
     }

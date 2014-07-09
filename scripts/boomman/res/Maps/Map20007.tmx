@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map version="1.0" orientation="orthogonal" width="19" height="14" tilewidth="32" tileheight="32">
+ <properties>
+  <property name="MODE" value="INFINITE"/>
+ </properties>
+ <tileset firstgid="1" name="jdbl" tilewidth="32" tileheight="32">
+  <image source="jdbl.png" width="500" height="500"/>
+ </tileset>
+ <layer name="PASS" width="19" height="14">
+  <data encoding="base64" compression="zlib">
+   eJybwMDAMBGIJ1CBng/EC6hEw8ylBKC7CwTM0NQQy6e1u8gFCxhG3UUKWMCA6S5y0wQt3TXY8iMAt8ZGjw==
+  </data>
+ </layer>
+ <layer name="块层 2" width="19" height="14">
+  <data encoding="base64" compression="zlib">
+   eJxrYWBY0EI9zADEB4A4gQIMMwNMTwDSE4GYHBrdrPlAegEQk0OPumvUXXR012DIh8j4AACn2Mkc
+  </data>
+ </layer>
+ <layer name="块层 3" width="19" height="14">
+  <data encoding="base64" compression="zlib">
+   eJztk0kKgDAQBPtpPkxj3+PyZQtCREQTRQ8eLOhLMiszEyT1yChKzYBUYUQTmgvvLXG6C7FKUItjKu0W5Ba5FZR6e0JMday9fZXc8xvknn+ewTzcnuzvfkd98HcEdsbe+DnH3+/o9i5Ls8TO2Bs/125tASHYI6g=
+  </data>
+ </layer>
+ <layer name="块层 6" width="19" height="14">
+  <data encoding="base64" compression="zlib">
+   eJxjYBgF5AJXNL4LAT66+lEw/EA6jdUPFAAApb0B4Q==
+  </data>
+ </layer>
+ <layer name="块层 4" width="19" height="14">
+  <data encoding="base64" compression="zlib">
+   eJxjYKAumAvEaxgYDpCLgfoXwMxag8QmBwD1J6CbZYamxpQAH6Yem1nUdNeoWQNnVgSamjACfJh6WrkLmAcS1kDEyMJA/QcocQs2AAC5MD0/
+  </data>
+ </layer>
+ <layer name="SHELTER 2" width="19" height="14">
+  <data encoding="base64" compression="zlib">
+   eJxjYBh6QI0AfxSMglFAXQAACEcATQ==
+  </data>
+ </layer>
+ <objectgroup name="对象层 1" width="19" height="14">
+  <properties>
+   <property name="MODE" value="INFINITE"/>
+  </properties>
+  <object name="PLAYER" type="PLAYER" x="288" y="224" width="32" height="32"/>
+  <object name="ITEM_POINT" type="ITEM_POINT" x="192" y="160" width="32" height="32"/>
+  <object name="ITEM_POINT" type="ITEM_POINT" x="384" y="160" width="32" height="32"/>
+  <object name="ITEM_POINT" type="ITEM_POINT" x="192" y="256" width="32" height="32"/>
+  <object name="ITEM_POINT" type="ITEM_POINT" x="384" y="256" width="32" height="32"/>
+  <object name="ITEM_POINT" type="ITEM_POINT" x="64" y="352" width="32" height="32"/>
+  <object name="ITEM_POINT" type="ITEM_POINT" x="64" y="64" width="32" height="32"/>
+  <object name="ITEM_POINT" type="ITEM_POINT" x="512" y="64" width="32" height="32"/>
+  <object name="ITEM_POINT" type="ITEM_POINT" x="512" y="352" width="32" height="32"/>
+  <object name="monster" type="START_POINT" x="128" y="128" width="32" height="32"/>
+  <object name="monster" type="START_POINT" x="128" y="288" width="32" height="32"/>
+  <object name="monster" type="START_POINT" x="448" y="128" width="32" height="32"/>
+  <object name="monster" type="START_POINT" x="448" y="288" width="32" height="32"/>
+  <object name="left_edge" type="EDGE" x="32" y="32" width="32" height="384"/>
+  <object name="up_edge" type="EDGE" x="64" y="32" width="480" height="32"/>
+  <object name="right_edge" type="EDGE" x="544" y="32" width="32" height="384"/>
+  <object name="down_edge" type="EDGE" x="64" y="384" width="480" height="32"/>
+  <object name="BOSS" type="START_POINT" x="288" y="160" width="32" height="32"/>
+  <object name="ITEM_POINT" type="ITEM_POINT" x="96" y="128" width="32" height="32"/>
+  <object name="ITEM_POINT" type="ITEM_POINT" x="96" y="288" width="32" height="32"/>
+  <object name="ITEM_POINT" type="ITEM_POINT" x="480" y="128" width="32" height="32"/>
+  <object name="ITEM_POINT" type="ITEM_POINT" x="480" y="288" width="32" height="32"/>
+  <object name="ITEM_POINT" type="ITEM_POINT" x="192" y="96" width="32" height="32"/>
+  <object name="ITEM_POINT" type="ITEM_POINT" x="384" y="96" width="32" height="32"/>
+  <object name="ITEM_POINT" type="ITEM_POINT" x="160" y="320" width="32" height="32"/>
+  <object name="ITEM_POINT" type="ITEM_POINT" x="320" y="320" width="32" height="32"/>
+  <object name="ITEM_POINT" type="ITEM_POINT" x="288" y="96" width="32" height="32"/>
+  <object name="ITEM_POINT" type="ITEM_POINT" x="256" y="320" width="32" height="32"/>
+  <object name="ITEM_POINT" type="ITEM_POINT" x="480" y="160" width="32" height="32"/>
+  <object name="ITEM_POINT" type="ITEM_POINT" x="480" y="256" width="32" height="32"/>
+  <object name="ITEM_POINT" type="ITEM_POINT" x="96" y="256" width="32" height="32"/>
+  <object name="ITEM_POINT" type="ITEM_POINT" x="96" y="160" width="32" height="32"/>
+  <object name="ITEM_POINT" type="ITEM_POINT" x="192" y="320" width="32" height="32"/>
+  <object name="ITEM_POINT" type="ITEM_POINT" x="288" y="320" width="32" height="32"/>
+  <object name="ITEM_POINT" type="ITEM_POINT" x="128" y="320" width="32" height="32"/>
+  <object name="ITEM_POINT" type="ITEM_POINT" x="384" y="320" width="32" height="32"/>
+  <object name="ITEM_POINT" type="ITEM_POINT" x="96" y="224" width="32" height="32"/>
+  <object name="ITEM_POINT" type="ITEM_POINT" x="96" y="192" width="32" height="32"/>
+  <object name="ITEM_POINT" type="ITEM_POINT" x="128" y="96" width="32" height="32"/>
+  <object name="ITEM_POINT" type="ITEM_POINT" x="160" y="96" width="32" height="32"/>
+  <object name="ITEM_POINT" type="ITEM_POINT" x="256" y="96" width="32" height="32"/>
+  <object name="ITEM_POINT" type="ITEM_POINT" x="320" y="96" width="32" height="32"/>
+  <object name="ITEM_POINT" type="ITEM_POINT" x="416" y="96" width="32" height="32"/>
+  <object name="ITEM_POINT" type="ITEM_POINT" x="448" y="96" width="32" height="32"/>
+  <object name="ITEM_POINT" type="ITEM_POINT" x="480" y="192" width="32" height="32"/>
+  <object name="ITEM_POINT" type="ITEM_POINT" x="480" y="224" width="32" height="32"/>
+  <object name="ITEM_POINT" type="ITEM_POINT" x="416" y="320" width="32" height="32"/>
+  <object name="ITEM_POINT" type="ITEM_POINT" x="448" y="320" width="32" height="32"/>
+  <object name="ITEM_POINT" type="ITEM_POINT" x="224" y="160" width="32" height="32"/>
+  <object name="ITEM_POINT" type="ITEM_POINT" x="224" y="256" width="32" height="32"/>
+  <object name="ITEM_POINT" type="ITEM_POINT" x="352" y="160" width="32" height="32"/>
+  <object name="ITEM_POINT" type="ITEM_POINT" x="352" y="256" width="32" height="32"/>
+  <object name="ITEM_POINT" type="ITEM_POINT" x="160" y="192" width="32" height="32"/>
+  <object name="ITEM_POINT" type="ITEM_POINT" x="160" y="224" width="32" height="32"/>
+  <object name="ITEM_POINT" type="ITEM_POINT" x="416" y="192" width="32" height="32"/>
+  <object name="ITEM_POINT" type="ITEM_POINT" x="416" y="224" width="32" height="32"/>
+ </objectgroup>
+</map>

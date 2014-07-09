@@ -5,8 +5,8 @@ base_configure:
   addr_ip: 0.0.0.0
   addr_port: 50560
 pack_handle:
-  PACK_TYPE_REGIST_SESSION: regiest_session
-  PACK_TYPE_VERSION: version
+  PACK_TYPE_REGIST_SESSION: cmd_regiest_session
+  PACK_TYPE_VERSION: cmd_version
 login_server:
   name: LoginServer
   addr_ip: 0.0.0.0

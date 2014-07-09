@@ -30,25 +30,40 @@ class CMDChatMsg < Pack
 			
 		end
 	
-		# => usage /61reload
-		def chat_command_61reload(sender, args)
+		def chat_command_61rmail(sender, args)
+			
+			CMDMail.execute_read(0, sender, sender.server, args[0].to_i)
+			
 		end
 	
+		# => usage /61reload
+		def chat_command_61mail(sender, args)
+
+			player = sender.player
+			player.recv_mail(Mail.create_from_templete(args[0].to_i))
+			
+		end
+	
+		# => usage /61reload
+		def chat_command_61reload(sender, args)
+			
+		end
+	
+		# => usage /61money1 value
 		def chat_command_61money1(sender, args)
 			player = sender.player
 			player.gain_gold(args[0].to_i)
 		end
+		# => usage /61money2 value
 		def chat_command_61money2(sender, args)
 			player = sender.player
 			player.gain_diamonds(args[0].to_i)
-			
 		end
-		def chat_command_61money2(sender, args)
+		# => usage /61money3 value
+		def chat_command_61money3(sender, args)
 			player = sender.player
 			player.gain_prestige(args[0].to_i)
-			
 		end
-	
 		# => usage /61hero hero_id count
 		def chat_command_61hero(sender, args)
 			player = sender.player
@@ -68,6 +83,8 @@ class CMDChatMsg < Pack
 		def execute(sender, server, type, msg)
 		
 			player = sender.player
+		
+			p "#{player.name} send #{msg}"
 		
 			if(msg["/61"] != nil)
 				args = msg.split(" ")

@@ -40,13 +40,14 @@ class GameUserManager
 		
 		
 		begin
-			uid = $game_database.execute("insert into tb_user( user_name, user_pwd, uuid ) values( '#{user_name}', '#{user_pwd}', '#{user_uuid}' ) ");
-			pid = uid + 10000;
+			uid = $game_database.execute("insert into tb_user(pid, user_name, user_pwd, uuid ) values( 0, '#{user_name}', '#{user_pwd}', '#{user_uuid}' ) ");
+			pid = uid + 10000
 			$game_database.execute("insert into tb_player( pid, level, sex, name, morale, ap, exp, gold, diamonds, prestige, guild_id ) 
-																		values( #{pid}, 0, -1, 'test', 0, 0, 0, 0, 0, 0, 0 ) ");
+																		values( #{pid}, 0, -1, 'no name', 0, 0, 0, 0, 0, 0, 0 ) ");
+			$game_database.execute("update tb_user set pid=#{pid} where uid=#{uid}");															
 		rescue Mysql2::Error => err
 			uid = -1
-			print err;
+			$game.err(err);
 		end
 		if(uid > 0)
 			

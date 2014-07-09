@@ -120,7 +120,7 @@ fs_stream_write_data( struct fs_output_stream* stream,  BYTE* data, size_t len )
     
     if(stream->weak_ref){
         if(stream->pos + len > stream->buff_len){
-            fs_assert(fs_true);// 纯引用,出现溢出
+            fs_assert(fs_true, "OutputStrem EOF");// 纯引用,出现溢出
         }
     }
     
@@ -182,6 +182,12 @@ size_t
 fs_output_stream_sub( struct fs_output_stream* stream, size_t start, size_t len ){
     memcpy(stream->data, stream->data + start, len);
     stream->pos = len;
+    
+    if(len < 0xff && stream->buff_len > 0xffff){
+        stream->data = fs_realloc(stream->data, 0xff);
+        stream->buff_len = 0xff;
+    }
+    
     return len;
 }
 

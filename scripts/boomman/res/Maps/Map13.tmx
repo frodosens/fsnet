@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map version="1.0" orientation="orthogonal" width="17" height="13" tilewidth="32" tileheight="32">
+ <properties>
+  <property name="DESTRY1" value="255"/>
+  <property name="DESTRY2" value="314"/>
+  <property name="DESTRY_COUNT" value="2"/>
+  <property name="EXP" value="200"/>
+  <property name="ITEM" value="D003"/>
+  <property name="MONEY" value="300"/>
+ </properties>
+ <tileset firstgid="1" name="hmpy" tilewidth="32" tileheight="32">
+  <image source="hmpy.png" width="500" height="1024"/>
+ </tileset>
+ <layer name="PASS" width="17" height="13">
+  <data encoding="base64" compression="zlib">
+   eJxjZGBgYAJiZiBmAWJGMvgCQCwIxEJALEwmnxx78bnDCiSABKQZEZgBTR6XO6TRzEA2CwZA5oAwLnfA1MPUYTODkDvwAXRz8LkDWQ8+9+ByhxUjpn3YwpkYd6DrQ3cDiE3L9DGQ6RQAk3AI0A==
+  </data>
+ </layer>
+ <layer name="块层 16" width="17" height="13">
+  <data encoding="base64" compression="zlib">
+   eJztzCcSgEAQBdG5NrB4wnqSJ3nS7Wg5BvHdCrrq2TZLpww5CkFA6R4VajSCFtE9OvQYBCOm//H5mLFgFWzY3ePAiUtw47G0egHSWlCw
+  </data>
+ </layer>
+ <layer name="块层16" width="17" height="13">
+  <data encoding="base64" compression="zlib">
+   eJxjYBgFtAJfgfgbEH8H4h9kmsHCyMDACsRsQMzOiF1NHRDX4zFDGKhPBIhFgVgMyQwXIHYFYjcg7gXiPjLcFwzEIUAcSobekQoAQboILg==
+  </data>
+ </layer>
+ <layer name="块层 4" width="17" height="13">
+  <data encoding="base64" compression="zlib">
+   eJxjYBgFxAJtINYBYl0i1cczMDTgUquDXT1OoMWIKaZCpDsIAWxuQQf5QL8Q0oPsnnw8ZhEKP3zy8WjuQAfI4aTCgD9MBwoAAKmmBiw=
+  </data>
+ </layer>
+ <layer name="块层 15" width="17" height="13">
+  <data encoding="base64" compression="zlib">
+   eJxjYMAOdjPikIDKbQDijWhqWoH8NiSxU3jMAMntB+IDjPjtu4nHDGS5PYwMDfjsIwacBpqBzz5iwC2gGZSZMDgAvvgnFlAaHyAAio/dUHwWGLZnyAxfkFtA+A5Q/20SzACm54ZWqHqQWyhNHyAAAFngHX0=
+  </data>
+ </layer>
+ <layer name="块层 3" width="17" height="13">
+  <data encoding="base64" compression="zlib">
+   eJxjYKAe0ANifSA2IJKNDdgCsR0Q25PARgeODAwNpLjbEYtYAIlmBGARcyLRDCcsYoEkmhGIRSyBRDMSsIgNljClRvqgJ8jFIgYANgkQlg==
+  </data>
+ </layer>
+ <layer name="块层 5" width="17" height="13">
+  <data encoding="base64" compression="zlib">
+   eJxjYBiewIoRlS8DxLJALIdDHhuQwyEui2YPIbOkGTHViRK2niggS1gJVj3kuAekHj1M0P2OK8ywmYUOpGkQPoMRAABUbAQJ
+  </data>
+ </layer>
+ <layer name="块层 2" width="17" height="13">
+  <data encoding="base64" compression="zlib">
+   eJyrYGRgqATiajJwLRDXAXE7EHcAMTmgB6ivF4iXkqkfBlaPmjFqBgEzDgPxETLNOQHUdxKILwHxZSC+Sga+DsQ3gBgA6G8nnQ==
+  </data>
+ </layer>
+ <layer name="SHELTER 9" width="17" height="13">
+  <data encoding="base64" compression="zlib">
+   eJxjYBgFo4A+QA+I9YHYgEj2cAUAGJoCNQ==
+  </data>
+ </layer>
+ <layer name="SHELTER 8" width="17" height="13">
+  <data encoding="base64" compression="zlib">
+   eJxjYBgFo4A0oM2IKcaDRWwUYAcASa4AOg==
+  </data>
+ </layer>
+ <layer name="SHELTER 7" width="17" height="13">
+  <data encoding="base64" compression="zlib">
+   eJxjYBgFIwFoMzIw8GMRQwbo8qOANgAAtDIAdw==
+  </data>
+ </layer>
+ <layer name="SHELTER 6" width="17" height="13">
+  <data encoding="base64" compression="zlib">
+   eJxjYBgFQwnwAbE2IwSPgqEJALV6AGc=
+  </data>
+ </layer>
+ <layer name="SHELTER 5" width="17" height="13">
+  <data encoding="base64" compression="zlib">
+   eJxjYBgFAwX4BtoBo2BAAAAfBAAP
+  </data>
+ </layer>
+ <layer name="SHELTER 4" width="17" height="13">
+  <data encoding="base64" compression="zlib">
+   eJxjYBgF+AAPIwODNhSPglFADQAA7IUAZg==
+  </data>
+ </layer>
+ <layer name="SHELTER 3" width="17" height="13">
+  <data encoding="base64" compression="zlib">
+   eJxjYBiegB+HOB8SW5sRgkfBKKAnAAAmbQB2
+  </data>
+ </layer>
+ <layer name="SHELTER 2" width="17" height="13">
+  <data encoding="base64" compression="zlib">
+   eJxjYBh8QJsRlc8LxHxAzI9DfhSMgqEEAHBxAIM=
+  </data>
+ </layer>
+ <objectgroup name="对象层 1" width="17" height="13">
+  <object name="block_control1" type="TRAP" x="416" y="256" width="32" height="32">
+   <properties>
+    <property name="trap_ani" value="switch.actor"/>
+    <property name="trap_floor" value="true"/>
+    <property name="trap_id" value="0"/>
+    <property name="trap_script" value="trap(&quot;block_control1&quot;):setOpened(false);trap(&quot;block1&quot;):setOpened(false)"/>
+    <property name="trap_sound_id" value="2"/>
+    <property name="trap_start_mode" value="0"/>
+    <property name="trap_state" value="open"/>
+   </properties>
+  </object>
+  <object name="PLAYER" type="PLAYER" x="160" y="96" width="32" height="32"/>
+  <object name="mp1" type="TRAP" x="96" y="288" width="32" height="32">
+   <properties>
+    <property name="trap_ani" value="mp.actor"/>
+    <property name="trap_floor" value="true"/>
+    <property name="trap_id" value="0"/>
+    <property name="trap_script" value="trap_moveto(&quot;PLAYER&quot;, &quot;mp1&quot;,target(&quot;mp2&quot;):getX(),target(&quot;mp2&quot;):getY() );"/>
+    <property name="trap_sound_id" value="1"/>
+    <property name="trap_start_mode" value="0"/>
+    <property name="trap_state" value="open"/>
+   </properties>
+  </object>
+  <object name="mp2" type="TRAP" x="416" y="96" width="32" height="32">
+   <properties>
+    <property name="trap_ani" value="mp.actor"/>
+    <property name="trap_floor" value="true"/>
+    <property name="trap_id" value="0"/>
+    <property name="trap_script" value="trap_moveto(&quot;PLAYER&quot;, &quot;mp2&quot;,target(&quot;mp1&quot;):getX(),target(&quot;mp1&quot;):getY() );"/>
+    <property name="trap_sound_id" value="1"/>
+    <property name="trap_start_mode" value="0"/>
+    <property name="trap_state" value="open"/>
+   </properties>
+  </object>
+  <object name="block1" type="TRAP" x="320" y="256" width="32" height="32">
+   <properties>
+    <property name="trap_ani" value="blok2.actor"/>
+    <property name="trap_blok" value="true"/>
+    <property name="trap_id" value="0"/>
+   </properties>
+  </object>
+  <object name="sc3" x="352" y="160" width="32" height="32">
+   <properties>
+    <property name="quality" value="sc3.quality"/>
+   </properties>
+  </object>
+  <object name="sc3" x="384" y="288" width="32" height="32">
+   <properties>
+    <property name="quality" value="sc3.quality"/>
+   </properties>
+  </object>
+ </objectgroup>
+</map>

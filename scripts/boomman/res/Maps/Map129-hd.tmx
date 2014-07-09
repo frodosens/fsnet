@@ -1,0 +1,153 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map version="1.0" orientation="orthogonal" width="17" height="14" tilewidth="64" tileheight="64">
+ <properties>
+  <property name="DESTRY1" value="96"/>
+  <property name="DESTRY2" value="100"/>
+  <property name="DESTRY3" value="102"/>
+  <property name="DESTRY4" value="108"/>
+  <property name="DESTRY_COUNT" value="4"/>
+  <property name="EXP" value="1145"/>
+  <property name="ITEM" value="D044"/>
+  <property name="LOSE_SCRIPT" value=""/>
+  <property name="MONEY" value="1718"/>
+  <property name="START_SCRIPT" value=""/>
+  <property name="WIN_SCRIPT" value=""/>
+ </properties>
+ <tileset firstgid="1" name="jdbl" tilewidth="64" tileheight="64">
+  <image source="jdbl-hd.png" width="1000" height="1000"/>
+ </tileset>
+ <layer name="PASS" width="17" height="14">
+  <data encoding="base64" compression="zlib">
+   eJybwMDAMBGIJ1BAzwfiBRTSMPPQgSkRYujuIMcMQu4gZB4x7sBlRjkSRneHKR77cAFc7kA3yxQJlzPgdwc2t6Obh24GvvAwRaOxmcFAgjuwAWLcQQjgCo+Bzi8A7q5MoQ==
+  </data>
+ </layer>
+ <layer name="块层 2" width="17" height="14">
+  <data encoding="base64" compression="zlib">
+   eJxjYKAcTKYSBoEJQDwRBz0DitHFGdDMmA/EC3DQMDPQxdHNQLcf3V6YOaS4A91emBnEuGMGCZhUd2CjSQ0PbPRwdge5gFpmAADeVmUG
+  </data>
+ </layer>
+ <layer name="块层 3" width="17" height="14">
+  <data encoding="base64" compression="zlib">
+   eJxrYWBgaKECpgSMmjFqxkgzg1IMAN4hHek=
+  </data>
+ </layer>
+ <layer name="块层 4" width="17" height="14">
+  <data encoding="base64" compression="zlib">
+   eJy1k0kKgDAMRXOpuu5hPIZD905XytF8ooUSWi2KHz6FkjxChkHEjzhgMdpEwooXPOMJ25i/5Sr//mbU5NIfP2f6+MRoE3fk95iea4xrXtY5wIClXYHlkr/WWM5awl3tlpdjlOTMm2M8qcSwrC+qYXAnyp3oMTPmr9PV71RxN5bCfgRyuEO1M0sVd4MYvwNd/S0R
+  </data>
+ </layer>
+ <layer name="块层 5" width="17" height="14">
+  <data encoding="base64" compression="zlib">
+   eJxjYKAOmAvEaxgYDpCKgfoaYGYA+QvIsRuoL2HUjFEz6GUGMM06rIGIkYSB+g6QYzc2AABvfTad
+  </data>
+ </layer>
+ <layer name="块层 17" width="17" height="14">
+  <data encoding="base64" compression="zlib">
+   eJxjYBj+wIVIsaEGiPUDNf3qBcTeWMRdqWweMcAFjR4oMwYCAABgiwOQ
+  </data>
+ </layer>
+ <layer name="块层 6" width="17" height="14">
+  <data encoding="base64" compression="zlib">
+   eJxjYBjcwJRIMXzAiUgxEsxroEA7GCD7IQGIc6A0NnURlFoGBdZAbIPEj4BiM6jdyBgfCMNhXg4axgdM0WgYINYN+MxAdw8lgFi30BsAAJUYDIU=
+  </data>
+ </layer>
+ <layer name="SHELTER 10" width="17" height="14">
+  <data encoding="base64" compression="zlib">
+   eJxjYBgFo2B4gkAoHo4AAI2sAKM=
+  </data>
+ </layer>
+ <layer name="SHELTER 9" width="17" height="14">
+  <data encoding="base64" compression="zlib">
+   eJxjYBgFo2DwgVgoHgXYAQDThAC7
+  </data>
+ </layer>
+ <layer name="SHELTER 8" width="17" height="14">
+  <data encoding="base64" compression="zlib">
+   eJxjYBgFo4A6IBAJjwLaAgBZfwD0
+  </data>
+ </layer>
+ <layer name="SHELTER 7" width="17" height="14">
+  <data encoding="base64" compression="zlib">
+   eJxjYBgFIxHoALEuEj8WDY+CwQ0ACfkBzg==
+  </data>
+ </layer>
+ <layer name="SHELTER 6" width="17" height="14">
+  <data encoding="base64" compression="zlib">
+   eJxjYBgFQwHoALEuDrlANDwKhj8AACv5AZ4=
+  </data>
+ </layer>
+ <layer name="SHELTER 4" width="17" height="14">
+  <data encoding="base64" compression="zlib">
+   eJxjYBgFlIBAII6F0qNgFNALAAB1YgEA
+  </data>
+ </layer>
+ <layer name="SHELTER 3" width="17" height="14">
+  <data encoding="base64" compression="zlib">
+   eJxjYBhZwJiBoWGg3TAKRgGlAAD0HwC0
+  </data>
+ </layer>
+ <layer name="SHELTER 2" width="17" height="14">
+  <data encoding="base64" compression="zlib">
+   eJxjYBjcwJhIsVEwCkYSAAA7WwBn
+  </data>
+ </layer>
+ <objectgroup name="对象层 1" width="34" height="28">
+  <object name="lsbjg3" x="192" y="640" width="64" height="64">
+   <properties>
+    <property name="lua_ai" value="monster_lsbjg_ai"/>
+    <property name="quality" value="lsbjg3.quality"/>
+   </properties>
+  </object>
+  <object name="PLAYER" type="PLAYER" x="128" y="128" width="64" height="64"/>
+  <object name="lsbjg3" x="768" y="640" width="64" height="64">
+   <properties>
+    <property name="lua_ai" value="monster_lsbjg_ai"/>
+    <property name="quality" value="lsbjg3.quality"/>
+   </properties>
+  </object>
+  <object name="lsbjg3" x="576" y="640" width="64" height="64">
+   <properties>
+    <property name="lua_ai" value="monster_lsbjg_ai"/>
+    <property name="quality" value="lsbjg3.quality"/>
+   </properties>
+  </object>
+  <object name="ice_road" type="TRAP" x="256" y="384" width="704" height="64">
+   <properties>
+    <property name="lua_ai" value="ice_road_ai"/>
+   </properties>
+  </object>
+  <object name="ice_road" type="TRAP" x="384" y="256" width="64" height="512">
+   <properties>
+    <property name="lua_ai" value="ice_road_ai"/>
+   </properties>
+  </object>
+  <object name="ice_road" type="TRAP" x="576" y="128" width="128" height="128">
+   <properties>
+    <property name="lua_ai" value="ice_road_ai"/>
+   </properties>
+  </object>
+  <object name="ice_road" type="TRAP" x="640" y="256" width="128" height="128">
+   <properties>
+    <property name="lua_ai" value="ice_road_ai"/>
+   </properties>
+  </object>
+  <object name="block1" type="TRAP" x="320" y="704" width="64" height="64">
+   <properties>
+    <property name="trap_ani" value="blok2.actor"/>
+    <property name="trap_blok" value="true"/>
+    <property name="trap_id" value="0"/>
+   </properties>
+  </object>
+  <object name="block_control1" type="TRAP" x="896" y="576" width="64" height="64">
+   <properties>
+    <property name="trap_ani" value="switch.actor"/>
+    <property name="trap_floor" value="true"/>
+    <property name="trap_id" value="0"/>
+    <property name="trap_script" value="trap(&quot;block_control1&quot;):setOpened(false);trap(&quot;block1&quot;):setOpened(false)"/>
+    <property name="trap_sound_id" value="2"/>
+    <property name="trap_start_mode" value="0"/>
+    <property name="trap_state" value="open"/>
+   </properties>
+  </object>
+ </objectgroup>
+</map>

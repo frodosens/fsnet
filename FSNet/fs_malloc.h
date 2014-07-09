@@ -11,11 +11,20 @@
 
 #include "fs_define.h"
 
+
 void* fs_malloc(size_t);
 void fs_free(void*);
 void* fs_realloc(void*, size_t);
 void fs_zero(void*, size_t);
 
-void fs_assert(fs_bool cond);
+void fs_assert_f(fs_bool cond);
+
+
+#define fs_assert(cond, msg) \
+if(!(cond)) {\
+printf("abort [%s]!! %s:%d \n", msg, __FILE__, __LINE__); \
+} \
+fs_assert_f(cond)
+
 
 #endif

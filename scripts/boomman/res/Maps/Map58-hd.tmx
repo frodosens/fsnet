@@ -1,0 +1,248 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map version="1.0" orientation="orthogonal" width="17" height="13" tilewidth="64" tileheight="64">
+ <properties>
+  <property name="DESTRY1" value="221"/>
+  <property name="DESTRY2" value="225"/>
+  <property name="DESTRY3" value="223"/>
+  <property name="DESTRY_COUNT" value="3"/>
+  <property name="EXP" value="605"/>
+  <property name="ITEM" value="D018"/>
+  <property name="MONEY" value="908"/>
+ </properties>
+ <tileset firstgid="1" name="swzz" tilewidth="64" tileheight="64">
+  <image source="swzz-hd.png" width="1000" height="2048"/>
+ </tileset>
+ <layer name="PASS" width="17" height="13">
+  <data encoding="base64" compression="zlib">
+   eJxTZGBgUAJieSBWAGJFMvgGQGwIxHpArE8mnxmIWRiIBw+R2ExQ/UJALEyCGchAEKof5j9cduEDCgyo4UGsGWFIGD08kOWIBfjCg1i/UBIeD6FYgQF3eOAC6P4kJ32gmwFzByw8BBgQ/iOVT07+QOcDAA5uFPQ=
+  </data>
+ </layer>
+ <layer name="块层 15" width="17" height="13">
+  <data encoding="base64" compression="zlib">
+   eJzrYGBg6ATiLiBexsCwgBQ8HYg7IDRFoBNiHhgwAjETEDMDMQuRfAaI++FmCACxIBALAbEwkXwGiP8PwMyQB2IFIFYEYiUi+ehm6AGxPhAbALEhkXx0M8gND2QzRsMD1QxyAcyM5RB2AqkYqK8BZAYAWFlEog==
+  </data>
+ </layer>
+ <layer name="块层 16" width="17" height="13">
+  <data encoding="base64" compression="zlib">
+   eJxjYGBgsARiKwbigRcQe6Pps2dkYHAAYkcgdgJiZ0bizfOE0n5APf5AHADEgUAcRIIZo4A84AYMY3cg9sAR1nKMDA2EzAgF6g0D4nAkM4Dx3+AE1atLhBkpQL2pQJyGZAYw/hsCidCLDihJizCALy0qA7EKEKuSRjcA9YH9AgD9mhIr
+  </data>
+ </layer>
+ <layer name="块层 17" width="17" height="13">
+  <data encoding="base64" compression="zlib">
+   eJxjYEAF2QwMB0C0MCMDQxaUDQJfGcB8B6C8AwOVQRbUfEoA1L0NVHAORSB7ELgBBrIH2gEMkPCg1B1ZDJTHLaXpCwSgfmnIgtIwdhYDIqyR2cj8LCQ2AI95FUQ=
+  </data>
+ </layer>
+ <layer name="块层 2" width="17" height="13">
+  <data encoding="base64" compression="zlib">
+   eJztksENwCAIRXEZdYG2Vw91D0ZxFEZhtL6ECajprSYv6IGnhl+LSIOeY91F7IAaVU64cqxJL33G/YZPOL9auKxvOmb8af2OTxyD/dhxMF9lzvrS4TicnCl50xkuz0Cfk3Mn70pVfMqbPEOLfn8AIEA9kQ==
+  </data>
+ </layer>
+ <layer name="块层 19" width="17" height="13">
+  <data encoding="base64" compression="zlib">
+   eJztjskJwDAQxNaV5frbcSpS6VEBiY0hv3hAsI9BsxEzf82SIlbZZJcjjfeyd5FTqlwvjl5PJ7pxA7dwk9bvT32d6MYN3CJ3HKP9r3IDPasVfQ==
+  </data>
+ </layer>
+ <layer name="块层 20" width="17" height="13">
+  <data encoding="base64" compression="zlib">
+   eJztkMsJgDAUBJPK/IF68gdqA2odW7ojKsQg6kHw4sIQEiZ5S4z58zSpNSaD3K77gDWECGJI7NHHE764p/2sxemg39yCtYQKami8N/CEr9Z5Y8AZYdpc5or5oofoo8Bxl+AJX4N37oa5Yr7oIfqouHD93P2Dn7O+d//wZt+vMwO8hCAb
+  </data>
+ </layer>
+ <layer name="块层 4" width="17" height="13">
+  <data encoding="base64" compression="zlib">
+   eJxjYBgFtAAqjAwNZOojC2gDsQ4Q96OJiwDd0Y8kT6abGsjUR1VArDt6aWAGNf0CANb5Bn8=
+  </data>
+ </layer>
+ <layer name="块层 3" width="17" height="13">
+  <data encoding="base64" compression="zlib">
+   eJztkkkKgEAQA1sUf+B/80e3+7h8waslqOTocvFgoCCdZgINExFRQwMtdNDbXFsGwotc7MVOsSvBACNMMNucLAPhRS72StaxmL+jxXyZPevg3anqYUdlHf8t37zl6j89sk057wvreKsVe3M0iA==
+  </data>
+ </layer>
+ <layer name="块层 6" width="17" height="13">
+  <data encoding="base64" compression="zlib">
+   eJxjYBia4D4NzORhpNwuaaAZfFjMwWeGDBDLAnEDlK8F1C8LNaMBSZ5UoEOiO4gFhMy4T4E9dWTqI8YMXhxxQwqQQYobUsFmIN4CxABxAwr1
+  </data>
+ </layer>
+ <layer name="块层 18" width="17" height="13">
+  <data encoding="base64" compression="zlib">
+   eJybxcDAMBuI5wDxDgaGBaTglUA8C0JTBGZDzKMIzKGCGUD9B0bNGJxmAOM3gVIzZlNoBjCdHwCm9wQgnbCDRDwHYj9I/wEAtjc/qQ==
+  </data>
+ </layer>
+ <layer name="SHELTER 10" width="17" height="13">
+  <data encoding="base64" compression="zlib">
+   eJxjYBgFo4D24DKVzLgCxFeB+BoQX0fiX8YiNlgBANEVCs8=
+  </data>
+ </layer>
+ <layer name="SHELTER 9" width="17" height="13">
+  <data encoding="base64" compression="zlib">
+   eJxjYBgFo2DwgPyBdgAdAABmUABw
+  </data>
+ </layer>
+ <layer name="SHELTER 8" width="17" height="13">
+  <data encoding="base64" compression="zlib">
+   eJxjYBgFo4A6IH+gHTBEAACDzABw
+  </data>
+ </layer>
+ <layer name="SHELTER 7" width="17" height="13">
+  <data encoding="base64" compression="zlib">
+   eJxjYBgFIwlcIEKekJpRQBkAAH4hAnE=
+  </data>
+ </layer>
+ <layer name="SHELTER 6" width="17" height="13">
+  <data encoding="base64" compression="zlib">
+   eJxjYBgFQwVcGGgHjAKqAAB2AwDR
+  </data>
+ </layer>
+ <layer name="SHELTER 5" width="17" height="13">
+  <data encoding="base64" compression="zlib">
+   eJxjYBgFtAKFQMwLxHwD7ZBRMKgAACf/AI0=
+  </data>
+ </layer>
+ <layer name="SHELTER 4" width="17" height="13">
+  <data encoding="base64" compression="zlib">
+   eJxjYBgFhMAFPHK8QMwHxIV0cssoGPoAABVRAV0=
+  </data>
+ </layer>
+ <layer name="SHELTER 3" width="17" height="13">
+  <data encoding="base64" compression="zlib">
+   eJxjYBje4MJAO2AUjAI0AAAb0gDR
+  </data>
+ </layer>
+ <layer name="SHELTER 1" width="17" height="13">
+  <data encoding="base64" compression="zlib">
+   eJxjYKA/uDAAdo6CUTBYAABzkgDR
+  </data>
+ </layer>
+ <objectgroup name="对象层 1" width="34" height="26">
+  <object name="PLAYER" type="PLAYER" x="896" y="384" width="64" height="64"/>
+  <object name="jdsrh3" x="192" y="576" width="64" height="64">
+   <properties>
+    <property name="lua_ai" value="monster_jdsrh_ai"/>
+    <property name="quality" value="jdsrh3.quality"/>
+   </properties>
+  </object>
+  <object name="jdsrh3" x="192" y="192" width="64" height="64">
+   <properties>
+    <property name="lua_ai" value="monster_jdsrh_ai"/>
+    <property name="quality" value="jdsrh3.quality"/>
+   </properties>
+  </object>
+  <object name="jdsrh3" x="832" y="576" width="64" height="64">
+   <properties>
+    <property name="lua_ai" value="monster_jdsrh_ai"/>
+    <property name="quality" value="jdsrh3.quality"/>
+   </properties>
+  </object>
+  <object name="bh1" type="TRAP" x="448" y="192" width="64" height="64">
+   <properties>
+    <property name="trap_ani" value="black_hole.actor"/>
+    <property name="trap_floor" value="true"/>
+    <property name="trap_id" value="2"/>
+    <property name="trap_sh" value="0.1"/>
+    <property name="trap_sw" value="0.1"/>
+   </properties>
+  </object>
+  <object name="bh1" type="TRAP" x="448" y="512" width="64" height="64">
+   <properties>
+    <property name="trap_ani" value="black_hole.actor"/>
+    <property name="trap_floor" value="true"/>
+    <property name="trap_id" value="2"/>
+    <property name="trap_sh" value="0.1"/>
+    <property name="trap_sw" value="0.1"/>
+   </properties>
+  </object>
+  <object name="xy1" type="TRAP" x="448" y="512" width="64" height="64">
+   <properties>
+    <property name="lua_ai" value="trap_mire_ai"/>
+    <property name="trap_sh" value="0.1"/>
+    <property name="trap_sw" value="0.1"/>
+   </properties>
+  </object>
+  <object name="xy1" type="TRAP" x="448" y="192" width="64" height="64">
+   <properties>
+    <property name="lua_ai" value="trap_mire_ai"/>
+    <property name="trap_sh" value="0.1"/>
+    <property name="trap_sw" value="0.1"/>
+   </properties>
+  </object>
+  <object name="pg1" type="TRAP" x="640" y="192" width="64" height="64">
+   <properties>
+    <property name="trap_ani" value="poison_ground.actor"/>
+    <property name="trap_floor" value="true"/>
+    <property name="trap_script" value="target(&quot;PLAYER&quot;):onDamage(target(&quot;PLAYER&quot;):getHP()*0.1,&quot;TRAP&quot;);"/>
+    <property name="trap_start_mode" value="0"/>
+   </properties>
+  </object>
+  <object name="pg1" type="TRAP" x="704" y="192" width="64" height="64">
+   <properties>
+    <property name="trap_ani" value="poison_ground.actor"/>
+    <property name="trap_floor" value="true"/>
+    <property name="trap_script" value="target(&quot;PLAYER&quot;):onDamage(target(&quot;PLAYER&quot;):getHP()*0.1,&quot;TRAP&quot;);"/>
+    <property name="trap_start_mode" value="0"/>
+   </properties>
+  </object>
+  <object name="pg1" type="TRAP" x="768" y="192" width="64" height="64">
+   <properties>
+    <property name="trap_ani" value="poison_ground.actor"/>
+    <property name="trap_floor" value="true"/>
+    <property name="trap_script" value="target(&quot;PLAYER&quot;):onDamage(target(&quot;PLAYER&quot;):getHP()*0.1,&quot;TRAP&quot;);"/>
+    <property name="trap_start_mode" value="0"/>
+   </properties>
+  </object>
+  <object name="pg1" type="TRAP" x="832" y="192" width="64" height="64">
+   <properties>
+    <property name="trap_ani" value="poison_ground.actor"/>
+    <property name="trap_floor" value="true"/>
+    <property name="trap_script" value="target(&quot;PLAYER&quot;):onDamage(target(&quot;PLAYER&quot;):getHP()*0.1,&quot;TRAP&quot;);"/>
+    <property name="trap_start_mode" value="0"/>
+   </properties>
+  </object>
+  <object name="pg1" type="TRAP" x="832" y="256" width="64" height="64">
+   <properties>
+    <property name="trap_ani" value="poison_ground.actor"/>
+    <property name="trap_floor" value="true"/>
+    <property name="trap_script" value="target(&quot;PLAYER&quot;):onDamage(target(&quot;PLAYER&quot;):getHP()*0.1,&quot;TRAP&quot;);"/>
+    <property name="trap_start_mode" value="0"/>
+   </properties>
+  </object>
+  <object name="pg1" type="TRAP" x="768" y="256" width="64" height="64">
+   <properties>
+    <property name="trap_ani" value="poison_ground.actor"/>
+    <property name="trap_floor" value="true"/>
+    <property name="trap_script" value="target(&quot;PLAYER&quot;):onDamage(target(&quot;PLAYER&quot;):getHP()*0.1,&quot;TRAP&quot;);"/>
+    <property name="trap_start_mode" value="0"/>
+   </properties>
+  </object>
+  <object name="pg1" type="TRAP" x="704" y="256" width="64" height="64">
+   <properties>
+    <property name="trap_ani" value="poison_ground.actor"/>
+    <property name="trap_floor" value="true"/>
+    <property name="trap_script" value="target(&quot;PLAYER&quot;):onDamage(target(&quot;PLAYER&quot;):getHP()*0.1,&quot;TRAP&quot;);"/>
+    <property name="trap_start_mode" value="0"/>
+   </properties>
+  </object>
+  <object name="pg1" type="TRAP" x="640" y="256" width="64" height="64">
+   <properties>
+    <property name="trap_ani" value="poison_ground.actor"/>
+    <property name="trap_floor" value="true"/>
+    <property name="trap_script" value="target(&quot;PLAYER&quot;):onDamage(target(&quot;PLAYER&quot;):getHP()*0.1,&quot;TRAP&quot;);"/>
+    <property name="trap_start_mode" value="0"/>
+   </properties>
+  </object>
+  <object name="pg1" type="TRAP" x="704" y="512" width="64" height="64">
+   <properties>
+    <property name="trap_ani" value="poison_ground.actor"/>
+    <property name="trap_floor" value="true"/>
+    <property name="trap_script" value="target(&quot;PLAYER&quot;):onDamage(target(&quot;PLAYER&quot;):getHP()*0.1,&quot;TRAP&quot;);"/>
+    <property name="trap_start_mode" value="0"/>
+   </properties>
+  </object>
+  <object name="pg1" type="TRAP" x="768" y="512" width="64" height="64">
+   <properties>
+    <property name="trap_ani" value="poison_ground.actor"/>
+    <property name="trap_floor" value="true"/>
+    <property name="trap_script" value="target(&quot;PLAYER&quot;):onDamage(target(&quot;PLAYER&quot;):getHP()*0.1,&quot;TRAP&quot;);"/>
+    <property name="trap_start_mode" value="0"/>
+   </properties>
+  </object>
+ </objectgroup>
+</map>

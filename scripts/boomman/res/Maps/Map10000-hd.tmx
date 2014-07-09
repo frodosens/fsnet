@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map version="1.0" orientation="orthogonal" width="16" height="12" tilewidth="64" tileheight="64">
+ <properties>
+  <property name="DESTRY1" value="25"/>
+  <property name="DESTRY2" value="27"/>
+  <property name="DESTRY_COUNT" value="2"/>
+  <property name="EXP" value="935"/>
+  <property name="ITEM" value="D1017"/>
+  <property name="MONEY" value="4675"/>
+ </properties>
+ <tileset firstgid="1" name="yjbl" tilewidth="64" tileheight="64">
+  <image source="yjbl-hd.png" width="900" height="1002"/>
+ </tileset>
+ <layer name="PASS" width="16" height="12">
+  <data encoding="base64" compression="zlib">
+   eJydktEJgDAMRLNHl1AHsA6g/mX/VcxHD49wBuzB0bRwyYOmm9kR3sN9or7Cd/icrNfwZq/aMNf8Bi0jCx7O8+kia4JfzXKRgyp+nqtmK/48V5n5vviderAyS+ZvIoO7+oOKv+oBqf0B05/9mdlZrh9/UyFI
+  </data>
+ </layer>
+ <layer name="块层 2" width="16" height="12">
+  <data encoding="base64" compression="zlib">
+   eJzVzsENglAQhOFXklqAWoBa01QiF8QLYCJ4EUykAWjJP5nogcPL05uHL5ndZLKbhxBOKHA2FRad6SjHlV2DFjdTa9G5cVdPdgMWWGKVmAd3NZInrLHBNjFP7n7u77DHITHP73/7//v+kZz98H/m7t//X5Ir1LiYaovOlbu6s+vQ42HqLTp37uoFUbZy4Q==
+  </data>
+ </layer>
+ <layer name="块层 4" width="16" height="12">
+  <data encoding="base64" compression="zlib">
+   eJxjYBh4wMnA0ECGHjgQJ0O/OJH2Nw2Q/bjsJdb+ViBuw8ImZH8TGk2K/YT04LIfHyDFTHIAAFrnCiM=
+  </data>
+ </layer>
+ <layer name="块层 3" width="16" height="12">
+  <data encoding="base64" compression="zlib">
+   eJztkjEKwDAMA29pm85N4+/m6TkwdMgHulhwYEn2ZoAbZpNLTjkSnDHDjt178yncH/JKlyfBGTPs2H1QKqX+/J8FuLEKKQ==
+  </data>
+ </layer>
+ <layer name="块层 6" width="16" height="12">
+  <data encoding="base64" compression="zlib">
+   eJxjYBhcQBqKkdnIYsToR6ZLiNSLza4iIu3EZj/MXlLcjWxvORBXALENEhtfWMDES5Dsx2U+LvvR9RQhyRGjH5t8CQH5gQYApucJpA==
+  </data>
+ </layer>
+ <layer name="SHELTER 9" width="16" height="12">
+  <data encoding="base64" compression="zlib">
+   eJxjYBgFo4AywMnA0MABxOxAzAbErBDMAGQzAMUYgHIM6HzOgXMuCgAA+jsC4Q==
+  </data>
+ </layer>
+ <layer name="SHELTER 8" width="16" height="12">
+  <data encoding="base64" compression="zlib">
+   eJxjYBgFo4CBgReKyZUfqgAAMbgANQ==
+  </data>
+ </layer>
+ <layer name="SHELTER 7" width="16" height="12">
+  <data encoding="base64" compression="zlib">
+   eJxjYBgFwwHwEpDjJaBmpAIAPYAANQ==
+  </data>
+ </layer>
+ <layer name="SHELTER 6" width="16" height="12">
+  <data encoding="base64" compression="zlib">
+   eJxjYBgFgwHwQjG58qOAPAAAS7gANQ==
+  </data>
+ </layer>
+ <layer name="SHELTER 5" width="16" height="12">
+  <data encoding="base64" compression="zlib">
+   eJxjYBgF1AC8UAwDmUCcBcR6SGxeLOpGwcACAGUVAhY=
+  </data>
+ </layer>
+ <layer name="SHELTER 4" width="16" height="12">
+  <data encoding="base64" compression="zlib">
+   eJxjYBgFyIAXjc2LS+EoGBYAAE0kACg=
+  </data>
+ </layer>
+ <layer name="SHELTER 3" width="16" height="12">
+  <data encoding="base64" compression="zlib">
+   eJxjYBgegBcNj4JRQAwAAHUoADU=
+  </data>
+ </layer>
+ <layer name="SHELTER 2" width="16" height="12">
+  <data encoding="base64" compression="zlib">
+   eJxjYBhcgBeNRmePglFATQAAYKQAKA==
+  </data>
+ </layer>
+ <layer name="SHELTER 1" width="16" height="12">
+  <data encoding="base64" compression="zlib">
+   eJxjYKAu4IViZDay2CgYBYMJAADQxABP
+  </data>
+ </layer>
+ <objectgroup name="对象层 1" width="32" height="24">
+  <object name="PLAYER" type="PLAYER" x="128" y="128" width="64" height="64"/>
+  <object name="yjsw1" type="PLAYER_AI" x="704" y="256" width="64" height="64">
+   <properties>
+    <property name="quality" value="player_ai_jump.quality"/>
+   </properties>
+  </object>
+  <object name="yjsw1" type="PLAYER_AI" x="320" y="512" width="64" height="64">
+   <properties>
+    <property name="quality" value="player_ai_jump.quality"/>
+   </properties>
+  </object>
+ </objectgroup>
+</map>

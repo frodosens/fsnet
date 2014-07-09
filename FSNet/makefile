@@ -1,6 +1,6 @@
 
 INCLUDE = -I/usr/local/include/ruby-2.1.0 \
-					-I/usr/local/include/ruby-2.1.0/x86_64-darwin13.0	\
+					-I/usr/local/include/ruby-2.1.0/x86_64-linux	\
 					-I/usr/include
 				
 LIB_PATH = -L/usr/local/lib
@@ -11,31 +11,37 @@ OBJECTS = fs_loop_queue.o fs_malloc.o fs_node.o fs_pack.o fs_server.o fs_stream.
 
 MAKE_CMD = gcc
 
-TARGET_NAME = libfsnet.dylib
+TARGET_NAME = libfsnet.so
 
 fsnet: $(OBJECTS)
 	$(MAKE_CMD) $(LIB_PATH) -o $(TARGET_NAME) -shared -fpic $(OBJECTS) -lruby -levent -levent_extra -levent_pthreads
 
 fs_malloc.o : fs_malloc.c fs_malloc.h
-	$(MAKE_CMD) -c $<	$(INCLUDE)
-	
+	$(MAKE_CMD) -c $<	$(INCLUDE) -shared -fPIC
+
 fs_node.o : fs_node.c fs_node.h
-	$(MAKE_CMD) -c $<	$(INCLUDE)
-		
+	$(MAKE_CMD) -c $<	$(INCLUDE) -shared -fPIC
+
+fs_loop_queue.o : fs_loop_queue.c fs_loop_queue.h	
+	$(MAKE_CMD) -c $<	$(INCLUDE) -shared -fPIC	
+
 fs_server.o : fs_server.c fs_server.h
-	$(MAKE_CMD) -c $< $(INCLUDE)
+	$(MAKE_CMD) -c $< $(INCLUDE) -shared -fPIC
 	
 fs_stream.o : fs_stream.c fs_stream.h
-	$(MAKE_CMD) -c $< $(INCLUDE)
+	$(MAKE_CMD) -c $< $(INCLUDE) -shared -fPIC
 
 rb_define.o : ruby_define/rb_define.c ruby_define/rb_define.h
-	$(MAKE_CMD) -c $< $(INCLUDE)
+	$(MAKE_CMD) -c $< $(INCLUDE) -shared -fPIC
 	
 rb_main.o : ruby_define/rb_main.c ruby_define/rb_define.h
-	$(MAKE_CMD) -c $< $(INCLUDE)
+	$(MAKE_CMD) -c $< $(INCLUDE) -shared -fPIC
+
+hash.o : hash.c hash.h
+	$(MAKE_CMD) -c $< $(INCLUDE) -shared -fPIC
 	
 install:
-	cp ruby_define/rb_define.h /usr/local/include
+	cp $(TARGET_NAME) /usr/local/lib
 
 clean:
 	rm -rf $(OBJECTS)

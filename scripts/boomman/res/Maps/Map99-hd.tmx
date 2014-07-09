@@ -1,0 +1,332 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map version="1.0" orientation="orthogonal" width="18" height="14" tilewidth="64" tileheight="64">
+ <properties>
+  <property name="DESTRY1" value="57"/>
+  <property name="DESTRY2" value="58"/>
+  <property name="DESTRY_COUNT" value="2"/>
+  <property name="EXP" value="920"/>
+  <property name="ITEM" value="D032"/>
+  <property name="MONEY" value="1380"/>
+ </properties>
+ <tileset firstgid="1" name="destroyed_village" tilewidth="64" tileheight="64">
+  <image source="destroyed_village-hd.png" width="900" height="1344"/>
+ </tileset>
+ <layer name="PASS" width="18" height="14">
+  <data encoding="base64" compression="zlib">
+   eJyzZ2BgcABiOyC2p4DtC8R+QOxDIdsQiI0YyAcgvQZIbrNCw8QCdH+hmxOKA6MDUv2FbAayfej+ItYMmDkwANKL7C9izUA3B91f2MIZmxno5hCKL3zhjKyOWH8RArRKh4MlfwEAuUEoVQ==
+  </data>
+ </layer>
+ <layer name="块层 2" width="18" height="14">
+  <data encoding="base64" compression="zlib">
+   eJztz8EJwlAQhOFXklqAWoBa0xQT48UomHgxCqYB01L+MPAOgRzWm+Dh480uvIEtUkpHlDiZSsvz3H6c+asCN3Y1GtxNjeV5bj/OtTv0ZtdhgSVWwdy5Qx9yjzU22AZz747cs8Meh2Ce9nx717Tnf9dv3HUmV7jgGnghsip36MGuxROvwAuR1bpDAy6jioE=
+  </data>
+ </layer>
+ <layer name="块层 3" width="18" height="14">
+  <data encoding="base64" compression="zlib">
+   eJxjYGBg4GRgaGAF0mxAzA7EHEBMiA+jgXrhQBxojjCQFgFiUSAWA2JCfBgtjmQOyD0MBEAkFjFvLO4hZA4ugM092OwkBChxD7J9pIYPLdyDDAaDe4gJH3xxhk2OFuFDrXxBDQAAnAwNLw==
+  </data>
+ </layer>
+ <layer name="块层 4" width="18" height="14">
+  <data encoding="base64" compression="zlib">
+   eJxjYBi+wJYCvfpUc8UooAdQoo2ZDTQwdkABAPFjATE=
+  </data>
+ </layer>
+ <layer name="块层 6" width="18" height="14">
+  <data encoding="base64" compression="zlib">
+   eJxjYBjewAoNU8scGyC2htLIbEqBIg47yTUDZg4l7iDGHGzhjM0MUs3BF87UiNeRBgAalgj7
+  </data>
+ </layer>
+ <layer name="SHELTER 11" width="18" height="14">
+  <data encoding="base64" compression="zlib">
+   eJxjYBgFo2AUYAOcDAwNrECaDYjZgZgDiAnxYTTnQDiYCAAAuuwA8A==
+  </data>
+ </layer>
+ <layer name="SHELTER 8" width="18" height="14">
+  <data encoding="base64" compression="zlib">
+   eJxjYBgFo4D6QA+IdaE0MnsUDCwAAK37ARM=
+  </data>
+ </layer>
+ <layer name="SHELTER 3" width="18" height="14">
+  <data encoding="base64" compression="zlib">
+   eJxjYBhZQA+IdaE0MnsUjIKRAAAvaQET
+  </data>
+ </layer>
+ <objectgroup name="对象层 1" width="36" height="28">
+  <object name="PLAYER" type="PLAYER" x="960" y="448" width="64" height="64"/>
+  <object name="bydtj4" x="192" y="320" width="64" height="64">
+   <properties>
+    <property name="buff_type" value="fire_shell"/>
+    <property name="lua_ai" value="monster_bydtj_ai"/>
+    <property name="quality" value="bydtj4.quality"/>
+   </properties>
+  </object>
+  <object name="bydtj4" x="192" y="640" width="64" height="64">
+   <properties>
+    <property name="buff_type" value="fire_shell"/>
+    <property name="lua_ai" value="monster_bydtj_ai"/>
+    <property name="quality" value="bydtj4.quality"/>
+   </properties>
+  </object>
+  <object name="bydtj4" x="832" y="640" width="64" height="64">
+   <properties>
+    <property name="buff_type" value="fire_shell"/>
+    <property name="lua_ai" value="monster_bydtj_ai"/>
+    <property name="quality" value="bydtj4.quality"/>
+   </properties>
+  </object>
+  <object name="block1" type="TRAP" x="576" y="512" width="64" height="64">
+   <properties>
+    <property name="trap_ani" value="blok2.actor"/>
+    <property name="trap_blok" value="true"/>
+    <property name="trap_id" value="0"/>
+   </properties>
+  </object>
+  <object name="block_control1" type="TRAP" x="576" y="320" width="64" height="64">
+   <properties>
+    <property name="trap_ani" value="switch.actor"/>
+    <property name="trap_floor" value="true"/>
+    <property name="trap_id" value="0"/>
+    <property name="trap_script" value="trap(&quot;block_control1&quot;):setOpened(false);trap(&quot;block1&quot;):setOpened(false)"/>
+    <property name="trap_sound_id" value="2"/>
+    <property name="trap_start_mode" value="0"/>
+    <property name="trap_state" value="open"/>
+   </properties>
+  </object>
+  <object name="staff_driger_control" type="TRAP" x="0" y="832" width="64" height="64">
+   <properties>
+    <property name="trap_delay" value="10"/>
+    <property name="trap_id" value="0"/>
+    <property name="trap_script" value="trap(&quot;staff_driger&quot;):setOpened(true);"/>
+    <property name="trap_start_mode" value="2"/>
+    <property name="trap_state" value="open"/>
+   </properties>
+  </object>
+  <object name="staff_driger" type="TRAP" x="512" y="512" width="64" height="64">
+   <properties>
+    <property name="trap_ani" value="driger.actor"/>
+    <property name="trap_floor" value="true"/>
+    <property name="trap_id" value="0"/>
+    <property name="trap_script" value="target(&quot;PLAYER&quot;):setCurrentUseSkill(  make_ice_staff_skill()  );target(&quot;PLAYER&quot;):setEffectAnimateName(&quot;find_player.ani&quot;);trap(&quot;staff_driger&quot;):setOpened(false)"/>
+    <property name="trap_start_mode" value="0"/>
+    <property name="trap_state" value="open"/>
+   </properties>
+  </object>
+  <object name="belt_down" type="TRAP" x="384" y="512" width="64" height="64">
+   <properties>
+    <property name="lua_ai" value="trap_belt_down_ai"/>
+    <property name="trap_ani" value="belt_down.actor"/>
+    <property name="trap_floor" value="true"/>
+   </properties>
+  </object>
+  <object name="belt_down" type="TRAP" x="384" y="448" width="64" height="64">
+   <properties>
+    <property name="lua_ai" value="trap_belt_down_ai"/>
+    <property name="trap_ani" value="belt_down.actor"/>
+    <property name="trap_floor" value="true"/>
+   </properties>
+  </object>
+  <object name="belt_down" type="TRAP" x="384" y="320" width="64" height="64">
+   <properties>
+    <property name="lua_ai" value="trap_belt_down_ai"/>
+    <property name="trap_ani" value="belt_down.actor"/>
+    <property name="trap_floor" value="true"/>
+   </properties>
+  </object>
+  <object name="belt_down" type="TRAP" x="384" y="384" width="64" height="64">
+   <properties>
+    <property name="lua_ai" value="trap_belt_down_ai"/>
+    <property name="trap_ani" value="belt_down.actor"/>
+    <property name="trap_floor" value="true"/>
+   </properties>
+  </object>
+  <object name="belt_down" type="TRAP" x="768" y="448" width="64" height="64">
+   <properties>
+    <property name="lua_ai" value="trap_belt_down_ai"/>
+    <property name="trap_ani" value="belt_down.actor"/>
+    <property name="trap_floor" value="true"/>
+   </properties>
+  </object>
+  <object name="belt_down" type="TRAP" x="768" y="320" width="64" height="64">
+   <properties>
+    <property name="lua_ai" value="trap_belt_down_ai"/>
+    <property name="trap_ani" value="belt_down.actor"/>
+    <property name="trap_floor" value="true"/>
+   </properties>
+  </object>
+  <object name="belt_down" type="TRAP" x="768" y="384" width="64" height="64">
+   <properties>
+    <property name="lua_ai" value="trap_belt_down_ai"/>
+    <property name="trap_ani" value="belt_down.actor"/>
+    <property name="trap_floor" value="true"/>
+   </properties>
+  </object>
+  <object name="belt_down" type="TRAP" x="768" y="512" width="64" height="64">
+   <properties>
+    <property name="lua_ai" value="trap_belt_down_ai"/>
+    <property name="trap_ani" value="belt_down.actor"/>
+    <property name="trap_floor" value="true"/>
+   </properties>
+  </object>
+  <object name="belt_up" type="TRAP" x="320" y="448" width="64" height="64">
+   <properties>
+    <property name="lua_ai" value="trap_belt_up_ai"/>
+    <property name="trap_ani" value="belt_up.actor"/>
+    <property name="trap_floor" value="true"/>
+   </properties>
+  </object>
+  <object name="belt_up" type="TRAP" x="320" y="384" width="64" height="64">
+   <properties>
+    <property name="lua_ai" value="trap_belt_up_ai"/>
+    <property name="trap_ani" value="belt_up.actor"/>
+    <property name="trap_floor" value="true"/>
+   </properties>
+  </object>
+  <object name="belt_up" type="TRAP" x="320" y="320" width="64" height="64">
+   <properties>
+    <property name="lua_ai" value="trap_belt_up_ai"/>
+    <property name="trap_ani" value="belt_up.actor"/>
+    <property name="trap_floor" value="true"/>
+   </properties>
+  </object>
+  <object name="belt_up" type="TRAP" x="704" y="448" width="64" height="64">
+   <properties>
+    <property name="lua_ai" value="trap_belt_up_ai"/>
+    <property name="trap_ani" value="belt_up.actor"/>
+    <property name="trap_floor" value="true"/>
+   </properties>
+  </object>
+  <object name="belt_up" type="TRAP" x="704" y="512" width="64" height="64">
+   <properties>
+    <property name="lua_ai" value="trap_belt_up_ai"/>
+    <property name="trap_ani" value="belt_up.actor"/>
+    <property name="trap_floor" value="true"/>
+   </properties>
+  </object>
+  <object name="belt_up" type="TRAP" x="704" y="384" width="64" height="64">
+   <properties>
+    <property name="lua_ai" value="trap_belt_up_ai"/>
+    <property name="trap_ani" value="belt_up.actor"/>
+    <property name="trap_floor" value="true"/>
+   </properties>
+  </object>
+  <object name="belt_up" type="TRAP" x="704" y="320" width="64" height="64">
+   <properties>
+    <property name="lua_ai" value="trap_belt_up_ai"/>
+    <property name="trap_ani" value="belt_up.actor"/>
+    <property name="trap_floor" value="true"/>
+   </properties>
+  </object>
+  <object name="belt_right" type="TRAP" x="384" y="192" width="64" height="64">
+   <properties>
+    <property name="lua_ai" value="trap_belt_right_ai"/>
+    <property name="trap_ani" value="belt_right.actor"/>
+    <property name="trap_floor" value="true"/>
+   </properties>
+  </object>
+  <object name="belt_right" type="TRAP" x="448" y="192" width="64" height="64">
+   <properties>
+    <property name="lua_ai" value="trap_belt_right_ai"/>
+    <property name="trap_ani" value="belt_right.actor"/>
+    <property name="trap_floor" value="true"/>
+   </properties>
+  </object>
+  <object name="belt_right" type="TRAP" x="576" y="192" width="64" height="64">
+   <properties>
+    <property name="lua_ai" value="trap_belt_right_ai"/>
+    <property name="trap_ani" value="belt_right.actor"/>
+    <property name="trap_floor" value="true"/>
+   </properties>
+  </object>
+  <object name="belt_right" type="TRAP" x="512" y="192" width="64" height="64">
+   <properties>
+    <property name="lua_ai" value="trap_belt_right_ai"/>
+    <property name="trap_ani" value="belt_right.actor"/>
+    <property name="trap_floor" value="true"/>
+   </properties>
+  </object>
+  <object name="belt_right" type="TRAP" x="640" y="192" width="64" height="64">
+   <properties>
+    <property name="lua_ai" value="trap_belt_right_ai"/>
+    <property name="trap_ani" value="belt_right.actor"/>
+    <property name="trap_floor" value="true"/>
+   </properties>
+  </object>
+  <object name="belt_right" type="TRAP" x="704" y="192" width="64" height="64">
+   <properties>
+    <property name="lua_ai" value="trap_belt_right_ai"/>
+    <property name="trap_ani" value="belt_right.actor"/>
+    <property name="trap_floor" value="true"/>
+   </properties>
+  </object>
+  <object name="belt_up" type="TRAP" x="448" y="448" width="64" height="64">
+   <properties>
+    <property name="lua_ai" value="trap_belt_up_ai"/>
+    <property name="trap_ani" value="belt_up.actor"/>
+    <property name="trap_floor" value="true"/>
+   </properties>
+  </object>
+  <object name="belt_up" type="TRAP" x="448" y="384" width="64" height="64">
+   <properties>
+    <property name="lua_ai" value="trap_belt_up_ai"/>
+    <property name="trap_ani" value="belt_up.actor"/>
+    <property name="trap_floor" value="true"/>
+   </properties>
+  </object>
+  <object name="belt_up" type="TRAP" x="448" y="320" width="64" height="64">
+   <properties>
+    <property name="lua_ai" value="trap_belt_up_ai"/>
+    <property name="trap_ani" value="belt_up.actor"/>
+    <property name="trap_floor" value="true"/>
+   </properties>
+  </object>
+  <object name="belt_down" type="TRAP" x="512" y="384" width="64" height="64">
+   <properties>
+    <property name="lua_ai" value="trap_belt_down_ai"/>
+    <property name="trap_ani" value="belt_down.actor"/>
+    <property name="trap_floor" value="true"/>
+   </properties>
+  </object>
+  <object name="belt_right" type="TRAP" x="640" y="128" width="64" height="64">
+   <properties>
+    <property name="lua_ai" value="trap_belt_right_ai"/>
+    <property name="trap_ani" value="belt_right.actor"/>
+    <property name="trap_floor" value="true"/>
+   </properties>
+  </object>
+  <object name="belt_right" type="TRAP" x="704" y="128" width="64" height="64">
+   <properties>
+    <property name="lua_ai" value="trap_belt_right_ai"/>
+    <property name="trap_ani" value="belt_right.actor"/>
+    <property name="trap_floor" value="true"/>
+   </properties>
+  </object>
+  <object name="belt_right" type="TRAP" x="384" y="128" width="64" height="64">
+   <properties>
+    <property name="lua_ai" value="trap_belt_right_ai"/>
+    <property name="trap_ani" value="belt_right.actor"/>
+    <property name="trap_floor" value="true"/>
+   </properties>
+  </object>
+  <object name="belt_right" type="TRAP" x="448" y="128" width="64" height="64">
+   <properties>
+    <property name="lua_ai" value="trap_belt_right_ai"/>
+    <property name="trap_ani" value="belt_right.actor"/>
+    <property name="trap_floor" value="true"/>
+   </properties>
+  </object>
+  <object name="belt_right" type="TRAP" x="576" y="128" width="64" height="64">
+   <properties>
+    <property name="lua_ai" value="trap_belt_right_ai"/>
+    <property name="trap_ani" value="belt_right.actor"/>
+    <property name="trap_floor" value="true"/>
+   </properties>
+  </object>
+  <object name="belt_right" type="TRAP" x="512" y="128" width="64" height="64">
+   <properties>
+    <property name="lua_ai" value="trap_belt_right_ai"/>
+    <property name="trap_ani" value="belt_right.actor"/>
+    <property name="trap_floor" value="true"/>
+   </properties>
+  </object>
+ </objectgroup>
+</map>

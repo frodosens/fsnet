@@ -1,183 +1,453 @@
-# Logfile created on 2014-06-11 17:14:21 +0800 by logger.rb/44203
-I, [2014-06-11T17:14:51.596722 #14600]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
-I, [2014-06-11T17:15:52.351725 #14724]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
-I, [2014-06-11T17:16:36.065444 #14797]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
-I, [2014-06-11T17:34:44.633656 #16038]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
-I, [2014-06-11T17:35:09.353012 #16070]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
-I, [2014-06-11T17:36:06.734082 #16126]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
-I, [2014-06-11T17:36:58.504402 #16202]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
-I, [2014-06-11T17:39:51.480413 #16365]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
-I, [2014-06-11T17:39:57.158327 #16371]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
-I, [2014-06-11T17:41:18.737102 #16475]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
-I, [2014-06-11T17:42:01.995970 #16530]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
-I, [2014-06-11T17:42:33.675004 #16606]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
-E, [2014-06-11T17:42:42.226578 #16606] ERROR -- : You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ' 1, 0, 2, 0, 0 )' at line 1
-E, [2014-06-11T17:42:42.226797 #16606] ERROR -- : /Users/kay/Documents/xcode/FSNet/FSNet/scripts/boomman/src/manager/game_database.rb:28:in `query'
-E, [2014-06-11T17:42:42.226839 #16606] ERROR -- : /Users/kay/Documents/xcode/FSNet/FSNet/scripts/boomman/src/manager/game_database.rb:28:in `query'
-E, [2014-06-11T17:42:42.226867 #16606] ERROR -- : /Users/kay/Documents/xcode/FSNet/FSNet/scripts/boomman/src/manager/game_database.rb:32:in `execute'
-E, [2014-06-11T17:42:42.226893 #16606] ERROR -- : /Users/kay/Documents/xcode/FSNet/FSNet/scripts/boomman/src/cmds/cmd_db_execute.rb:16:in `block in execute_sqls'
-E, [2014-06-11T17:42:42.226932 #16606] ERROR -- : /Users/kay/Documents/xcode/FSNet/FSNet/scripts/boomman/src/cmds/cmd_db_execute.rb:15:in `each'
-E, [2014-06-11T17:42:42.226957 #16606] ERROR -- : /Users/kay/Documents/xcode/FSNet/FSNet/scripts/boomman/src/cmds/cmd_db_execute.rb:15:in `execute_sqls'
-E, [2014-06-11T17:42:42.226980 #16606] ERROR -- : /Users/kay/Documents/xcode/FSNet/FSNet/scripts/boomman/src/db_server.rb:16:in `execute_sql'
-E, [2014-06-11T17:42:42.227004 #16606] ERROR -- : /Users/kay/Documents/xcode/FSNet/FSNet/scripts/gamelib/game_server.rb:264:in `call'
-E, [2014-06-11T17:42:42.227027 #16606] ERROR -- : /Users/kay/Documents/xcode/FSNet/FSNet/scripts/gamelib/game_server.rb:264:in `handle_pack'
-E, [2014-06-11T17:42:42.227050 #16606] ERROR -- : /Users/kay/Documents/xcode/FSNet/FSNet/scripts/gamelib/game_server.rb:312:in `on_handle_pack'
-I, [2014-06-11T17:51:22.245283 #16735]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
-I, [2014-06-11T17:51:34.790453 #16746]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
-I, [2014-06-11T17:53:46.571635 #16783]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
-E, [2014-06-11T17:53:56.243550 #16783] ERROR -- : Duplicate entry '3' for key 'PRIMARY'
-E, [2014-06-11T17:53:56.243707 #16783] ERROR -- : /Users/kay/Documents/xcode/FSNet/FSNet/scripts/boomman/src/manager/game_database.rb:28:in `query'
-E, [2014-06-11T17:53:56.243793 #16783] ERROR -- : /Users/kay/Documents/xcode/FSNet/FSNet/scripts/boomman/src/manager/game_database.rb:28:in `query'
-E, [2014-06-11T17:53:56.243835 #16783] ERROR -- : /Users/kay/Documents/xcode/FSNet/FSNet/scripts/boomman/src/manager/game_database.rb:32:in `execute'
-E, [2014-06-11T17:53:56.243871 #16783] ERROR -- : /Users/kay/Documents/xcode/FSNet/FSNet/scripts/boomman/src/cmds/cmd_db_execute.rb:16:in `block in execute_sqls'
-E, [2014-06-11T17:53:56.243910 #16783] ERROR -- : /Users/kay/Documents/xcode/FSNet/FSNet/scripts/boomman/src/cmds/cmd_db_execute.rb:15:in `each'
-E, [2014-06-11T17:53:56.243950 #16783] ERROR -- : /Users/kay/Documents/xcode/FSNet/FSNet/scripts/boomman/src/cmds/cmd_db_execute.rb:15:in `execute_sqls'
-E, [2014-06-11T17:53:56.243992 #16783] ERROR -- : /Users/kay/Documents/xcode/FSNet/FSNet/scripts/boomman/src/db_server.rb:16:in `execute_sql'
-E, [2014-06-11T17:53:56.244063 #16783] ERROR -- : /Users/kay/Documents/xcode/FSNet/FSNet/scripts/gamelib/game_server.rb:264:in `call'
-E, [2014-06-11T17:53:56.244102 #16783] ERROR -- : /Users/kay/Documents/xcode/FSNet/FSNet/scripts/gamelib/game_server.rb:264:in `handle_pack'
-E, [2014-06-11T17:53:56.244183 #16783] ERROR -- : /Users/kay/Documents/xcode/FSNet/FSNet/scripts/gamelib/game_server.rb:312:in `on_handle_pack'
-I, [2014-06-11T17:55:35.050025 #16882]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
-E, [2014-06-11T17:55:44.381799 #16882] ERROR -- : You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ' templete_id=1, stre_level=0, quality_level2, inherited=0, bomb_reload=0 where s' at line 1
-E, [2014-06-11T17:55:44.382467 #16882] ERROR -- : /Users/kay/Documents/xcode/FSNet/FSNet/scripts/boomman/src/manager/game_database.rb:28:in `query'
-E, [2014-06-11T17:55:44.382580 #16882] ERROR -- : /Users/kay/Documents/xcode/FSNet/FSNet/scripts/boomman/src/manager/game_database.rb:28:in `query'
-E, [2014-06-11T17:55:44.382632 #16882] ERROR -- : /Users/kay/Documents/xcode/FSNet/FSNet/scripts/boomman/src/manager/game_database.rb:32:in `execute'
-E, [2014-06-11T17:55:44.382680 #16882] ERROR -- : /Users/kay/Documents/xcode/FSNet/FSNet/scripts/boomman/src/cmds/cmd_db_execute.rb:16:in `block in execute_sqls'
-E, [2014-06-11T17:55:44.382731 #16882] ERROR -- : /Users/kay/Documents/xcode/FSNet/FSNet/scripts/boomman/src/cmds/cmd_db_execute.rb:15:in `each'
-E, [2014-06-11T17:55:44.382779 #16882] ERROR -- : /Users/kay/Documents/xcode/FSNet/FSNet/scripts/boomman/src/cmds/cmd_db_execute.rb:15:in `execute_sqls'
-E, [2014-06-11T17:55:44.382827 #16882] ERROR -- : /Users/kay/Documents/xcode/FSNet/FSNet/scripts/boomman/src/db_server.rb:16:in `execute_sql'
-E, [2014-06-11T17:55:44.382873 #16882] ERROR -- : /Users/kay/Documents/xcode/FSNet/FSNet/scripts/gamelib/game_server.rb:264:in `call'
-E, [2014-06-11T17:55:44.382915 #16882] ERROR -- : /Users/kay/Documents/xcode/FSNet/FSNet/scripts/gamelib/game_server.rb:264:in `handle_pack'
-E, [2014-06-11T17:55:44.382962 #16882] ERROR -- : /Users/kay/Documents/xcode/FSNet/FSNet/scripts/gamelib/game_server.rb:312:in `on_handle_pack'
-I, [2014-06-11T17:56:50.056251 #16918]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
-I, [2014-06-11T17:57:04.804986 #16952]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
-E, [2014-06-11T17:57:14.129782 #16952] ERROR -- : You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ' templete_id=1, stre_level=0, quality_level2, inherited=0, bomb_reload=0 where s' at line 1
-E, [2014-06-11T17:57:14.129913 #16952] ERROR -- : /Users/kay/Documents/xcode/FSNet/FSNet/scripts/boomman/src/manager/game_database.rb:28:in `query'
-E, [2014-06-11T17:57:14.129968 #16952] ERROR -- : /Users/kay/Documents/xcode/FSNet/FSNet/scripts/boomman/src/manager/game_database.rb:28:in `query'
-E, [2014-06-11T17:57:14.130009 #16952] ERROR -- : /Users/kay/Documents/xcode/FSNet/FSNet/scripts/boomman/src/manager/game_database.rb:32:in `execute'
-E, [2014-06-11T17:57:14.130051 #16952] ERROR -- : /Users/kay/Documents/xcode/FSNet/FSNet/scripts/boomman/src/cmds/cmd_db_execute.rb:17:in `block in execute_sqls'
-E, [2014-06-11T17:57:14.130092 #16952] ERROR -- : /Users/kay/Documents/xcode/FSNet/FSNet/scripts/boomman/src/cmds/cmd_db_execute.rb:15:in `each'
-E, [2014-06-11T17:57:14.134686 #16952] ERROR -- : /Users/kay/Documents/xcode/FSNet/FSNet/scripts/boomman/src/cmds/cmd_db_execute.rb:15:in `execute_sqls'
-E, [2014-06-11T17:57:14.134834 #16952] ERROR -- : /Users/kay/Documents/xcode/FSNet/FSNet/scripts/boomman/src/db_server.rb:16:in `execute_sql'
-E, [2014-06-11T17:57:14.134881 #16952] ERROR -- : /Users/kay/Documents/xcode/FSNet/FSNet/scripts/gamelib/game_server.rb:264:in `call'
-E, [2014-06-11T17:57:14.134926 #16952] ERROR -- : /Users/kay/Documents/xcode/FSNet/FSNet/scripts/gamelib/game_server.rb:264:in `handle_pack'
-E, [2014-06-11T17:57:14.134998 #16952] ERROR -- : /Users/kay/Documents/xcode/FSNet/FSNet/scripts/gamelib/game_server.rb:312:in `on_handle_pack'
-I, [2014-06-11T17:57:42.382609 #16983]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
-E, [2014-06-11T17:57:50.986850 #16983] ERROR -- : You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ' inherited=0, bomb_reload=0 where serial=3' at line 1
-E, [2014-06-11T17:57:50.987206 #16983] ERROR -- : /Users/kay/Documents/xcode/FSNet/FSNet/scripts/boomman/src/manager/game_database.rb:28:in `query'
-E, [2014-06-11T17:57:50.987246 #16983] ERROR -- : /Users/kay/Documents/xcode/FSNet/FSNet/scripts/boomman/src/manager/game_database.rb:28:in `query'
-E, [2014-06-11T17:57:50.987273 #16983] ERROR -- : /Users/kay/Documents/xcode/FSNet/FSNet/scripts/boomman/src/manager/game_database.rb:32:in `execute'
-E, [2014-06-11T17:57:50.987298 #16983] ERROR -- : /Users/kay/Documents/xcode/FSNet/FSNet/scripts/boomman/src/cmds/cmd_db_execute.rb:17:in `block in execute_sqls'
-E, [2014-06-11T17:57:50.987322 #16983] ERROR -- : /Users/kay/Documents/xcode/FSNet/FSNet/scripts/boomman/src/cmds/cmd_db_execute.rb:15:in `each'
-E, [2014-06-11T17:57:50.987346 #16983] ERROR -- : /Users/kay/Documents/xcode/FSNet/FSNet/scripts/boomman/src/cmds/cmd_db_execute.rb:15:in `execute_sqls'
-E, [2014-06-11T17:57:50.993359 #16983] ERROR -- : /Users/kay/Documents/xcode/FSNet/FSNet/scripts/boomman/src/db_server.rb:16:in `execute_sql'
-E, [2014-06-11T17:57:50.993450 #16983] ERROR -- : /Users/kay/Documents/xcode/FSNet/FSNet/scripts/gamelib/game_server.rb:264:in `call'
-E, [2014-06-11T17:57:50.993501 #16983] ERROR -- : /Users/kay/Documents/xcode/FSNet/FSNet/scripts/gamelib/game_server.rb:264:in `handle_pack'
-E, [2014-06-11T17:57:50.993527 #16983] ERROR -- : /Users/kay/Documents/xcode/FSNet/FSNet/scripts/gamelib/game_server.rb:312:in `on_handle_pack'
-I, [2014-06-11T17:58:17.129058 #17022]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
-I, [2014-06-11T18:09:56.257105 #17205]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
-I, [2014-06-11T18:11:08.343835 #17275]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
-I, [2014-06-11T18:12:04.959154 #17359]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
-I, [2014-06-11T18:12:42.725595 #17413]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
-I, [2014-06-11T18:21:04.727378 #17953]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
-I, [2014-06-11T18:21:57.289702 #18038]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
-I, [2014-06-11T18:22:46.910349 #18100]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
-I, [2014-06-11T18:23:17.796069 #18141]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
-I, [2014-06-11T18:23:36.277996 #18186]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
-E, [2014-06-11T18:23:52.282922 #18186] ERROR -- : Duplicate entry '3' for key 'PRIMARY'
-E, [2014-06-11T18:23:52.283071 #18186] ERROR -- : /Users/kay/Documents/xcode/FSNet/FSNet/scripts/boomman/src/manager/game_database.rb:28:in `query'
-E, [2014-06-11T18:23:52.283116 #18186] ERROR -- : /Users/kay/Documents/xcode/FSNet/FSNet/scripts/boomman/src/manager/game_database.rb:28:in `query'
-E, [2014-06-11T18:23:52.283156 #18186] ERROR -- : /Users/kay/Documents/xcode/FSNet/FSNet/scripts/boomman/src/manager/game_database.rb:32:in `execute'
-E, [2014-06-11T18:23:52.283197 #18186] ERROR -- : /Users/kay/Documents/xcode/FSNet/FSNet/scripts/boomman/src/cmds/cmd_db_execute.rb:16:in `block in execute_sqls'
-E, [2014-06-11T18:23:52.283236 #18186] ERROR -- : /Users/kay/Documents/xcode/FSNet/FSNet/scripts/boomman/src/cmds/cmd_db_execute.rb:15:in `each'
-E, [2014-06-11T18:23:52.283278 #18186] ERROR -- : /Users/kay/Documents/xcode/FSNet/FSNet/scripts/boomman/src/cmds/cmd_db_execute.rb:15:in `execute_sqls'
-E, [2014-06-11T18:23:52.283317 #18186] ERROR -- : /Users/kay/Documents/xcode/FSNet/FSNet/scripts/boomman/src/db_server.rb:16:in `execute_sql'
-E, [2014-06-11T18:23:52.283362 #18186] ERROR -- : /Users/kay/Documents/xcode/FSNet/FSNet/scripts/gamelib/game_server.rb:264:in `call'
-E, [2014-06-11T18:23:52.283426 #18186] ERROR -- : /Users/kay/Documents/xcode/FSNet/FSNet/scripts/gamelib/game_server.rb:264:in `handle_pack'
-E, [2014-06-11T18:23:52.283467 #18186] ERROR -- : /Users/kay/Documents/xcode/FSNet/FSNet/scripts/gamelib/game_server.rb:312:in `on_handle_pack'
-I, [2014-06-11T18:24:01.201790 #18236]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
-E, [2014-06-11T18:24:16.532989 #18236] ERROR -- : Duplicate entry '3' for key 'PRIMARY'
-E, [2014-06-11T18:24:16.533133 #18236] ERROR -- : /Users/kay/Documents/xcode/FSNet/FSNet/scripts/boomman/src/manager/game_database.rb:28:in `query'
-E, [2014-06-11T18:24:16.533209 #18236] ERROR -- : /Users/kay/Documents/xcode/FSNet/FSNet/scripts/boomman/src/manager/game_database.rb:28:in `query'
-E, [2014-06-11T18:24:16.533252 #18236] ERROR -- : /Users/kay/Documents/xcode/FSNet/FSNet/scripts/boomman/src/manager/game_database.rb:32:in `execute'
-E, [2014-06-11T18:24:16.533294 #18236] ERROR -- : /Users/kay/Documents/xcode/FSNet/FSNet/scripts/boomman/src/cmds/cmd_db_execute.rb:16:in `block in execute_sqls'
-E, [2014-06-11T18:24:16.533336 #18236] ERROR -- : /Users/kay/Documents/xcode/FSNet/FSNet/scripts/boomman/src/cmds/cmd_db_execute.rb:15:in `each'
-E, [2014-06-11T18:24:16.533386 #18236] ERROR -- : /Users/kay/Documents/xcode/FSNet/FSNet/scripts/boomman/src/cmds/cmd_db_execute.rb:15:in `execute_sqls'
-E, [2014-06-11T18:24:16.533425 #18236] ERROR -- : /Users/kay/Documents/xcode/FSNet/FSNet/scripts/boomman/src/db_server.rb:16:in `execute_sql'
-E, [2014-06-11T18:24:16.533463 #18236] ERROR -- : /Users/kay/Documents/xcode/FSNet/FSNet/scripts/gamelib/game_server.rb:264:in `call'
-E, [2014-06-11T18:24:16.533504 #18236] ERROR -- : /Users/kay/Documents/xcode/FSNet/FSNet/scripts/gamelib/game_server.rb:264:in `handle_pack'
-E, [2014-06-11T18:24:16.533543 #18236] ERROR -- : /Users/kay/Documents/xcode/FSNet/FSNet/scripts/gamelib/game_server.rb:312:in `on_handle_pack'
-I, [2014-06-11T18:27:29.026145 #18386]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
-I, [2014-06-11T18:28:02.609012 #18422]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
-I, [2014-06-11T18:28:47.837945 #18457]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
-I, [2014-06-11T18:29:03.531693 #18490]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
-I, [2014-06-11T18:30:10.750717 #18528]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
-I, [2014-06-11T18:30:42.209230 #18550]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
-I, [2014-06-11T18:31:22.688615 #18600]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
-I, [2014-06-11T18:31:43.246988 #18621]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
-I, [2014-06-11T18:34:08.471224 #18762]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
-I, [2014-06-11T18:34:22.568606 #18780]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
-I, [2014-06-11T18:35:01.695307 #18819]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
-I, [2014-06-11T18:48:50.348546 #19047]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
-I, [2014-06-11T18:49:51.759280 #19163]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
-I, [2014-06-11T20:02:14.132834 #21019]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
-I, [2014-06-11T20:15:21.434569 #22102]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
-I, [2014-06-11T20:16:03.737647 #22179]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
-I, [2014-06-11T20:16:40.690668 #22261]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
-I, [2014-06-11T20:17:16.455448 #22341]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
-I, [2014-06-11T20:17:43.589152 #22390]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
-I, [2014-06-11T20:19:04.596185 #22459]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
-I, [2014-06-11T20:20:11.104352 #22515]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
-I, [2014-06-11T20:21:05.626943 #22559]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
-I, [2014-06-11T20:21:50.115604 #22588]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
-I, [2014-06-11T20:23:17.570814 #22673]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
-I, [2014-06-11T20:37:14.959551 #23343]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
-E, [2014-06-11T20:37:21.603491 #23343] ERROR -- : Duplicate entry '0' for key 'PRIMARY'
-E, [2014-06-11T20:37:21.603604 #23343] ERROR -- : /Users/kay/Documents/xcode/FSNet/FSNet/scripts/boomman/src/manager/game_database.rb:28:in `query'
-E, [2014-06-11T20:37:21.603646 #23343] ERROR -- : /Users/kay/Documents/xcode/FSNet/FSNet/scripts/boomman/src/manager/game_database.rb:28:in `query'
-E, [2014-06-11T20:37:21.603687 #23343] ERROR -- : /Users/kay/Documents/xcode/FSNet/FSNet/scripts/boomman/src/manager/game_database.rb:32:in `execute'
-E, [2014-06-11T20:37:21.603714 #23343] ERROR -- : /Users/kay/Documents/xcode/FSNet/FSNet/scripts/boomman/src/cmds/cmd_db_execute.rb:16:in `block in execute_sqls'
-E, [2014-06-11T20:37:21.603741 #23343] ERROR -- : /Users/kay/Documents/xcode/FSNet/FSNet/scripts/boomman/src/cmds/cmd_db_execute.rb:15:in `each'
-E, [2014-06-11T20:37:21.603766 #23343] ERROR -- : /Users/kay/Documents/xcode/FSNet/FSNet/scripts/boomman/src/cmds/cmd_db_execute.rb:15:in `execute_sqls'
-E, [2014-06-11T20:37:21.603795 #23343] ERROR -- : /Users/kay/Documents/xcode/FSNet/FSNet/scripts/boomman/src/db_server.rb:16:in `execute_sql'
-E, [2014-06-11T20:37:21.603821 #23343] ERROR -- : /Users/kay/Documents/xcode/FSNet/FSNet/scripts/gamelib/game_server.rb:264:in `call'
-E, [2014-06-11T20:37:21.603844 #23343] ERROR -- : /Users/kay/Documents/xcode/FSNet/FSNet/scripts/gamelib/game_server.rb:264:in `handle_pack'
-E, [2014-06-11T20:37:21.603867 #23343] ERROR -- : /Users/kay/Documents/xcode/FSNet/FSNet/scripts/gamelib/game_server.rb:312:in `on_handle_pack'
-I, [2014-06-11T20:39:24.178811 #23411]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
-E, [2014-06-11T20:39:31.924876 #23411] ERROR -- : You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ' 111001, 2, 1, 0, 1, 0 )' at line 1
-E, [2014-06-11T20:39:31.925007 #23411] ERROR -- : /Users/kay/Documents/xcode/FSNet/FSNet/scripts/boomman/src/manager/game_database.rb:28:in `query'
-E, [2014-06-11T20:39:31.925059 #23411] ERROR -- : /Users/kay/Documents/xcode/FSNet/FSNet/scripts/boomman/src/manager/game_database.rb:28:in `query'
-E, [2014-06-11T20:39:31.925102 #23411] ERROR -- : /Users/kay/Documents/xcode/FSNet/FSNet/scripts/boomman/src/manager/game_database.rb:32:in `execute'
-E, [2014-06-11T20:39:31.925131 #23411] ERROR -- : /Users/kay/Documents/xcode/FSNet/FSNet/scripts/boomman/src/cmds/cmd_db_execute.rb:16:in `block in execute_sqls'
-E, [2014-06-11T20:39:31.925160 #23411] ERROR -- : /Users/kay/Documents/xcode/FSNet/FSNet/scripts/boomman/src/cmds/cmd_db_execute.rb:15:in `each'
-E, [2014-06-11T20:39:31.925195 #23411] ERROR -- : /Users/kay/Documents/xcode/FSNet/FSNet/scripts/boomman/src/cmds/cmd_db_execute.rb:15:in `execute_sqls'
-E, [2014-06-11T20:39:31.925218 #23411] ERROR -- : /Users/kay/Documents/xcode/FSNet/FSNet/scripts/boomman/src/db_server.rb:16:in `execute_sql'
-E, [2014-06-11T20:39:31.925241 #23411] ERROR -- : /Users/kay/Documents/xcode/FSNet/FSNet/scripts/gamelib/game_server.rb:264:in `call'
-E, [2014-06-11T20:39:31.925264 #23411] ERROR -- : /Users/kay/Documents/xcode/FSNet/FSNet/scripts/gamelib/game_server.rb:264:in `handle_pack'
-E, [2014-06-11T20:39:31.925287 #23411] ERROR -- : /Users/kay/Documents/xcode/FSNet/FSNet/scripts/gamelib/game_server.rb:312:in `on_handle_pack'
-I, [2014-06-11T20:40:39.844652 #23463]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
-I, [2014-06-11T20:41:16.713824 #23496]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
-I, [2014-06-11T20:42:26.185610 #23531]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
-I, [2014-06-11T20:45:35.695364 #23633]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
-I, [2014-06-11T20:46:58.194351 #23726]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
-I, [2014-06-11T20:49:05.872356 #23817]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
-I, [2014-06-11T20:49:24.534764 #23835]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
-I, [2014-06-11T20:50:48.171870 #23885]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
-I, [2014-06-11T20:51:21.774797 #23917]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
-I, [2014-06-11T21:05:45.344424 #24083]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
-I, [2014-06-11T21:08:17.098087 #24392]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
-I, [2014-06-11T21:09:12.386770 #24451]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
-I, [2014-06-11T21:10:05.918652 #24527]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
-I, [2014-06-11T21:14:05.748581 #24906]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
-I, [2014-06-11T21:15:44.859319 #25008]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
-I, [2014-06-11T21:16:10.605846 #25062]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
-I, [2014-06-11T21:17:22.995915 #25126]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
-I, [2014-06-11T21:17:55.871765 #25180]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
-I, [2014-06-11T21:23:55.908132 #25509]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
-I, [2014-06-11T21:30:55.781003 #26085]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
-I, [2014-06-11T21:32:10.330671 #26176]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
-I, [2014-06-11T21:32:54.026964 #26227]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
-I, [2014-06-11T21:33:20.144598 #26275]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
-I, [2014-06-12T10:44:02.190985 #2399]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
-I, [2014-06-12T10:58:34.135713 #2754]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
-I, [2014-06-12T11:00:11.007866 #2812]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
-I, [2014-06-12T11:09:42.851742 #3085]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+# Logfile created on 2014-06-25 17:55:34 +0800 by logger.rb/44203
+I, [2014-06-25T17:55:34.933845 #15616]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-25T17:58:24.394711 #15711]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-25T17:59:03.535145 #15735]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-25T17:59:54.610060 #15797]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-25T18:00:17.638983 #15846]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-25T18:00:37.023065 #15866]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-25T18:01:28.193783 #15929]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-25T18:01:40.419478 #15939]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-25T18:02:25.147545 #15971]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-25T18:06:23.201300 #16149]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-25T18:09:45.602970 #16308]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-25T18:14:52.766406 #16705]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-25T18:15:40.485396 #16748]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-25T18:16:47.901443 #16804]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-25T18:17:24.973709 #16852]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-25T18:18:24.114620 #16904]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-25T18:19:08.490281 #16938]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-25T18:24:39.103900 #17642]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-25T18:25:39.496053 #17677]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-25T18:26:27.653525 #17708]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-25T18:28:11.472639 #17769]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-25T18:28:27.836200 #17785]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-25T18:51:55.663751 #18097]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-25T18:53:35.971821 #18237]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-25T18:53:48.039650 #18268]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-25T19:41:34.304836 #18762]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-25T20:04:35.749448 #19125]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-25T20:04:46.185781 #19153]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-25T20:04:54.220087 #19180]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-25T20:05:18.099160 #19219]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-25T20:05:33.683460 #19266]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-25T20:09:11.979361 #19375]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-25T20:09:21.749783 #19404]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-25T20:09:50.481196 #19445]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-25T20:18:07.606057 #20043]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-25T20:22:44.531237 #20270]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-25T20:23:42.933973 #20359]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-25T20:23:50.890410 #20371]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-25T20:32:51.664274 #21194]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-25T21:05:32.017170 #21971]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-25T21:07:58.332715 #22149]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-25T21:14:32.086325 #22357]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-26T10:07:05.313456 #695]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-26T11:03:35.109679 #1226]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-26T11:04:29.424975 #1277]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-26T11:10:46.939194 #1372]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-26T11:27:52.983024 #1509]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-26T11:35:41.778867 #1592]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-26T11:46:44.337794 #1742]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-26T11:47:25.050367 #1763]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-26T12:32:53.086363 #3304]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-26T12:33:18.860382 #3339]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-26T12:33:27.669713 #3367]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-26T12:33:42.615229 #3397]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-26T12:34:10.068437 #3435]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-26T14:25:22.582703 #4865]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-26T14:26:19.724358 #4926]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-26T14:26:26.696747 #4946]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-26T14:31:16.536677 #5040]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-26T14:32:26.319252 #5081]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-26T14:38:59.172050 #5240]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-26T14:40:49.887183 #5302]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-26T14:49:27.135694 #5474]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-26T15:07:36.069966 #6078]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-26T15:14:03.810950 #6417]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-26T15:14:25.006375 #6458]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-26T15:14:45.856335 #6497]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-26T15:15:06.987144 #6526]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-26T15:15:28.150730 #6567]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-26T15:19:12.542731 #6689]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-26T15:19:30.802776 #6744]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-26T15:21:16.038581 #6793]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-26T16:39:10.109128 #7560]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-26T16:59:32.805457 #7747]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-26T18:26:11.393593 #9013]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-26T18:26:47.063506 #9054]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-26T18:27:19.293127 #9128]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-26T18:45:10.388383 #10302]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-26T18:46:05.991312 #10362]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-26T19:14:37.406151 #12863]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-26T19:14:48.373435 #12890]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-26T19:15:15.175046 #12968]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-26T19:15:30.585142 #13026]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-26T19:17:21.257267 #13161]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-26T19:18:56.675889 #13375]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-26T19:19:25.829544 #13450]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-26T19:19:34.039091 #13476]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-26T19:20:05.473310 #13538]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-26T19:20:14.447533 #13567]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-26T19:20:28.902533 #13604]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-26T19:20:33.495489 #13613]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-26T19:20:38.898660 #13628]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-26T19:22:07.595546 #13745]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-26T20:16:24.629798 #14235]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-26T20:16:39.586392 #14258]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-27T10:21:54.760705 #829]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-27T10:46:19.230497 #1075]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-27T11:49:16.188180 #2356]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-27T11:50:18.601850 #2449]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-27T14:28:42.137909 #4810]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-27T14:29:47.279691 #4997]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-27T14:32:17.395596 #5033]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-27T14:33:38.114185 #5117]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-27T14:34:29.890774 #5184]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-27T14:34:54.658184 #5238]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-27T14:40:31.074044 #5439]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-27T15:22:46.942051 #5875]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-27T15:42:21.428193 #6042]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-27T15:44:03.750507 #6102]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-27T15:48:23.168369 #6186]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-27T15:49:47.158555 #6312]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-27T16:13:27.322310 #7346]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-27T16:14:51.045854 #7396]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-27T16:16:54.686818 #7767]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-27T16:18:04.724751 #7836]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-27T16:19:13.150103 #7889]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-27T17:42:27.067424 #8735]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-27T17:51:38.365690 #9053]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-27T17:56:00.563440 #9584]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-27T18:13:11.105494 #10151]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-27T19:34:37.778657 #20921]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-27T20:20:17.844575 #58892]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-27T20:31:36.411795 #59229]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-27T20:33:12.600851 #59299]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-27T20:35:50.211900 #59370]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-27T20:38:31.458873 #59459]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-27T20:38:48.619805 #59499]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-27T20:40:03.925331 #59539]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-28T11:22:00.781907 #9978]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-28T12:17:18.176328 #13094]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-28T12:17:35.443594 #13151]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-28T12:17:50.284074 #13182]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-28T12:18:06.807490 #13221]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-28T12:18:35.371587 #13263]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-28T12:19:22.925077 #13337]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-28T12:19:48.726752 #13374]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-28T12:20:04.404228 #13428]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-28T12:20:18.751594 #13459]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-28T12:20:29.449460 #13486]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-28T12:20:39.016780 #13518]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-28T12:20:52.320078 #13558]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-28T12:21:12.247577 #13604]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-28T12:21:22.934351 #13633]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-28T12:21:32.015651 #13664]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-28T12:21:39.015517 #13694]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-28T12:21:50.451781 #13712]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-28T12:23:47.537707 #13833]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-28T12:23:55.144244 #13844]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-28T12:24:01.498686 #13866]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-28T12:24:55.023429 #13917]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-28T12:25:11.400890 #13962]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-28T12:25:33.038423 #13991]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-28T12:25:45.660445 #14011]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-28T12:26:20.427671 #14040]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-28T12:48:04.850763 #14699]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-28T12:48:12.349986 #14727]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-28T12:48:37.737925 #14791]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-28T12:48:52.243969 #14821]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-28T12:49:10.275589 #14850]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-28T12:49:34.638808 #14897]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-28T12:49:52.021936 #14936]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-28T12:50:05.987461 #14984]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-28T12:50:23.127518 #15017]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-28T12:50:44.521170 #15056]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-28T12:51:00.240484 #15092]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-28T12:51:31.043851 #15189]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-28T12:52:57.593997 #15310]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-28T13:22:27.390064 #460]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-28T13:29:42.326978 #470]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-28T14:38:25.382095 #1032]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-28T14:39:25.710601 #1063]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-28T14:42:09.780158 #1102]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-28T14:43:08.974822 #1137]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-28T14:44:45.408275 #1178]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-28T14:44:51.611726 #1195]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-28T14:49:37.227432 #1248]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-28T15:06:48.023187 #1405]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-28T15:25:47.926727 #1740]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-28T15:26:00.171851 #1766]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-28T15:26:42.621903 #1842]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-28T15:26:50.139863 #1867]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-28T15:26:57.451496 #1889]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-28T15:36:55.632911 #2036]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-28T15:41:13.528376 #2137]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-28T17:05:35.912434 #5964]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-28T18:23:37.884720 #7455]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-28T18:25:28.346967 #7491]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-28T18:27:53.000853 #7538]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-28T18:29:12.340762 #7570]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-28T18:30:12.019524 #7600]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-28T19:04:41.957236 #8072]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-28T19:04:56.155727 #8106]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-28T19:05:12.014162 #8156]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-28T19:05:19.523513 #8171]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-28T19:10:15.486499 #8249]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-30T10:00:42.384753 #477]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-30T10:09:22.466818 #858]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-30T14:35:04.623784 #42000]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-30T16:03:39.262140 #42819]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-30T16:03:55.156613 #42854]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-30T16:04:16.244236 #42876]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-30T16:04:33.634807 #42910]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-30T16:05:30.710422 #42931]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-30T16:06:07.987300 #42964]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-30T16:46:04.705594 #43507]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-30T16:54:33.945610 #43667]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-30T17:26:29.657849 #44066]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-30T17:27:21.903099 #44087]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-30T19:20:09.244094 #46698]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-30T19:25:30.196107 #46846]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-30T19:29:39.158667 #46926]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-06-30T19:30:52.541342 #46962]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-01T10:24:37.462459 #472]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-01T12:19:38.280012 #1861]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-01T14:33:28.958239 #2708]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-01T16:48:15.833037 #4319]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-01T17:44:51.194397 #6479]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-01T17:53:16.088948 #6548]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-01T17:56:26.200663 #6599]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-01T18:01:21.503249 #6663]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-01T18:04:58.873262 #6719]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-01T18:06:20.817920 #6733]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-01T18:07:16.998450 #6755]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-01T18:26:17.598412 #7264]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-01T18:47:08.705982 #7439]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-01T19:35:50.224749 #7588]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-01T20:28:19.707376 #7741]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-01T20:49:11.767553 #8077]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-02T09:52:50.984527 #463]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-02T18:34:05.151996 #10072]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-02T18:35:37.040973 #10103]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-02T19:27:08.732595 #10824]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-02T19:29:17.012424 #10956]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-02T21:15:16.436794 #11842]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-02T22:10:03.222344 #464]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-02T22:16:52.476253 #735]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-02T22:18:17.682487 #783]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-02T22:18:53.808373 #796]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-02T22:19:12.101841 #804]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-02T22:21:08.950448 #862]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-02T22:21:44.348867 #889]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-02T22:22:42.314537 #911]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-02T22:25:08.922846 #954]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-02T22:27:13.733201 #1001]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-02T22:29:21.809102 #1048]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-02T22:32:38.134962 #1109]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-02T22:33:28.043783 #1128]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-02T22:33:36.264943 #1143]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-02T22:40:22.863119 #1270]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-02T22:42:05.078208 #1307]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-02T22:45:12.284799 #1373]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-02T22:52:09.470080 #1551]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-02T22:53:19.222623 #1581]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-02T22:54:25.020387 #1619]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-02T22:58:06.986964 #1810]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-02T22:58:42.829375 #1849]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-02T22:59:38.594646 #1885]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-02T23:01:10.206219 #1979]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-02T23:06:22.283706 #2124]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-02T23:06:29.158395 #2138]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-02T23:08:48.919778 #2202]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-02T23:10:52.718459 #2278]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-02T23:17:55.805122 #2373]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-02T23:32:29.368749 #2575]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-02T23:33:00.211976 #2607]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-02T23:33:30.047723 #2634]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-02T23:35:14.727339 #2719]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-02T23:35:37.173406 #2746]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-02T23:35:50.542346 #2760]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-02T23:36:03.991037 #2798]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-02T23:36:26.490428 #2821]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-02T23:36:44.925830 #2829]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-02T23:37:08.659588 #2862]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-02T23:37:19.104534 #2890]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-02T23:38:00.047993 #2904]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-02T23:39:02.626528 #2914]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-02T23:39:28.863656 #2919]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-02T23:40:26.088295 #2929]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-02T23:40:38.452608 #2943]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-02T23:41:31.409483 #2965]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-02T23:42:56.719111 #2990]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-02T23:43:10.313848 #3015]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-02T23:44:08.955408 #3063]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-02T23:44:31.590095 #3068]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-02T23:45:24.250482 #3078]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-02T23:46:01.168971 #3086]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-02T23:53:36.938049 #3393]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-02T23:53:44.296326 #3404]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-02T23:53:57.406745 #3435]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-02T23:54:43.180445 #3471]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-02T23:56:13.771738 #3515]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-02T23:57:06.297640 #3529]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-02T23:58:14.343668 #3569]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-02T23:59:10.350861 #3596]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-03T00:00:31.984493 #3637]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-03T00:00:40.294179 #3644]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-03T00:02:59.792600 #3726]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-03T00:04:51.784782 #3765]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-03T00:05:36.465135 #3801]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-03T00:07:02.439206 #3828]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-03T00:11:44.710543 #3909]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-03T00:12:23.779440 #3937]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-03T00:13:06.377367 #3951]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-03T00:13:37.301127 #3980]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-03T00:14:12.271557 #4004]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-03T00:14:48.883290 #4055]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-03T00:47:41.684299 #5014]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-03T00:47:50.464010 #5026]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-03T00:47:54.428925 #5030]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-03T00:49:25.786199 #5086]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-03T00:49:56.335912 #5117]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-03T00:52:36.858392 #5245]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-03T00:52:47.797762 #5263]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-03T00:53:26.623388 #5290]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-03T00:54:52.067160 #5347]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-03T01:03:16.637117 #5587]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-03T09:58:59.251721 #613]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-03T10:45:27.715475 #1105]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-03T10:47:09.475906 #1169]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-03T10:56:41.008566 #1527]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-03T11:02:10.649061 #1637]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-03T11:05:15.554102 #1673]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-03T11:47:10.750183 #2314]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-03T15:41:20.636606 #3193]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-03T15:45:15.867276 #3523]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-03T15:49:55.912447 #3582]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-03T15:50:41.056028 #3625]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-03T15:58:00.188716 #3750]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-03T16:04:39.923725 #4003]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-03T16:07:40.186945 #4037]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-03T16:08:53.021400 #4072]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-03T16:10:16.066610 #4128]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-03T16:11:57.249195 #4153]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-03T16:14:08.371218 #4183]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-03T16:19:00.839487 #4251]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-03T16:19:21.278028 #4259]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-03T16:20:53.732035 #4303]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-03T16:56:14.704542 #4682]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-03T17:28:32.537585 #6002]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-03T17:38:24.801356 #6208]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-03T17:39:56.866444 #6314]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-03T18:04:03.557308 #6792]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-03T19:07:00.322716 #8506]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-03T19:09:34.212899 #8627]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-03T19:11:36.254014 #8717]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-03T19:12:00.078104 #8783]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-03T19:12:59.393176 #8821]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-03T19:57:14.424723 #9707]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-03T20:28:27.991574 #9977]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-03T20:50:18.890418 #10190]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-03T20:57:39.574704 #10289]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-03T21:03:13.671049 #10361]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-03T21:03:27.347183 #10402]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-03T21:08:49.748655 #10460]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-03T21:13:10.537579 #10522]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-03T21:18:15.286347 #10571]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-03T21:43:02.712335 #11185]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-03T21:45:06.872910 #11335]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-04T10:00:14.575523 #522]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-04T10:44:20.906742 #970]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-04T10:45:50.055861 #1004]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-04T10:46:55.939960 #1044]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-04T10:47:05.636163 #1077]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-04T10:47:18.722183 #1110]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-04T10:47:23.803576 #1125]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-04T10:48:55.352291 #1155]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-04T11:21:26.760720 #3192]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-04T11:24:44.038663 #3244]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-04T11:25:11.502015 #3269]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-04T11:26:55.356029 #3300]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-04T11:56:21.530199 #3553]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-04T11:58:47.496979 #3589]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-04T12:02:22.565160 #3643]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-04T12:18:13.414021 #3806]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-04T12:19:19.026090 #3830]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-04T15:52:34.382798 #727]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-04T17:39:35.805869 #1869]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-04T18:01:33.275008 #2446]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-04T18:11:52.775372 #2552]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-04T18:13:31.749669 #2576]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-04T18:13:37.783897 #2602]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-04T18:15:20.158247 #2627]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-04T18:15:36.825385 #2675]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-04T18:15:49.228491 #2715]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-04T20:18:25.342687 #4043]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-07T09:30:28.267436 #515]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-07T11:12:42.767566 #1251]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-07T11:18:37.703372 #1580]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-07T11:22:10.022295 #1827]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-07T11:23:40.999435 #1871]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-07T11:25:53.093814 #2051]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-07T11:27:19.096699 #2121]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-07T11:28:35.723850 #2222]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-07T11:29:22.611207 #2285]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-07T11:29:34.052512 #2300]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-07T11:30:02.837862 #2320]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-07T11:30:48.978060 #2387]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-07T11:32:02.293395 #2423]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-07T11:34:07.474693 #2547]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-07T11:35:10.953655 #2588]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-07T12:00:11.825905 #3404]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-07T12:04:39.858001 #3608]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-07T12:04:52.139823 #3654]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-07T12:28:29.532060 #4620]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-07T12:29:31.761174 #4717]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-07T14:35:48.369723 #6408]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-07T15:16:57.593888 #7371]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-07T15:17:17.967328 #7408]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-07T15:17:52.180686 #7435]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-07T15:35:08.513986 #8157]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-07T15:35:36.571004 #8222]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-07T15:36:17.356749 #8277]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-07T18:01:09.476005 #12715]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-07T18:55:40.861545 #14202]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-07T18:59:43.081152 #14525]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-08T10:07:08.296983 #1166]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-08T11:40:39.613120 #2319]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-08T15:35:28.068459 #5686]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-08T16:46:07.320112 #9150]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-08T17:15:18.118400 #10338]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-08T17:57:35.384453 #11428]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-08T18:00:22.881749 #11604]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-08T18:00:50.487676 #11645]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-08T18:01:23.441056 #11690]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-08T18:02:04.299640 #11759]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-08T18:08:41.589261 #30848]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-08T18:32:29.814602 #31875]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-08T19:18:54.013407 #32279]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-08T19:19:54.764196 #32321]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-08T20:13:35.571392 #32778]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-08T20:17:47.714434 #32915]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-08T20:19:41.616949 #32978]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-08T20:19:49.563269 #32993]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-08T20:20:01.616474 #33022]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-08T20:20:09.250213 #33036]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-08T20:21:09.922512 #33063]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-08T20:32:51.570501 #33374]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-08T20:35:40.459767 #33518]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-08T20:37:09.786747 #33590]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-09T10:02:23.208232 #575]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-09T10:04:11.251120 #593]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-09T10:04:43.931590 #636]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-09T10:05:12.568808 #658]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-09T10:11:16.612003 #826]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-09T10:11:25.997842 #838]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-09T10:13:30.464048 #861]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-09T10:45:04.993873 #1525]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-09T10:47:33.917896 #1573]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-09T10:51:12.672828 #1786]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-09T10:51:31.630121 #1819]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-09T10:51:58.445186 #1839]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成
+I, [2014-07-09T10:52:26.563457 #1872]  INFO -- : db_server[ 0.0.0.0, 50563 ]启动完成

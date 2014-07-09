@@ -1,0 +1,175 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map version="1.0" orientation="orthogonal" width="16" height="12" tilewidth="32" tileheight="32">
+ <properties>
+  <property name="DESTRY1" value="221"/>
+  <property name="DESTRY2" value="225"/>
+  <property name="DESTRY3" value="223"/>
+  <property name="DESTRY_COUNT" value="3"/>
+  <property name="EXP" value="515"/>
+  <property name="ITEM" value="D014"/>
+  <property name="MONEY" value="773"/>
+ </properties>
+ <tileset firstgid="1" name="swzz" tilewidth="32" tileheight="32">
+  <image source="swzz.png" width="500" height="1024"/>
+ </tileset>
+ <layer name="PASS" width="16" height="12">
+  <data encoding="base64" compression="zlib">
+   eJxTZGBgUAJieSBWAGJFEvkGQGwIxHpArE8GnxmIWRgwQRgBPiMQMwGxEBALk6FfAIgFkfxDKkD3P6kA3f9hWDAyQBYD0YT8TwgMNv/D/EMqH+Z/mH9I5QMAzrgNaQ==
+  </data>
+ </layer>
+ <layer name="块层 10" width="16" height="12">
+  <data encoding="base64" compression="zlib">
+   eJzrYGBg6ATiLiBexsCwgFg8HYg7IDTZoBNiFhgwAjETEDMDMQsRfAaIm+H6BYBYEIiFgFiYCD4DxL8HYPrlgVgBiBWBWIkIPrp+PSDWB2IDIDYkgo+unxz/I+sf6v4nB8D0L4ewE0jBQD0NIP0AfjY/bw==
+  </data>
+ </layer>
+ <layer name="块层 11" width="16" height="12">
+  <data encoding="base64" compression="zlib">
+   eJxbwMDAsBaI1wHxegZUIMzIQBCA9OwB4r1AvI+wchQwD4eeUKC9YUAcTsB+kLtbsYinAPWlAnEaAf0gd08hyqUMDB6MDA3uQOwGxNjkgeIMQHmQOqwA6JcGoJ8aQpH0f4ViECDkZ6BfGoB+akhBsx8WR7j8TGxY4gLEhuVAAmUgVgFiVSJoIG4AshuAehpAegF0qR4J
+  </data>
+ </layer>
+ <layer name="块层 12" width="16" height="12">
+  <data encoding="base64" compression="zlib">
+   eJy9kkkOwjAMRX8O1MINaGHP0GMUqQV2sMrROFqfqwZFHWFBv/RkJ7YjO4k01Et6Bz9xUgob2Lo2lo2UDHRw8nvIIYMdfFMXVJB/gTOc4Phj/Rp6Rv7UvFixFvsibnmjmpoXK9ZiX8Qt7yPewsPsuX3F/QT1z51T3A/ze2Op5l9/we7f5i/h2uWaX9FbDTe4w8O1cV92vYZ8sw0kwito
+  </data>
+ </layer>
+ <layer name="块层 2" width="16" height="12">
+  <data encoding="base64" compression="zlib">
+   eJztkrENwCAMwOgzlAcKa4bwV07jlJxSV3mAiLVIFslgZXG9Srmh5TAcq/Cwdxg5rIdryj4h+2a4J/7S4PfPfGGWrE8DTkdOA0ILMoK1A/ccx2nQaVD4pQVrB427n+svGGQ5uQ==
+  </data>
+ </layer>
+ <layer name="块层 4" width="16" height="12">
+  <data encoding="base64" compression="zlib">
+   eJxjYBieQJwRP58Q0CTARwYqjAwNpJkO1kM1IAK0H+Q/SUaIO0E0un9hciAAkhOhov2UgoEMPwCGXgOp
+  </data>
+ </layer>
+ <layer name="块层 3" width="16" height="12">
+  <data encoding="base64" compression="zlib">
+   eJytkksKgDAMRKeCrrvxvp7OC/jb+9uroFtH0RLUWioOfdApTBNCAGAgI5lISSqSk+LFZxBSPCQgHW1PGtLC7msRX4AEHtJqzxhFyi9/ZIziD/lY5GdH/1rd32ZxDz/UD8WfvvM7Mkbn/J76tOnP+W274NqXq099C1q0AmWWLLM=
+  </data>
+ </layer>
+ <layer name="块层 6" width="16" height="12">
+  <data encoding="base64" compression="zlib">
+   eJxjYBicgIMRP58QkCLAH2wA5D8uRog7QTS6f2FyMLUjCcwD4vlAvIBM/WuBeB0Qr8ciBwANCgSe
+  </data>
+ </layer>
+ <layer name="块层 13" width="16" height="12">
+  <data encoding="base64" compression="zlib">
+   eJybxcDAMBuI5wDxDgaGBcTilUA8C0KTDWZDzCIbzKFQP1DvgVH9lOkHxkECJfpnU6AfmPYOANNgApBO2EECngOxF6T3AAATeDsJ
+  </data>
+ </layer>
+ <layer name="SHELTER 9" width="16" height="12">
+  <data encoding="base64" compression="zlib">
+   eJxjYBgFo4AycBmIrwDxVSC+BsTXieAPFgAA81YK1g==
+  </data>
+ </layer>
+ <layer name="SHELTER 5" width="16" height="12">
+  <data encoding="base64" compression="zlib">
+   eJxjYBgF1AA/gfg3EHND6Z9o8jA5Bixyo2DgAADQJwXz
+  </data>
+ </layer>
+ <layer name="SHELTER 2" width="16" height="12">
+  <data encoding="base64" compression="zlib">
+   eJxjYBicgJsAfxSMAmoAADdAABc=
+  </data>
+ </layer>
+ <layer name="SHELTER 1" width="16" height="12">
+  <data encoding="base64" compression="zlib">
+   eJxjYKAN+EmAPwpGwWAAAB6LAfM=
+  </data>
+ </layer>
+ <objectgroup name="对象层 1" width="16" height="12">
+  <object name="PLAYER" type="PLAYER" x="416" y="96" width="32" height="32"/>
+  <object name="block1" type="TRAP" x="384" y="192" width="32" height="32">
+   <properties>
+    <property name="trap_ani" value="blok1.actor"/>
+    <property name="trap_blok" value="true"/>
+    <property name="trap_id" value="0"/>
+   </properties>
+  </object>
+  <object name="senser1" type="TRAP" x="288" y="64" width="32" height="32">
+   <properties>
+    <property name="trap_floor" value="true"/>
+    <property name="trap_script" value="trap_onTNTSenser(&quot;tnt1&quot;);"/>
+    <property name="trap_start_mode" value="0"/>
+   </properties>
+  </object>
+  <object name="tnt1" type="BOMB" x="128" y="256" width="32" height="32">
+   <properties>
+    <property name="bomb_ani" value="tnt_bomb.bomb"/>
+    <property name="bomb_damage" value="9999"/>
+    <property name="bomb_power" value="1"/>
+   </properties>
+  </object>
+  <object name="hsrng3" x="128" y="96" width="32" height="32">
+   <properties>
+    <property name="lua_ai" value="monster_hsrng_ai"/>
+    <property name="quality" value="hsrng3.quality"/>
+   </properties>
+  </object>
+  <object name="hsrng3" x="96" y="256" width="32" height="32">
+   <properties>
+    <property name="lua_ai" value="monster_hsrng_ai"/>
+    <property name="quality" value="hsrng3.quality"/>
+   </properties>
+  </object>
+  <object name="block_control1" type="TRAP" x="64" y="128" width="32" height="32">
+   <properties>
+    <property name="trap_ani" value="switch.actor"/>
+    <property name="trap_floor" value="true"/>
+    <property name="trap_id" value="0"/>
+    <property name="trap_script" value="trap(&quot;block_control1&quot;):setOpened(false);trap(&quot;block1&quot;):setOpened(false)"/>
+    <property name="trap_sound_id" value="2"/>
+    <property name="trap_start_mode" value="0"/>
+    <property name="trap_state" value="open"/>
+   </properties>
+  </object>
+  <object name="hsrng3" x="384" y="256" width="32" height="32">
+   <properties>
+    <property name="lua_ai" value="monster_hsrng_ai"/>
+    <property name="quality" value="hsrng3.quality"/>
+   </properties>
+  </object>
+  <object name="bh1" type="TRAP" x="288" y="224" width="32" height="32">
+   <properties>
+    <property name="trap_ani" value="black_hole.actor"/>
+    <property name="trap_floor" value="true"/>
+    <property name="trap_id" value="2"/>
+    <property name="trap_sh" value="0.1"/>
+    <property name="trap_sw" value="0.1"/>
+   </properties>
+  </object>
+  <object name="bh1" type="TRAP" x="160" y="256" width="32" height="32">
+   <properties>
+    <property name="trap_ani" value="black_hole.actor"/>
+    <property name="trap_floor" value="true"/>
+    <property name="trap_id" value="2"/>
+    <property name="trap_sh" value="0.1"/>
+    <property name="trap_sw" value="0.1"/>
+   </properties>
+  </object>
+  <object name="xy1" type="TRAP" x="288" y="224" width="32" height="32">
+   <properties>
+    <property name="lua_ai" value="trap_mire_ai"/>
+    <property name="trap_sh" value="0.1"/>
+    <property name="trap_sw" value="0.1"/>
+   </properties>
+  </object>
+  <object name="xy1" type="TRAP" x="160" y="256" width="32" height="32">
+   <properties>
+    <property name="lua_ai" value="trap_mire_ai"/>
+    <property name="trap_sh" value="0.1"/>
+    <property name="trap_sw" value="0.1"/>
+   </properties>
+  </object>
+  <object name="triger1" type="TRAP" x="288" y="64" width="32" height="32">
+   <properties>
+    <property name="trap_ani" value="tnt_triger.actor"/>
+    <property name="trap_floor" value="true"/>
+    <property name="trap_script" value="trap_onTNTBombTrap(&quot;triger1&quot;,&quot;tnt1&quot;);"/>
+    <property name="trap_sound_id" value="3"/>
+    <property name="trap_start_mode" value="3"/>
+    <property name="trap_state" value="open"/>
+   </properties>
+  </object>
+ </objectgroup>
+</map>

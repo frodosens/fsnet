@@ -1,65 +1,35 @@
 
-class CSV
-	
-	class << self
-	
-		def load_csv(csv_name, &proc)
-			reader = CSV.open(csv_name) do |csv|
-				titles = []
-				csv.shift.each do |title|
-					titles << title
-				end
-
-				csv.each do |cols|
-					row_hash = {}
-					title_index = 0
-					cols.each do |col|
-						row_hash[ titles[title_index] ] = col
-						title_index += 1;
-					end
-					yield row_hash;
-				end
-			end
-		end
-	end
-	
-end
 
 class GameManagerResoucre
 	
-	attr_reader :items_templete;	# 道具模板
-	attr_reader :heros_templete;	# 英雄模板
-	
-	alias :items :items_templete
-	alias :heros :heros_templete
-	
 	def initialize()
-		@items_templete = {};
-		@heros_templete = {};
 		
-		reload();
 	end
-	
 	
 	def reload_items()
-		
-		@items_templete.clear();
-		
-		Item.reload_templete();
-	
+		return [Item, Hero, Player, Mail, Map, Monster, ModelTemplete]
 	end
 	
-	def reload_heros()
-		@heros_templete.clear();
-		
-		Hero.reload_templete();
-		
+	def clear_cache
 	end
-	
 	
 	def reload()
-		reload_items();
-		reload_heros();
+		
+		clear_cache()
+		
+		classes = reload_items
+		
+		cur_progr = 0
+		
+		for c in classes
+			cur_progr += 1;
+			c.reload_templete() do |c2|
+				yield c.to_s, cur_progr, classes.length, c2
+			end
+			if(block_given?)
+				yield c.to_s, cur_progr, classes.length
+			end
+		end
 		
 	end
 	

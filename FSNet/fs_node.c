@@ -80,7 +80,7 @@ fs_node_bind_event(struct fs_node* node,
                        libevent_cb_node_onrecv_data, node);
     
     ret = event_assign(node->write_ev, event_base,
-                       node->socket, EV_WRITE,
+                       node->socket, EV_WRITE | EV_PERSIST,
                        libevent_cb_node_onsend_data, node);
     
     
@@ -93,8 +93,8 @@ fs_node_bind_event(struct fs_node* node,
     node->send_buffer = fs_create_output_stream_ext;
     
     pthread_mutex_init(&node->write_mutex, NULL);
-    fs_server_add_event(server, node->read_ev);
-    //fs_server_add_event(server, node->write_ev);
+    event_add(node->read_ev, NULL);
+    event_add(node->write_ev, NULL);
     
     
 success:
@@ -205,7 +205,8 @@ fs_node_recv_data(struct fs_node* node, BYTE* data, size_t len){
         }
         
     }while (pack != NULL);
-    if(offset > 0){
+    
+    if(offset > 0 && node->recv_buffer){
         fs_output_stream_sub(node->recv_buffer, offset, stream_len - offset);
     }
 }
@@ -214,16 +215,22 @@ fs_node_recv_data(struct fs_node* node, BYTE* data, size_t len){
 void
 fs_node_send_data(struct fs_node* node, BYTE* data, size_t len){
     
+    pthread_mutex_lock(&node->write_mutex);
     if(!node->send_buffer){
         fprintf(stderr, "Try to an unreachable node[%d] to send data", node->node_id);
+        pthread_mutex_unlock(&node->write_mutex);
+        
         return;
     }
     
-    pthread_mutex_lock(&node->write_mutex);
     fs_stream_write_data(node->send_buffer, data, len);
+    
     pthread_mutex_unlock(&node->write_mutex);
     
-    libevent_cb_node_onsend_data(node->socket, EV_WRITE, node);
+    
+    if(!event_pending(node->write_ev, EV_WRITE, NULL)){
+        event_add(node->write_ev, NULL);
+    }
     
 }
 
@@ -241,27 +248,40 @@ libevent_cb_node_onsend_data(int socket, short event, void* arg){
     size_t len = fs_output_stream_get_len(node->send_buffer);
     ssize_t nsize = len;
     ssize_t nwrite = 0;
-    
+    ssize_t nwrited = 0;
     while (nsize > 0) {
         nwrite = send(node->socket, data + len - nsize, nsize, 0);
+        if(nwrite > 0){
+            nwrited += nwrite;
+        }
         if(nwrite < nsize){
             if(nwrite == -1){
-                if(errno != EAGAIN){
-                    
+                if(errno == EAGAIN)
+                {
+                    break;
+                }else{
                     fprintf(stderr, "%d on send_data error = %d \n", node->node_id, errno);
                     
                     pthread_mutex_unlock(&node->write_mutex);
                     fs_node_shudown(node);
                     return;
-                }else{
-                    break;
                 }
             }
         }
         nsize -= nwrite;
     }
-    fs_output_stream_sub(node->send_buffer, len, 0);
+    
+    fs_output_stream_sub(node->send_buffer, nwrited, len - nwrited);
+
+    
+    len = fs_output_stream_get_len(node->send_buffer);
+    if(len == 0){
+        event_del(node->write_ev);
+    }
+    
     pthread_mutex_unlock(&node->write_mutex);
+
+
 }
 
 void

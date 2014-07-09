@@ -1,0 +1,204 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map version="1.0" orientation="orthogonal" width="22" height="17" tilewidth="64" tileheight="64">
+ <properties>
+  <property name="DESTRY1" value="255"/>
+  <property name="DESTRY2" value="314"/>
+  <property name="DESTRY3" value="144"/>
+  <property name="DESTRY4" value="173"/>
+  <property name="DESTRY_COUNT" value="4"/>
+  <property name="EXP" value="470"/>
+  <property name="ITEM" value="D012"/>
+  <property name="LOSE_SCRIPT" value=""/>
+  <property name="MONEY" value="705"/>
+  <property name="START_SCRIPT" value="lv40"/>
+  <property name="WIN_SCRIPT" value="Map40Plot2"/>
+ </properties>
+ <tileset firstgid="1" name="hmpy" tilewidth="64" tileheight="64">
+  <image source="hmpy-hd.png" width="1000" height="2048"/>
+ </tileset>
+ <layer name="PASS" width="22" height="17">
+  <data encoding="base64" compression="zlib">
+   eJy9kw0KwCAIhR10gLkO4R26/8FW4MBCy9qa8OjXr4cVAsCVFbNQ9E8WGutWv+QEbj1Bzn3AXBTjdNTSuO0eLSewf8n1+uz593DbuRW/mgftrFEUbjRYrYfZ+mpcLWbfw8Olj/SX31HNVri9nLfvwcrfzfXyCep/MeLO1ldyrTtb4cZNugFcyhZG
+  </data>
+ </layer>
+ <layer name="块层 2" width="22" height="17">
+  <data encoding="base64" compression="zlib">
+   eJyrZGBgqALiairiWiDuAOJOKuPZUHNnUBmDzJ0OtQMmRo778JmLTQ0pZqKHA7q5pLoPmxjMXFLDj5h4m45HLTZziDGbkLnY4oSYMCImfJHNIzZMsIUvpWkMV/qldr6gdj4mJ50NpHuX0cC9q4B4KxBvA+LtVMQ7gRgAMEbUnw==
+  </data>
+ </layer>
+ <layer name="块层 15" width="22" height="17">
+  <data encoding="base64" compression="zlib">
+   eJzt0ksOgkAQRdEmUViAyipll3wWgLoAwQXIf+iddAJEuqmGkfElZ0InL1SllPpHkuuOXS069BhmbzESpMiEvQdPqSN8BN70LccNdzxG36MVvSe6zrggnPU+UaDEy9Ijme2NCjUay78uzbY1ktkk+TabLVvuwhSX3ZnuV8dld6b71XHZnel+fy0fGp8zGw==
+  </data>
+ </layer>
+ <layer name="块层 17" width="22" height="17">
+  <data encoding="base64" compression="zlib">
+   eJxjYBhYoE6B3rVoGJu56Grw6UE2l1h3kuJ+bOaii5HjXmxuwKWWHIDNDZSELz5AbnpQpxKml3sJhRkl+QKXfbTQT2tzyTWfkLnUjjcYoHa8kQsAs64q8Q==
+  </data>
+ </layer>
+ <layer name="块层 4" width="22" height="17">
+  <data encoding="base64" compression="zlib">
+   eJxzZGBgsKUBdmSgPghkYGgYNXfU3FFzR80dLubSwFgwAAB35RVR
+  </data>
+ </layer>
+ <layer name="块层 3" width="22" height="17">
+  <data encoding="base64" compression="zlib">
+   eJxjYBgFo2AUjIJRMBDAlkYYAPb8BT8=
+  </data>
+ </layer>
+ <objectgroup name="对象层 1" width="44" height="34">
+  <object name="PLAYER" type="PLAYER" x="64" y="128" width="64" height="64"/>
+  <object name="mp1" type="TRAP" x="1280" y="192" width="64" height="64">
+   <properties>
+    <property name="trap_ani" value="mp.actor"/>
+    <property name="trap_floor" value="true"/>
+    <property name="trap_id" value="0"/>
+    <property name="trap_script" value="trap_moveto(&quot;PLAYER&quot;, &quot;mp1&quot;,target(&quot;mp2&quot;):getX(),target(&quot;mp2&quot;):getY() );"/>
+    <property name="trap_sound_id" value="1"/>
+    <property name="trap_start_mode" value="0"/>
+    <property name="trap_state" value="open"/>
+   </properties>
+  </object>
+  <object name="mp2" type="TRAP" x="64" y="576" width="64" height="64">
+   <properties>
+    <property name="trap_ani" value="mp.actor"/>
+    <property name="trap_floor" value="true"/>
+    <property name="trap_id" value="0"/>
+    <property name="trap_script" value="trap_moveto(&quot;PLAYER&quot;, &quot;mp2&quot;,target(&quot;mp1&quot;):getX(),target(&quot;mp1&quot;):getY() );"/>
+    <property name="trap_sound_id" value="1"/>
+    <property name="trap_start_mode" value="0"/>
+    <property name="trap_state" value="open"/>
+   </properties>
+  </object>
+  <object name="liusha" type="TRAP" x="832" y="832" width="64" height="64">
+   <properties>
+    <property name="lua_ai" value="trap_mire_ai"/>
+    <property name="trap_ani" value="liusha.actor"/>
+    <property name="trap_floor" value="true"/>
+    <property name="trap_sh" value="1"/>
+    <property name="trap_sw" value="1"/>
+   </properties>
+  </object>
+  <object name="liusha" type="TRAP" x="1088" y="704" width="64" height="64">
+   <properties>
+    <property name="lua_ai" value="trap_mire_ai"/>
+    <property name="trap_ani" value="liusha.actor"/>
+    <property name="trap_floor" value="true"/>
+    <property name="trap_sh" value="1"/>
+    <property name="trap_sw" value="1"/>
+   </properties>
+  </object>
+  <object name="zi_dan_right2" type="TRAP" x="64" y="704" width="64" height="64">
+   <properties>
+    <property name="trap_ani" value="fire_cat_right.actor"/>
+    <property name="trap_delay" value="2"/>
+    <property name="trap_id" value="0"/>
+    <property name="trap_script" value="trap(&quot;zi_dan_right2):setAtkPower(target(&quot;PLAYER&quot;):getHP()*0.1);trap(&quot;zi_dan_right2&quot;):turnRight(); trap(&quot;zi_dan_right2&quot;):getAI():getActions():addObject( AIUseSkill:create(   SkillLua:create(&quot;skill_0001&quot;)  )  );"/>
+    <property name="trap_start_mode" value="2"/>
+    <property name="trap_state" value="open"/>
+   </properties>
+  </object>
+  <object name="zi_dan_left1" type="TRAP" x="1280" y="832" width="64" height="64">
+   <properties>
+    <property name="trap_ani" value="fire_cat_left.actor"/>
+    <property name="trap_delay" value="2"/>
+    <property name="trap_id" value="0"/>
+    <property name="trap_script" value="trap(&quot;zi_dan_left1&quot;):setAtkPower(target(&quot;PLAYER&quot;):getHP()*0.1);trap(&quot;zi_dan_left1&quot;):turnLeft(); trap(&quot;zi_dan_left1&quot;):getAI():getActions():addObject( AIUseSkill:create(   SkillLua:create(&quot;skill_0001&quot;)  )  );"/>
+    <property name="trap_start_mode" value="2"/>
+    <property name="trap_state" value="open"/>
+   </properties>
+  </object>
+  <object name="bh1" type="TRAP" x="1088" y="704" width="64" height="64">
+   <properties>
+    <property name="trap_floor" value="true"/>
+    <property name="trap_id" value="2"/>
+    <property name="trap_sh" value="0.1"/>
+    <property name="trap_sw" value="0.1"/>
+   </properties>
+  </object>
+  <object name="bh1" type="TRAP" x="832" y="832" width="64" height="64">
+   <properties>
+    <property name="trap_floor" value="true"/>
+    <property name="trap_id" value="2"/>
+    <property name="trap_sh" value="0.1"/>
+    <property name="trap_sw" value="0.1"/>
+   </properties>
+  </object>
+  <object name="pg1" type="TRAP" x="640" y="256" width="64" height="64">
+   <properties>
+    <property name="trap_ani" value="poison_ground.actor"/>
+    <property name="trap_floor" value="true"/>
+    <property name="trap_script" value="target(&quot;PLAYER&quot;):onDamage(target(&quot;PLAYER&quot;):getHP()*0.1,&quot;TRAP&quot;);"/>
+    <property name="trap_start_mode" value="0"/>
+   </properties>
+  </object>
+ </objectgroup>
+ <objectgroup name="m1" width="44" height="34">
+  <object name="m" type="MONSTER" x="256" y="192" width="64" height="64">
+   <properties>
+    <property name="mid" value="0"/>
+   </properties>
+  </object>
+  <object name="m" type="MONSTER" x="448" y="320" width="64" height="64">
+   <properties>
+    <property name="mid" value="0"/>
+   </properties>
+  </object>
+  <object name="m" type="MONSTER" x="192" y="448" width="64" height="64">
+   <properties>
+    <property name="mid" value="0"/>
+   </properties>
+  </object>
+ </objectgroup>
+ <objectgroup name="m2" width="44" height="34">
+  <object name="m" type="MONSTER" x="1216" y="320" width="64" height="64">
+   <properties>
+    <property name="mid" value="0"/>
+   </properties>
+  </object>
+  <object name="m" type="MONSTER" x="1152" y="192" width="64" height="64">
+   <properties>
+    <property name="mid" value="0"/>
+   </properties>
+  </object>
+  <object name="m" type="MONSTER" x="1088" y="64" width="64" height="64">
+   <properties>
+    <property name="mid" value="0"/>
+   </properties>
+  </object>
+ </objectgroup>
+ <objectgroup name="m3" width="44" height="34">
+  <object name="m" type="MONSTER" x="192" y="704" width="64" height="64">
+   <properties>
+    <property name="mid" value="0"/>
+   </properties>
+  </object>
+  <object name="m" type="MONSTER" x="448" y="896" width="64" height="64">
+   <properties>
+    <property name="mid" value="0"/>
+   </properties>
+  </object>
+  <object name="m" type="MONSTER" x="576" y="576" width="64" height="64">
+   <properties>
+    <property name="mid" value="0"/>
+   </properties>
+  </object>
+ </objectgroup>
+ <objectgroup name="m4" width="44" height="34">
+  <object name="m" type="MONSTER" x="1088" y="896" width="64" height="64">
+   <properties>
+    <property name="mid" value="0"/>
+   </properties>
+  </object>
+  <object name="m" type="MONSTER" x="896" y="640" width="64" height="64">
+   <properties>
+    <property name="mid" value="0"/>
+   </properties>
+  </object>
+  <object name="m" type="MONSTER" x="832" y="960" width="64" height="64">
+   <properties>
+    <property name="mid" value="0"/>
+   </properties>
+  </object>
+ </objectgroup>
+</map>

@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map version="1.0" orientation="orthogonal" width="19" height="15" tilewidth="64" tileheight="64">
+ <tileset firstgid="1" name="jdbl2" tilewidth="64" tileheight="64">
+  <image source="jdbl2-hd.png" width="1000" height="1000"/>
+ </tileset>
+ <layer name="PASS" width="19" height="15">
+  <data encoding="base64" compression="zlib">
+   eJytk9EJwCAMRG8p9+kWzuEEzUcWcANHa8AWgsSopAeHiHo8o2EAFbiiZoBkbCR5tzgy1u5WYCsv5p+KyqJglseVXluy1jyuWc5sfeTKyjvS+3fqtauRK6KRK3JHj+u09qt3TAZjhv0nPC591pvPuP7oR+59TlFLTnsA0TZ2kQ==
+  </data>
+ </layer>
+ <layer name="块层 2" width="19" height="15">
+  <data encoding="base64" compression="zlib">
+   eJxjYBjcYAIQTySTRgfzgXgBmfSou0bdNVTdNdgAAO+jYYM=
+  </data>
+ </layer>
+ <layer name="块层 17" width="19" height="15">
+  <data encoding="base64" compression="zlib">
+   eJxjYKAuaKECRjKrgRS7jwLxMTS3kGsWOhg1a3CZdZyBweEEEFNq1nagGTuAeCcVzNoGpIHmMQDNY9hJQC+6WnSzYGkZ6E+GEwTMQleLZhbV8iO1AAB4mzTT
+  </data>
+ </layer>
+ <layer name="块层 15" width="19" height="15">
+  <data encoding="base64" compression="zlib">
+   eJxjYKAumAvEaxgYDpCLgfoXwMxag8QmBwD1J4yaNWrWSDYLmJ8S1kDEyMJA/QcocQs2AABPCD1l
+  </data>
+ </layer>
+ <layer name="块层 16" width="19" height="15">
+  <data encoding="base64" compression="zlib">
+   eJxjYBgFgwmoArErDjkXiHwDsWa5UCg/CsgHhMIWVxxjA9RME4MBAACWfgO4
+  </data>
+ </layer>
+ <layer name="块层 5" width="19" height="15">
+  <data encoding="base64" compression="zlib">
+   eJxjYBh6IIkAn95miQGxGQ45U4h8A7FmmVIon4SEiQGkqh8MgFZ+JBS2uOIYG4ClCWzpi9Q0gawXH3+oAACnGgqs
+  </data>
+ </layer>
+ <layer name="SHELTER 10" width="19" height="15">
+  <data encoding="base64" compression="zlib">
+   eJxjYBgFo2AUgAA7YfkGerhjuAMAucQAjw==
+  </data>
+ </layer>
+ <layer name="SHELTER 3" width="19" height="15">
+  <data encoding="base64" compression="zlib">
+   eJxjYBiZgJ2wfAM93DEKRsFIAwDg6wCP
+  </data>
+ </layer>
+ <objectgroup name="对象层 1" width="38" height="30">
+  <object name="PLAYER" type="PLAYER" x="128" y="128" width="64" height="64"/>
+  <object name="bossgydxc" type="BOSS" x="576" y="512" width="64" height="64">
+   <properties>
+    <property name="lua_ai" value="monster_bossgydxc_ai"/>
+    <property name="quality" value="bossgydxc.quality"/>
+   </properties>
+  </object>
+ </objectgroup>
+</map>

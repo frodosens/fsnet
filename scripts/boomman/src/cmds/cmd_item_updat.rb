@@ -48,7 +48,7 @@ class CMDItemUpdate < Pack
 			
 			os.write_uint16(deleted_items.length)
 			for serial in deleted_items
-				os.write_uint32(item.serial)
+				os.write_uint32(serial)
 			end
 			
 

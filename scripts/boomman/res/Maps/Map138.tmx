@@ -1,0 +1,177 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map version="1.0" orientation="orthogonal" width="17" height="14" tilewidth="32" tileheight="32">
+ <properties>
+  <property name="DESTRY1" value="96"/>
+  <property name="DESTRY2" value="100"/>
+  <property name="DESTRY3" value="102"/>
+  <property name="DESTRY4" value="108"/>
+  <property name="DESTRY_COUNT" value="4"/>
+  <property name="EXP" value="1205"/>
+  <property name="ITEM" value="D046"/>
+  <property name="LOSE_SCRIPT" value=""/>
+  <property name="MONEY" value="1808"/>
+  <property name="START_SCRIPT" value=""/>
+  <property name="WIN_SCRIPT" value=""/>
+ </properties>
+ <tileset firstgid="1" name="jdbl" tilewidth="32" tileheight="32">
+  <image source="jdbl.png" width="500" height="500"/>
+ </tileset>
+ <layer name="PASS" width="17" height="14">
+  <data encoding="base64" compression="zlib">
+   eJybwMDAMBGIJ1BAzwfiBRTSMPOwAVMkjA2gu4McQKw7kGl6uCMFiokBMLXo7iDHDFq4A10eBNDDFN0edHeg24MeF6ZY3EkoXpDNwaYfmzsGOr8AALnCSjY=
+  </data>
+ </layer>
+ <layer name="块层 2" width="17" height="14">
+  <data encoding="base64" compression="zlib">
+   eJxjYBhcYAIQT0SiZ+CgkdWhg/lAvACJnoGDRlZHS3fMIAITcgcxZgwVdwyWeMHlHmzygw0AAMTRTUU=
+  </data>
+ </layer>
+ <layer name="块层 3" width="17" height="14">
+  <data encoding="base64" compression="zlib">
+   eJxrYWBY0IIbM6BhfOoOAHECGRjZ/AMMZIBRM0bNoLMZ+PIMMfmJ2PyAS+0BAMqOWvE=
+  </data>
+ </layer>
+ <layer name="块层 4" width="17" height="14">
+  <data encoding="base64" compression="zlib">
+   eJzbxMCwYDMDAwM63sTAoNDPwNDQB8S9QMwAEWvAom4UQEE3A4NDDxBTYkYNUH8tEAPD/ACl7qkDmgE060ANmWbVQON9FFAOYGkDGK8Oi4B5ayMw321Eo4F5KQGkFjnOgGIP0NUB9S8AAKS7Kew=
+  </data>
+ </layer>
+ <layer name="块层 5" width="17" height="14">
+  <data encoding="base64" compression="zlib">
+   eJxjYKAOmAvEaxgYDpCKgfoaYGYA+QvIsRuoL2HUjFEz6GUGMM06rIGIkYSB+g6QYzc2AABvfTad
+  </data>
+ </layer>
+ <layer name="块层 17" width="17" height="14">
+  <data encoding="base64" compression="zlib">
+   eJxjYBgZwAVKuw6oK0bBcAYuaDQtAQC6LwES
+  </data>
+ </layer>
+ <layer name="块层 6" width="17" height="14">
+  <data encoding="base64" compression="zlib">
+   eJxjYBj8wBRKmw2oKxgYwtBoeoAcIE4gUm0CVP1gNQObWehhSkgvujmkiOMCIDthacyUgXh/DiQAAJcNCiY=
+  </data>
+ </layer>
+ <layer name="SHELTER 10" width="17" height="14">
+  <data encoding="base64" compression="zlib">
+   eJxjYBgFo2DogkAC/OEKAJuYAKM=
+  </data>
+ </layer>
+ <layer name="SHELTER 9" width="17" height="14">
+  <data encoding="base64" compression="zlib">
+   eJxjYBgFo4D+IJZE8VGACgDjgAC7
+  </data>
+ </layer>
+ <layer name="SHELTER 8" width="17" height="14">
+  <data encoding="base64" compression="zlib">
+   eJxjYBgFo4B4EAvEgTjkAqHyo4D2AAAC9gFd
+  </data>
+ </layer>
+ <layer name="SHELTER 7" width="17" height="14">
+  <data encoding="base64" compression="zlib">
+   eJxjYBgFwx3EAnEgkWoDoepHweAGAF9mAV0=
+  </data>
+ </layer>
+ <layer name="SHELTER 6" width="17" height="14">
+  <data encoding="base64" compression="zlib">
+   eJxjYBgFgxnEAnEgkWoDoepHwfAHALvWAV0=
+  </data>
+ </layer>
+ <layer name="SHELTER 5" width="17" height="14">
+  <data encoding="base64" compression="zlib">
+   eJxjYBgFtAKxQBxIpNpAqPpRMAqIAQAYVQFd
+  </data>
+ </layer>
+ <objectgroup name="对象层 1" width="17" height="14">
+  <object name="PLAYER" type="PLAYER" x="64" y="64" width="32" height="32"/>
+  <object name="hmxr3" x="128" y="256" width="32" height="32">
+   <properties>
+    <property name="buff_type" value="ice_shell"/>
+    <property name="lua_ai" value="monster_hmxr_ai"/>
+    <property name="quality" value="hmxr3.quality"/>
+   </properties>
+  </object>
+  <object name="hmxr3" x="256" y="256" width="32" height="32">
+   <properties>
+    <property name="buff_type" value="ice_shell"/>
+    <property name="lua_ai" value="monster_hmxr_ai"/>
+    <property name="quality" value="hmxr3.quality"/>
+   </properties>
+  </object>
+  <object name="hmxr3" x="384" y="256" width="32" height="32">
+   <properties>
+    <property name="buff_type" value="ice_shell"/>
+    <property name="lua_ai" value="monster_hmxr_ai"/>
+    <property name="quality" value="hmxr3.quality"/>
+   </properties>
+  </object>
+  <object name="ice_road" type="TRAP" x="128" y="160" width="288" height="128">
+   <properties>
+    <property name="lua_ai" value="ice_road_ai"/>
+   </properties>
+  </object>
+  <object name="staff_driger_control" type="TRAP" x="0" y="416" width="32" height="32">
+   <properties>
+    <property name="trap_delay" value="10"/>
+    <property name="trap_id" value="0"/>
+    <property name="trap_script" value="trap(&quot;staff_driger&quot;):setOpened(true);"/>
+    <property name="trap_start_mode" value="2"/>
+    <property name="trap_state" value="open"/>
+   </properties>
+  </object>
+  <object name="staff_driger" type="TRAP" x="448" y="352" width="32" height="32">
+   <properties>
+    <property name="trap_ani" value="driger.actor"/>
+    <property name="trap_floor" value="true"/>
+    <property name="trap_id" value="0"/>
+    <property name="trap_script" value="target(&quot;PLAYER&quot;):setCurrentUseSkill(  make_fire_staff_skill()  );target(&quot;PLAYER&quot;):setEffectAnimateName(&quot;find_player.ani&quot;);trap(&quot;staff_driger&quot;):setOpened(false)"/>
+    <property name="trap_start_mode" value="0"/>
+    <property name="trap_state" value="open"/>
+   </properties>
+  </object>
+  <object name="ice_road" type="TRAP" x="256" y="96" width="32" height="288">
+   <properties>
+    <property name="lua_ai" value="ice_road_ai"/>
+   </properties>
+  </object>
+  <object name="ice_road" type="TRAP" x="192" y="64" width="32" height="256">
+   <properties>
+    <property name="lua_ai" value="ice_road_ai"/>
+   </properties>
+  </object>
+  <object name="ice_road" type="TRAP" x="320" y="64" width="32" height="256">
+   <properties>
+    <property name="lua_ai" value="ice_road_ai"/>
+   </properties>
+  </object>
+  <object name="zi_dan_down1" type="TRAP" x="256" y="64" width="32" height="32">
+   <properties>
+    <property name="trap_ani" value="fire_cat_down.actor"/>
+    <property name="trap_delay" value="2"/>
+    <property name="trap_id" value="0"/>
+    <property name="trap_script" value="trap(&quot;zi_dan_down1&quot;):setAtkPower(target(&quot;PLAYER&quot;):getHP()*0.1);trap(&quot;zi_dan_down1&quot;):turnDown(); trap(&quot;zi_dan_down1&quot;):getAI():getActions():addObject( AIUseSkill:create(   SkillLua:create(&quot;skill_0001&quot;)  )  );"/>
+    <property name="trap_start_mode" value="2"/>
+    <property name="trap_state" value="open"/>
+   </properties>
+  </object>
+  <object name="zi_dan_up1" type="TRAP" x="192" y="320" width="32" height="32">
+   <properties>
+    <property name="trap_ani" value="fire_cat_up.actor"/>
+    <property name="trap_delay" value="2"/>
+    <property name="trap_id" value="0"/>
+    <property name="trap_script" value="trap(&quot;zi_dan_up1&quot;):setAtkPower(target(&quot;PLAYER&quot;):getHP()*0.1);trap(&quot;zi_dan_up1&quot;):turnUp(); trap(&quot;zi_dan_up1&quot;):getAI():getActions():addObject( AIUseSkill:create(   SkillLua:create(&quot;skill_0001&quot;)  )  );"/>
+    <property name="trap_start_mode" value="2"/>
+    <property name="trap_state" value="open"/>
+   </properties>
+  </object>
+  <object name="zi_dan_up2" type="TRAP" x="320" y="320" width="32" height="32">
+   <properties>
+    <property name="trap_ani" value="fire_cat_up.actor"/>
+    <property name="trap_delay" value="2"/>
+    <property name="trap_id" value="0"/>
+    <property name="trap_script" value="trap(&quot;zi_dan_up2&quot;):setAtkPower(target(&quot;PLAYER&quot;):getHP()*0.1);trap(&quot;zi_dan_up2&quot;):turnUp(); trap(&quot;zi_dan_up2&quot;):getAI():getActions():addObject( AIUseSkill:create(   SkillLua:create(&quot;skill_0001&quot;)  )  );"/>
+    <property name="trap_start_mode" value="2"/>
+    <property name="trap_state" value="open"/>
+   </properties>
+  </object>
+ </objectgroup>
+</map>

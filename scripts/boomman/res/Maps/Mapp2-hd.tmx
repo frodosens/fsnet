@@ -1,0 +1,167 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map version="1.0" orientation="orthogonal" width="18" height="13" tilewidth="64" tileheight="64">
+ <properties>
+  <property name="DESTRY1" value="149"/>
+  <property name="DESTRY2" value="224"/>
+  <property name="DESTRY3" value="144"/>
+  <property name="DESTRY4" value="177"/>
+  <property name="DESTRY5" value="141"/>
+  <property name="DESTRY6" value="170"/>
+  <property name="DESTRY7" value="173"/>
+  <property name="DESTRY_COUNT" value="7"/>
+  <property name="EXP" value="50"/>
+  <property name="ITEM" value="D001"/>
+  <property name="MONEY" value="75"/>
+ </properties>
+ <tileset firstgid="1" name="xzdxc" tilewidth="64" tileheight="64">
+  <image source="xzdxc-hd-hd.png" width="2000" height="6064"/>
+ </tileset>
+ <layer name="PASS" width="18" height="13">
+  <data encoding="base64" compression="zlib">
+   eJylz8ENgkAQQNGFAtQGxCO1KQ2oDagNqA2ICWexAaEBsQGwAbUB/ZsMCZlIOMwkL/tDMmQ3CZybY4HE0GsssTL2DhtsjX3EHgdjn3FCKu0nRib6JlW7V1yQS/dN1vm/P3O1W+KGQnpoYjkLtfvAHZX00LRvrdTuEzUa6e7d/72r/d6o3Q9eeBs7CJ37+veEtp5ghLGxZ5giMvYPmWVjrA==
+  </data>
+ </layer>
+ <layer name="块层 2" width="18" height="13">
+  <data encoding="base64" compression="zlib">
+   eJyLZmRoiAJiBjIBUC9DNAQPWnMeAfFjIH4CxY9x0M+A+Dkecz4CMRNQjJmRMP0Nn7+AfEEgFiKCZmXEbQ4/Ee6A0SJ4zJEjwT3KeMzRJcE9RnjMsQHybYHYjgDtAMSOeMyhVvoZDOYAADd2Mco=
+  </data>
+ </layer>
+ <layer name="块层 14" width="18" height="13">
+  <data encoding="base64" compression="zlib">
+   eJztzEEKgDAMRNHgyec4Nbq30cv56ay7dCF04EGYhER8l7ZF7EgcOE3MSht9+k6zPxf7jsKNx8SsstGX76Z/Vlb+mhfK8RTb
+  </data>
+ </layer>
+ <layer name="块层 13" width="18" height="13">
+  <data encoding="base64" compression="zlib">
+   eJxjYBgZwICJgcEQiI2A2JgJVU4HyNcFYj0g1mfCrh8G7IHyDkDsCMROaGqtgXwbILYFYjsC5vgB5f2BOACIA4E4Fkm9F5DtDcQ+QOxLwJzzjAwMF4D4IiN+dYTAPaD++0D8AMmcU0D2aRLNfQtU/w6I3yPpuwlk36LQfTAgDgwPCSCWJBAuww0AAHfvEeY=
+  </data>
+ </layer>
+ <layer name="块层 4" width="18" height="13">
+  <data encoding="base64" compression="zlib">
+   eJxjYGBg0GBiYNAEYi0g1gZiEIgD0vFAnADEiUCcREAcBMyBbAsgtgRiKyBWBorlAuk8IM4H4gIgLoSqxyUOAm5AtjsQewCxJxCrMhAGykSoIQYYMRBnH7FmUQJyGKnijCEFQGGfT4J6oNoGXHLEpgllBurEObXSDTYAAMvWDnE=
+  </data>
+ </layer>
+ <layer name="块层 14" width="18" height="13">
+  <data encoding="base64" compression="zlib">
+   eJxjYCAM4pgYGOKBOAGIE4E4iYkITVhALlBfHhDnA3EBEBfiMWceFIOAEZSexUi6nWuhGARMiFBvhEN8DxSTAgjZp0mieaQCEzSaErCPCmaQYx82t4PCzYyAfmr4GQZwpQls6qhhLzYzANFPDTU=
+  </data>
+ </layer>
+ <layer name="块层 3" width="18" height="13">
+  <data encoding="base64" compression="zlib">
+   eJxjYMAEU5kYGKYB8XQgdgFiVyaEXCSQHQXE0UxYNKKBJUA1S4F4GRa1GUCxTCDOwmFOLpTWB2IDINbDwS4H6q8A4kos5qxkRLDtgNgeiG3xsG3x+GUWI0ODEx55GMiG0kC1Ddk41AQSYQ6S2gYQnYtdjmRz8LkHl3vRzUEOV2R9CUTo10OoxekeYFgTHV+rGXGZAgHobsViF9gd1kBsQ8Dt6ABbeHkBsTeJ5mADkUAchcQHADL3HmA=
+  </data>
+ </layer>
+ <layer name="块层 5" width="18" height="13">
+  <data encoding="base64" compression="zlib">
+   eJxjYBhaoI6JMBsGUoBiqVjESQXFQDNKkMyRAuJVUIwNxDKSbxfITFUkmlKwngpmgAAuv2KzD5vbQWKgcFOnkntGGgAA+CgKZQ==
+  </data>
+ </layer>
+ <layer name="SHELTER 8" width="18" height="13">
+  <data encoding="base64" compression="zlib">
+   eJxjYBgFo4B6QB+IDYBYDw9bb8BcN3QBAFkiAdY=
+  </data>
+ </layer>
+ <layer name="SHELTER 7" width="18" height="13">
+  <data encoding="base64" compression="zlib">
+   eJxjYBjaQA+KRwFlYAEQz8YiDhLjBmIJurpmFKADAC4EAlY=
+  </data>
+ </layer>
+ <layer name="SHELTER 6" width="18" height="13">
+  <data encoding="base64" compression="zlib">
+   eJxjYBgFwxnMHmgHjAKqAAAXzwCc
+  </data>
+ </layer>
+ <layer name="SHELTER 5" width="18" height="13">
+  <data encoding="base64" compression="zlib">
+   eJxjYBgFgxEsGGgHjIJBBQBNtwCh
+  </data>
+ </layer>
+ <layer name="SHELTER 4" width="18" height="13">
+  <data encoding="base64" compression="zlib">
+   eJxjYBgF1ACz0ehRMAqoCQDfLgE3
+  </data>
+ </layer>
+ <layer name="SHELTER 3" width="18" height="13">
+  <data encoding="base64" compression="zlib">
+   eJxjYBg5gBuIZ0PxKBgFQwkAAGpNAUI=
+  </data>
+ </layer>
+ <objectgroup name="对象层 1" width="72" height="52">
+  <object name="PLAYER" type="PLAYER" x="640" y="768" width="128" height="128"/>
+  <object name="tqm2" x="1664" y="1024" width="128" height="128">
+   <properties>
+    <property name="quality" value="tqm2.quality"/>
+   </properties>
+  </object>
+  <object name="fire1" type="TRAP" x="1024" y="512" width="128" height="256">
+   <properties>
+    <property name="trap_id" value="1"/>
+    <property name="trap_particle" value="trap_fire_up_2.plist"/>
+    <property name="trap_state" value="open"/>
+   </properties>
+  </object>
+  <object name="fire_auto_control1" type="TRAP" x="1024" y="384" width="128" height="128">
+   <properties>
+    <property name="trap_delay" value="2"/>
+    <property name="trap_id" value="0"/>
+    <property name="trap_script" value="trap(&quot;fire1&quot;):setOpened( not trap(&quot;fire1&quot;):getOpened()  );  trap(&quot;fire1&quot;):setVisit( not trap(&quot;fire1&quot;):getVisit()  );"/>
+    <property name="trap_start_mode" value="2"/>
+    <property name="trap_state" value="close"/>
+   </properties>
+  </object>
+  <object name="fire2" type="TRAP" x="1152" y="512" width="128" height="256">
+   <properties>
+    <property name="trap_id" value="1"/>
+    <property name="trap_particle" value="trap_fire_up_2.plist"/>
+    <property name="trap_state" value="open"/>
+   </properties>
+  </object>
+  <object name="fire_control2" type="TRAP" x="1152" y="896" width="128" height="128">
+   <properties>
+    <property name="trap_ani" value="switch.actor"/>
+    <property name="trap_floor" value="true"/>
+    <property name="trap_id" value="0"/>
+    <property name="trap_script" value=" trap(&quot;fire_control2&quot;):setOpened(false);  trap(&quot;fire_control1&quot;):setOpened(true); trap(&quot;fire_auto_control2&quot;):setOpened( true );trap(&quot;fire_auto_control1&quot;):setOpened( false ); trap(&quot;fire1&quot;):setOpened(true);  trap(&quot;fire1&quot;):setVisit(true); "/>
+    <property name="trap_sound_id" value="2"/>
+    <property name="trap_start_mode" value="0"/>
+    <property name="trap_state" value="close"/>
+   </properties>
+  </object>
+  <object name="fire_auto_control2" type="TRAP" x="1152" y="384" width="128" height="128">
+   <properties>
+    <property name="trap_delay" value="2"/>
+    <property name="trap_id" value="0"/>
+    <property name="trap_script" value="trap(&quot;fire2&quot;):setOpened( not trap(&quot;fire2&quot;):getOpened()  );  trap(&quot;fire2&quot;):setVisit( not trap(&quot;fire2&quot;):getVisit()  );"/>
+    <property name="trap_start_mode" value="2"/>
+    <property name="trap_state" value="open"/>
+   </properties>
+  </object>
+  <object name="fire_control1" type="TRAP" x="1024" y="896" width="128" height="128">
+   <properties>
+    <property name="trap_ani" value="switch.actor"/>
+    <property name="trap_floor" value="true"/>
+    <property name="trap_id" value="0"/>
+    <property name="trap_script" value=" trap(&quot;fire_control1&quot;):setOpened(false);  trap(&quot;fire_control2&quot;):setOpened(true);  trap(&quot;fire_auto_control1&quot;):setOpened( true );trap(&quot;fire_auto_control2&quot;):setOpened( false ); trap(&quot;fire2&quot;):setOpened(true);   trap(&quot;fire2&quot;):setVisit(true); "/>
+    <property name="trap_sound_id" value="2"/>
+    <property name="trap_start_mode" value="0"/>
+    <property name="trap_state" value="open"/>
+   </properties>
+  </object>
+  <object name="ice1" type="TRAP" x="1408" y="512" width="128" height="256">
+   <properties>
+    <property name="trap_id" value="3"/>
+    <property name="trap_particle" value="trap_fire_up_2.plist"/>
+    <property name="trap_state" value="open"/>
+   </properties>
+  </object>
+  <object name="ice_auto_control" type="TRAP" x="1408" y="384" width="128" height="128">
+   <properties>
+    <property name="trap_delay" value="2"/>
+    <property name="trap_id" value="0"/>
+    <property name="trap_script" value=" trap(&quot;ice1&quot;):setVisit( not trap(&quot;ice1&quot;):getVisit()  );  trap(&quot;ice1&quot;):setOpened( not trap(&quot;ice1&quot;):getOpened()  ); "/>
+    <property name="trap_start_mode" value="2"/>
+    <property name="trap_state" value="open"/>
+   </properties>
+  </object>
+ </objectgroup>
+</map>

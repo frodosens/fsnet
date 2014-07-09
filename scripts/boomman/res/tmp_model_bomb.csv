@@ -1,0 +1,4 @@
+id,tmp_res_flash_id_bombbone,tmp_res_flash_name_bombbone,bomb_scale,png_filename_bomb,mp3_filename_soundeffect,tmp_res_flash_id_burn,tmp_res_flash_name_burn,ani_filename_burn,tmp_res_flash_id_fire,tmp_res_flash_name_fire,ani_filename_fire
+1,71001,fla_zhadan_Fixed,1,bomb_jump.png,,,,saojiao.ani,30002,,jump_bomb_effect.ani
+2,71001,fla_zhadan_Fixed,1,bomb_lucky.png,,,,saojiao.ani,30002,,jump_bomb_effect.ani
+3,71001,fla_zhadan_Fixed,1,bomb_ninjia.png,,,,saojiao.ani,30002,,jump_bomb_effect.ani

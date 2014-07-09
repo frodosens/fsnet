@@ -1,32 +1,48 @@
-
+require 'modules/basemode.rb'
 #==========================================================================================
 #   道具实例
 #   这里的道具一般是客户端中体现的 一格道具
 # 	By Frodo	2014-06-10
 #==========================================================================================
-class Item
+class Item < BaseModule
+	
+	# 物品類型
+	ITEM_TYPE_EQUIP            = 1	# 裝備
+	ITEM_TYPE_CONSUME          = 2	# 消耗品
+	ITEM_TYPE_POTION           = 3	# 藥水
+	ITEM_TYPE_MONSTER_FRAGMENT = 4	# 守衛碎片
+	ITEM_TYPE_GEMS             = 5	# 寶石
+	ITEM_TYPE_BOX              = 6	# 寶箱
+
+	# 裝備子類型
+	ITEM_TYPE_EQUIP_WEAPON     = 1	# 武器
+	ITEM_TYPE_EQUIP_DECORATION = 2	# 首飾
+	ITEM_TYPE_EQUIP_HELMET     = 3	# 頭盔
+	ITEM_TYPE_EQUIP_CLOTHES    = 4	# 衣服
+	ITEM_TYPE_EQUIP_SHOES      = 5	# 鞋子
+
+	
 	
 	attr_reader :serial
 	attr_reader :templete_id
 	attr_reader :quality
 	attr_reader :strelevel
 	attr_reader :stack
-	attr_reader :deleted
 	attr_accessor :owner_pid
-	attr_accessor :inserted
+	
+	alias :id :templete_id
 
 	#==========================================================================================
 	# => 初始化
 	#==========================================================================================
 	def initialize
+		super()
 		@serial = 0
 		@templete_id = 0
 		@strelevel = 0
 		@owner_pid = 0
 		@stack = 0
-		@deleted = 0
 		@quality = 0
-		@inserted = false
 	end
 	
 
@@ -41,66 +57,25 @@ class Item
 	end
 	
 	#==========================================================================================
-	# => 设置是否已经删除
-	#==========================================================================================
-	def delete=(v)
-		@deleted = v ? 1 : 0
-	end
-	#==========================================================================================
-	# => 是否已经删除
-	#==========================================================================================
-	def deleted?
-		return @deleted == 1
-	end
-
-	#==========================================================================================
-	# => 如果调用了item不存在的方法,尝试从模板中调用
-	#==========================================================================================
-	def method_missing(method_name, *arg, &block)
-		
-		if(templete != nil)
-			return templete.method(method_name).call(*arg);
-		end
-		
-	end
-	
-	#==========================================================================================
-	# => 生成insert的sql
-	#==========================================================================================
-	def generate_inert_sql()
-		sql = "insert into tb_items(serial, templete_id, quality, strelevel, owner_pid, stack, deleted) values( #{@serial}, #{@templete_id}, #{@quality}, #{@stack}, #{@owner_pid}, #{@stack}, #{@deleted} )"
-		return sql
-	end
-	
-	#==========================================================================================
-	# => 生成update的sql
-	#==========================================================================================
-	def generate_update_sql()
-		sql = "update tb_items set quality=#{@quality}, strelevel=#{@strelevel}, owner_pid=#{@owner_pid}, stack=#{@stack}, deleted=#{@deleted} where serial=#{@serial}"
-		return sql
-	end
-	
-	#==========================================================================================
 	# => 生成入库的sql
 	#==========================================================================================
 	def generate_save_sql()
-		if(@inserted)
-			return generate_update_sql();
-		else
-			return generate_inert_sql();	
-		end
+		sql = "replace into tb_items(serial, templete_id, quality, strelevel, owner_pid, stack, deleted) values( #{@serial}, #{@templete_id}, #{@quality}, #{@stack}, #{@owner_pid}, #{@stack}, #{@deleted} )"
+		return sql
 	end
-
+	
 	#==========================================================================================
 	# => 讲道具写入输出流
 	#==========================================================================================
 	def write_to_stream(os)
 		os.write_uint32(serial)
+		os.write_uint32(templete.id)
 		os.write_string(templete.name)
 		os.write_byte(templete.type)
 		os.write_byte(templete.subtype)
 		os.write_string(templete.icon)
 		os.write_string(templete.big_icon)
+		os.write_string(templete.describe)
 		os.write_uint16(stack)
 		os.write_uint16(max_stack)
 		os.write_byte(quality)
@@ -124,23 +99,27 @@ class Item
 	# => 从模板ID初始化一个道具
 	#==========================================================================================
 	def init_from_templete_id(tmp_id)
-		@templete_id   = tmp_id
-		@quality 			 = self.templete.init_qualitylevel
-		@strelevel    = self.templete.init_strelevel;
-		@serial        = $game_database.incr("incr_item_serial");
+		super(tmp_id)
+		begin
+			@quality 			 = self.templete.init_qualitylevel
+			@strelevel    = self.templete.init_strelevel;
+			@serial        = $game_database.incr("incr_item_serial");
+			return true;
+		rescue => err
+			raise(" 未定义模板物品 #{tmp_id}")
+			return false
+		end	
 	end
 
 	#==========================================================================================
 	# => 从模板ID创建一个道具
 	#==========================================================================================
 	def self.create_from_id(tmp_id)
-		if(@@item_templete[tmp_id].nil?)
-			raise( "create_from_id #{tmp_id} templete is nil" )
-			return nil;
+		item = Item.new();
+		if(item.init_from_templete_id(tmp_id))
+			return item;
 		end
-		hero = Item.new();
-		hero.init_from_templete_id(tmp_id);
-		return hero;
+		return nil
 	end
 	
 	
@@ -150,6 +129,10 @@ class Item
 	# => 模板数据定义
 	#========================================================================
 	@@item_templete = {}
+	
+	def self.find_templete(id)
+		return @@item_templete[id]
+	end
 
 	def self.reload_templete()
 		@@item_templete = {}

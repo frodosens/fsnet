@@ -11,14 +11,17 @@
 #include <event.h>
 #include <evhttp.h>
 #include <event2/listener.h>
+#include <event2/thread.h>
 #include <pthread.h>
 #include <signal.h>
 
 #include <unistd.h>
 #include <netinet/tcp.h>
-#include <sys/socket.h>
 #include <net/if.h>
 #include <arpa/inet.h>
+#include <sys/socket.h>
+#include <sys/queue.h>
+#include <sys/signal.h>
 
 
 #include "fs_server.h"
@@ -28,9 +31,7 @@
 #include "fs_loop_queue.h"
 #include "fs_node.h"
 #include "fs_pack.h"
-
 #include "hash.h"
-
 
 #define LOOP_QUE_LEN 1024
 struct fs_server{
@@ -217,7 +218,9 @@ fs_server_http_request(struct evhttp_request *req, void *data){
     if(server->_fn_pack_parse){
         struct fs_pack* out = NULL;
         server->_fn_pack_parse(server, fs_output_stream_get_dataptr(fos), fs_output_stream_get_len(fos), 0, &out);
-        fs_server_need_work(server);
+        
+        fs_server_on_recv_pack(server, out);
+        
     }
     fs_stream_free_output(fos);
     
@@ -229,7 +232,7 @@ fs_server_io_thread(void* data){
 
     struct fs_server* server = (struct fs_server*)data;
     
-    fs_assert(server != NULL);
+    fs_assert(server != NULL, "");
     
     sigignore( SIGPIPE );
     
@@ -244,9 +247,11 @@ fs_server_io_thread(void* data){
     
     event_set_mem_functions(fs_malloc, fs_realloc, fs_free);
     
+    evthread_use_pthreads();
+    
     single_event = event_base_new();
     
-    fs_assert(single_event != NULL);
+    fs_assert(single_event != NULL, "");
     
     switch (server->server_type) {
         case t_fs_server_tcp:{
@@ -257,12 +262,14 @@ fs_server_io_thread(void* data){
                                                -1,
                                                (struct sockaddr*)&sin,
                                                sizeof(sin));
-            fs_assert(listener != NULL);
+            char msg[128];
+            snprintf(msg, 128, "listener %s:%d fail", server->addr.addr, server->addr.port);
+            fs_assert(listener != NULL, msg);
         }
             break;
         case t_fs_server_http:{
             single_evhttp = evhttp_new(single_event);
-            fs_assert(single_evhttp != NULL);
+            fs_assert(single_evhttp != NULL, "");
             
             evhttp_set_gencb(single_evhttp, fs_server_http_request, server);
             evhttp_bind_socket_with_handle(single_evhttp, server->addr.addr, server->addr.port);
@@ -278,10 +285,13 @@ fs_server_io_thread(void* data){
     if(server->_fn_on_start){
         server->_fn_on_start(server);
     }
+    static fs_bool _signal_add = fs_false;
     
-	server->signal_event = evsignal_new(single_event, SIGINT, libevent_cb_signal, server);
-    
-    event_add(server->signal_event, NULL);
+    if(_signal_add == fs_false){
+        _signal_add = fs_true;
+        server->signal_event = evsignal_new(single_event, SIGINT, libevent_cb_signal, server);
+        event_add(server->signal_event, NULL);
+    }
     
 #ifdef __APPLE__
     pthread_setname_np(server->name);
@@ -300,6 +310,7 @@ fs_server_io_thread(void* data){
         server->need_pop_event = fs_true;
         
         event_base_loop(single_event, EVLOOP_ONCE);
+        
     }
     
     return NULL;
@@ -480,13 +491,12 @@ fs_server_add_event( struct fs_server* server, struct event* event){
     if(pthread_self() != server->pthread_io_id) {
         fs_loop_queue_push(server->event_loopque, event);
         event_base_loopbreak(server->event);
-        pthread_kill(server->pthread_io_id, SIGINFO);
+        pthread_kill(server->pthread_io_id, SIGINT);
     }else{
         event_add(event, NULL);
     }
     
 }
-
 
 void
 fs_server_need_work( struct fs_server* server){
@@ -536,7 +546,7 @@ fs_server_send_pack_node_by_node(struct fs_server* server, struct fs_node* node,
     BYTE* data = NULL;
     size_t len = server->_fn_pack_to_data(server, pack, &data);
     if(node != NULL){
-        fs_assert(len != 0);
+        fs_assert(len != 0, "");
         fs_node_send_data(node, data, len);
         fs_free(data);
         return fs_true;
@@ -548,9 +558,9 @@ fs_server_send_pack_node_by_node(struct fs_server* server, struct fs_node* node,
 fs_bool
 fs_server_send_data_node_by_node(struct fs_server* server, struct fs_node* node, void* data, size_t len){
     
-    fs_assert(server != NULL);
-    fs_assert(node != NULL);
-    fs_assert(data != NULL);
+    fs_assert(server != NULL, "");
+    fs_assert(node != NULL, "");
+    fs_assert(data != NULL, "");
     
     fs_node_send_data(node, (BYTE*)data, len);
     fs_free(data);

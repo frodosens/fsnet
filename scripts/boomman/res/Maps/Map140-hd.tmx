@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map version="1.0" orientation="orthogonal" width="19" height="15" tilewidth="64" tileheight="64">
+ <properties>
+  <property name="DESTRY1" value="96"/>
+  <property name="DESTRY2" value="100"/>
+  <property name="DESTRY3" value="102"/>
+  <property name="DESTRY4" value="108"/>
+  <property name="DESTRY_COUNT" value="4"/>
+  <property name="EXP" value="1220"/>
+  <property name="ITEM" value="D047"/>
+  <property name="LOSE_SCRIPT" value=""/>
+  <property name="MONEY" value="1830"/>
+  <property name="START_SCRIPT" value="lv140"/>
+  <property name="WIN_SCRIPT" value=""/>
+ </properties>
+ <tileset firstgid="1" name="jdbl" tilewidth="64" tileheight="64">
+  <image source="jdbl-hd.png" width="1000" height="1000"/>
+ </tileset>
+ <layer name="PASS" width="19" height="15">
+  <data encoding="base64" compression="zlib">
+   eJy1k+sJACAIhF3KjRqoJqhR648QhycGdiCCj+OjRxeRcaIX5HliFWXzRTWnxurIhfORF/YYV+TDZiKurMwPuZTMsX2TOlzolZV+5or2mdh53f3mcN4cL/dY9b6QP1P/+R8r8gab01NV
+  </data>
+ </layer>
+ <layer name="块层 2" width="19" height="15">
+  <data encoding="base64" compression="zlib">
+   eJxjYBicYDKUngDEE8mkYebAzJoPxAvIpNHNGnXXqLuGirsoBdQ2CwDednBx
+  </data>
+ </layer>
+ <layer name="块层 3" width="19" height="15">
+  <data encoding="base64" compression="zlib">
+   eJxrYWBY0EI9zEBNPJkKGGYWNcCoWaNmDTWzBmF+TAAAf8xJiw==
+  </data>
+ </layer>
+ <layer name="块层 4" width="19" height="15">
+  <data encoding="base64" compression="zlib">
+   eJzbxMDQsJmBgWEzhfQmBgYFhlFAV1DLwOAAY/cyMByglrl1QLOAZh+oIdNMoL4GarllFAwOAMzfDzYyMCwAYgVKaKA5CQDMrC2q
+  </data>
+ </layer>
+ <layer name="块层 5" width="19" height="15">
+  <data encoding="base64" compression="zlib">
+   eJxjYKAumAvEaxgYDpCLgfoXwMxag8QmBwD1J4yaNWrWSDYLmJ8S1kDEyMJA/QdA5kymIgYAA45ITg==
+  </data>
+ </layer>
+ <layer name="块层 17" width="19" height="15">
+  <data encoding="base64" compression="zlib">
+   eJxjYBgFowA7cKWzPmKBC531jQLqAgAYCgET
+  </data>
+ </layer>
+ <layer name="块层 6" width="19" height="15">
+  <data encoding="base64" compression="zlib">
+   eJxjYBhaIIFEcXzm4DOLWPOIUUuKecSCHBziZkSqQxdH1wcCTiS5CEVfA7qYKQH7cYmj6yOkHxcgpD4BinH5GeQnmBpiAD61pJiDrIcU8cEMAIEYDVM=
+  </data>
+ </layer>
+ <layer name="SHELTER 11" width="19" height="15">
+  <data encoding="base64" compression="zlib">
+   eJxjYBgFo2AU0AIEkig+UgAArgwAow==
+  </data>
+ </layer>
+ <layer name="SHELTER 10" width="19" height="15">
+  <data encoding="base64" compression="zlib">
+   eJxjYBgFo2AUgEAgFJMqNwpIAwC34wFF
+  </data>
+ </layer>
+ <layer name="SHELTER 9" width="19" height="15">
+  <data encoding="base64" compression="zlib">
+   eJxjYBgFo2BogkAoNsYhDxRvgKkZBYMHAACKCQIr
+  </data>
+ </layer>
+ <layer name="SHELTER 8" width="19" height="15">
+  <data encoding="base64" compression="zlib">
+   eJxjYBgFo4A+IJbG6kfB0AAAbOMAuw==
+  </data>
+ </layer>
+ <layer name="SHELTER 7" width="19" height="15">
+  <data encoding="base64" compression="zlib">
+   eJxjYBgFo4A4EEui+CgYBdgAAKQbALs=
+  </data>
+ </layer>
+ <layer name="SHELTER 6" width="19" height="15">
+  <data encoding="base64" compression="zlib">
+   eJxjYBgFwwkYk6+vgZruGAWjABcAADtCAOc=
+  </data>
+ </layer>
+ <layer name="SHELTER 5" width="19" height="15">
+  <data encoding="base64" compression="zlib">
+   eJxjYBgFgw3Ekig+CkbBUAIAEpoAuw==
+  </data>
+ </layer>
+ <layer name="SHELTER 4" width="19" height="15">
+  <data encoding="base64" compression="zlib">
+   eJxjYBgF9AKxA+2AUTAKBgEAAB5rAF4=
+  </data>
+ </layer>
+ <layer name="SHELTER 3" width="19" height="15">
+  <data encoding="base64" compression="zlib">
+   eJxjYBh5IBCKKVUzCkbBKCAdAABZYAFF
+  </data>
+ </layer>
+ <layer name="SHELTER 2" width="19" height="15">
+  <data encoding="base64" compression="zlib">
+   eJxjYBg6IBCKSZUbBaNgFAweAAC5kAFF
+  </data>
+ </layer>
+ <layer name="SHELTER 1" width="19" height="15">
+  <data encoding="base64" compression="zlib">
+   eJxjYKA9CCRRfBSMglEwfAEAjxoAow==
+  </data>
+ </layer>
+ <objectgroup name="对象层 1" width="38" height="30">
+  <object name="bossbyzl" type="BOSS" x="576" y="448" width="64" height="64">
+   <properties>
+    <property name="lua_ai" value="monster_bossbyzl_ai"/>
+    <property name="quality" value="bossbyzl.quality"/>
+   </properties>
+  </object>
+  <object name="PLAYER" type="PLAYER" x="128" y="128" width="64" height="64"/>
+ </objectgroup>
+</map>

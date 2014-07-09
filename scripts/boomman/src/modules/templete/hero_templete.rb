@@ -21,6 +21,9 @@ class Hero
 		attr_reader :tmp_equip_id_3		# 模板装备 鞋子ID
 		attr_reader :tmp_equip_id_4		# 模板装备 首饰ID
 		attr_reader :tmp_equip_id_5		# 模板装备 武器ID
+		attr_reader :bomb_exp_time		# 炸弹爆炸时间
+		attr_reader :icon							# ICON
+		attr_reader :big_icon					# BIG ICON
 	
 		def initialize()
 			@id = 0
@@ -41,14 +44,17 @@ class Hero
 			@tmp_hero_equip_id_3 = 0
 			@tmp_hero_equip_id_4 = 0
 			@tmp_hero_equip_id_5 = 0
-		
+			@bomb_exp_time = 2
+			@icon = ""
+			@big_icon = ""
 		end
+
 
 		def init_from_hash(hash)
 			@id = hash["id"].to_i
 			@name = hash["name"].to_s
 			@type = hash["type"].to_i
-			@model_id_list = hash["mode_id_list"].to_i
+			@model_id_list = YAML.load(hash["model_id_list"].gsub("|", ","))
 			@init_level = hash["init_level"].to_i
 			@max_level = hash["max_level"].to_i
 			@init_starlevel = hash["init_starlevel"].to_i
@@ -63,6 +69,8 @@ class Hero
 			@tmp_hero_equip_id_3 = hash["tmp_hero_equip_id_3"].to_i
 			@tmp_hero_equip_id_4 = hash["tmp_hero_equip_id_4"].to_i
 			@tmp_hero_equip_id_5 = hash["tmp_hero_equip_id_5"].to_i
+			@icon = hash["icon"]
+			@big_icon = hash["bigicon"].to_s
 		end
 
 		def self.create_from_hash(hash)

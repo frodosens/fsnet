@@ -1,12 +1,10 @@
 
 class GamePlayerManager
 	
-	attr_reader :players;
-	attr_reader :logger
+	attr_reader :players
 	
 	def initialize()
 		@players = {};
-		@logger = Logger.new("logs/GamePlayerManager.log")
 	end
 
 	#==========================================================================================
@@ -15,11 +13,12 @@ class GamePlayerManager
 	def logout(pid)
 		player = @players[pid];
 		if(player != nil)
+			player.on_logout()
 			player.save();
 			player.cache();
 			@players[pid] = nil;
 		end
-		@logger.info("#{pid} logout");
+		$game.info("#{pid} logout");
 	end
 	
 	#==========================================================================================
@@ -28,10 +27,18 @@ class GamePlayerManager
 	def login(pid)
 		player = find_player_by_pid(pid);
 		@players[pid] = player;
-		@logger.info("#{pid} login");
+		player.on_login()
+		$game.info("#{pid} login");
 		return player;
 	end
 	
+
+	#==========================================================================================
+	# => 是否在线
+	#==========================================================================================
+	def is_online(pid)
+		return find_player_by_pid(pid) != nil
+	end
 
 	#==========================================================================================
 	# => 通过PID找到player
@@ -42,6 +49,8 @@ class GamePlayerManager
 		end
 		return @players[pid];
 	end
+	
+	alias :[] :find_player_by_pid
 	
 
 	#==========================================================================================
@@ -56,13 +65,13 @@ class GamePlayerManager
 		if(player == nil)
 			
 			player = Player.create_from_database(pid);
-			@logger.info("create player (#{pid}) from database");
+			$game.info("create player (#{pid}) from database");
 			if(player != nil)
 				player.cache();
 			end
 		else
 
-			@logger.info("create player (#{pid}) from cache");
+			$game.info("create player (#{pid}) from cache");
 			
 		end
 		

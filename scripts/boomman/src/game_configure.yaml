@@ -3,11 +3,14 @@ boomman_configure:
   max_diamonds: 999999999
   max_prestige: 999999999
 mysql_configure:
-  host: "172.16.96.130"
+  host: "172.16.96.135"
   port: 3306
   username: "root"
   password: "123456"
   database: "boomman"
 redis_configure:
-  host: "172.16.96.130"
-  port: 6379
+  - "172.16.96.135:6400"
+  - "172.16.96.135:6401"
+  - "172.16.96.135:6402"
+log_name: logs/game.log
+version: "0.0.1"

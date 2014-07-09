@@ -63,7 +63,7 @@ list_remove_all(list_t *in_list, pfcb_list_node_free pf)
         if (pf) (*pf)(node);
         fs_free(node);
     }
-    fs_assert (in_list->size==0);
+    fs_assert (in_list->size==0, "");
 }
 
 /* Returns a copy of a list_t from heap */
@@ -145,7 +145,7 @@ list_node_at(const list_t* in_list, int index)
     int  i=0;
     listnode_t    *node = in_list->head;
     
-    fs_assert(index >=0 && index < (int)in_list->size);
+    fs_assert(index >=0 && index < (int)in_list->size, "");
     
     while (i < index)
     {

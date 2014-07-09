@@ -1,0 +1,159 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map version="1.0" orientation="orthogonal" width="17" height="13" tilewidth="32" tileheight="32">
+ <properties>
+  <property name="DESTRY1" value="255"/>
+  <property name="DESTRY2" value="314"/>
+  <property name="DESTRY_COUNT" value="2"/>
+  <property name="EXP" value="215"/>
+  <property name="ITEM" value="D004"/>
+  <property name="MONEY" value="323"/>
+ </properties>
+ <tileset firstgid="1" name="hmpy" tilewidth="32" tileheight="32">
+  <image source="hmpy.png" width="500" height="1024"/>
+ </tileset>
+ <layer name="PASS" width="17" height="13">
+  <data encoding="base64" compression="zlib">
+   eJxjZGBgYAJiZiBmAWJGMvgCQCwIxEJALEwmnxx7kfksaObCgBUjhJZmRMXIANktyOYi64exrdD0wgCyW5Ddgc1OKyxuIOQObOqxieNyByH3I5uDzx3IfoDpk8YSxvjcgc0MbACXO4ZyOgXxAW4rCLg=
+  </data>
+ </layer>
+ <layer name="块层 17" width="17" height="13">
+  <data encoding="base64" compression="zlib">
+   eJztzCcSgEAQBdG5NrB4wnqSJ3nS7Wg5BvHdCrrq2TZLpww5CkFA6R4VajSCFtE9OvQYBCOm//H5mLFgFWzY3ePAiUtw47G0egHSWlCw
+  </data>
+ </layer>
+ <layer name="块层16" width="17" height="13">
+  <data encoding="base64" compression="zlib">
+   eJzlz8kNgDAMRNEUBzQQaAfcAFQFpACWAlgKYCmAf7aQEuUIlt7FsUYZY/45LTr0cJEZA0ZMmD23CVJkar9gxYbdk2GRo1D7Aycu3N5fx02JKuCOfkJPoa/otxpNQAb9hJ5iXzK+MA+NRhZv
+  </data>
+ </layer>
+ <layer name="块层 4" width="17" height="13">
+  <data encoding="base64" compression="zlib">
+   eJxjYBgFxAJtINYBYl0gbiBCfTxxypDV47SXAWovMlAhxXAgKGHE7h50c7GBfCL8guyefOKcBAawcEVm43ITrjDVYsSpHgVswhEGuMAmHOZSAgDYEQmN
+  </data>
+ </layer>
+ <layer name="块层15" width="17" height="13">
+  <data encoding="base64" compression="zlib">
+   eJybyMjAMAmIJwPxFCCeCsTzgZgQ2ABUsxGqbgGQXgjEi4B4MRAvAeJ1RJixH6jmABHqRsEoGEjQCkyjbVRMpwBxAQtU
+  </data>
+ </layer>
+ <layer name="块层 3" width="17" height="13">
+  <data encoding="base64" compression="zlib">
+   eJw7y8jQcAaIGYgA9xgZGO4D8QNGVPE7QP23gVgPyNYHYgMgJoaNDdgCsR0Q25PABrqf4SySmxwZiPMPknoGoPtB/oCDABLNCMAi5kSiGU5YxAJJNCMQSmcjiSWQaEYCEhtmDjlhig6oEabkpI9cNDPOA+P5AhBfZEQNJ1IArrxADAAAPx4iMg==
+  </data>
+ </layer>
+ <layer name="块层 5" width="17" height="13">
+  <data encoding="base64" compression="zlib">
+   eJxjYBjewIoRQssAsSwQywFxIRn6YWxkPjEA2V5kc0RJMwYnkCOsBMVeXO4n1T3o4YrMJtZNMDOkSQzToQ4Aw5sEJw==
+  </data>
+ </layer>
+ <layer name="块层 2" width="17" height="13">
+  <data encoding="base64" compression="zlib">
+   eJyrYGRgqATiajJwLRDXAXE7EHcAMTmgB6ivF4iXkqkfBlaPmjFqBgEzDgPxETLNOQHUdxKILwHxZSC+Sga+DsQ3gBgA6G8nnQ==
+  </data>
+ </layer>
+ <layer name="SHELTER 9" width="17" height="13">
+  <data encoding="base64" compression="zlib">
+   eJxjYBgFo4A+QA+I9YHYgEj2cAUAGJoCNQ==
+  </data>
+ </layer>
+ <layer name="SHELTER 8" width="17" height="13">
+  <data encoding="base64" compression="zlib">
+   eJxjYBgFo4B0oM0IoXkYB9YdQxEAAElmADo=
+  </data>
+ </layer>
+ <layer name="SHELTER 7" width="17" height="13">
+  <data encoding="base64" compression="zlib">
+   eJxjYBgFIw1oM0JoXiDmY0Bl8w+Mk0YUAACn6wBy
+  </data>
+ </layer>
+ <layer name="SHELTER 6" width="17" height="13">
+  <data encoding="base64" compression="zlib">
+   eJxjYBgFQwFoM0LwKBj6AACg4gBZ
+  </data>
+ </layer>
+ <layer name="SHELTER 5" width="17" height="13">
+  <data encoding="base64" compression="zlib">
+   eJxjYBgFAwX4B9oBo2BAAAAg/AAQ
+  </data>
+ </layer>
+ <layer name="SHELTER 4" width="17" height="13">
+  <data encoding="base64" compression="zlib">
+   eJxjYBgFuAAvEPMBMT+SmDbjADlmFAwbAADI4wBX
+  </data>
+ </layer>
+ <layer name="SHELTER 3" width="17" height="13">
+  <data encoding="base64" compression="zlib">
+   eJxjYBi+QJsRlY3MHwWjYKAAAFUQAIU=
+  </data>
+ </layer>
+ <layer name="SHELTER 2" width="17" height="13">
+  <data encoding="base64" compression="zlib">
+   eJxjYBi8QJsRQvMCMR8Q8wNx0gC6ZxSMAmoAAAUpALk=
+  </data>
+ </layer>
+ <objectgroup name="对象层 1" width="17" height="13">
+  <object name="mp1" type="TRAP" x="96" y="288" width="32" height="32">
+   <properties>
+    <property name="trap_ani" value="mp.actor"/>
+    <property name="trap_floor" value="true"/>
+    <property name="trap_id" value="0"/>
+    <property name="trap_script" value="trap_moveto(&quot;PLAYER&quot;, &quot;mp1&quot;,target(&quot;mp2&quot;):getX(),target(&quot;mp2&quot;):getY() );"/>
+    <property name="trap_sound_id" value="1"/>
+    <property name="trap_start_mode" value="0"/>
+    <property name="trap_state" value="open"/>
+   </properties>
+  </object>
+  <object name="fire1" type="TRAP" x="320" y="96" width="32" height="96">
+   <properties>
+    <property name="trap_id" value="1"/>
+    <property name="trap_particle" value="trap_fire_down_up_3.plist"/>
+    <property name="trap_state" value="open"/>
+   </properties>
+  </object>
+  <object name="mp2" type="TRAP" x="416" y="288" width="32" height="32">
+   <properties>
+    <property name="trap_ani" value="mp.actor"/>
+    <property name="trap_floor" value="true"/>
+    <property name="trap_id" value="0"/>
+    <property name="trap_script" value="trap_moveto(&quot;PLAYER&quot;, &quot;mp2&quot;,target(&quot;mp1&quot;):getX(),target(&quot;mp1&quot;):getY() );"/>
+    <property name="trap_sound_id" value="1"/>
+    <property name="trap_start_mode" value="0"/>
+    <property name="trap_state" value="open"/>
+   </properties>
+  </object>
+  <object name="bysc1" x="416" y="96" width="32" height="32">
+   <properties>
+    <property name="lua_ai" value="monster_bysc_ai"/>
+    <property name="quality" value="bysc1.quality"/>
+   </properties>
+  </object>
+  <object name="bysc1" x="288" y="288" width="32" height="32">
+   <properties>
+    <property name="lua_ai" value="monster_bysc_ai"/>
+    <property name="quality" value="bysc1.quality"/>
+   </properties>
+  </object>
+  <object name="PLAYER" type="PLAYER" x="96" y="96" width="32" height="32"/>
+  <object name="zi_dan_right1" type="TRAP" x="128" y="192" width="32" height="32">
+   <properties>
+    <property name="trap_ani" value="fire_cat_right.actor"/>
+    <property name="trap_delay" value="2"/>
+    <property name="trap_id" value="0"/>
+    <property name="trap_script" value="trap(&quot;zi_dan_right1&quot;):setAtkPower(target(&quot;PLAYER&quot;):getHP()*0.1);trap(&quot;zi_dan_right1&quot;):turnRight(); trap(&quot;zi_dan_right1&quot;):getAI():getActions():addObject( AIUseSkill:create(   SkillLua:create(&quot;skill_0001&quot;)  )  );"/>
+    <property name="trap_start_mode" value="2"/>
+    <property name="trap_state" value="open"/>
+   </properties>
+  </object>
+  <object name="fire_control1" type="TRAP" x="320" y="224" width="32" height="32">
+   <properties>
+    <property name="trap_ani" value="switch.actor"/>
+    <property name="trap_floor" value="true"/>
+    <property name="trap_id" value="0"/>
+    <property name="trap_script" value="trap(&quot;fire_control1&quot;):setOpened( false ); trap(&quot;fire1&quot;):setVisit( false );"/>
+    <property name="trap_sound_id" value="2"/>
+    <property name="trap_start_mode" value="0"/>
+    <property name="trap_state" value="open"/>
+   </properties>
+  </object>
+ </objectgroup>
+</map>

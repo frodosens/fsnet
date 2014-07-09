@@ -20,7 +20,7 @@ class Item
 		attr_reader :bomb_reload
 		attr_reader :cdtime
 		attr_reader :use_effect
-		attr_reader :tmp_buff_id
+		attr_reader :tmp_gems_effect
 		attr_reader :sale_price
 		attr_reader :icon
 		attr_reader :big_icon
@@ -44,7 +44,7 @@ class Item
 			@bomb_reload = 0
 			@cdtime = 0
 			@use_effect = nil
-			@tmp_buff_id = 0
+			@tmp_gems_effect = 0
 			@sale_price = 0
 			@icon = ""
 			@big_icon = ""
@@ -70,11 +70,23 @@ class Item
 			@bomb_reload = hash["maxbombreload_mut"].to_i
 			@cdtime = hash["cdtime"]
 			@use_effect = hash["use_effect"]
-			@tmp_buff_id = hash["tmp_buff_id"].to_i
+			@tmp_gems_effect = hash["tmp_gems_effect"].to_i
 			@sale_price = hash["sale_price"].to_i
-			@icon = hash["icon"]
-			@big_icon = hash["bigicon"]
-			@describe = hash["describe"]
+			@icon = hash["icon"].to_s
+			@big_icon = hash["bigicon"].to_s
+			@describe = hash["describe"].to_s
+			
+		end
+		
+		def write_simple_to_stream(os)
+			
+			os.write_uint32(@id)
+			os.write_string(@name)
+			os.write_byte(@type)
+			os.write_byte(@subtype)
+			os.write_string(@icon)
+			os.write_string(@big_icon)
+			os.write_string(@describe)
 			
 		end
 		

@@ -10,28 +10,63 @@
 #include <string.h>
 #include <stdlib.h>
 #include "fs_define.h"
+
+
+#ifdef __APPLE__
 #include <jemalloc.h>
+#else
+#include <ruby.h>
+#endif
 
 void*
 fs_malloc(size_t len){
-//    return ruby_xmalloc(len);
+    
+#ifdef JEMALLOC_HAVE_ATTR
     return je_malloc(len);
-//   return malloc(len);
+#else
+    
+#ifdef __APPLE__
+    return malloc(len);
+#else
+    return ruby_xmalloc(len);
+#endif
+    
+#endif
 }
 
 
 void
 fs_free(void* ptr){
-//    ruby_xfree(ptr);
+    
+#ifdef JEMALLOC_HAVE_ATTR
     je_free(ptr);
-//    free(ptr);
+#else
+    
+#ifdef __APPLE__
+    free(ptr);
+#else
+    ruby_xfree(ptr);
+#endif
+    
+#endif
+    
 }
 
 void*
 fs_realloc(void* ptr, size_t len) {
-//    return ruby_xrealloc(ptr, len);
+    
+#ifdef JEMALLOC_HAVE_ATTR
     return je_realloc(ptr, len);
-//    return realloc(ptr, len);
+#else
+    
+#ifdef __APPLE__
+    return realloc(ptr, len);
+#else
+    return ruby_xrealloc(ptr, len);
+#endif
+    
+#endif
+    
 }
 
 
@@ -40,7 +75,7 @@ fs_zero(void* data, size_t len){
     memset(data, 0, len);
 }
 
-void fs_assert(fs_bool cond){
+void fs_assert_f(fs_bool cond){
     if(!cond){
         abort();
     }

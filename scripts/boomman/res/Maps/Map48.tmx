@@ -1,0 +1,183 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map version="1.0" orientation="orthogonal" width="16" height="12" tilewidth="32" tileheight="32">
+ <properties>
+  <property name="DESTRY1" value="221"/>
+  <property name="DESTRY2" value="225"/>
+  <property name="DESTRY3" value="223"/>
+  <property name="DESTRY_COUNT" value="3"/>
+  <property name="EXP" value="530"/>
+  <property name="ITEM" value="D015"/>
+  <property name="MONEY" value="795"/>
+ </properties>
+ <tileset firstgid="1" name="swzz" tilewidth="32" tileheight="32">
+  <image source="swzz.png" width="500" height="1024"/>
+ </tileset>
+ <layer name="PASS" width="16" height="12">
+  <data encoding="base64" compression="zlib">
+   eJydkckNgDAMBM1RAEcBEArgaCb90wn7wJK1mCCz0jw2jiKPkkRkAROYQQr2HRxgBduP3oBWnsnOmU0FajCAsXDvvOF0oDc+X+E32D8a9s+Et7edl/w9X55F/Tlv/qV/szP2V59oV3/1ifYLTPQS5A==
+  </data>
+ </layer>
+ <layer name="块层 13" width="16" height="12">
+  <data encoding="base64" compression="zlib">
+   eJzrYGBg6ATiLiBexsCwgFg8HYg7IDTZoBNiFhgwAjETEDMDMQsRfAaIm+H6BYBYEIiFgFiYCD4DxL8HYPrlgVgBiBWBWIkIPrp+PSDWB2IDIDYkgo+unxz/I+sf6v4nB8D0L4ewE0jBQD0NIP0AfjY/bw==
+  </data>
+ </layer>
+ <layer name="块层 14" width="16" height="12">
+  <data encoding="base64" compression="zlib">
+   eJytkW0KwjAMhpOzTM+hU1B/+QXVC0zPkevo3G7X/3sGG5ZRaJUFHlLaJO37tlaRDzTQQiy8iPX5xfkb6qBnzlgxbw0lbGD74/wj9Sc4wwWump45apvGQcX2EJv577sd+ze4T85z7uijYv8Bzxl995l1ox87/foV9qY8QLOh3ZzG/U55gGZDu1WR/gIWsMzIYKytGP69AygbJTY=
+  </data>
+ </layer>
+ <layer name="块层 15" width="16" height="12">
+  <data encoding="base64" compression="zlib">
+   eJy9kksKwkAQRDsn8wfGVfyAeoHoYjyBrupoHsMbeA3fIME2tCGzseDBMHSlKkObfXQzu1/Benc2oASTymwKM5jDohpyfHuzGubXsIEt7Mb7dQnuyRc9RB/RS/RT5Mer/I18XpJZw+qdL3qIPqKXmh9+rz2+AxxHdu/nt/hOcC7zW/T//9KjID/akWdBVrQjeX+S65DcfPeu/o39XHd+AReOItU=
+  </data>
+ </layer>
+ <layer name="块层 2" width="16" height="12">
+  <data encoding="base64" compression="zlib">
+   eJztkrENwCAMwOgzlAcKa4bwV07jlJxSV3mAiLVIFslgZXG9Srmh5TAcq/Cwdxg5rIdryj4h+2a4J/7S4PfPfGGWrE8DTkdOA0ILMoK1A/ccx2nQaVD4pQVrB427n+svGGQ5uQ==
+  </data>
+ </layer>
+ <layer name="块层 4" width="16" height="12">
+  <data encoding="base64" compression="zlib">
+   eJxjYBieQJyRfnapMDI0kKGHakAEaL8kI8TPMBobgMmDsAgdw4cQQA6/OOL1UAUAAKKDA2U=
+  </data>
+ </layer>
+ <layer name="块层 3" width="16" height="12">
+  <data encoding="base64" compression="zlib">
+   eJxjYGBguAzEV4D4KhBfA+LrRPBBemDgERA/BuInQPwUiJ8RwX+EpP87A0MDA4ngOxKbjRGiX4CReP1sSGpFGUm3XxRJ/zcC7hfC4q5vSGxWMuxnRTKTWuFHCqAk/EDxhBx+lKYfSgAAiIMvGg==
+  </data>
+ </layer>
+ <layer name="块层 6" width="16" height="12">
+  <data encoding="base64" compression="zlib">
+   eJxjYBicgIOROubchWJs4C+J5qADHgrdKI2kn4sR4mcYjc3dMHkuqD4tIP2fSLfikuOj0A9b0Pj+JOo/TJn1FAMA9W4KgQ==
+  </data>
+ </layer>
+ <layer name="块层 16" width="16" height="12">
+  <data encoding="base64" compression="zlib">
+   eJybxcDAMBuI5wDxDgaGBcTilUA8C0KTDWZDzCIbzKFQP1DvgVH9lOkHxkECJfpnU6AfmPYOANNgApBO2EECngOxF6T3AAATeDsJ
+  </data>
+ </layer>
+ <layer name="SHELTER 9" width="16" height="12">
+  <data encoding="base64" compression="zlib">
+   eJxjYBgFo4AycBmIrwDxVSC+BsTXieBfHhCXYgIAY30LqQ==
+  </data>
+ </layer>
+ <layer name="SHELTER 8" width="16" height="12">
+  <data encoding="base64" compression="zlib">
+   eJxjYBgFowABHAbaAXQGAD8AAEE=
+  </data>
+ </layer>
+ <layer name="SHELTER 6" width="16" height="12">
+  <data encoding="base64" compression="zlib">
+   eJxjYBgFgw2cI1NuFJAOADZmAZ0=
+  </data>
+ </layer>
+ <layer name="SHELTER 5" width="16" height="12">
+  <data encoding="base64" compression="zlib">
+   eJxjYBgF1AC/gfgnEn0OipEBTP43fZ02CvAAAN+rCHQ=
+  </data>
+ </layer>
+ <layer name="SHELTER 3" width="16" height="12">
+  <data encoding="base64" compression="zlib">
+   eJxjYBgZ4NxAO2AUDEoAALJfAM8=
+  </data>
+ </layer>
+ <layer name="SHELTER 2" width="16" height="12">
+  <data encoding="base64" compression="zlib">
+   eJxjYBjc4BwUj4JRQAsAANJ1AZ0=
+  </data>
+ </layer>
+ <layer name="SHELTER 1" width="16" height="12">
+  <data encoding="base64" compression="zlib">
+   eJxjYKAN+Ekjc0fBKKAmAACYhgD6
+  </data>
+ </layer>
+ <objectgroup name="对象层 1" width="16" height="12">
+  <object name="PLAYER" type="PLAYER" x="64" y="96" width="32" height="32"/>
+  <object name="fire1" type="TRAP" x="128" y="224" width="32" height="64">
+   <properties>
+    <property name="trap_id" value="1"/>
+    <property name="trap_particle" value="trap_bluefire_up_2.plist"/>
+    <property name="trap_state" value="open"/>
+   </properties>
+  </object>
+  <object name="hongsrng2" x="288" y="256" width="32" height="32">
+   <properties>
+    <property name="lua_ai" value="monster_hongsrng_ai"/>
+    <property name="quality" value="hongsrng2.quality"/>
+   </properties>
+  </object>
+  <object name="hongsrng2" x="352" y="96" width="32" height="32">
+   <properties>
+    <property name="lua_ai" value="monster_hongsrng_ai"/>
+    <property name="quality" value="hongsrng2.quality"/>
+   </properties>
+  </object>
+  <object name="zi_dan_up1" type="TRAP" x="352" y="288" width="32" height="32">
+   <properties>
+    <property name="trap_ani" value="poison_tree.actor"/>
+    <property name="trap_delay" value="2"/>
+    <property name="trap_id" value="0"/>
+    <property name="trap_script" value="trap(&quot;zi_dan_up1&quot;):setAtkPower(target(&quot;PLAYER&quot;):getHP()*0.1);trap(&quot;zi_dan_up1&quot;):turnUp(); trap(&quot;zi_dan_up1&quot;):getAI():getActions():addObject( AIUseSkill:create(   SkillLua:create(&quot;skill_0002&quot;)  )  );"/>
+    <property name="trap_start_mode" value="2"/>
+    <property name="trap_state" value="open"/>
+    <property name="trap_turn" value="up"/>
+   </properties>
+  </object>
+  <object name="fire_control1" type="TRAP" x="416" y="224" width="32" height="32">
+   <properties>
+    <property name="trap_ani" value="switch.actor"/>
+    <property name="trap_floor" value="true"/>
+    <property name="trap_id" value="0"/>
+    <property name="trap_script" value="trap(&quot;fire_control1&quot;):setOpened( false ); trap(&quot;fire1&quot;):setVisit( false );"/>
+    <property name="trap_sound_id" value="2"/>
+    <property name="trap_start_mode" value="0"/>
+    <property name="trap_state" value="open"/>
+   </properties>
+  </object>
+  <object name="mp1" type="TRAP" x="416" y="64" width="32" height="32">
+   <properties>
+    <property name="trap_ani" value="mp.actor"/>
+    <property name="trap_floor" value="true"/>
+    <property name="trap_id" value="0"/>
+    <property name="trap_script" value="trap_moveto(&quot;PLAYER&quot;, &quot;mp1&quot;,target(&quot;mp2&quot;):getX(),target(&quot;mp2&quot;):getY() );"/>
+    <property name="trap_sound_id" value="1"/>
+    <property name="trap_start_mode" value="0"/>
+    <property name="trap_state" value="open"/>
+   </properties>
+  </object>
+  <object name="mp2" type="TRAP" x="352" y="224" width="32" height="32">
+   <properties>
+    <property name="trap_ani" value="mp.actor"/>
+    <property name="trap_floor" value="true"/>
+    <property name="trap_id" value="0"/>
+    <property name="trap_script" value="trap_moveto(&quot;PLAYER&quot;, &quot;mp2&quot;,target(&quot;mp1&quot;):getX(),target(&quot;mp1&quot;):getY() );"/>
+    <property name="trap_sound_id" value="1"/>
+    <property name="trap_start_mode" value="0"/>
+    <property name="trap_state" value="open"/>
+   </properties>
+  </object>
+  <object name="hongsrng2" x="64" y="224" width="32" height="32">
+   <properties>
+    <property name="lua_ai" value="monster_hongsrng_ai"/>
+    <property name="quality" value="hongsrng2.quality"/>
+   </properties>
+  </object>
+  <object name="bh1" type="TRAP" x="288" y="192" width="32" height="32">
+   <properties>
+    <property name="trap_ani" value="black_hole.actor"/>
+    <property name="trap_floor" value="true"/>
+    <property name="trap_id" value="2"/>
+    <property name="trap_sh" value="0.1"/>
+    <property name="trap_sw" value="0.1"/>
+   </properties>
+  </object>
+  <object name="xy1" type="TRAP" x="288" y="192" width="32" height="32">
+   <properties>
+    <property name="lua_ai" value="trap_mire_ai"/>
+    <property name="trap_sh" value="0.1"/>
+    <property name="trap_sw" value="0.1"/>
+   </properties>
+  </object>
+ </objectgroup>
+</map>

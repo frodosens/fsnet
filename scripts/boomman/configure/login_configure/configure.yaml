@@ -5,6 +5,6 @@ base_configure:
   addr_ip: 0.0.0.0
   addr_port: 50561
 pack_handle:
-  PACK_TYPE_VERSION: version
-  PACK_TYPE_AUTHORIZE: authorize
-  PACK_TYPE_REGIST: regist
+  PACK_TYPE_VERSION: cmd_version
+  PACK_TYPE_AUTHORIZE: cmd_authorize
+  PACK_TYPE_REGIST: cmd_regist

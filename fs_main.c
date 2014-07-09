@@ -25,19 +25,20 @@ int main(int argc,  char * argv[])
     pthread_t stdin_thread;
     pthread_create(&stdin_thread, NULL, recv_stdin, NULL);
     
+
+    
     int pathc = 1;
+    const char* main_rb = "main.rb";
     const char* paths[] = {
         "/Users/kay/Documents/xcode/FSNet/FSNet/scripts",
     };
-    
-    const char* main_rb = "main.rb";
     
     if(argc > 1){
         main_rb = argv[1];
     }
     
     fs_rb_loop(main_rb, pathc, paths);
-    
+        
     printf(":) \n");
     
     

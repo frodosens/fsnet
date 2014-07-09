@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map version="1.0" orientation="orthogonal" width="24" height="17" tilewidth="64" tileheight="64">
+ <properties>
+  <property name="DESTRY1" value="96"/>
+  <property name="DESTRY2" value="108"/>
+  <property name="DESTRY3" value="209"/>
+  <property name="DESTRY4" value="98"/>
+  <property name="DESTRY5" value="100"/>
+  <property name="DESTRY6" value="102"/>
+  <property name="DESTRY_COUNT" value="6"/>
+  <property name="EXP" value="0"/>
+  <property name="ITEM" value="0"/>
+  <property name="MONEY" value="0"/>
+ </properties>
+ <tileset firstgid="1" name="north_Village" tilewidth="64" tileheight="64">
+  <image source="north_Village-hd.png" width="1000" height="1500"/>
+ </tileset>
+ <layer name="PASS" width="24" height="17">
+  <data encoding="base64" compression="zlib">
+   eJy1VNEJw0AIdZRMkXny4SAdoZ0gkk6QTpRR8goRLqLWcpzwkLvT5ztQhYhWQAb5F/k2B/f/xD6vOqP4Vb/33sv/vVP9a8I3G7A5Rzkb0bQDlxd40Xh20Or03vnOTW8HuH+0mpju5ull8y7AHvB/ktwKv8aAR1BjAQ5oXoCjkuuZF6P/yPony61oaPvHy+vh1xg7v9X+iGJsfW9+bT9kvW9nwP4l2j+V2c10q0X7p7obfvH36K/ktPtnlD8BZTlcdA==
+  </data>
+ </layer>
+ <layer name="块层 1" width="24" height="17">
+  <data encoding="base64" compression="zlib">
+   eJxrYWBg2MTA0LCRgSGBmhhoJkMLFE8A4ok0oGHmzwfiBTSg6eV+Bhq4HxuglrvxAVq4mx7up9Td2Pwxmv5H3T8U3A8sqw8Ay2wFamKgmQ4gswEZb+/l
+  </data>
+ </layer>
+ <layer name="块层 4" width="24" height="17">
+  <data encoding="base64" compression="zlib">
+   eJxjYBgFIxF4AbE3FdWNglEwVACpaXo0D5APAJeaAlU=
+  </data>
+ </layer>
+ <layer name="块层 3" width="24" height="17">
+  <data encoding="base64" compression="zlib">
+   eJy9VMENgzAM9BS8uwR86KtDIJ59ZJCOwgAMxSg4Uizck00MCCxZRJzvYkeXzEQT3RQz0YtzsbDugI5Xy9rfJ/Qt/Kp+R//9N4D3nG/OkXMo38xJZS3/pU4HamEfycgajjVefNQ6AWZxdQ1zf3vayEf9tqLv9ZDDOjPkWmHViNaefzwuzuD1gP6JzC68aA94v2SuiD88XJ+zdX9znXh6oM37Y8Fa2rwvmNTjLN77ELm7Ed9f0dd73KVf4xT96YRcKPL7vwIRUT80
+  </data>
+ </layer>
+ <layer name="SHELTER 13" width="24" height="17">
+  <data encoding="base64" compression="zlib">
+   eJxjYBgFo2AUjIJRgA5CoXgUkA8A3DQAqw==
+  </data>
+ </layer>
+ <layer name="SHELTER 12" width="24" height="17">
+  <data encoding="base64" compression="zlib">
+   eJxjYBgFo2AUjIKhBUKR8CgYvAAAqMsBAA==
+  </data>
+ </layer>
+ <layer name="SHELTER 11" width="24" height="17">
+  <data encoding="base64" compression="zlib">
+   eJxjYBgFo2AUjALiQCgQ6+CRwwZ0CMiPguELAM32AVg=
+  </data>
+ </layer>
+ <layer name="SHELTER 10" width="24" height="17">
+  <data encoding="base64" compression="zlib">
+   eJxjYBgFo2AUDAfADqVDcWBkgEuenWEUjALqAQAZfwO2
+  </data>
+ </layer>
+ <layer name="SHELTER 9" width="24" height="17">
+  <data encoding="base64" compression="zlib">
+   eJxjYBgFo2AUDAQIpZKaUTAKBisAAOXjAKs=
+  </data>
+ </layer>
+ <layer name="SHELTER 8" width="24" height="17">
+  <data encoding="base64" compression="zlib">
+   eJxjYBgFo2AUYAOhVFIzCkbBSAUAJbIAqw==
+  </data>
+ </layer>
+ <layer name="SHELTER 7" width="24" height="17">
+  <data encoding="base64" compression="zlib">
+   eJxjYBgFo2DwA3YsYqFE6MOmBptZo2AUjALqAwCXbgC5
+  </data>
+ </layer>
+ <layer name="SHELTER 6" width="24" height="17">
+  <data encoding="base64" compression="zlib">
+   eJxjYBgFo4A2IJRKakbBKBgFQxMAAKUyAKs=
+  </data>
+ </layer>
+ <layer name="SHELTER 5" width="24" height="17">
+  <data encoding="base64" compression="zlib">
+   eJxjYBgFIwkYI7FDiVCPrAaot4G6rhkFo2AUDGcAALZaAZE=
+  </data>
+ </layer>
+ <layer name="SHELTER 4" width="24" height="17">
+  <data encoding="base64" compression="zlib">
+   eJxjYBgFgw2EYsGE5NHVjIJRMApGwUADACt/A6g=
+  </data>
+ </layer>
+ <layer name="SHELTER 3" width="24" height="17">
+  <data encoding="base64" compression="zlib">
+   eJxjYBgFxAB2NL4ODnWhRKhDN2sUjIJRMAqGIwAAurkAvA==
+  </data>
+ </layer>
+ <objectgroup name="对象层 1" width="48" height="34">
+  <object name="PLAYER1" type="PLAYER" x="64" y="64" width="64" height="64"/>
+  <object name="TEST1" type="PLAYER_AI" x="1248" y="96" width="64" height="64">
+   <properties>
+    <property name="quality" value="test_ai1.quality"/>
+   </properties>
+  </object>
+  <object name="TEST1" type="PLAYER_AI" x="832" y="512" width="64" height="64">
+   <properties>
+    <property name="quality" value="test_ai1.quality"/>
+   </properties>
+  </object>
+  <object name="TEST1" type="PLAYER_AI" x="448" y="960" width="64" height="64">
+   <properties>
+    <property name="quality" value="test_ai1.quality"/>
+   </properties>
+  </object>
+ </objectgroup>
+</map>

@@ -12,6 +12,9 @@ class Hero
 		attr_reader :bomb_num
 		attr_reader :bomb_range
 		attr_reader :bomb_reload
+		attr_reader :tmp_item_id_1
+		attr_reader :tmp_item_num_1
+		attr_reader :upgrade_cost_gold
 		def initialzie
 			@level = 0
 			@max_hp = 0
@@ -30,6 +33,10 @@ class Hero
 			@bomb_num = hash["strelevel_maxbombnum_mut"].to_i
 			@bomb_range = hash["strelevel_maxbombrange_mut"].to_i
 			@bomb_reload = hash["strelevel_bombreload_mut"].to_i
+			@tmp_item_id_1 = hash["tmp_item_id_1"].to_i
+			@tmp_item_num_1 = hash["tmp_item_num_1"].to_i
+			@upgrade_cost_gold = hash["upgrade_cost_gold"].to_i
+			
 		end
 	
 		def self.create_from_hash(hash)

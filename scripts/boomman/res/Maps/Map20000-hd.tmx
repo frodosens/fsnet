@@ -1,0 +1,798 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map version="1.0" orientation="orthogonal" width="18" height="14" tilewidth="64" tileheight="64">
+ <properties>
+  <property name="DESTRY1" value="57"/>
+  <property name="DESTRY2" value="58"/>
+  <property name="DESTRY_COUNT" value="2"/>
+  <property name="EXP" value=""/>
+  <property name="GOLD_REFRESH_TIME" value="5"/>
+  <property name="ITEM" value=""/>
+  <property name="LOSE_SCRIPT" value=""/>
+  <property name="MODE" value="GOLD"/>
+  <property name="MONEY" value=""/>
+  <property name="START_SCRIPT" value=""/>
+  <property name="TIME" value="20"/>
+  <property name="WIN_SCRIPT" value=""/>
+ </properties>
+ <tileset firstgid="1" name="destroyed_village" tilewidth="64" tileheight="64">
+  <image source="destroyed_village-hd.png" width="900" height="1344"/>
+ </tileset>
+ <layer name="PASS" width="18" height="14">
+  <data encoding="base64" compression="zlib">
+   eJyzZ2BgcABiOyC2p4DtC8R+QOxDIdsQiI0YyAcgvQZIbiMXgPQi+4tcMOov/GCk+Guw5C8Arl8dWw==
+  </data>
+ </layer>
+ <layer name="块层 2" width="18" height="14">
+  <data encoding="base64" compression="zlib">
+   eJztz8EJwlAQhOFXklqAWoBa0xQT48UomHgxCqYB01L+MPAOgRzWm+Dh480uvIEtUkpHlDiZSsvz3H6c+asCN3Y1GtxNjeV5bj/OtTv0ZtdhgSVWwdy5Qx9yjzU22AZz747cs8Meh2Ce9nx717Tnf9dv3HUmV7jgGnghsip36MGuxROvwAuR1bpDAy6jioE=
+  </data>
+ </layer>
+ <layer name="块层 3" width="18" height="14">
+  <data encoding="base64" compression="zlib">
+   eJxjYGBg4GRgaGAF0mxAzA7EHEBMiA+jgXrhQBxojjCQFgFiUSAWA2JCfBgtjmQOyD0MZABvLO4hxxwGItwTSaQ59HIPsQCbe4j1C73cQyxAdvdgcA8yEEdlUyVfUAMAAKG+DCQ=
+  </data>
+ </layer>
+ <layer name="块层 4" width="18" height="14">
+  <data encoding="base64" compression="zlib">
+   eJxjYBi+wJYCvfpUc8UooAdQoo2ZDTQwdkABAPFjATE=
+  </data>
+ </layer>
+ <layer name="SHELTER 11" width="18" height="14">
+  <data encoding="base64" compression="zlib">
+   eJxjYBgFo2AUYAOcDAwNrECaDYjZgZgDiAnxYTTnQDiYCAAAuuwA8A==
+  </data>
+ </layer>
+ <objectgroup name="对象层 1" width="36" height="28">
+  <object name="PLAYER" type="PLAYER" x="512" y="640" width="64" height="64"/>
+  <object name="jinbi(tong)" type="MONEY" x="448" y="320" width="64" height="64">
+   <properties>
+    <property name="reset_time" value="1"/>
+    <property name="value" value="10"/>
+   </properties>
+  </object>
+  <object name="jinbi(tong)" type="MONEY" x="512" y="320" width="64" height="64">
+   <properties>
+    <property name="reset_time" value="1"/>
+    <property name="value" value="10"/>
+   </properties>
+  </object>
+  <object name="jinbi(tong)" type="MONEY" x="576" y="320" width="64" height="64">
+   <properties>
+    <property name="reset_time" value="1"/>
+    <property name="value" value="10"/>
+   </properties>
+  </object>
+  <object name="jinbi(tong)" type="MONEY" x="704" y="320" width="64" height="64">
+   <properties>
+    <property name="reset_time" value="1"/>
+    <property name="value" value="10"/>
+   </properties>
+  </object>
+  <object name="jinbi(tong)" type="MONEY" x="640" y="320" width="64" height="64">
+   <properties>
+    <property name="reset_time" value="1"/>
+    <property name="value" value="10"/>
+   </properties>
+  </object>
+  <object name="jinbi(tong)" type="MONEY" x="768" y="320" width="64" height="64">
+   <properties>
+    <property name="reset_time" value="1"/>
+    <property name="value" value="10"/>
+   </properties>
+  </object>
+  <object name="jinbi(tong)" type="MONEY" x="512" y="384" width="64" height="64">
+   <properties>
+    <property name="reset_time" value="1"/>
+    <property name="value" value="10"/>
+   </properties>
+  </object>
+  <object name="jinbi(tong)" type="MONEY" x="448" y="384" width="64" height="64">
+   <properties>
+    <property name="reset_time" value="1"/>
+    <property name="value" value="10"/>
+   </properties>
+  </object>
+  <object name="jinbi(tong)" type="MONEY" x="576" y="384" width="64" height="64">
+   <properties>
+    <property name="reset_time" value="1"/>
+    <property name="value" value="10"/>
+   </properties>
+  </object>
+  <object name="jinbi(tong)" type="MONEY" x="704" y="384" width="64" height="64">
+   <properties>
+    <property name="reset_time" value="1"/>
+    <property name="value" value="10"/>
+   </properties>
+  </object>
+  <object name="jinbi(tong)" type="MONEY" x="640" y="384" width="64" height="64">
+   <properties>
+    <property name="reset_time" value="1"/>
+    <property name="value" value="10"/>
+   </properties>
+  </object>
+  <object name="jinbi(tong)" type="MONEY" x="768" y="384" width="64" height="64">
+   <properties>
+    <property name="reset_time" value="1"/>
+    <property name="value" value="10"/>
+   </properties>
+  </object>
+  <object name="jinbi(tong)" type="MONEY" x="512" y="256" width="64" height="64">
+   <properties>
+    <property name="reset_time" value="1"/>
+    <property name="value" value="10"/>
+   </properties>
+  </object>
+  <object name="jinbi(tong)" type="MONEY" x="448" y="256" width="64" height="64">
+   <properties>
+    <property name="reset_time" value="1"/>
+    <property name="value" value="10"/>
+   </properties>
+  </object>
+  <object name="jinbi(tong)" type="MONEY" x="576" y="256" width="64" height="64">
+   <properties>
+    <property name="reset_time" value="1"/>
+    <property name="value" value="10"/>
+   </properties>
+  </object>
+  <object name="jinbi(tong)" type="MONEY" x="512" y="576" width="64" height="64">
+   <properties>
+    <property name="reset_time" value="1"/>
+    <property name="value" value="10"/>
+   </properties>
+  </object>
+  <object name="jinbi(tong)" type="MONEY" x="512" y="512" width="64" height="64">
+   <properties>
+    <property name="reset_time" value="1"/>
+    <property name="value" value="10"/>
+   </properties>
+  </object>
+  <object name="jinbi(tong)" type="MONEY" x="448" y="576" width="64" height="64">
+   <properties>
+    <property name="reset_time" value="1"/>
+    <property name="value" value="10"/>
+   </properties>
+  </object>
+  <object name="jinbi(tong)" type="MONEY" x="448" y="512" width="64" height="64">
+   <properties>
+    <property name="reset_time" value="1"/>
+    <property name="value" value="10"/>
+   </properties>
+  </object>
+  <object name="jinbi(tong)" type="MONEY" x="640" y="576" width="64" height="64">
+   <properties>
+    <property name="reset_time" value="1"/>
+    <property name="value" value="10"/>
+   </properties>
+  </object>
+  <object name="jinbi(tong)" type="MONEY" x="576" y="576" width="64" height="64">
+   <properties>
+    <property name="reset_time" value="1"/>
+    <property name="value" value="10"/>
+   </properties>
+  </object>
+  <object name="jinbi(tong)" type="MONEY" x="576" y="512" width="64" height="64">
+   <properties>
+    <property name="reset_time" value="1"/>
+    <property name="value" value="10"/>
+   </properties>
+  </object>
+  <object name="jinbi(tong)" type="MONEY" x="576" y="448" width="64" height="64">
+   <properties>
+    <property name="reset_time" value="1"/>
+    <property name="value" value="10"/>
+   </properties>
+  </object>
+  <object name="jinbi(tong)" type="MONEY" x="768" y="512" width="64" height="64">
+   <properties>
+    <property name="reset_time" value="1"/>
+    <property name="value" value="10"/>
+   </properties>
+  </object>
+  <object name="jinbi(tong)" type="MONEY" x="704" y="512" width="64" height="64">
+   <properties>
+    <property name="reset_time" value="1"/>
+    <property name="value" value="10"/>
+   </properties>
+  </object>
+  <object name="jinbi(tong)" type="MONEY" x="768" y="576" width="64" height="64">
+   <properties>
+    <property name="reset_time" value="1"/>
+    <property name="value" value="10"/>
+   </properties>
+  </object>
+  <object name="jinbi(tong)" type="MONEY" x="448" y="448" width="64" height="64">
+   <properties>
+    <property name="reset_time" value="1"/>
+    <property name="value" value="10"/>
+   </properties>
+  </object>
+  <object name="jinbi(tong)" type="MONEY" x="704" y="576" width="64" height="64">
+   <properties>
+    <property name="reset_time" value="1"/>
+    <property name="value" value="10"/>
+   </properties>
+  </object>
+  <object name="jinbi(tong)" type="MONEY" x="512" y="448" width="64" height="64">
+   <properties>
+    <property name="reset_time" value="1"/>
+    <property name="value" value="10"/>
+   </properties>
+  </object>
+  <object name="jinbi(tong)" type="MONEY" x="640" y="512" width="64" height="64">
+   <properties>
+    <property name="reset_time" value="1"/>
+    <property name="value" value="10"/>
+   </properties>
+  </object>
+  <object name="jinbi(tong)" type="MONEY" x="768" y="256" width="64" height="64">
+   <properties>
+    <property name="reset_time" value="1"/>
+    <property name="value" value="10"/>
+   </properties>
+  </object>
+  <object name="jinbi(tong)" type="MONEY" x="704" y="256" width="64" height="64">
+   <properties>
+    <property name="reset_time" value="1"/>
+    <property name="value" value="10"/>
+   </properties>
+  </object>
+  <object name="jinbi(tong)" type="MONEY" x="640" y="256" width="64" height="64">
+   <properties>
+    <property name="reset_time" value="1"/>
+    <property name="value" value="10"/>
+   </properties>
+  </object>
+  <object name="jinbi(tong)" type="MONEY" x="768" y="448" width="64" height="64">
+   <properties>
+    <property name="reset_time" value="1"/>
+    <property name="value" value="10"/>
+   </properties>
+  </object>
+  <object name="jinbi(tong)" type="MONEY" x="704" y="448" width="64" height="64">
+   <properties>
+    <property name="reset_time" value="1"/>
+    <property name="value" value="10"/>
+   </properties>
+  </object>
+  <object name="jinbi(tong)" type="MONEY" x="640" y="448" width="64" height="64">
+   <properties>
+    <property name="reset_time" value="1"/>
+    <property name="value" value="10"/>
+   </properties>
+  </object>
+  <object name="jinbi(tong)" type="MONEY" x="384" y="448" width="64" height="64">
+   <properties>
+    <property name="reset_time" value="1"/>
+    <property name="value" value="10"/>
+   </properties>
+  </object>
+  <object name="jinbi(tong)" type="MONEY" x="384" y="384" width="64" height="64">
+   <properties>
+    <property name="reset_time" value="1"/>
+    <property name="value" value="10"/>
+   </properties>
+  </object>
+  <object name="jinbi(tong)" type="MONEY" x="384" y="320" width="64" height="64">
+   <properties>
+    <property name="reset_time" value="1"/>
+    <property name="value" value="10"/>
+   </properties>
+  </object>
+  <object name="jinbi(tong)" type="MONEY" x="384" y="512" width="64" height="64">
+   <properties>
+    <property name="reset_time" value="1"/>
+    <property name="value" value="10"/>
+   </properties>
+  </object>
+  <object name="jinbi(tong)" type="MONEY" x="384" y="256" width="64" height="64">
+   <properties>
+    <property name="reset_time" value="1"/>
+    <property name="value" value="10"/>
+   </properties>
+  </object>
+  <object name="jinbi(tong)" type="MONEY" x="384" y="576" width="64" height="64">
+   <properties>
+    <property name="reset_time" value="1"/>
+    <property name="value" value="10"/>
+   </properties>
+  </object>
+  <object name="jinbi(tong)" type="MONEY" x="320" y="448" width="64" height="64">
+   <properties>
+    <property name="reset_time" value="1"/>
+    <property name="value" value="10"/>
+   </properties>
+  </object>
+  <object name="jinbi(tong)" type="MONEY" x="320" y="384" width="64" height="64">
+   <properties>
+    <property name="reset_time" value="1"/>
+    <property name="value" value="10"/>
+   </properties>
+  </object>
+  <object name="jinbi(tong)" type="MONEY" x="320" y="320" width="64" height="64">
+   <properties>
+    <property name="reset_time" value="1"/>
+    <property name="value" value="10"/>
+   </properties>
+  </object>
+  <object name="jinbi(tong)" type="MONEY" x="320" y="512" width="64" height="64">
+   <properties>
+    <property name="reset_time" value="1"/>
+    <property name="value" value="10"/>
+   </properties>
+  </object>
+  <object name="jinbi(tong)" type="MONEY" x="320" y="256" width="64" height="64">
+   <properties>
+    <property name="reset_time" value="1"/>
+    <property name="value" value="10"/>
+   </properties>
+  </object>
+  <object name="jinbi(tong)" type="MONEY" x="320" y="576" width="64" height="64">
+   <properties>
+    <property name="reset_time" value="1"/>
+    <property name="value" value="10"/>
+   </properties>
+  </object>
+  <object name="jinbi(tong)" type="MONEY" x="768" y="192" width="64" height="64">
+   <properties>
+    <property name="reset_time" value="1"/>
+    <property name="value" value="10"/>
+   </properties>
+  </object>
+  <object name="jinbi(tong)" type="MONEY" x="576" y="192" width="64" height="64">
+   <properties>
+    <property name="reset_time" value="1"/>
+    <property name="value" value="10"/>
+   </properties>
+  </object>
+  <object name="jinbi(tong)" type="MONEY" x="384" y="192" width="64" height="64">
+   <properties>
+    <property name="reset_time" value="1"/>
+    <property name="value" value="10"/>
+   </properties>
+  </object>
+  <object name="jinbi(tong)" type="MONEY" x="640" y="192" width="64" height="64">
+   <properties>
+    <property name="reset_time" value="1"/>
+    <property name="value" value="10"/>
+   </properties>
+  </object>
+  <object name="jinbi(tong)" type="MONEY" x="320" y="192" width="64" height="64">
+   <properties>
+    <property name="reset_time" value="1"/>
+    <property name="value" value="10"/>
+   </properties>
+  </object>
+  <object name="jinbi(tong)" type="MONEY" x="448" y="192" width="64" height="64">
+   <properties>
+    <property name="reset_time" value="1"/>
+    <property name="value" value="10"/>
+   </properties>
+  </object>
+  <object name="jinbi(tong)" type="MONEY" x="704" y="192" width="64" height="64">
+   <properties>
+    <property name="reset_time" value="1"/>
+    <property name="value" value="10"/>
+   </properties>
+  </object>
+  <object name="jinbi(tong)" type="MONEY" x="512" y="192" width="64" height="64">
+   <properties>
+    <property name="reset_time" value="1"/>
+    <property name="value" value="10"/>
+   </properties>
+  </object>
+  <object name="jinbi(tong)" type="MONEY" x="192" y="512" width="64" height="64">
+   <properties>
+    <property name="reset_time" value="1"/>
+    <property name="value" value="10"/>
+   </properties>
+  </object>
+  <object name="jinbi(tong)" type="MONEY" x="256" y="576" width="64" height="64">
+   <properties>
+    <property name="reset_time" value="1"/>
+    <property name="value" value="10"/>
+   </properties>
+  </object>
+  <object name="jinbi(tong)" type="MONEY" x="256" y="384" width="64" height="64">
+   <properties>
+    <property name="reset_time" value="1"/>
+    <property name="value" value="10"/>
+   </properties>
+  </object>
+  <object name="jinbi(tong)" type="MONEY" x="256" y="320" width="64" height="64">
+   <properties>
+    <property name="reset_time" value="1"/>
+    <property name="value" value="10"/>
+   </properties>
+  </object>
+  <object name="jinbi(tong)" type="MONEY" x="192" y="384" width="64" height="64">
+   <properties>
+    <property name="reset_time" value="1"/>
+    <property name="value" value="10"/>
+   </properties>
+  </object>
+  <object name="jinbi(tong)" type="MONEY" x="256" y="192" width="64" height="64">
+   <properties>
+    <property name="reset_time" value="1"/>
+    <property name="value" value="10"/>
+   </properties>
+  </object>
+  <object name="jinbi(tong)" type="MONEY" x="192" y="320" width="64" height="64">
+   <properties>
+    <property name="reset_time" value="1"/>
+    <property name="value" value="10"/>
+   </properties>
+  </object>
+  <object name="jinbi(tong)" type="MONEY" x="256" y="256" width="64" height="64">
+   <properties>
+    <property name="reset_time" value="1"/>
+    <property name="value" value="10"/>
+   </properties>
+  </object>
+  <object name="jinbi(tong)" type="MONEY" x="192" y="192" width="64" height="64">
+   <properties>
+    <property name="reset_time" value="1"/>
+    <property name="value" value="10"/>
+   </properties>
+  </object>
+  <object name="jinbi(tong)" type="MONEY" x="192" y="256" width="64" height="64">
+   <properties>
+    <property name="reset_time" value="1"/>
+    <property name="value" value="10"/>
+   </properties>
+  </object>
+  <object name="jinbi(tong)" type="MONEY" x="256" y="448" width="64" height="64">
+   <properties>
+    <property name="reset_time" value="1"/>
+    <property name="value" value="10"/>
+   </properties>
+  </object>
+  <object name="jinbi(tong)" type="MONEY" x="192" y="576" width="64" height="64">
+   <properties>
+    <property name="reset_time" value="1"/>
+    <property name="value" value="10"/>
+   </properties>
+  </object>
+  <object name="jinbi(tong)" type="MONEY" x="192" y="448" width="64" height="64">
+   <properties>
+    <property name="reset_time" value="1"/>
+    <property name="value" value="10"/>
+   </properties>
+  </object>
+  <object name="jinbi(tong)" type="MONEY" x="256" y="512" width="64" height="64">
+   <properties>
+    <property name="reset_time" value="1"/>
+    <property name="value" value="10"/>
+   </properties>
+  </object>
+  <object name="jinbi(tong)" type="MONEY" x="832" y="512" width="64" height="64">
+   <properties>
+    <property name="reset_time" value="1"/>
+    <property name="value" value="10"/>
+   </properties>
+  </object>
+  <object name="jinbi(tong)" type="MONEY" x="896" y="576" width="64" height="64">
+   <properties>
+    <property name="reset_time" value="1"/>
+    <property name="value" value="10"/>
+   </properties>
+  </object>
+  <object name="jinbi(tong)" type="MONEY" x="896" y="384" width="64" height="64">
+   <properties>
+    <property name="reset_time" value="1"/>
+    <property name="value" value="10"/>
+   </properties>
+  </object>
+  <object name="jinbi(tong)" type="MONEY" x="896" y="320" width="64" height="64">
+   <properties>
+    <property name="reset_time" value="1"/>
+    <property name="value" value="10"/>
+   </properties>
+  </object>
+  <object name="jinbi(tong)" type="MONEY" x="832" y="384" width="64" height="64">
+   <properties>
+    <property name="reset_time" value="1"/>
+    <property name="value" value="10"/>
+   </properties>
+  </object>
+  <object name="jinbi(tong)" type="MONEY" x="896" y="192" width="64" height="64">
+   <properties>
+    <property name="reset_time" value="1"/>
+    <property name="value" value="10"/>
+   </properties>
+  </object>
+  <object name="jinbi(tong)" type="MONEY" x="832" y="320" width="64" height="64">
+   <properties>
+    <property name="reset_time" value="1"/>
+    <property name="value" value="10"/>
+   </properties>
+  </object>
+  <object name="jinbi(tong)" type="MONEY" x="896" y="256" width="64" height="64">
+   <properties>
+    <property name="reset_time" value="1"/>
+    <property name="value" value="10"/>
+   </properties>
+  </object>
+  <object name="jinbi(tong)" type="MONEY" x="832" y="192" width="64" height="64">
+   <properties>
+    <property name="reset_time" value="1"/>
+    <property name="value" value="10"/>
+   </properties>
+  </object>
+  <object name="jinbi(tong)" type="MONEY" x="832" y="256" width="64" height="64">
+   <properties>
+    <property name="reset_time" value="1"/>
+    <property name="value" value="10"/>
+   </properties>
+  </object>
+  <object name="jinbi(tong)" type="MONEY" x="896" y="448" width="64" height="64">
+   <properties>
+    <property name="reset_time" value="1"/>
+    <property name="value" value="10"/>
+   </properties>
+  </object>
+  <object name="jinbi(tong)" type="MONEY" x="832" y="576" width="64" height="64">
+   <properties>
+    <property name="reset_time" value="1"/>
+    <property name="value" value="10"/>
+   </properties>
+  </object>
+  <object name="jinbi(tong)" type="MONEY" x="832" y="448" width="64" height="64">
+   <properties>
+    <property name="reset_time" value="1"/>
+    <property name="value" value="10"/>
+   </properties>
+  </object>
+  <object name="jinbi(tong)" type="MONEY" x="896" y="512" width="64" height="64">
+   <properties>
+    <property name="reset_time" value="1"/>
+    <property name="value" value="10"/>
+   </properties>
+  </object>
+  <object name="jinbi(tong)" type="MONEY" x="832" y="128" width="64" height="64">
+   <properties>
+    <property name="reset_time" value="1"/>
+    <property name="value" value="10"/>
+   </properties>
+  </object>
+  <object name="jinbi(tong)" type="MONEY" x="448" y="128" width="64" height="64">
+   <properties>
+    <property name="reset_time" value="1"/>
+    <property name="value" value="10"/>
+   </properties>
+  </object>
+  <object name="jinbi(tong)" type="MONEY" x="768" y="128" width="64" height="64">
+   <properties>
+    <property name="reset_time" value="1"/>
+    <property name="value" value="10"/>
+   </properties>
+  </object>
+  <object name="jinbi(tong)" type="MONEY" x="512" y="128" width="64" height="64">
+   <properties>
+    <property name="reset_time" value="1"/>
+    <property name="value" value="10"/>
+   </properties>
+  </object>
+  <object name="jinbi(tong)" type="MONEY" x="896" y="128" width="64" height="64">
+   <properties>
+    <property name="reset_time" value="1"/>
+    <property name="value" value="10"/>
+   </properties>
+  </object>
+  <object name="jinbi(tong)" type="MONEY" x="384" y="128" width="64" height="64">
+   <properties>
+    <property name="reset_time" value="1"/>
+    <property name="value" value="10"/>
+   </properties>
+  </object>
+  <object name="jinbi(tong)" type="MONEY" x="256" y="128" width="64" height="64">
+   <properties>
+    <property name="reset_time" value="1"/>
+    <property name="value" value="10"/>
+   </properties>
+  </object>
+  <object name="jinbi(tong)" type="MONEY" x="320" y="128" width="64" height="64">
+   <properties>
+    <property name="reset_time" value="1"/>
+    <property name="value" value="10"/>
+   </properties>
+  </object>
+  <object name="jinbi(tong)" type="MONEY" x="704" y="128" width="64" height="64">
+   <properties>
+    <property name="reset_time" value="1"/>
+    <property name="value" value="10"/>
+   </properties>
+  </object>
+  <object name="jinbi(tong)" type="MONEY" x="576" y="128" width="64" height="64">
+   <properties>
+    <property name="reset_time" value="1"/>
+    <property name="value" value="10"/>
+   </properties>
+  </object>
+  <object name="jinbi(tong)" type="MONEY" x="192" y="128" width="64" height="64">
+   <properties>
+    <property name="reset_time" value="1"/>
+    <property name="value" value="10"/>
+   </properties>
+  </object>
+  <object name="jinbi(tong)" type="MONEY" x="640" y="128" width="64" height="64">
+   <properties>
+    <property name="reset_time" value="1"/>
+    <property name="value" value="10"/>
+   </properties>
+  </object>
+  <object name="jinbi(tong)" type="MONEY" x="128" y="576" width="64" height="64">
+   <properties>
+    <property name="reset_time" value="1"/>
+    <property name="value" value="10"/>
+   </properties>
+  </object>
+  <object name="jinbi(tong)" type="MONEY" x="128" y="384" width="64" height="64">
+   <properties>
+    <property name="reset_time" value="1"/>
+    <property name="value" value="10"/>
+   </properties>
+  </object>
+  <object name="jinbi(tong)" type="MONEY" x="128" y="128" width="64" height="64">
+   <properties>
+    <property name="reset_time" value="1"/>
+    <property name="value" value="10"/>
+   </properties>
+  </object>
+  <object name="jinbi(tong)" type="MONEY" x="128" y="448" width="64" height="64">
+   <properties>
+    <property name="reset_time" value="1"/>
+    <property name="value" value="10"/>
+   </properties>
+  </object>
+  <object name="jinbi(tong)" type="MONEY" x="128" y="512" width="64" height="64">
+   <properties>
+    <property name="reset_time" value="1"/>
+    <property name="value" value="10"/>
+   </properties>
+  </object>
+  <object name="jinbi(tong)" type="MONEY" x="128" y="320" width="64" height="64">
+   <properties>
+    <property name="reset_time" value="1"/>
+    <property name="value" value="10"/>
+   </properties>
+  </object>
+  <object name="jinbi(tong)" type="MONEY" x="128" y="256" width="64" height="64">
+   <properties>
+    <property name="reset_time" value="1"/>
+    <property name="value" value="10"/>
+   </properties>
+  </object>
+  <object name="jinbi(tong)" type="MONEY" x="128" y="192" width="64" height="64">
+   <properties>
+    <property name="reset_time" value="1"/>
+    <property name="value" value="10"/>
+   </properties>
+  </object>
+  <object name="jinbi(tong)" type="MONEY" x="960" y="576" width="64" height="64">
+   <properties>
+    <property name="reset_time" value="1"/>
+    <property name="value" value="10"/>
+   </properties>
+  </object>
+  <object name="jinbi(tong)" type="MONEY" x="960" y="384" width="64" height="64">
+   <properties>
+    <property name="reset_time" value="1"/>
+    <property name="value" value="10"/>
+   </properties>
+  </object>
+  <object name="jinbi(tong)" type="MONEY" x="960" y="128" width="64" height="64">
+   <properties>
+    <property name="reset_time" value="1"/>
+    <property name="value" value="10"/>
+   </properties>
+  </object>
+  <object name="jinbi(tong)" type="MONEY" x="960" y="448" width="64" height="64">
+   <properties>
+    <property name="reset_time" value="1"/>
+    <property name="value" value="10"/>
+   </properties>
+  </object>
+  <object name="jinbi(tong)" type="MONEY" x="960" y="512" width="64" height="64">
+   <properties>
+    <property name="reset_time" value="1"/>
+    <property name="value" value="10"/>
+   </properties>
+  </object>
+  <object name="jinbi(tong)" type="MONEY" x="960" y="320" width="64" height="64">
+   <properties>
+    <property name="reset_time" value="1"/>
+    <property name="value" value="10"/>
+   </properties>
+  </object>
+  <object name="jinbi(tong)" type="MONEY" x="960" y="256" width="64" height="64">
+   <properties>
+    <property name="reset_time" value="1"/>
+    <property name="value" value="10"/>
+   </properties>
+  </object>
+  <object name="jinbi(tong)" type="MONEY" x="960" y="192" width="64" height="64">
+   <properties>
+    <property name="reset_time" value="1"/>
+    <property name="value" value="10"/>
+   </properties>
+  </object>
+  <object name="jinbi(tong)" type="MONEY" x="192" y="640" width="64" height="64">
+   <properties>
+    <property name="reset_time" value="1"/>
+    <property name="value" value="10"/>
+   </properties>
+  </object>
+  <object name="jinbi(tong)" type="MONEY" x="448" y="640" width="64" height="64">
+   <properties>
+    <property name="reset_time" value="1"/>
+    <property name="value" value="10"/>
+   </properties>
+  </object>
+  <object name="jinbi(tong)" type="MONEY" x="384" y="640" width="64" height="64">
+   <properties>
+    <property name="reset_time" value="1"/>
+    <property name="value" value="10"/>
+   </properties>
+  </object>
+  <object name="jinbi(tong)" type="MONEY" x="256" y="640" width="64" height="64">
+   <properties>
+    <property name="reset_time" value="1"/>
+    <property name="value" value="10"/>
+   </properties>
+  </object>
+  <object name="jinbi(tong)" type="MONEY" x="128" y="640" width="64" height="64">
+   <properties>
+    <property name="reset_time" value="1"/>
+    <property name="value" value="10"/>
+   </properties>
+  </object>
+  <object name="jinbi(tong)" type="MONEY" x="320" y="640" width="64" height="64">
+   <properties>
+    <property name="reset_time" value="1"/>
+    <property name="value" value="10"/>
+   </properties>
+  </object>
+  <object name="jinbi(tong)" type="MONEY" x="704" y="640" width="64" height="64">
+   <properties>
+    <property name="reset_time" value="1"/>
+    <property name="value" value="10"/>
+   </properties>
+  </object>
+  <object name="jinbi(tong)" type="MONEY" x="832" y="640" width="64" height="64">
+   <properties>
+    <property name="reset_time" value="1"/>
+    <property name="value" value="10"/>
+   </properties>
+  </object>
+  <object name="jinbi(tong)" type="MONEY" x="576" y="640" width="64" height="64">
+   <properties>
+    <property name="reset_time" value="1"/>
+    <property name="value" value="10"/>
+   </properties>
+  </object>
+  <object name="jinbi(tong)" type="MONEY" x="960" y="640" width="64" height="64">
+   <properties>
+    <property name="reset_time" value="1"/>
+    <property name="value" value="10"/>
+   </properties>
+  </object>
+  <object name="jinbi(tong)" type="MONEY" x="768" y="640" width="64" height="64">
+   <properties>
+    <property name="reset_time" value="1"/>
+    <property name="value" value="10"/>
+   </properties>
+  </object>
+  <object name="jinbi(tong)" type="MONEY" x="896" y="640" width="64" height="64">
+   <properties>
+    <property name="reset_time" value="1"/>
+    <property name="value" value="10"/>
+   </properties>
+  </object>
+  <object name="jinbi(tong)" type="MONEY" x="640" y="640" width="64" height="64">
+   <properties>
+    <property name="reset_time" value="1"/>
+    <property name="value" value="10"/>
+   </properties>
+  </object>
+ </objectgroup>
+</map>

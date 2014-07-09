@@ -61,7 +61,6 @@ fs_loop_queue_pop( struct fs_loop_queue* que ){
     _pos_add(que->tail, 1, que->max_len);
     
     return item;
-    
 }
 
 fs_bool

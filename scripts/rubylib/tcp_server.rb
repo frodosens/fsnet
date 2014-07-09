@@ -73,7 +73,7 @@ class GameTCPServer < FSServer
   #
   #_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/
   def on_connect_node(node_id)
-      p "#{self.name} new connect node_id:#{node_id}, say'it hello ";
+      # p "#{self.name} new connect node_id:#{node_id}, say'it hello ";
       @clients[node_id] = TCPClient.new(self, node_id);
   end
   
@@ -84,8 +84,8 @@ class GameTCPServer < FSServer
   #
   #_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/
   def on_shudown_node(node_id)
-      @clients[node_id] = nil;
-      p "#{self.name} shudown connect #{node_id}";
+			@clients.delete(node_id)
+      # p "#{self.name} shudown connect #{node_id}";
   end
  
   
@@ -96,10 +96,12 @@ class GameTCPServer < FSServer
 	#     @pack    要发送的包
   #_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/n_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/
   def send_pack_to(node_id, pack)
-      if(@clients[node_id].nil?)
-				raise("send_pack_to target_id#{node_id} is NULL  ");
-			end
+		if(@clients[node_id] != nil)
 			@clients[node_id].send_pack(pack);
+			return true
+		end
+		raise("#{self.name} send_pack_to target_id(#{node_id}) is NULL clients id => #{@clients.keys}")
+		return false
   end
 
 
