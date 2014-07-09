@@ -1,6 +1,0 @@
-rank_section: 30
-match_interval: 5
-hero_battle_count: 5
-default_map_id: 1
-default_monster:
-  - 10001

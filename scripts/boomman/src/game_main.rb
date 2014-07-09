@@ -13,18 +13,7 @@ class GameBoomman
 		  
 		@logger_file = Logger.new($game_configure["log_name"])
 		
-		info "=== GAME SERVER START ==="
-		info "=== LOAD RES ==="
-		$game_res      = GameManagerResoucre.new()
-		
-		relose_resource();
-		
-		info "=== CONNECT DB ==="
-		$game_database = GameDatabase.new();
-		info "=== INIT USER MGR ==="
-		$game_users    = GameUserManager.new();
-		info "=== INIT PLAYER MGR ==="
-		$game_players  = GamePlayerManager.new();
+
 		
 		$db_server = DBServer.new("configure/db_configure/configure.yaml");
 		$db_server.start();
@@ -34,8 +23,6 @@ class GameBoomman
 		$run_server.start();
 		$gate_server = GateServer.new("configure/gate_configure/configure.yaml");
 		$gate_server.start();
-		
-		
 		$pay_server = PayServer.new("pay_server")
 		$pay_server.start_server("127.0.0.1", 50566)
 		
