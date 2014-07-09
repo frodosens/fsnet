@@ -145,6 +145,7 @@ fs_node_close(struct fs_node* node){
     if(fs_node_is_from_listener(node)){
         fs_server_on_node_shudown(node->server, node->node_id);
     }
+
 }
 
 

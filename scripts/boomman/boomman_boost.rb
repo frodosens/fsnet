@@ -26,7 +26,7 @@ $LOAD_PATH.unshift(File.dirname(__FILE__) + "/src")
 # _/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/
 
 
-
+# require stdlib
 require 'enc/encdb'
 require 'rubygems'
 require "xml"  
@@ -34,11 +34,13 @@ require 'csv'
 require 'yaml'
 require 'mysql2.rb'
 require 'redis.rb'
+
+
 require 'db_server.rb'
 require "gate_server.rb"
 require "run_server.rb"
 require "login_server.rb"
-require "pay_server.rb"
+require "util_server.rb"
 
 Dir[File.dirname(__FILE__) + '/src/manager/*.rb'].each {|file| require file } 
 Dir[File.dirname(__FILE__) + '/src/cmds/*.rb'].each {|file| require file }

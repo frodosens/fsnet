@@ -16,6 +16,7 @@ void* fs_malloc(size_t);
 void fs_free(void*);
 void* fs_realloc(void*, size_t);
 void fs_zero(void*, size_t);
+void* fs_calloc(size_t, size_t);
 
 void fs_assert_f(fs_bool cond);
 

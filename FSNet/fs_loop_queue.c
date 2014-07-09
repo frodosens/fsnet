@@ -79,6 +79,12 @@ fs_loop_queue_empty( struct fs_loop_queue* que ){
 void
 fs_loop_queue_free( struct fs_loop_queue* que){
     
+    void* data = NULL;
+    
+    while ( (data = fs_loop_queue_pop(que)) ) {
+        fs_free(data);
+    }
+    
     fs_free(que->que);
     fs_free(que);
     

@@ -47,11 +47,11 @@ void    fs_server_set_topack_fn(struct fs_server*, fn_fs_pack_to_data);
 void    fs_server_set_on_server_start(struct fs_server*, fn_fs_server_on_start);
 void    fs_server_set_node_connect(struct fs_server*, fn_fs_node_connect);
 void    fs_server_set_node_shudwon(struct fs_server*, fn_fs_node_shudown);
+void    fs_server_clean_callback(struct fs_server*);
 void         fs_server_set_script_id( struct fs_server* , fs_script_id _id );
 fs_script_id fs_server_get_script_id( struct fs_server* );
 enum fs_server_type fs_server_get_type( struct fs_server* );
 
-void    fs_server_add_event( struct fs_server*, struct event*);
 
 void    fs_server_need_work( struct fs_server* );
 

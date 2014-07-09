@@ -194,8 +194,8 @@ static void _free_map_key(listnode_t* node)
         old = node;
         node = node->next;
         
-        free(old->data);
-        free (old);
+        fs_free(old->data);
+        fs_free (old);
     }
 }
 
@@ -209,7 +209,7 @@ static void _free_map_value(listnode_t* node, pfcb_hmap_value_free pfunc)
         
         if (pfunc)
             (*pfunc)(old->data);
-        free (old);
+        fs_free (old);
     }
 }
 
@@ -220,10 +220,10 @@ static void _free_map_value(listnode_t* node, pfcb_hmap_value_free pfunc)
 void
 hmap_create(hash_map *hmap, int size)
 {
-    (*hmap) = (hash_map_t*) malloc(sizeof(hash_map_t));
+    (*hmap) = (hash_map_t*) fs_malloc(sizeof(hash_map_t));
     (*hmap)->size = size;
-    (*hmap)->key = (listnode_t**) calloc(size, sizeof(listnode_t*));
-    (*hmap)->value = (listnode_t**) calloc(size, sizeof(listnode_t*));
+    (*hmap)->key = (listnode_t**) fs_calloc(size, sizeof(listnode_t*));
+    (*hmap)->value = (listnode_t**) fs_calloc(size, sizeof(listnode_t*));
 }
 
 /* Destroy after use */
@@ -236,9 +236,9 @@ hmap_destroy(hash_map hmap, pfcb_hmap_value_free pfunc)
         _free_map_value(hmap->value[i], pfunc);
     }
     
-    free(hmap->key);
-    free(hmap->value);
-    free(hmap);
+    fs_free(hmap->key);
+    fs_free(hmap->value);
+    fs_free(hmap);
 }
 
 
@@ -252,7 +252,7 @@ hmap_insert(hash_map hmap, const char* key, int key_len, void* value)
     assert (key);
     
     if (key_len<0) key_len = (int) strlen (key);
-    s = (char*) malloc (key_len+1);
+    s = (char*) fs_malloc (key_len+1);
     assert(s);
     
 #pragma warning(push)    /* C4996 */

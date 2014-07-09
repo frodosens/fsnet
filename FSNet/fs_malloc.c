@@ -70,6 +70,20 @@ fs_realloc(void* ptr, size_t len) {
 }
 
 
+void* fs_calloc(size_t n, size_t size){
+#ifdef JEMALLOC_HAVE_ATTR
+    return je_calloc(n, size);
+#else
+    
+#ifdef __APPLE__
+    return calloc(n, size);
+#else
+    return ruby_xcalloc(n, size);
+#endif
+    
+#endif
+}
+
 void
 fs_zero(void* data, size_t len){
     memset(data, 0, len);

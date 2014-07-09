@@ -59,11 +59,13 @@ struct fs_server{
     struct event_base* event;
     struct event*      signal_event;
     
+    struct evconnlistener* listener;
+    struct evhttp* single_evhttp;
+    
     struct fs_node_addr addr;
     struct fs_loop_queue* loopque;
     
     
-    struct fs_loop_queue* event_loopque;
     
     hash_map node_map;
     
@@ -108,16 +110,8 @@ fs_server_rm_node(struct fs_server* server, fs_id node_id){
 static void
 libevent_cb_signal( evutil_socket_t fd, short e, void* data ){
     
-    struct fs_server* server = (struct fs_server*)data;
-    struct event* event = NULL;
-    event = NULL;
-    do{
-        event = fs_loop_queue_pop(server->event_loopque);
-        if(event && event != (void*)1){
-            event_add(event, NULL);
-        }
-    }while( event != NULL );
-    server->need_pop_event = fs_true;
+//    struct fs_server* server = (struct fs_server*)data;
+//    struct event* event = NULL;
     
 }
 
@@ -265,12 +259,13 @@ fs_server_io_thread(void* data){
             char msg[128];
             snprintf(msg, 128, "listener %s:%d fail", server->addr.addr, server->addr.port);
             fs_assert(listener != NULL, msg);
+            server->listener = listener;
         }
             break;
         case t_fs_server_http:{
             single_evhttp = evhttp_new(single_event);
             fs_assert(single_evhttp != NULL, "");
-            
+            server->single_evhttp = single_evhttp;
             evhttp_set_gencb(single_evhttp, fs_server_http_request, server);
             evhttp_bind_socket_with_handle(single_evhttp, server->addr.addr, server->addr.port);
         }
@@ -297,17 +292,7 @@ fs_server_io_thread(void* data){
     pthread_setname_np(server->name);
 #endif
     
-    struct event* event = NULL;
     while (server->running) {
-       
-        event = NULL;
-        do{
-            event = fs_loop_queue_pop(server->event_loopque);
-            if(event && event != (void*)1){
-                event_add(event, NULL);
-            }
-        }while( event != NULL );
-        server->need_pop_event = fs_true;
         
         event_base_loop(single_event, EVLOOP_ONCE);
         
@@ -324,7 +309,6 @@ fs_create_server(const char* server_name ){
     fs_zero(ret, sizeof(*ret));
     strncpy(ret->name, server_name, 64);
     ret->loopque = fs_create_loop_queue(LOOP_QUE_LEN);
-    ret->event_loopque = fs_create_loop_queue(512);
     ret->need_pop_event = fs_true;
     hmap_create (&ret->node_map, HASHMAP_SIZE);
     
@@ -357,14 +341,17 @@ fs_server_start(struct fs_server* server, struct fs_node_addr* addr, enum fs_ser
 
 void
 __hahs_destroy_fn(void* data){
-    struct fs_node* node = (struct fs_node*)data;
-    fs_node_shudown(node);
-    
+    if(data){
+        struct fs_node* node = (struct fs_node*)data;
+        fs_node_shudown(node);
+    }
 }
 
 void
 fs_server_stop(struct fs_server* server, int32_t what){
-    
+    if(!server->running){
+        return;
+    }
     server->running = fs_false;
     
     struct fs_pack* pack = NULL;
@@ -375,12 +362,32 @@ fs_server_stop(struct fs_server* server, int32_t what){
         }
     }while (pack != NULL);
     
-    hmap_destroy(server->node_map, __hahs_destroy_fn);
     
-    event_base_free(server->event);
+    if(server->listener){
+        evconnlistener_free(server->listener);
+        server->listener = NULL;
+    }
+    
+    if(server->single_evhttp){
+        evhttp_free(server->single_evhttp);
+        server->single_evhttp = NULL;
+    }
+    
+    if(server->node_map){
+        hmap_destroy(server->node_map, __hahs_destroy_fn);
+        server->node_map = NULL;
+    }
+    
+    fs_server_clean_callback(server);
     
     pthread_cond_signal(&server->pthread_work_cond);
     
+    pthread_cond_destroy(&server->pthread_work_cond);
+    pthread_mutex_destroy(&server->pthread_work_mutex);
+    
+    event_base_free(server->event);
+    
+    fs_loop_queue_free(server->loopque);
 }
 
 
@@ -471,6 +478,15 @@ fs_server_set_node_shudwon(struct fs_server* server, fn_fs_node_shudown fn){
 }
 
 void
+fs_server_clean_callback(struct fs_server* server){
+    fs_server_set_handle_pack_fn(server, NULL);
+    fs_server_set_on_server_start(server, NULL);
+    fs_server_set_node_connect(server, NULL);
+    fs_server_set_node_shudwon(server, NULL);
+    fs_server_set_parsepack_fn(server, NULL);
+    fs_server_set_topack_fn(server, NULL);
+}
+void
 fs_server_set_script_id( struct fs_server* server, fs_script_id _id ){
     server->script_id = _id;
 }
@@ -485,18 +501,6 @@ fs_server_get_type( struct fs_server* server){
     return server->server_type;
 }
 
-void
-fs_server_add_event( struct fs_server* server, struct event* event){
-    
-    if(pthread_self() != server->pthread_io_id) {
-        fs_loop_queue_push(server->event_loopque, event);
-        event_base_loopbreak(server->event);
-        pthread_kill(server->pthread_io_id, SIGINT);
-    }else{
-        event_add(event, NULL);
-    }
-    
-}
 
 void
 fs_server_need_work( struct fs_server* server){
@@ -543,13 +547,20 @@ fs_server_send_pack_node(struct fs_server* server, fs_id node_id, struct fs_pack
 fs_bool
 fs_server_send_pack_node_by_node(struct fs_server* server, struct fs_node* node, struct fs_pack* pack){
     
-    BYTE* data = NULL;
-    size_t len = server->_fn_pack_to_data(server, pack, &data);
-    if(node != NULL){
-        fs_assert(len != 0, "");
-        fs_node_send_data(node, data, len);
-        fs_free(data);
-        return fs_true;
+    
+    if(server->_fn_pack_to_data){
+        
+        
+        BYTE* data = NULL;
+        size_t len = server->_fn_pack_to_data(server, pack, &data);
+        if(node != NULL){
+            fs_assert(len != 0, "");
+            fs_node_send_data(node, data, len);
+            fs_free(data);
+            return fs_true;
+        }
+        
+        
     }
     
     return fs_false;

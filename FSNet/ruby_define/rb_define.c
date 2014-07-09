@@ -440,9 +440,10 @@ fs_ruby_on_node_shudown( struct fs_server* server, fs_id node_id){
 
 
 void
-wrap_Server_free (struct fs_server* ptr)
+wrap_Server_free (struct fs_server* server)
 {
-    ruby_xfree(ptr);
+    fs_server_set_script_id(server, Qnil);
+    fs_free(server);
 }
 
 VALUE
