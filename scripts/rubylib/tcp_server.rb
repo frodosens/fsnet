@@ -9,6 +9,35 @@ require "tcp_client.rb"
 #     
 #_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/
 class GameTCPServer < FSServer
+	
+	
+	class Scheduler
+		
+		attr_reader :sid
+		attr_reader :server
+		attr_reader :execute_proc
+		def initialize()
+			
+		end
+		def start(server, dt, times, execute_proc)
+			
+			prote_proc = Proc.new do |dt|
+				@execute_proc.call(dt / 1000000.0)
+			end
+			
+			@execute_proc = execute_proc
+			@server = server
+			@sid = @server.scheduler(dt, times, prote_proc)
+		end
+		def stop
+			if(@sid != 0 and @server != nil)
+				@server.unscheduler(@sid)
+				@sid = 0
+				@server = nil
+			end
+		end
+		
+	end
   
   # 所有客户端
   attr_reader :clients;
@@ -23,6 +52,11 @@ class GameTCPServer < FSServer
   end
   
   
+	def scheduler_update(dt, times, &proc)
+		scheduler = Scheduler.new()
+		scheduler.start(self, dt, times, proc)
+		return scheduler
+	end
   #_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/
   # * 开始服务
   #-------------------------------------------------------------------------------------------------------

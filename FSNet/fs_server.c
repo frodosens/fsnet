@@ -33,15 +33,28 @@
 #include "fs_pack.h"
 #include "hash.h"
 
+#include <math.h>
+
 #define LOOP_QUE_LEN 1024
+
+
+struct fs_timer{
+    
+    int times;
+    unsigned int dt;
+    unsigned long last_dt;
+    struct event timeout;
+    struct fs_server* server;
+    fn_fs_server_scheduler fn;
+    void* data;
+};
+
 struct fs_server{
     
     char name[64];
-    
     int socket;
     
     fs_bool running;
-    
     fs_bool create_work_thread;
     
     enum fs_server_type server_type;
@@ -120,10 +133,8 @@ libevent_cb_listener(struct evconnlistener *listener, evutil_socket_t fd,
                       struct sockaddr *sa, int socklen, void *user_data){
 
     struct fs_server* server = (struct fs_server*)user_data;
-    
-    fs_id node_id = fs_server_next_listener_id(server);
-    
     struct fs_node* node = fs_create_node(server);
+    fs_id node_id = fs_server_next_listener_id(server);
     
     fs_node_bind_event(node, node_id, fd, sa, socklen, server, server->event);
     
@@ -170,7 +181,7 @@ fs_server_http_request(struct evhttp_request *req, void *data){
     
     struct fs_output_stream* fos = fs_create_output_stream_ext;
     
-    fs_stream_write_uint64(fos, (uint64_t)req);
+    fs_stream_write_ulong(fos, (unsigned long)req);
     fs_stream_write_c_string(fos, type == EVHTTP_REQ_POST ? "POST" : "GET");
     fs_stream_write_string(fos, uri, strlen(uri));
     
@@ -334,7 +345,7 @@ fs_server_start(struct fs_server* server, struct fs_node_addr* addr, enum fs_ser
     
         
     }
-        
+    
     
 }
 
@@ -390,6 +401,72 @@ fs_server_stop(struct fs_server* server, int32_t what){
     fs_loop_queue_free(server->loopque);
 }
 
+static void
+timeout_cb(evutil_socket_t fd, short event, void *arg){
+    
+    struct fs_timer* timer = (struct fs_timer*) arg;
+    
+    struct timeval lasttime;
+    evutil_gettimeofday(&lasttime, NULL);
+    
+    unsigned long dt = (lasttime.tv_sec * 1000000 + lasttime.tv_usec) - timer->last_dt;
+    
+    fs_assert(timer->fn != NULL, "timer function is NULL");
+    
+    timer->fn(timer->server, dt, timer->data);
+    
+    timer->last_dt = lasttime.tv_sec * 1000000 + lasttime.tv_usec;
+    
+    if (timer->times > 0) {
+        timer->times --;
+        if(timer->times <= 0){
+            evtimer_del(&timer->timeout);
+            fs_free(timer);
+        }
+    }
+    
+    return;
+    
+}
+
+struct fs_timer*
+fs_server_scheduler(struct fs_server* server, float dt, int times, fn_fs_server_scheduler fn, void* data){
+    
+    struct fs_timer* timer = (struct fs_timer*)fs_malloc(sizeof(struct fs_timer));
+	struct timeval tv;
+    struct timeval lasttime;
+    int flags = EV_PERSIST;
+    
+    if(times == 1){
+        flags = 0;
+    }
+	evutil_gettimeofday(&lasttime, NULL);
+	evutil_timerclear(&tv);
+    
+    timer->fn = fn;
+    timer->data = data;
+    timer->times = times;
+    timer->server = server;
+    timer->last_dt = lasttime.tv_sec * 1000000 + lasttime.tv_usec;
+    
+    tv.tv_sec = floorf(dt);
+    tv.tv_usec  = (dt - floorf(dt)) * 1000000;
+    
+    
+	event_assign(&timer->timeout, server->event, -1, flags, timeout_cb, (void*) timer);
+	event_add(&timer->timeout, &tv);
+    
+    return timer;
+    
+}
+
+fs_bool
+fs_server_unscheulder(struct fs_server* server, struct fs_timer* timer){
+    
+    evtimer_del(&timer->timeout);
+    fs_free(timer);
+    return fs_true;
+}
 
 void
 fs_server_set_name(struct fs_server* server, const char* name){

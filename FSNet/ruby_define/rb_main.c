@@ -59,7 +59,6 @@ fs_rb_loop(const char* main_file, int pathc, const char** pathv){
         return;
     }
     
-    
     do{
     
     retry:

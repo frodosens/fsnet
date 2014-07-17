@@ -22,11 +22,14 @@ struct fs_node;
 struct fs_pack;
 struct fs_server;
 struct event;
+struct fs_timer;
+
 
 enum fs_server_type{
     t_fs_server_tcp,
     t_fs_server_http
 };
+
 
 typedef fs_bool(*fn_fs_pack_handle)(struct fs_server*, struct fs_pack* );
 typedef size_t (*fn_fs_pack_parse) (struct fs_server*, const BYTE*, ssize_t len, fs_id send_id, struct fs_pack** out_pack);
@@ -34,11 +37,14 @@ typedef size_t (*fn_fs_pack_to_data)( struct fs_server*, struct fs_pack* , BYTE*
 typedef void (*fn_fs_server_on_start)( struct fs_server* );
 typedef void (*fn_fs_node_connect)( struct fs_server*, fs_id );
 typedef void (*fn_fs_node_shudown)( struct fs_server*, fs_id );
+typedef void (*fn_fs_server_scheduler)( struct fs_server* , unsigned long dt, void* data);
 
 
 struct  fs_server* fs_create_server(const char* name);
 void    fs_server_start(struct fs_server*, struct fs_node_addr*, enum fs_server_type);
 void    fs_server_stop(struct fs_server* , int32_t what);
+struct fs_timer* fs_server_scheduler(struct fs_server*, float dt, int times, fn_fs_server_scheduler, void* data);
+fs_bool fs_server_unscheulder(struct fs_server*, struct fs_timer*);
 void    fs_server_set_name(struct fs_server* , const char* name);
 const char* fs_server_get_name(struct fs_server*);
 void    fs_server_set_handle_pack_fn(struct fs_server*, fn_fs_pack_handle);

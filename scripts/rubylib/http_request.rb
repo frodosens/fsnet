@@ -29,7 +29,7 @@ class HTTPRequest
     class << self
         def parse(pack)
             
-            magic_request_id = pack.read_data.read_uint64;
+            magic_request_id = pack.read_data.read_ulong;
             
             req_method = pack.read_data.read_string;
             uri = pack.read_data.read_string;
@@ -51,7 +51,7 @@ class HTTPRequest
                 headres[key] = value;
             end
             
-            post_stream = FSInputStream.new( data, len )
+            post_stream = FSInputStream.new( data, len, false )
             
             ret = HTTPRequest.new(magic_request_id, req_method, uri, params, headres, post_stream);
             return ret;

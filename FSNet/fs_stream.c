@@ -347,6 +347,7 @@ fs_stream_read_int64( struct fs_input_stream* stream){
 }
 uint64_t
 fs_stream_read_uint64( struct fs_input_stream* stream){
+    
     return fs_stream_read_int64(stream);
 }
 
