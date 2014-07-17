@@ -21,13 +21,13 @@ class GameTCPServer < FSServer
 		end
 		def start(server, dt, times, execute_proc)
 			
-			prote_proc = Proc.new do |dt|
+			@prote_proc = Proc.new do |dt|
 				@execute_proc.call(dt / 1000000.0)
 			end
 			
 			@execute_proc = execute_proc
 			@server = server
-			@sid = @server.scheduler(dt, times, prote_proc)
+			@sid = @server.scheduler(dt, times, @prote_proc)
 		end
 		def stop
 			if(@sid != 0 and @server != nil)
