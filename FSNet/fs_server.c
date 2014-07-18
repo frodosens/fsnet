@@ -43,7 +43,9 @@ struct fs_timer{
     int times;
     unsigned int dt;
     unsigned long last_dt;
+    fs_bool stoped;
     struct event timeout;
+    struct timeval tv;
     struct fs_server* server;
     fn_fs_server_scheduler fn;
     void* data;
@@ -413,16 +415,27 @@ timeout_cb(evutil_socket_t fd, short event, void *arg){
     
     fs_assert(timer->fn != NULL, "timer function is NULL");
     
-    timer->fn(timer->server, dt, timer->data);
+    
+    if(!timer->stoped){
+        timer->fn(timer->server, dt, timer->data);
+    }
     
     timer->last_dt = lasttime.tv_sec * 1000000 + lasttime.tv_usec;
     
     if (timer->times > 0) {
         timer->times --;
         if(timer->times <= 0){
-            evtimer_del(&timer->timeout);
-            fs_free(timer);
+            timer->stoped = fs_true;
         }
+    }
+    if(timer->stoped){
+        
+        fs_server_unscheulder(timer->server, timer);
+        fs_free(timer);
+        
+    }else{
+        
+        evtimer_add(&timer->timeout, &timer->tv);
     }
     
     return;
@@ -433,28 +446,24 @@ struct fs_timer*
 fs_server_scheduler(struct fs_server* server, float dt, int times, fn_fs_server_scheduler fn, void* data){
     
     struct fs_timer* timer = (struct fs_timer*)fs_malloc(sizeof(struct fs_timer));
-	struct timeval tv;
     struct timeval lasttime;
-    int flags = EV_PERSIST;
+    int flags = 0;
     
-    if(times == 1){
-        flags = 0;
-    }
 	evutil_gettimeofday(&lasttime, NULL);
-	evutil_timerclear(&tv);
+	evutil_timerclear(&timer->tv);
     
+    timer->stoped = fs_false;
     timer->fn = fn;
     timer->data = data;
     timer->times = times;
     timer->server = server;
     timer->last_dt = lasttime.tv_sec * 1000000 + lasttime.tv_usec;
-    
-    tv.tv_sec = floorf(dt);
-    tv.tv_usec  = (dt - floorf(dt)) * 1000000;
+    timer->tv.tv_sec = floorf(dt);
+    timer->tv.tv_usec  = (dt - floorf(dt)) * 1000000;
     
     
 	event_assign(&timer->timeout, server->event, -1, flags, timeout_cb, (void*) timer);
-	event_add(&timer->timeout, &tv);
+	event_add(&timer->timeout, &timer->tv);
     
     return timer;
     
@@ -463,9 +472,12 @@ fs_server_scheduler(struct fs_server* server, float dt, int times, fn_fs_server_
 fs_bool
 fs_server_unscheulder(struct fs_server* server, struct fs_timer* timer){
     
+    fs_bool ret = !timer->stoped;
+    
+    timer->stoped = fs_true;
     evtimer_del(&timer->timeout);
-    fs_free(timer);
-    return fs_true;
+    
+    return ret;
 }
 
 void

@@ -587,9 +587,9 @@ rb_Server_unscheduler(VALUE self, VALUE timer){
     struct fs_server* server = NULL;
     Data_Get_Struct(self, struct fs_server, server);
     
-    fs_server_unscheulder(server, ptimer);
+    fs_bool ret = fs_server_unscheulder(server, ptimer);
     
-    return Qtrue;
+    return ret ? Qtrue : Qfalse;
 }
 
 void
