@@ -1,0 +1,3 @@
+sha2.o: sha2.c sha2.h $(srcdir)/../defs.h $(HDRS) $(ruby_headers)
+sha2init.o: sha2init.c sha2.h $(srcdir)/../digest.h $(srcdir)/../defs.h $(HDRS) $(ruby_headers)
+sha2ossl.o: sha2ossl.h $(srcdir)/../defs.h $(HDRS) $(ruby_headers)
