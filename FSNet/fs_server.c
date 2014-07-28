@@ -93,8 +93,6 @@ struct fs_server{
     
     fs_script_id script_id;
     
-    
-    fs_bool            need_pop_event;  // 是否需要通知新事件
 };
 
 fs_id
@@ -121,14 +119,6 @@ fs_server_rm_node(struct fs_server* server, fs_id node_id){
     fs_server_add_node(server, node_id, NULL);
 }
 
-
-static void
-libevent_cb_signal( evutil_socket_t fd, short e, void* data ){
-    
-//    struct fs_server* server = (struct fs_server*)data;
-//    struct event* event = NULL;
-    
-}
 
 static void
 libevent_cb_listener(struct evconnlistener *listener, evutil_socket_t fd,
@@ -236,25 +226,19 @@ fs_server_http_request(struct evhttp_request *req, void *data){
 
 static void*
 fs_server_io_thread(void* data){
-
+    
     struct fs_server* server = (struct fs_server*)data;
     
     fs_assert(server != NULL, "");
-    
-    sigignore( SIGPIPE );
     
 	struct evconnlistener *listener = NULL;
 	struct event_base* single_event = NULL;
     struct evhttp* single_evhttp;
     struct sockaddr_in sin;
-    
-    
+    fs_zero(&sin, sizeof(struct sockaddr_in));
+    sin.sin_addr.s_addr = inet_addr(server->addr.addr);
 	sin.sin_family = AF_INET;
     sin.sin_port = htons(server->addr.port);
-    
-    event_set_mem_functions(fs_malloc, fs_realloc, fs_free);
-    
-    evthread_use_pthreads();
     
     single_event = event_base_new();
     
@@ -262,6 +246,7 @@ fs_server_io_thread(void* data){
     
     switch (server->server_type) {
         case t_fs_server_tcp:{
+                               
             listener = evconnlistener_new_bind(single_event,
                                                libevent_cb_listener,
                                                server,
@@ -293,13 +278,6 @@ fs_server_io_thread(void* data){
     if(server->_fn_on_start){
         server->_fn_on_start(server);
     }
-    static fs_bool _signal_add = fs_false;
-    
-    if(_signal_add == fs_false){
-        _signal_add = fs_true;
-        server->signal_event = evsignal_new(single_event, SIGINT, libevent_cb_signal, server);
-        event_add(server->signal_event, NULL);
-    }
     
 #ifdef __APPLE__
     pthread_setname_np(server->name);
@@ -317,12 +295,12 @@ fs_server_io_thread(void* data){
 
 struct fs_server*
 fs_create_server(const char* server_name ){
+    
 
     struct fs_server* ret = (struct fs_server*)( fs_malloc(sizeof(*ret)) );
     fs_zero(ret, sizeof(*ret));
     strncpy(ret->name, server_name, 64);
     ret->loopque = fs_create_loop_queue(LOOP_QUE_LEN);
-    ret->need_pop_event = fs_true;
     hmap_create (&ret->node_map, HASHMAP_SIZE);
     
     return ret;
@@ -385,6 +363,7 @@ fs_server_stop(struct fs_server* server, int32_t what){
         evhttp_free(server->single_evhttp);
         server->single_evhttp = NULL;
     }
+    
     
     if(server->node_map){
         hmap_destroy(server->node_map, __hahs_destroy_fn);

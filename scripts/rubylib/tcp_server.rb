@@ -72,7 +72,7 @@ class GameTCPServer < FSServer
   #     @times  循環次數
   #     @proc   每次執行的回調
   #_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/
-	def scheduler_update(dt, times, &proc)
+	def scheduler_update(dt, times, proc)
 		scheduler = Scheduler.new()
 		scheduler.start(self, dt, times, proc)
 		return scheduler

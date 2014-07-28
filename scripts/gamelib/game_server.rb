@@ -26,7 +26,15 @@ class ChildNode < TCPClient
 			type = pack.input.read_int16
 			# 0以下是系统协议,不可重载
 			if(type > 0)
-				self.server.childs_node_handle[type] = node_id
+				# 已經存在
+				if(self.server.childs_node_handle[type] != nil)
+					if(self.server.childs_node_handle[type].class != Array)
+						self.server.childs_node_handle[type] = [ self.server.childs_node_handle[type] ]
+					end
+					self.server.childs_node_handle[type] << node_id
+				else
+					self.server.childs_node_handle[type] = node_id
+				end
 			end
 			
 		end
@@ -159,23 +167,39 @@ class GameServer < GameTCPServer
 		
 	end
 	
-	def connect_node( node_name )
+	
+	def connect_nodes( node_name )
 		
-		# 查找配置中的子节点
+		nodes = []
 		node_configure = @configure[node_name];
-		
-		if(node_configure.nil?)
-			warn(" #{node_name} is not defined ");
-			return nil
+		for con in node_configure
+			for k, v in con
+				nodes << connect_node_by_configure(v)
+			end
 		end
 		
+		return nodes
+		
+	end
+	
+	def connect_node_by_configure( node_configure )
+		
 		info("#{self.name} Connecting to #{node_configure["name"]}");
-		client = ChildNode.new(self, node_configure["addr_ip"], node_configure["addr_port"]);
+		
+		client = nil
+		begin
+			client = ChildNode.new(self, node_configure["addr_ip"], node_configure["addr_port"]);
+		rescue => err
+			warn("#{self.name} Connecting to #{node_configure["name"]} fail retrying");
+			sleep(2)
+			retry
+		end
+		
 		# 连接有效的话
 		if(client.active)
 			# 保存子节点
 			@childs_node[client.id] = client
-			client.name = node_name
+			client.name = node_configure["name"]
 			info("#{self.name} Connecting to #{node_configure["name"]} successful");
 			# 发送子节点确认包
 			pack = Pack.create( 0, PACK_TYPE_AS_CHILD_NODE,  nil ); 
@@ -184,9 +208,24 @@ class GameServer < GameTCPServer
 			return client;
 		else
 			err("#{self.name} Connecting to #{node_configure["name"]} fail");
+			
+			return nil
 		end
 		
-		return nil;
+	end
+		
+	
+	def connect_node( node_name )
+		# 查找配置中的子节点
+		node_configure = @configure[node_name];
+		
+		if(node_configure.nil?)
+			warn(" #{node_name} is not defined ");
+			return nil
+		end
+		
+		
+		return connect_node_by_configure(node_configure);
 	end
 	
 	def warn(log)
@@ -351,6 +390,16 @@ class GameServer < GameTCPServer
 		
 	}
 	
+	
+	# 獲取執行包的節點
+	# 如果一個包有多個節點可以處理..這裡默認先返回第0個
+	def get_agent_node_id_by_type(sender_id, pack_type)
+		if(@childs_node_handle[pack_type].class == Array)
+			return @childs_node_handle[pack_type][0]
+		end
+		return  @childs_node_handle[pack_type];
+	end
+	
 	# 尝试让子节点处理一个包
 	# node_id : 真实节点ID
 	# pack : Pack
@@ -360,7 +409,7 @@ class GameServer < GameTCPServer
 	
 		# 先找子节点是否可处理
 		if(@childs_node_handle != nil)
-			handle_node_id = @childs_node_handle[pack.pack_type]
+			handle_node_id = get_agent_node_id_by_type(node_id, pack.pack_type)
 			if(handle_node_id != nil)
 				child_node = @childs_node[handle_node_id];
 				if(child_node != nil)
