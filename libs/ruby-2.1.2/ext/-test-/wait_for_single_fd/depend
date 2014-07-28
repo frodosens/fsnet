@@ -1,4 +1,0 @@
-$(OBJS): $(HDRS) $(ruby_headers) \
-  $(hdrdir)/ruby/encoding.h \
-  $(hdrdir)/ruby/oniguruma.h \
-  $(hdrdir)/ruby/io.h

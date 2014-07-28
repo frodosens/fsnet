@@ -1,2 +1,0 @@
-init.o: $(HDRS) $(ruby_headers)
-stat.o: $(HDRS) $(ruby_headers) $(hdrdir)/ruby/io.h $(hdrdir)/ruby/encoding.h $(hdrdir)/oniguruma.h
