@@ -1,3 +1,9 @@
+require 'gate_server.rb'
+require 'login_server.rb'
+require 'run_server.rb'
+require 'util_server.rb'
+require 'db_server.rb'
+
 class GameBoomman
 	
 	def start
@@ -13,8 +19,6 @@ class GameBoomman
 		  
 		@logger_file = Logger.new($game_configure["log_name"])
 		
-
-		
 		$db_server = DBServer.new("configure/db_configure/configure.yaml");
 		$db_server.start();
 		$login_server = LoginServer.new("configure/login_configure/configure.yaml");
@@ -23,22 +27,9 @@ class GameBoomman
 		$run_server.start();
 		$gate_server = GateServer.new("configure/gate_configure/configure.yaml");
 		$gate_server.start();
-		$pay_server = PayServer.new("pay_server")
+		$pay_server = UtilServer.new("pay_server")
 		$pay_server.start_server("127.0.0.1", 50566)
 		
-	end
-	
-	def relose_resource
-		s1 = Time.now.tv_usec / 1000
-		$game_res.reload() do |des, c, m, c_n|
-			s2 = Time.now.tv_usec / 1000
-			if(c_n == nil)
-				info "=== LOAD #{des} RES(#{c}/#{m}) TIME(#{s2 - s1} ms) ==="
-			else
-				info "=== LOAD #{des} RES(#{c}/#{m})(#{c_n}) TIME(#{s2 - s1} ms) ==="
-			end
-			s1 = s2
-		end
 	end
 	
 	

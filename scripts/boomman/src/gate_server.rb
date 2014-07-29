@@ -16,6 +16,19 @@ class GateServer < GameServer
 		
 	end
 	
+	#
+	def cmd_regiest_session(sender, pack)
+		
+		done = 1
+		# 在这里做点session初始化的事情
+		os = FSOutputStream.new()				# 
+		os.write_byte(done);
+		
+		# 发回给客户端
+	  response = Pack.create( pack.serial, PACK_TYPE_REGIST_SESSION, os );
+	  sender.send_pack(response);
+		
+	end
 	
 
 end

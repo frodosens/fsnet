@@ -5,15 +5,7 @@ base_configure:
   addr_ip: 0.0.0.0
   addr_port: 50562
 pack_handle:
-  PACK_TYPE_LOGIN: cmd_login
-  PACK_TYPE_INIT_PLAYER: cmd_init_player
-  PACK_TYPE_CHAT_MSG: cmd_chat_msg
-  PACK_TYPE_MAIL: cmd_mail
-  PACK_TYPE_ENTER_MAP: cmd_enter_map
-  PACK_TYPE_HOME: cmd_home
-  PACK_TYPE_GEMS: cmd_gems
-  PACK_TYPE_BATTLE_RESULT: cmd_battle_result
-  PACK_TYPE_SYCN_FILE: cmd_sycn_file
+  PACK_TYPE_VERSION: cmd_version
 db_server:
   name: DBServer
   addr_ip: 0.0.0.0

@@ -4,13 +4,11 @@ require 'cmds/boomman_pack_type.rb'
 require "game_server.rb"
 
 class RunServer < GameServer
-	
-	attr_reader :home_system
   
+	# 当根节点出现断开连接时候的通知
+	# 可以在这里做player登出的操作,或者其他
 	def on_agent_node_shudown(agent_node)
-		if(agent_node != nil and agent_node.pid != nil)
-			$game_players.logout(agent_node.pid)
-		end
+		
 	end
 	
 	
@@ -19,36 +17,27 @@ class RunServer < GameServer
 		
 		super();
 		@db_server   = connect_node("db_server");
-		@systems = []
-		start_systems();
-	
 	
 	end
 	
-	
-	def start_systems
+	def cmd_version(sender, pack)
+
+		max_version  = pack.input.read_byte();		# 读出3个版本号
+		mind_version = pack.input.read_byte();
+		min_version  = pack.input.read_byte();
 		
-		$game_homes = GameHomeSystem.new
-		$game_gems  = GameGemSystem.new
+		os = FSOutputStream.new()				# 
 		
-		@systems << $game_homes
-		@systems << $game_gems
+		os.write_byte(max_version);			# 写回给客户端
+		os.write_byte(mind_version);
+		os.write_byte(min_version);
 		
-		begin
+	  response = Pack.create( pack.serial, PACK_TYPE_VERSION, os );
 		
-			for sys in @systems
-				info("=== START #{sys.name} ===")
-				sys.start(self)
-			end
-		
-		rescue => e
-			err(e.message)
-		end
-		
-		
+	  sender.send_pack(response);
 		
 	end
-	
+		
   
 end
 
