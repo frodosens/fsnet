@@ -2,7 +2,7 @@ require 'yaml'
 require 'logger'
 require 'tcp_server.rb'
 require 'agent_client.rb'
-require 'tcp_server.rb'
+require 'cmds/game_cmds.rb'
 require 'pack/pack_type.rb'
 require 'pack/pack.rb'
 
@@ -74,24 +74,30 @@ class ChildNode < TCPClient
 	
 	# 主动发送的
 	def on_handle_know_pack(node_id, pack)
-		p "on_handle_know_pack#{pack.type}"
-	end
+		# p "on_handle_know_pack#{pack.type}"
+
+
+
+  end
 	
   def on_handle_pack(node_id, fs_pack)
 		pack = Pack.parse(fs_pack);
 		case pack.pack_type
 		when PACK_TYPE_REGIST_CHILD_PACK_HANDLE
 			on_handle_regist_child_pack(node_id, pack);
-		when PACK_TYPE_AGENT
-			on_handle_child_node(node_id, pack);
+		#when PACK_TYPE_AGENT
 		else
-			on_handle_know_pack(node_id, pack);
+			on_handle_child_node(node_id, pack);
+		#else
+		#	on_handle_know_pack(node_id, pack);
 		end
   end
 end
 
 
 class GameServer < GameTCPServer
+	
+	include GameCMDS
 
   attr_reader :configure;
 	attr_reader :handle_map_configure;
@@ -352,12 +358,14 @@ class GameServer < GameTCPServer
 		method_name = @handle_map_configure[pack.pack_type];
 		if(method_name != nil)
 			begin
+        info("execute #{method_name}")
 				pack_method = method(method_name);
 				if(pack_method != nil)
 					pack_method.call(client ,pack);
 				end
 			rescue => e
 				err(e.message);
+        client.tips(L(e.message), pack.serial);
 			end
 		else
 			warn("#{name} 无法找到处理#{pack.pack_type}协议的方法");

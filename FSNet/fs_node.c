@@ -12,6 +12,7 @@
 #include <event.h>
 #include <pthread.h>
 #include <unistd.h>
+#include <netinet/tcp.h>
 #include <arpa/inet.h>
 #include "fs_node.h"
 #include "fs_define.h"
@@ -73,7 +74,9 @@ fs_node_bind_event(struct fs_node* node,
     node->read_ev = (struct event*)fs_malloc(sizeof(struct event));
     node->write_ev = (struct event*)fs_malloc(sizeof(struct event));
     
+    const char bOper = 1;
     evutil_make_socket_nonblocking(node->socket);
+    setsockopt(socket, IPPROTO_TCP, TCP_NODELAY, (const char*)&bOper, sizeof(const char));
     
     ret = event_assign(node->read_ev, event_base,
                        node->socket, EV_READ | EV_PERSIST,

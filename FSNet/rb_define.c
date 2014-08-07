@@ -159,7 +159,7 @@ fs_ruby_tcp_parse_pack(struct fs_server* server, const BYTE* data, ssize_t len, 
     BYTE pack_len4       = data[4];
     uint32_t pack_len     = (pack_len4 << 24 | pack_len3 << 16 | pack_len2 << 8 | pack_len1);
     
-    if(len >= pack_len){
+    if(len >= pack_len && pack_len >= pack_head_len){
         
         *pack = fs_create_empty_pack();
         struct fs_pack* ret_pack = *pack;
@@ -1275,6 +1275,7 @@ fs_rb_init(int argc,  char** argv){
     ruby_init();
     ruby_init_loadpath();
     ruby_set_argv(argc, argv);
+    Init_fsnet();
     
 }
 

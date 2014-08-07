@@ -71,13 +71,17 @@ class Pack < TCPPack
 			return pack;
     end
 		
-		
 		@@_agent_serial = 1
+    def generate_serial
+      @@_agent_serial = (@@_agent_serial + 1)
+      serial = @@_agent_serial
+      return serial
+    end
+
 		def create_agent( agent_id, pack, serial=nil)
 
 			if(serial == nil)
-				@@_agent_serial = (@@_agent_serial + 1)
-				serial = @@_agent_serial
+				serial = generate_serial()
 			end
 			os = FSOutputStream.new()
 			os.write_int32( agent_id );
