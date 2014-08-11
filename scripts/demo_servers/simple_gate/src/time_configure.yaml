@@ -1,0 +1,8 @@
+base_configure: 
+  server_name: time_server
+  logger_file: time_server.log
+  byte_order: 0
+  addr_ip: 0.0.0.0
+  addr_port: 40002
+pack_handle:
+  PACK_TYPE_GET_TIME: cmd_time

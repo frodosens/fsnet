@@ -1,0 +1,265 @@
+body
+{
+background:url(images/bg.gif) repeat-x top #fff;
+padding:0;
+font-family:Verdana, Arial, Helvetica, sans-serif;
+font-size:10px;
+margin:0px auto auto auto;
+color:#514c48;
+}
+a{
+text-decoration:underline;
+color:#D86200;
+}
+p{
+text-align:justify;
+line-height:15px;
+padding:5px 0 5px 0;
+font-size:11px;
+margin:0px;
+}
+span{
+color:#FF9900;
+}
+p.clear{
+clear:both;
+}
+p.news{
+clear:both;
+border-bottom:1px #CCCCCC dashed;
+font-size:10px;
+margin:5px 0 5px 0;
+}
+img.left_img{
+float:left;
+padding:5px 12px 0 0;
+}
+img.left_img_border{
+float:left;
+margin:5px 12px 0 0;
+border:3px #b1cee0 solid;
+}
+h1{
+font-size:18px;
+color:#514c48;
+font-family:Arial, Helvetica, sans-serif;
+font-weight:bold;
+padding:5px 0 5px 0;
+margin:0px;
+}
+#main_container{
+width:677px;
+height:auto;
+margin:auto;
+padding:0px;
+position:relative;
+}
+.top_illustration{
+position:absolute;
+top:0px;
+left:-90px;
+}
+#header{
+width:677px;
+height:62px;
+margin:auto;
+}
+.logo{
+padding:15px 0 0 70px;
+}
+
+/*---------------- menu tab----------------------*/
+#menu_tab{
+width:677px;
+height:52px;
+font-family:Arial, Helvetica, sans-serif;
+padding:0px;
+background:url(images/menu_bg.gif) no-repeat center;
+}
+
+ul.menu {
+list-style-type:none; display:block; width:410px; 
+ margin: auto; padding:0px; background:none;}
+
+ul.menu li {
+display:inline;
+font-size:13px;
+font-weight:bold;
+line-height:52px;}
+
+ul.menu li.divider {
+display:block;
+float:left;
+width:1px;
+height:52px;
+padding:0px ;
+margin:0px;
+background:url(images/divider.gif) no-repeat center;
+}
+
+a.nav:link, a.nav:visited {
+display:block; float:left; padding:0px; margin:0;width: auto; margin:0px 14px 0px 14px; text-align:center;
+text-decoration:none; background:none; color:#534848;}
+
+a.nav_selected:link, a.nav_selected:visited {
+display:block; float:left; padding:0px; margin:0;width: auto;margin:0px 14px 0px 14px;text-align:center;
+text-decoration:none; color: #FF6600;}
+
+a.nav:hover {
+color: #FF6600; text-decoration:none;}
+
+
+/*----------------main_content----------------*/
+#main_content{
+width:auto;
+clear:both;
+background-color:#FFFFFF;
+height:auto;
+}
+#middle_banner{
+width:651px;
+height:165px;
+margin:auto;
+padding:20px 0 0 0;
+background:url(images/middle_banner_bg.jpg) no-repeat center;
+}
+.middle_banner_content{
+padding:10px 0 0 0;
+}
+
+#left_content{
+width:390px;
+float:left;
+height:auto;
+padding:10px 0 0 20px;
+}
+#right_content{
+width:225px;
+float:left;
+height:auto;
+padding:10px 0 0 20px;
+}
+#wide_content{
+width:635px;
+padding:10px 10px 0 20px;
+}
+.members_login{
+width:210px;
+height:138px;
+padding:10px 0 0 10px;
+background:url(images/login_bg.gif) no-repeat center;
+}
+.login_row{
+width:200px;
+float:left;
+padding:4px 0 4px 0;
+}
+label.login{
+width:60px;
+float:left;
+text-align:right;
+padding:4px 8px 0 0;
+}
+input.login_input{
+width:120px;
+height:16px;
+background-color:#FFFFFF;
+border:1px #CCCCCC solid;
+float:left;
+}
+a.login_submit{
+width:66px;
+height:22px;
+float:right;
+margin:10px;
+background:url(images/login_bt.gif) no-repeat center;
+display:block;
+line-height:22px;
+color:#FFFFFF;
+text-decoration:none;
+text-align:center;
+}
+#projects_box{
+width:566px;
+height:185px;
+margin:auto;
+background:url(images/projects_bg.gif) no-repeat center;
+}
+.projects_navigation{
+width:566px;
+height:25px;
+margin:auto;
+padding:10px 0 0 0;
+}
+.left_nav a{
+float:left;
+background:url(images/left_arrow.gif) no-repeat left;
+padding:0 0 0 30px;
+font-size:12px;
+color:#3e2510;
+text-decoration:none;
+}
+.right_nav a{
+float:right;
+background:url(images/right_arrow.gif) no-repeat right;
+padding:0 30px 0 0;
+font-size:12px;
+color:#3e2510;
+text-decoration:none;
+}
+.project_container{
+float:left;
+padding:10px 20px 0 40px;
+}
+.project_title{
+font-size:12px;
+color: #999999;
+padding:0 0 5px 0;
+}
+
+/*------contact form------*/
+#contact_form{
+float:left;
+width:300px;
+padding:10px 10px 0 30px;
+color:#666666;
+}
+.contact_input{
+width:290px;
+height:17px;
+font-size:10px;
+float:left;
+background-color:#fff8dc;
+border:1px #f0e9cf solid;
+}
+label.contact_form{
+width:200px;
+padding:0 0 5px 0;
+font-size:12px;
+}
+.contact_textarea{
+width:290px;
+height:80px;
+font-size:10px;
+float:left;
+background-color:#fff8dc;
+border:1px #f0e9cf solid;
+}
+input.contact_submit{
+float:right;
+padding:10px;
+}
+.cleardiv {
+clear:both;
+overflow:hidden;
+height:4px;
+}
+
+/*----footer---------*/
+#footer{
+width:auto;
+clear:both;
+padding:15px 0 10px 0;
+text-align:center;
+color:#999999;
+}

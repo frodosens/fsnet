@@ -6,13 +6,6 @@ fsnet
 =======
 一个c+ruby支持分布式部署开源的网络游戏库
 
-#編譯為ruby擴展庫
-進入fsnet
-ruby extconf.rb
-make & make install
-然後require 'fsnet'
-即可 :) 
-也支持C嵌入使用. 
 
 # 如何编译,安装
 
@@ -32,18 +25,14 @@ sudo make install
 
 
 #fsnet
-cd fanet
-make
-sudo make install
+进入fsnet
+执行
+ruby extconf.rb
+make & make install
 
 
-#编译你的游戏载体
-会到项目根路径
-make
-这样你就会的得到一个game 
-
-#编写你的游戏服务器脚本
-进入/scripts
-
-boomman 是测试服务器的demo,可以看看
+#demo
+进入scripts/ 
+编辑server.rb
+可以根据自己想看的demo取消注释. ：）
 
