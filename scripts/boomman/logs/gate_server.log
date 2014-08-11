@@ -35,3 +35,8 @@ I, [2014-07-29T22:14:43.879564 #1264]  INFO -- : gate_server Connecting to Login
 I, [2014-07-29T22:14:43.879806 #1264]  INFO -- : gate_server Connecting to RunServer
 I, [2014-07-29T22:14:43.881218 #1264]  INFO -- : gate_server Connecting to RunServer successful
 W, [2014-07-29T22:14:48.225585 #1264]  WARN -- : gate_server 无法找到处理14协议的方法
+I, [2014-08-11T10:53:59.017703 #1708]  INFO -- : gate_server[ 0.0.0.0, 50560 ]启动完成
+I, [2014-08-11T10:53:59.024369 #1708]  INFO -- : gate_server Connecting to LoginServer
+I, [2014-08-11T10:53:59.024823 #1708]  INFO -- : gate_server Connecting to LoginServer successful
+I, [2014-08-11T10:53:59.024986 #1708]  INFO -- : gate_server Connecting to RunServer
+I, [2014-08-11T10:53:59.025220 #1708]  INFO -- : gate_server Connecting to RunServer successful

@@ -26,3 +26,7 @@ I, [2014-07-29T22:12:34.660119 #1221]  INFO -- : run_server Connecting to DBServ
 I, [2014-07-29T22:14:43.875681 #1264]  INFO -- : run_server[ 0.0.0.0, 50562 ]启动完成
 I, [2014-07-29T22:14:43.875726 #1264]  INFO -- : run_server Connecting to DBServer
 I, [2014-07-29T22:14:43.876323 #1264]  INFO -- : run_server Connecting to DBServer successful
+I, [2014-08-11T10:53:59.017330 #1708]  INFO -- : run_server[ 0.0.0.0, 50562 ]启动完成
+I, [2014-08-11T10:53:59.017386 #1708]  INFO -- : run_server Connecting to DBServer
+I, [2014-08-11T10:53:59.017605 #1708]  INFO -- : run_server Connecting to DBServer successful
+I, [2014-08-11T10:53:59.025831 #1708]  INFO -- : execute on_as_child_node

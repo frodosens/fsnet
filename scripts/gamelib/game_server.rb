@@ -2,7 +2,6 @@ require 'yaml'
 require 'logger'
 require 'tcp_server.rb'
 require 'agent_client.rb'
-require 'cmds/game_cmds.rb'
 require 'pack/pack_type.rb'
 require 'pack/pack.rb'
 
@@ -96,8 +95,6 @@ end
 
 
 class GameServer < GameTCPServer
-	
-	include GameCMDS
 
   attr_reader :configure;
 	attr_reader :handle_map_configure;
