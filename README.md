@@ -23,6 +23,11 @@ cd ruby-2.1.2
 make
 sudo make install
 
+#jemalloc
+解压jemalloc-3.6.0.tar.bz2
+./configure
+make
+sudo make install
 
 #fsnet
 进入fsnet
