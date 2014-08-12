@@ -1,5 +1,0 @@
-如果创建网关包转发,会出现内存泄漏.										# fixed by 2014-6-2
-如果fs_node释放的时候. RUBY层的引用未去除的话. 会崩溃	# fixed by 2014-6-2
-要将XCODE的ruby换成2.1,														# fixed by 2014-6-7
-内存要再考虑是否放到ruby内存管理器内.								# fixed use jemalloc
-大量数据包堆积的时候, 无法唤醒.											# fixed  but have not tested
