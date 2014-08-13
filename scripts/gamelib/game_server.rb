@@ -13,7 +13,7 @@ class ChildNode < TCPClient
 	attr_reader :pack_result_callback	# serial => proc
 	attr_reader :pack_result_callback_data	# serial => data
 	def initialize(*args)
-		super(*args)
+		super(*args) 
 		@pack_result_callback = {}
 		@pack_result_callback_data = {}
 	end
