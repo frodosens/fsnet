@@ -2,6 +2,7 @@ require 'yaml'
 require 'logger'
 require 'tcp_server.rb'
 require 'agent_client.rb'
+require 'cmds/game_cmds.rb'
 require 'pack/pack_type.rb'
 require 'pack/pack.rb'
 
@@ -48,10 +49,19 @@ class ChildNode < TCPClient
 			@pack_result_callback.delete(pack.serial)
 			@pack_result_callback_data.delete(pack.serial)
 		else
-		
-			delegate_id = pack.input.read_int32
-			result_pack = Pack.create_from_agent_pack( pack );
-			server.send_pack_to(delegate_id, result_pack);
+
+      # 如果没有请求返回, 如果是代理包
+      if pack.pack_type == PACK_TYPE_AGENT
+
+			  delegate_id = pack.input.read_int32
+			  result_pack = Pack.create_from_agent_pack( pack );
+			  server.send_pack_to(delegate_id, result_pack);
+
+      else
+        # 本地处理
+        server.handle_pack(self, pack)
+
+      end
 			
 			# print "#{server.name} #{pack.pack_type} is not callback \n"
 		end
@@ -84,7 +94,8 @@ class ChildNode < TCPClient
 		case pack.pack_type
 		when PACK_TYPE_REGIST_CHILD_PACK_HANDLE
 			on_handle_regist_child_pack(node_id, pack);
-		#when PACK_TYPE_AGENT
+		# when PACK_TYPE_AGENT
+      # on_handle_child_node(node_id, pack);
 		else
 			on_handle_child_node(node_id, pack);
 		#else
@@ -95,6 +106,8 @@ end
 
 
 class GameServer < GameTCPServer
+	
+	include GameCMDS
 
   attr_reader :configure;
 	attr_reader :handle_map_configure;
@@ -291,10 +304,15 @@ class GameServer < GameTCPServer
 	
 	# 处理一个代理节点断开
 	def on_handle_agent_shudown(node, pack)
-		
-		agent_id = pack.read_data.read_int32(); 
-		on_agent_node_shudown(@agent_nodes[agent_id])
-		@agent_nodes.delete(agent_id);
+
+		agent_id = pack.read_data.read_int32()
+
+    if @agent_nodes[agent_id].nil?
+      return
+    end
+
+    on_agent_node_shudown(@agent_nodes[agent_id])
+		@agent_nodes.delete(agent_id)
 		
 		# 通知子节点,我的父节点断开了
 		os = FSOutputStream.new()
