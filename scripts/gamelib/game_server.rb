@@ -2,7 +2,6 @@ require 'yaml'
 require 'logger'
 require 'tcp_server.rb'
 require 'agent_client.rb'
-require 'cmds/game_cmds.rb'
 require 'pack/pack_type.rb'
 require 'pack/pack.rb'
 
@@ -13,7 +12,7 @@ class ChildNode < TCPClient
 	attr_reader :pack_result_callback	# serial => proc
 	attr_reader :pack_result_callback_data	# serial => data
 	def initialize(*args)
-		super(*args) 
+		super(*args)
 		@pack_result_callback = {}
 		@pack_result_callback_data = {}
 	end
@@ -106,8 +105,6 @@ end
 
 
 class GameServer < GameTCPServer
-	
-	include GameCMDS
 
   attr_reader :configure;
 	attr_reader :handle_map_configure;
@@ -116,6 +113,7 @@ class GameServer < GameTCPServer
 	attr_reader :childs_node_handle;		# hash  { pack_type => [ node_id, node_id ] }
 	attr_reader :agent_nodes;						# hahs  { agent_id => { agent_node } } 代理节点集
 	attr_reader :agent_nodes;
+  attr_reader :disable_route          # 禁止路由的协议
 
   def initialize(configure_file_name)
     begin
@@ -138,7 +136,16 @@ class GameServer < GameTCPServer
 			@logger_file = Logger.new(configure["base_configure"]["logger_file"]);
 		else
 			@logger_file = Logger.new(configure["server_name"] + "log");
-		end
+    end
+
+    if(configure["disable_route"] == nil)
+      @disable_route = []
+    else
+      @disable_route = configure["disable_route"]
+      for i in 0...@disable_route.size
+        @disable_route[i] = eval(@disable_route[i])
+      end
+    end
 		
 		if(configure["pack_handle"] == nil)
 			err("找不到协议映射函数表");
@@ -429,7 +436,7 @@ class GameServer < GameTCPServer
 	def child_handle_pack(node_id, pack, agent_id=nil, serial=nil, call_back_proc=@@root_result_callback)
 	
 		# 先找子节点是否可处理
-		if(@childs_node_handle != nil)
+		if @childs_node_handle != nil && !@disable_route.include?(pack.pack_type)
 			handle_node_id = get_agent_node_id_by_type(node_id, pack.pack_type)
 			if(handle_node_id != nil)
 				child_node = @childs_node[handle_node_id];
@@ -450,14 +457,14 @@ class GameServer < GameTCPServer
 		return false;
 	
 	end
-	
+
 	# 处理一个包
   def on_handle_pack(node_id, fs_pack)
 		super(node_id, fs_pack);
 		pack = Pack.parse(fs_pack);
 		
 		# 先找子节点是否可处理
-		if(child_handle_pack(node_id, pack))
+		if child_handle_pack(node_id, pack)
 			return
 		end
 		

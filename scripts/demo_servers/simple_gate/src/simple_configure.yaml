@@ -6,3 +6,4 @@ base_configure:
   addr_port: 40001
 pack_handle:
   PACK_TYPE_HELLO: cmd_hello
+  PACK_TYPE_EXECUTE_SQL: cmd_execute_sql

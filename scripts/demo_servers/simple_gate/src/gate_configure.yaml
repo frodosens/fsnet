@@ -13,3 +13,5 @@ time_server:
   name: TimeServer
   addr_ip: 0.0.0.0
   addr_port: 40002
+disable_route:
+  - PACK_TYPE_EXECUTE_SQL

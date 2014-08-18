@@ -2,6 +2,7 @@ require "game_server.rb"
 
 
 class GameServer
+	PACK_TYPE_EXECUTE_SQL = 1000
 	PACK_TYPE_HELLO = 1
 end
 
@@ -12,6 +13,10 @@ class SimpleServer < GameServer
 	attr_reader :db_tick_task
 	def on_start_complete
 		super()
+	end
+	
+	def cmd_execute_sql(sender, pack)
+		p ': )'
 	end
 	
 	
