@@ -13,7 +13,6 @@ fsnet
 
 
 ``` ruby
-
 class GameServer
 	PACK_TYPE_PING = 1
 end
@@ -44,6 +43,13 @@ end
 
 
 class PongNode < GameServer
+
+
+	def on_start_complete
+		super
+		@handle_map_configure[PACK_TYPE_PING] = "cmd_ping"
+	end
+
 
 	def cmd_ping(sender, pack)
 		
