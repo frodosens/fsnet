@@ -116,14 +116,21 @@ class GameServer < GameTCPServer
   attr_reader :disable_route          # 禁止路由的协议
 
   def initialize(configure_file_name)
-    begin
-    	configure_file = File.open(configure_file_name);
-    	@configure = YAML.load(configure_file);
-		rescue => err
-			print(err.message + "\n");
-		ensure
-    	configure_file.close();
-		end
+
+    if configure_file_name.class == String
+
+      begin
+    	  configure_file = File.open(configure_file_name);
+      	@configure = YAML.load(configure_file);
+		  rescue => err
+			  print(err.message + "\n");
+		  ensure
+    	  configure_file.close();
+      end
+
+    elsif configure_file_name.class == Hash
+      @configure = configure_file_name
+    end
 		
 	
     super(configure["base_configure"]["server_name"]);
@@ -173,6 +180,8 @@ class GameServer < GameTCPServer
 		@childs_node = {}
 		@agent_nodes = {}
   end
+	
+	
 	
 	def find_node_by_name( node_name )
 	
