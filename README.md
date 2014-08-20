@@ -13,7 +13,7 @@ fsnet
 
 
 ``` ruby
-class GameServer
+class GameServer < FSServer
 	PACK_TYPE_PING = 1
 end
 
