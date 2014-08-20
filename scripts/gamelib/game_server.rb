@@ -142,7 +142,7 @@ class GameServer < GameTCPServer
 		if(configure["base_configure"]["logger_file"] != nil)
 			@logger_file = Logger.new(configure["base_configure"]["logger_file"]);
 		else
-			@logger_file = Logger.new(configure["server_name"] + "log");
+			@logger_file = Logger.new(configure["server_name"] + ".log");
     end
 
     if(configure["disable_route"] == nil)
