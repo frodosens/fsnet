@@ -314,11 +314,12 @@ class GameServer < GameTCPServer
 
 		agent_id = pack.read_data.read_int32()
 
-    if @agent_nodes[agent_id].nil?
+
+    if @agent_nodes["#{node.id}_#{agent_id}"].nil?
       return
     end
 
-    on_agent_node_shudown(@agent_nodes[agent_id])
+    on_agent_node_shudown(@agent_nodes["#{node.id}_#{agent_id}"])
 		@agent_nodes.delete(agent_id)
 		
 		# 通知子节点,我的父节点断开了
@@ -338,10 +339,10 @@ class GameServer < GameTCPServer
 		agent_id = pack.read_data.read_int32();
 		
 		# 建立代理节点 
-		agent_node = @agent_nodes[agent_id];
+		agent_node = @agent_nodes["#{node.id}_#{agent_id}"];
 		if(agent_node.nil?)
-			agent_node = AgentNode.new(self, node, agent_id);
-			@agent_nodes[agent_id] = agent_node;
+			agent_node = AgentNode.new(self, node, agent_id)
+			@agent_nodes["#{node.id}_#{agent_id}"] = agent_node
 		end
 		
 		# 上一级发过来的序列号
