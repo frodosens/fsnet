@@ -9,11 +9,11 @@ fsnet
 每个节点可以相互通讯. 比如2个节点, ping pong
 
 -0- 因为设计到一些配置文件,不好写完. 最好看dome吧：）
+
 下面这2个节点,是可以部署在不同的物理机器上的：）
 
 
 ``` ruby
-
 require 'game_server.rb'
 
 class GameServer < GameTCPServer
@@ -84,10 +84,6 @@ ping_conf["base_configure"]["addr_ip"] = "0.0.0.0"
 ping_conf["base_configure"]["addr_port"] = 50000
 $ping_node = PingNode.new(ping_conf)
 $ping_node.start
-
-
-
-
 
 ``` 
 
