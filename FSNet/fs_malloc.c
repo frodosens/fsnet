@@ -10,13 +10,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include "fs_define.h"
-
-
-#ifdef __APPLE__
 #include <jemalloc.h>
-#else
-#include <ruby.h>
-#endif
 
 void*
 fs_malloc(size_t len){
