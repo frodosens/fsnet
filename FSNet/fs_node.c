@@ -118,6 +118,9 @@ fs_node_is_closed( struct fs_node* node ){
 void
 fs_node_close(struct fs_node* node){
     
+    node->closed = fs_true;
+    
+    
     if(node->recv_buffer){
         fs_stream_free_output(node->recv_buffer);
         node->recv_buffer = NULL;
@@ -126,8 +129,8 @@ fs_node_close(struct fs_node* node){
     if(node->send_buffer){
         pthread_mutex_lock(&node->write_mutex);
         fs_stream_free_output(node->send_buffer);
-        pthread_mutex_unlock(&node->write_mutex);
         node->send_buffer = NULL;
+        pthread_mutex_unlock(&node->write_mutex);
     }
     pthread_mutex_destroy(&node->write_mutex);
     
@@ -143,8 +146,6 @@ fs_node_close(struct fs_node* node){
         event_free(node->write_ev);
         node->write_ev = NULL;
     }
-    node->closed = fs_true;
-    
     if(fs_node_is_from_listener(node)){
         fs_server_on_node_shudown(node->server, node->node_id);
     }
@@ -191,6 +192,11 @@ fs_node_is_from_listener(struct fs_node* node){
 void
 fs_node_recv_data(struct fs_node* node, BYTE* data, size_t len){
     
+    if(!node->recv_buffer){
+        fprintf(stderr, "fs_node_recv_data but node recvbuffer is NULL");
+        return ;
+    }
+    
     fs_stream_write_data(node->recv_buffer, data, len);
     
     const BYTE* stream_data = fs_output_stream_get_dataptr(node->recv_buffer);
@@ -219,18 +225,21 @@ fs_node_recv_data(struct fs_node* node, BYTE* data, size_t len){
 void
 fs_node_send_data(struct fs_node* node, BYTE* data, size_t len){
     
+    if(node->closed){
+        fprintf(stderr, "Try to an closed node[%d] to send data", node->node_id);
+        return;
+    }
+    
     pthread_mutex_lock(&node->write_mutex);
     if(!node->send_buffer){
         fprintf(stderr, "Try to an unreachable node[%d] to send data", node->node_id);
         pthread_mutex_unlock(&node->write_mutex);
-        
         return;
     }
     
     fs_stream_write_data(node->send_buffer, data, len);
     
     pthread_mutex_unlock(&node->write_mutex);
-    
     
     if(!event_pending(node->write_ev, EV_WRITE, NULL)){
         event_add(node->write_ev, NULL);
