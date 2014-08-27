@@ -45,7 +45,7 @@ struct fs_pack{
     struct fs_input_stream* input_stream;
     fs_script_id    data_input_stream_id;
     fs_script_id    data_output_stream_id;
-    fs_id           script_id;
+    fs_script_id    script_id;
     
 };
 
@@ -714,7 +714,7 @@ rb_Node_send_pack(VALUE self, VALUE argv){
    
     struct fs_node* node = NULL;
     Data_Get_Struct(self, struct fs_node, node);
-    if(node){
+    if(node && !fs_node_is_closed(node)){
         
         
         VALUE v_server = rb_funcall(self, rb_intern("server"), 0, 0);
@@ -788,12 +788,13 @@ void
 wrap_Pack_free (struct fs_pack* ptr)
 {
     if(ptr){
-        // 这里的DATA是在RUBY堆里生成的. 所以不需要自己free
         if(ptr->input_stream){
             fs_stream_free_input(ptr->input_stream);
+            ptr->input_stream = NULL;
         }
         if(ptr->output_stream){
             fs_stream_free_output(ptr->output_stream);
+            ptr->output_stream = NULL;
         }
         
         fs_free(ptr);
@@ -806,7 +807,7 @@ wrap_Pack_allocate (VALUE self)
     struct fs_pack* p = fs_malloc(sizeof(*p));
     fs_zero(p, sizeof(*p));
     VALUE instance = Data_Wrap_Struct (self, NULL, wrap_Pack_free, p);
-    p->script_id = (fs_id)instance;
+    p->script_id = (fs_script_id)instance;
     p->data_output_stream_id = Qnil;
     p->data_input_stream_id = Qnil;
     

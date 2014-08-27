@@ -118,17 +118,24 @@ fs_stream_write_c_string( struct fs_output_stream* stream,  const char* string){
 void
 fs_stream_write_data( struct fs_output_stream* stream,  BYTE* data, size_t len ){
     
+    if (!data) {
+        return;
+    }
+    
     if(stream->weak_ref){
         if(stream->pos + len > stream->buff_len){
             fs_assert(fs_true, "OutputStrem EOF");// 纯引用,出现溢出
         }
     }
     
-    if(stream->buff_len == 0) stream->buff_len = 1;
+    fs_assert(stream->buff_len != 0, "buff_len == 0");
+        
     while(stream->pos + len > stream->buff_len){
-        void* data = fs_realloc(stream->data, stream->buff_len << 1);
-        stream->data = data;
-        stream->buff_len = stream->buff_len << 1;
+        stream->buff_len = (stream->buff_len << 1);
+        
+        
+        
+        stream->data = fs_realloc(stream->data, stream->buff_len);
     }
     
     memcpy(stream->data + stream->pos, data, len);
