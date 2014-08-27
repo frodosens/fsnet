@@ -1,3 +1,4 @@
 #过滤log文件和.DS_Store
 *.log
 *.DS_Store
+*.O
