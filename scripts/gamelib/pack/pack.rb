@@ -78,6 +78,16 @@ class Pack < TCPPack
       return serial
     end
 
+    def create_disconnect( agent_id )
+
+      os = FSOutputStream.new()
+      os.write_int32( agent_id );
+
+      ret = create( 0, PACK_DISCONNECT, os);
+
+      return ret
+    end
+
 		def create_agent( agent_id, pack, serial=nil)
 
 			if(serial == nil)
@@ -90,7 +100,7 @@ class Pack < TCPPack
 			else
 				os.write_data( pack.read_data.data, pack.read_data.len );
 			end
-			ret = create( serial, PACK_TYPE_AGENT, os);
+      ret = create( serial, PACK_TYPE_AGENT, os);
 			return ret
 		end
 		

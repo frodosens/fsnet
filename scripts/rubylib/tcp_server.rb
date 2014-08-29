@@ -154,7 +154,7 @@ class GameTCPServer < FSServer
 			@clients[node_id].send_pack(pack);
 			return true
 		end
-		raise("#{self.name} send_pack_to target_id(#{node_id}) is NULL clients id => #{@clients.keys}")
+		raise("#{self.name} send_pack_to target_id(#{node_id}) is NULL clients id => #{@clients.keys}  pack_type => #{pack.pack_type}")
 		return false
   end
 

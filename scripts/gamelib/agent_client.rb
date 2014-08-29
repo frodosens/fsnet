@@ -20,7 +20,14 @@ class AgentNode
 			server.err(msg.message);
 		end
 	end
-	
+
+  def exit
+
+    pack = Pack.create_disconnect( @agent_id )
+    @node.send_pack(pack);
+
+
+  end
 	
 	def send_pack(pack)
 		

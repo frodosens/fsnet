@@ -1,6 +1,7 @@
 
 class FSPack
 
+
   def byte_order 
     return 0; 
   end
@@ -12,7 +13,7 @@ class FSPack
   def read_only?
     return write_data.nil?
   end
-    
+
 
 end
 

@@ -130,6 +130,7 @@ class GameServer < GameTCPServer
 
     elsif configure_file_name.class == Hash
       @configure = configure_file_name
+
     end
 		
 	
@@ -142,7 +143,7 @@ class GameServer < GameTCPServer
 		if(configure["base_configure"]["logger_file"] != nil)
 			@logger_file = Logger.new(configure["base_configure"]["logger_file"]);
 		else
-			@logger_file = Logger.new(configure["server_name"] + ".log");
+			@logger_file = Logger.new(configure["server_name"] + "log");
     end
 
     if(configure["disable_route"] == nil)
@@ -174,14 +175,13 @@ class GameServer < GameTCPServer
 		@handle_map_configure[PACK_TYPE_AS_CHILD_NODE] = "on_as_child_node"
 		@handle_map_configure[PACK_TYPE_REGIST_CHILD_PACK_HANDLE] = "on_regist_child_handle_pack"
 		@handle_map_configure[PACK_TYPE_AGENT] = "on_handle_agent"
-		@handle_map_configure[PACK_AGENT_NODE_SHUDOWN] = "on_handle_agent_shudown"
+    @handle_map_configure[PACK_AGENT_NODE_SHUDOWN] = "on_handle_agent_shudown"
+    @handle_map_configure[PACK_DISCONNECT] = "on_handle_disconnect"
 		
 		@childs_node_handle = {}
 		@childs_node = {}
 		@agent_nodes = {}
   end
-	
-	
 	
 	def find_node_by_name( node_name )
 	
@@ -288,7 +288,7 @@ class GameServer < GameTCPServer
 	end
 	
 	def method_missing(method_name, *arg, &block)
-		err("丢失方法 #{method_name} (#{arg.to_s})");	
+		raise("丢失方法 #{method_name} (#{arg.to_s})");
 	end
 	
 	
@@ -315,22 +315,27 @@ class GameServer < GameTCPServer
 	
 	# 当代理节点断开时
 	def on_agent_node_shudown(agent_node)
-		
-	end
-	
+
+  end
+
+  # 处理请求断开连接
+  def on_handle_disconnect(node, pack)
+    node_id = pack.read_data.read_uint32
+    @clients[node_id].close
+  end
+
 	# 处理一个代理节点断开
 	def on_handle_agent_shudown(node, pack)
 
 		agent_id = pack.read_data.read_int32()
-
 
     if @agent_nodes["#{node.id}_#{agent_id}"].nil?
       return
     end
 
     on_agent_node_shudown(@agent_nodes["#{node.id}_#{agent_id}"])
-		@agent_nodes.delete(agent_id)
-		
+		@agent_nodes.delete("#{node.id}_#{agent_id}")
+
 		# 通知子节点,我的父节点断开了
 		os = FSOutputStream.new()
 		os.write_uint32(agent_id)
@@ -338,25 +343,25 @@ class GameServer < GameTCPServer
 		for node in @childs_node.values
 			node.send_pack(pack)
 		end
-		
+
 	end
-	
+
 	# 处理一个代理包
 	def on_handle_agent(node, pack)
 
 		# 读出代理ID
 		agent_id = pack.read_data.read_int32();
-		
-		# 建立代理节点 
+
+		# 建立代理节点
 		agent_node = @agent_nodes["#{node.id}_#{agent_id}"];
 		if(agent_node.nil?)
 			agent_node = AgentNode.new(self, node, agent_id)
 			@agent_nodes["#{node.id}_#{agent_id}"] = agent_node
 		end
-		
+
 		# 上一级发过来的序列号
 		serial = pack.serial;
-		
+
 		pack = Pack.create_from_is( pack.read_data );
 		# 非根节点转发,不能自己生成,要统一一个序列号,不然无法返回到根节点
 		if(!child_handle_pack(node.id, pack, agent_id, serial, @@node_result_callback))
@@ -365,9 +370,9 @@ class GameServer < GameTCPServer
 			# 让代理节点处理
 			handle_pack(agent_node, pack);
 		end
-		
+
 	end
-	
+
 
 	# 当有连接关闭的时候
   def on_shudown_node(node_id)
@@ -390,7 +395,7 @@ class GameServer < GameTCPServer
 		method_name = @handle_map_configure[pack.pack_type];
 		if(method_name != nil)
 			begin
-        info("execute #{method_name}")
+        # info("execute #{method_name}")
 				pack_method = method(method_name);
 				if(pack_method != nil)
 					pack_method.call(client ,pack);
