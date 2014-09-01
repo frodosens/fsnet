@@ -1,295 +1,482 @@
-//
-//  hash.c
-//  fsnet
-//
-//  Created by Vincent on 14-5-22.
-//  Copyright (c) 2014年 Vincent. All rights reserved.
-//
-
-#include <stdio.h>
-
-
 /*
- * list.c
- *        Generic linked list implementation.
- *        cheungmine
- *      Sep. 22, 2007.  All rights reserved.
+ *    strmap version 2.0.1
+ *
+ *    ANSI C hash table for strings.
+ *
+ *	  Version history:
+ *	  1.0.0 - initial release
+ *	  2.0.0 - changed function prefix from strmap to sm to ensure
+ *	      ANSI C compatibility
+ *	  2.0.1 - improved documentation
+ *
+ *    strmap.c
+ *
+ *    Copyright (c) 2009, 2011, 2013 Per Ola Kristensson.
+ *
+ *    Per Ola Kristensson <pok21@cam.ac.uk>
+ *    Inference Group, Department of Physics
+ *    University of Cambridge
+ *    Cavendish Laboratory
+ *    JJ Thomson Avenue
+ *    CB3 0HE Cambridge
+ *    United Kingdom
+ *
+ *    strmap is free software: you can redistribute it and/or modify
+ *    it under the terms of the GNU Lesser General Public License as published by
+ *    the Free Software Foundation, either version 3 of the License, or
+ *    (at your option) any later version.
+ *
+ *    strmap is distributed in the hope that it will be useful,
+ *    but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *    GNU Lesser General Public License for more details.
+ *
+ *    You should have received a copy of the GNU Lesser General Public License
+ *    along with strmap.  If not, see <http://www.gnu.org/licenses/>.
  */
-
-#include "fs_malloc.h"
 #include "hash.h"
+#include "fs_malloc.h"
 
-/* Appends a node to a list */
-void
-list_append_node(list_t *in_list, listnode_t *node)
+typedef struct Pair Pair;
+
+typedef struct Bucket Bucket;
+
+struct Pair {
+	char *key;
+	void *value;
+};
+
+struct Bucket {
+	unsigned int count;
+	Pair *pairs;
+};
+
+struct StrMap {
+	unsigned int count;
+	Bucket *buckets;
+};
+
+static Pair * get_pair(Bucket *bucket, const char *key);
+static unsigned long hash(const char *str);
+
+StrMap * sm_new(unsigned int capacity)
 {
-    node->next = NULL;
+	StrMap *map;
+	
+	map = fs_malloc(sizeof(StrMap));
+	if (map == NULL) {
+		return NULL;
+	}
+	map->count = capacity;
+	map->buckets = fs_malloc(map->count * sizeof(Bucket));
+	if (map->buckets == NULL) {
+		fs_free(map);
+		return NULL;
+	}
+	memset(map->buckets, 0, map->count * sizeof(Bucket));
+	return map;
+}
+
+void sm_delete(StrMap *map)
+{
+	unsigned int i, j, n, m;
+	Bucket *bucket;
+	Pair *pair;
     
-    if (in_list->head)
-    {
-        in_list->tail->next = node;
-        in_list->tail = node;
-    }
-    else
-        in_list->head = in_list->tail = node;
+	if (map == NULL) {
+		return;
+	}
+	n = map->count;
+	bucket = map->buckets;
+	i = 0;
+	while (i < n) {
+		m = bucket->count;
+		pair = bucket->pairs;
+		j = 0;
+		while(j < m) {
+			fs_free(pair->key);
+			pair++;
+			j++;
+		}
+		fs_free(bucket->pairs);
+		bucket++;
+		i++;
+	}
+	fs_free(map->buckets);
+	fs_free(map);
+}
+
+void* sm_get(const StrMap *map, const char *key)
+{
+	unsigned int index;
+	Bucket *bucket;
+	Pair *pair;
     
-    in_list->size++;
+	if (map == NULL) {
+		return 0;
+	}
+	if (key == NULL) {
+		return 0;
+	}
+	index = hash(key) % map->count;
+	bucket = &(map->buckets[index]);
+	pair = get_pair(bucket, key);
+	if (pair == NULL) {
+		return NULL;
+	}
+    return pair->value;
 }
 
-/* Removes the first node from a list and returns it */
-listnode_t*
-list_remove_head(list_t *in_list)
+int sm_exists(const StrMap *map, const char *key)
 {
-    listnode_t    *node = NULL;
-    if (in_list->head)
-    {
-        node = in_list->head;
-        in_list->head = in_list->head->next;
-        if (in_list->head == NULL)
-            in_list->tail = NULL;
-        node->next = NULL;
-        
-        in_list->size--;
-    }
-    return node;
-}
-
-/* Removes all nodes but for list itself */
-void
-list_remove_all(list_t *in_list, pfcb_list_node_free pf)
-{
-    listnode_t    *node;
-    while((node = list_remove_head(in_list))){
-        if (pf) (*pf)(node);
-        fs_free(node);
-    }
-    fs_assert (in_list->size==0, "");
-}
-
-/* Returns a copy of a list_t from heap */
-list_t*
-list_copy(list_t list)
-{
-    list_t    *newlist = (list_t*)fs_malloc (sizeof(list_t));
-    *newlist = list;
-    return newlist;
-}
-
-/* Concatenates two lists into first list */
-void
-list_concat(list_t *first, list_t *second)
-{
-    if (first->head)
-    {
-        if (second->head)
-        {
-            first->tail->next = second->head;
-            first->tail = second->tail;
-        }
-    }
-    else
-        *first = *second;
-    second->head = second->tail = NULL;
+	unsigned int index;
+	Bucket *bucket;
+	Pair *pair;
     
-    first->size += second->size;
+	if (map == NULL) {
+		return 0;
+	}
+	if (key == NULL) {
+		return 0;
+	}
+	index = hash(key) % map->count;
+	bucket = &(map->buckets[index]);
+	pair = get_pair(bucket, key);
+	if (pair == NULL) {
+		return 0;
+	}
+	return 1;
 }
 
-/* Allocates a new listnode_t from heap */
-listnode_t*
-list_node_create(void* data)
+int sm_put(StrMap *map, const char *key, void *value)
 {
-    listnode_t    *node = (listnode_t*)fs_malloc (sizeof(listnode_t));
-    node->next = NULL;
-    node->data = data;
-    return node;
-}
-
-listnode_t*
-list_key_create(long key)
-{
-    listnode_t    *node = (listnode_t*)fs_malloc (sizeof(listnode_t));
-    node->next = NULL;
-    node->key = key;
-    return node;
-}
-
-/* Allocates a empty list_t from heap */
-list_t*
-list_create()
-{
-    list_t    *list = (list_t*)fs_malloc (sizeof(list_t));
-    list->size = 0;
-    list->head = list->tail = NULL;
-    return list;
-}
-
-/* Frees a empty list_t from heap */
-void
-list_destroy(list_t *in_list, pfcb_list_node_free  pf)
-{
-    list_remove_all(in_list, pf);
-    fs_free(in_list);
-}
-
-/* Gets count of nodes in the list */
-size_t
-list_size(const list_t* in_list)
-{
-    return in_list->size;
-}
-
-/* Gets node by index 0-based. 0 is head */
-listnode_t*
-list_node_at(const list_t* in_list, int index)
-{
-    int  i=0;
-    listnode_t    *node = in_list->head;
+	size_t key_len, index;
+	Bucket *bucket;
+	Pair *tmp_pairs, *pair;
+	char *new_key;
     
-    fs_assert(index >=0 && index < (int)in_list->size, "");
-    
-    while (i < index)
-    {
-        node = node->next;
-        i++;
-    }
-    
-    return node;
+	if (map == NULL) {
+		return 0;
+	}
+	if (key == NULL || value == NULL) {
+		return 0;
+	}
+	key_len = strlen(key);
+	/* Get a pointer to the bucket the key string hashes to */
+	index = hash(key) % map->count;
+	bucket = &(map->buckets[index]);
+	/* Check if we can handle insertion by simply replacing
+	 * an existing value in a key-value pair in the bucket.
+	 */
+	if ((pair = get_pair(bucket, key)) != NULL) {
+        pair->value = value;
+		return 1;
+	}
+	/* Allocate space for a new key and value */
+	new_key = fs_malloc((key_len + 1) * sizeof(char));
+	if (new_key == NULL) {
+		return 0;
+	}
+    strcpy(new_key, key);
+	/* Create a key-value pair */
+	if (bucket->count == 0) {
+		/* The bucket is empty, lazily allocate space for a single
+		 * key-value pair.
+		 */
+		bucket->pairs = fs_malloc(sizeof(Pair));
+		if (bucket->pairs == NULL) {
+			fs_free(new_key);
+			return 0;
+		}
+		bucket->count = 1;
+	}
+	else {
+		/* The bucket wasn't empty but no pair existed that matches the provided
+		 * key, so create a new key-value pair.
+		 */
+		tmp_pairs = fs_realloc(bucket->pairs, (bucket->count + 1) * sizeof(Pair));
+		if (tmp_pairs == NULL) {
+			fs_free(new_key);
+			return 0;
+		}
+		bucket->pairs = tmp_pairs;
+		bucket->count++;
+	}
+	/* Get the last pair in the chain for the bucket */
+	pair = &(bucket->pairs[bucket->count - 1]);
+	pair->key = new_key;
+    pair->value = value;
+	/* Copy the key and its value into the key-value pair */
+	strcpy(pair->key, key);
+	return 1;
 }
 
+int sm_get_count(const StrMap *map)
+{
+	unsigned int i, j, n, m;
+	unsigned int count;
+	Bucket *bucket;
+	Pair *pair;
+    
+	if (map == NULL) {
+		return 0;
+	}
+	bucket = map->buckets;
+	n = map->count;
+	i = 0;
+	count = 0;
+	while (i < n) {
+		pair = bucket->pairs;
+		m = bucket->count;
+		j = 0;
+		while (j < m) {
+			count++;
+			pair++;
+			j++;
+		}
+		bucket++;
+		i++;
+	}
+	return count;
+}
 
+int sm_enum(const StrMap *map, sm_enum_func enum_func, const void *obj)
+{
+	unsigned int i, j, n, m;
+	Bucket *bucket;
+	Pair *pair;
+    
+	if (map == NULL) {
+		return 0;
+	}
+	if (enum_func == NULL) {
+		return 0;
+	}
+	bucket = map->buckets;
+	n = map->count;
+	i = 0;
+	while (i < n) {
+		pair = bucket->pairs;
+		m = bucket->count;
+		j = 0;
+		while (j < m) {
+			enum_func(pair->key, pair->value, obj);
+			pair++;
+			j++;
+		}
+		bucket++;
+		i++;
+	}
+	return 1;
+}
 
 /*
- * hashmap.c
- *        Generic hashmap implementation.
- *      a map for pair of key-value. key must be a null-end string, value is any type of data.
- *        cheungmine
- *      Sep. 22, 2007.  All rights reserved.
+ * Returns a pair from the bucket that matches the provided key,
+ * or null if no such pair exist.
  */
-
-
-typedef struct _hash_map_t
+static Pair * get_pair(Bucket *bucket, const char *key)
 {
-    size_t            size;
-    listnode_t**    key;
-    listnode_t**    value;
-}hash_map_t;
-
-/* Hash a string, return a hash key */
-static ulong  hash_string(const char  *s, int len)
-{
-    ulong h = 0;
-    int   i = 0;
-    assert (s);
-    if (len < 0)
-        len = (s? (int)strlen(s): 0);
-    while(i++ < len) { h = 17*h + *s++; }
-    return h;
+	unsigned int i, n;
+	Pair *pair;
+    
+	n = bucket->count;
+	if (n == 0) {
+		return NULL;
+	}
+	pair = bucket->pairs;
+	i = 0;
+	while (i < n) {
+		if (pair->key != NULL && pair->value != NULL) {
+			if (strcmp(pair->key, key) == 0) {
+				return pair;
+			}
+		}
+		pair++;
+		i++;
+	}
+	return NULL;
 }
 
-static void _free_map_key(listnode_t* node)
+/*
+ * Returns a hash code for the provided string.
+ */
+static unsigned long hash(const char *str)
 {
-    listnode_t    *old;
-    while(node)
-    {
-        old = node;
-        node = node->next;
-        
-        fs_free(old->data);
-        fs_free (old);
-    }
+	unsigned long hash = 5381;
+	int c;
+    
+	while ((c = *str++) != '\0') {
+		hash = ((hash << 5) + hash) + c;
+	}
+	return hash;
 }
 
-static void _free_map_value(listnode_t* node, pfcb_hmap_value_free pfunc)
-{
-    listnode_t    *old;
-    while(node)
-    {
-        old = node;
-        node = node->next;
-        
-        if (pfunc)
-            (*pfunc)(old->data);
-        fs_free (old);
-    }
-}
-
-/*=============================================================================
- Public Functions
- =============================================================================*/
-/* Create before use */
-void
-hmap_create(hash_map *hmap, int size)
-{
-    (*hmap) = (hash_map_t*) fs_malloc(sizeof(hash_map_t));
-    (*hmap)->size = size;
-    (*hmap)->key = (listnode_t**) fs_calloc(size, sizeof(listnode_t*));
-    (*hmap)->value = (listnode_t**) fs_calloc(size, sizeof(listnode_t*));
-}
-
-/* Destroy after use */
-extern void
-hmap_destroy(hash_map hmap, pfcb_hmap_value_free pfunc)
-{
-    size_t i;
-    for(i=0; i<hmap->size; i++){
-        _free_map_key(hmap->key[i]);
-        _free_map_value(hmap->value[i], pfunc);
-    }
-    
-    fs_free(hmap->key);
-    fs_free(hmap->value);
-    fs_free(hmap);
-}
-
-
-/* Insert a key-value into hash map. value is a pointer to callee-allocated memory */
-void
-hmap_insert(hash_map hmap, const char* key, int key_len, void* value)
-{
-    listnode_t    *node_key, *node_val;
-    ulong        h;
-    char        *s;
-    assert (key);
-    
-    if (key_len<0) key_len = (int) strlen (key);
-    s = (char*) fs_malloc (key_len+1);
-    assert(s);
-    
-#pragma warning(push)    /* C4996 */
-#pragma warning( disable : 4996 )
-    strncpy (s, key, key_len);
-#pragma warning(pop)    /* C4996 */
-    s[key_len] = 0;
-    
-    node_key = list_node_create ( (void*)s );
-    node_val = list_node_create ( value );
-    assert(node_key && node_val);
-    
-    h = hash_string (s, key_len) % hmap->size;
-    
-    node_key->next = hmap->key[h];
-    hmap->key[h] = node_key;
-    
-    node_val->next = hmap->value[h];
-    hmap->value[h] = node_val;
-}
-
-/* Search a hash map for value of given key string */
-void*
-hmap_search(hash_map hmap, const char *key)
-{
-    ulong        h    = hash_string (key, -1) % hmap->size;
-    listnode_t  *pk = hmap->key[h];
-    listnode_t  *pv = hmap->value[h];
-    
-    while (pk)
-    {
-        if (strcmp(key, pk->str) == 0)
-            return pv->data;
-        pk = pk->next;
-        pv = pv->next;
-    }
-    
-    return NULL;
-}
-
+/*
+ 
+ GNU LESSER GENERAL PUBLIC LICENSE
+ Version 3, 29 June 2007
+ 
+ Copyright (C) 2007 Free Software Foundation, Inc. <http://fsf.org/>
+ Everyone is permitted to copy and distribute verbatim copies
+ of this license document, but changing it is not allowed.
+ 
+ 
+ This version of the GNU Lesser General Public License incorporates
+ the terms and conditions of version 3 of the GNU General Public
+ License, supplemented by the additional permissions listed below.
+ 
+ 0. Additional Definitions.
+ 
+ As used herein, "this License" refers to version 3 of the GNU Lesser
+ General Public License, and the "GNU GPL" refers to version 3 of the GNU
+ General Public License.
+ 
+ "The Library" refers to a covered work governed by this License,
+ other than an Application or a Combined Work as defined below.
+ 
+ An "Application" is any work that makes use of an interface provided
+ by the Library, but which is not otherwise based on the Library.
+ Defining a subclass of a class defined by the Library is deemed a mode
+ of using an interface provided by the Library.
+ 
+ A "Combined Work" is a work produced by combining or linking an
+ Application with the Library.  The particular version of the Library
+ with which the Combined Work was made is also called the "Linked
+ Version".
+ 
+ The "Minimal Corresponding Source" for a Combined Work means the
+ Corresponding Source for the Combined Work, excluding any source code
+ for portions of the Combined Work that, considered in isolation, are
+ based on the Application, and not on the Linked Version.
+ 
+ The "Corresponding Application Code" for a Combined Work means the
+ object code and/or source code for the Application, including any data
+ and utility programs needed for reproducing the Combined Work from the
+ Application, but excluding the System Libraries of the Combined Work.
+ 
+ 1. Exception to Section 3 of the GNU GPL.
+ 
+ You may convey a covered work under sections 3 and 4 of this License
+ without being bound by section 3 of the GNU GPL.
+ 
+ 2. Conveying Modified Versions.
+ 
+ If you modify a copy of the Library, and, in your modifications, a
+ facility refers to a function or data to be supplied by an Application
+ that uses the facility (other than as an argument passed when the
+ facility is invoked), then you may convey a copy of the modified
+ version:
+ 
+ a) under this License, provided that you make a good faith effort to
+ ensure that, in the event an Application does not supply the
+ function or data, the facility still operates, and performs
+ whatever part of its purpose remains meaningful, or
+ 
+ b) under the GNU GPL, with none of the additional permissions of
+ this License applicable to that copy.
+ 
+ 3. Object Code Incorporating Material from Library Header Files.
+ 
+ The object code form of an Application may incorporate material from
+ a header file that is part of the Library.  You may convey such object
+ code under terms of your choice, provided that, if the incorporated
+ material is not limited to numerical parameters, data structure
+ layouts and accessors, or small macros, inline functions and templates
+ (ten or fewer lines in length), you do both of the following:
+ 
+ a) Give prominent notice with each copy of the object code that the
+ Library is used in it and that the Library and its use are
+ covered by this License.
+ 
+ b) Accompany the object code with a copy of the GNU GPL and this license
+ document.
+ 
+ 4. Combined Works.
+ 
+ You may convey a Combined Work under terms of your choice that,
+ taken together, effectively do not restrict modification of the
+ portions of the Library contained in the Combined Work and reverse
+ engineering for debugging such modifications, if you also do each of
+ the following:
+ 
+ a) Give prominent notice with each copy of the Combined Work that
+ the Library is used in it and that the Library and its use are
+ covered by this License.
+ 
+ b) Accompany the Combined Work with a copy of the GNU GPL and this license
+ document.
+ 
+ c) For a Combined Work that displays copyright notices during
+ execution, include the copyright notice for the Library among
+ these notices, as well as a reference directing the user to the
+ copies of the GNU GPL and this license document.
+ 
+ d) Do one of the following:
+ 
+ 0) Convey the Minimal Corresponding Source under the terms of this
+ License, and the Corresponding Application Code in a form
+ suitable for, and under terms that permit, the user to
+ recombine or relink the Application with a modified version of
+ the Linked Version to produce a modified Combined Work, in the
+ manner specified by section 6 of the GNU GPL for conveying
+ Corresponding Source.
+ 
+ 1) Use a suitable shared library mechanism for linking with the
+ Library.  A suitable mechanism is one that (a) uses at run time
+ a copy of the Library already present on the user's computer
+ system, and (b) will operate properly with a modified version
+ of the Library that is interface-compatible with the Linked
+ Version.
+ 
+ e) Provide Installation Information, but only if you would otherwise
+ be required to provide such information under section 6 of the
+ GNU GPL, and only to the extent that such information is
+ necessary to install and execute a modified version of the
+ Combined Work produced by recombining or relinking the
+ Application with a modified version of the Linked Version. (If
+ you use option 4d0, the Installation Information must accompany
+ the Minimal Corresponding Source and Corresponding Application
+ Code. If you use option 4d1, you must provide the Installation
+ Information in the manner specified by section 6 of the GNU GPL
+ for conveying Corresponding Source.)
+ 
+ 5. Combined Libraries.
+ 
+ You may place library facilities that are a work based on the
+ Library side by side in a single library together with other library
+ facilities that are not Applications and are not covered by this
+ License, and convey such a combined library under terms of your
+ choice, if you do both of the following:
+ 
+ a) Accompany the combined library with a copy of the same work based
+ on the Library, uncombined with any other library facilities,
+ conveyed under the terms of this License.
+ 
+ b) Give prominent notice with the combined library that part of it
+ is a work based on the Library, and explaining where to find the
+ accompanying uncombined form of the same work.
+ 
+ 6. Revised Versions of the GNU Lesser General Public License.
+ 
+ The Free Software Foundation may publish revised and/or new versions
+ of the GNU Lesser General Public License from time to time. Such new
+ versions will be similar in spirit to the present version, but may
+ differ in detail to address new problems or concerns.
+ 
+ Each version is given a distinguishing version number. If the
+ Library as you received it specifies that a certain numbered version
+ of the GNU Lesser General Public License "or any later version"
+ applies to it, you have the option of following the terms and
+ conditions either of that published version or of any later version
+ published by the Free Software Foundation. If the Library as you
+ received it does not specify a version number of the GNU Lesser
+ General Public License, you may choose any version of the GNU Lesser
+ General Public License ever published by the Free Software Foundation.
+ 
+ If the Library as you received it specifies that a proxy can decide
+ whether future versions of the GNU Lesser General Public License shall
+ apply, that proxy's public statement of acceptance of any version is
+ permanent authorization for you to choose that version for the
+ Library.
+ 
+ */

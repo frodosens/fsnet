@@ -82,7 +82,7 @@ struct fs_server{
     
     
     
-    hash_map node_map;
+    struct StrMap* node_map;
     
     fn_fs_pack_handle  _fn_pack_handle;
     fn_fs_pack_parse   _fn_pack_parse;
@@ -109,7 +109,7 @@ static void
 fs_server_add_node(struct fs_server* server, fs_id node_id, struct fs_node* node){
     char key[64];
     snprintf(key, 64, "%d", node_id);
-    hmap_insert(server->node_map, key, -1, node);
+    sm_put(server->node_map, key, node);
 }
 
 static void
@@ -301,7 +301,7 @@ fs_create_server(const char* server_name ){
     fs_zero(ret, sizeof(*ret));
     strncpy(ret->name, server_name, 64);
     ret->loopque = fs_create_loop_queue(LOOP_QUE_LEN);
-    hmap_create (&ret->node_map, HASHMAP_SIZE);
+    ret->node_map = sm_new (2048);
     
     return ret;
     
@@ -366,7 +366,7 @@ fs_server_stop(struct fs_server* server, int32_t what){
     
     
     if(server->node_map){
-        hmap_destroy(server->node_map, __hahs_destroy_fn);
+        sm_delete(server->node_map);
         server->node_map = NULL;
     }
     
@@ -585,7 +585,7 @@ fs_server_find_node_by_id(struct fs_server* server, fs_id id){
     char key[64];
     snprintf(key, 64, "%d", id);
     
-    void* value = hmap_search(server->node_map, key);
+    void* value = sm_get(server->node_map, key);
     
     if(value){
         return (struct fs_node*)value;

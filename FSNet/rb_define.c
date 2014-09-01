@@ -33,7 +33,7 @@ void rb_define_fs_stream();
 void rb_define_fs_http();
 
 // 5(1字节序 + 4字节长度)
-static int16_t pack_head_len = 5;
+static uint32_t pack_head_len = 5;
 
 struct fs_pack{
     
@@ -742,7 +742,6 @@ rb_Node_close(VALUE self){
     struct fs_node* node = NULL;
     Data_Get_Struct(self, struct fs_node, node);
     if(node) {
-        fs_node_set_script_id(node, Qnil);
         if(!fs_node_is_closed(node)){
             fs_node_shudown(node);
         }

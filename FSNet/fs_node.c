@@ -32,6 +32,7 @@ struct fs_node{
     struct fs_output_stream* recv_buffer;
     struct fs_output_stream* send_buffer;
     pthread_mutex_t write_mutex;
+    pthread_mutex_t close_mutex;
     fs_bool         closed;
     fs_script_id    script_id;
     
@@ -96,9 +97,11 @@ fs_node_bind_event(struct fs_node* node,
     node->send_buffer = fs_create_output_stream_ext;
     
     pthread_mutex_init(&node->write_mutex, NULL);
+    pthread_mutex_init(&node->close_mutex, NULL);
     event_add(node->read_ev, NULL);
     event_add(node->write_ev, NULL);
     
+    goto success;
     
 success:
     return fs_true;
@@ -111,17 +114,31 @@ fail:
 
 fs_bool
 fs_node_is_closed( struct fs_node* node ){
-    return node->closed;
+    
+    pthread_mutex_lock(&node->close_mutex);
+    fs_bool ret = node->closed;
+    pthread_mutex_unlock(&node->close_mutex);
+    return ret;
+    
+}
+
+void
+fs_node_set_closed( struct fs_node* node ){
+    
+    pthread_mutex_lock(&node->close_mutex);
+    node->closed = fs_true;
+    pthread_mutex_unlock(&node->close_mutex);
+    
 }
 
 
 void
 fs_node_close(struct fs_node* node){
     
-    if(node->closed)
+    if(fs_node_is_closed(node))
         return;
     
-    node->closed = fs_true;
+    fs_node_set_closed(node);
     
     if(node->recv_buffer){
         fs_stream_free_output(node->recv_buffer);
@@ -135,11 +152,10 @@ fs_node_close(struct fs_node* node){
         pthread_mutex_unlock(&node->write_mutex);
     }
     pthread_mutex_destroy(&node->write_mutex);
+    pthread_mutex_destroy(&node->close_mutex);
     
-    if(node->socket != 0){
-        evutil_closesocket(node->socket);
-        node->socket = 0;
-    }
+    fs_node_close_socket(node);
+    
     if(node->read_ev != NULL){
         event_free(node->read_ev);
         node->read_ev = NULL;
@@ -159,6 +175,14 @@ void
 fs_node_shudown( struct fs_node* node ){
     if( ! fs_server_close_node(node->server, node->node_id) ){
         fs_node_close(node);
+    }
+}
+
+void
+fs_node_close_socket(struct fs_node* node){
+    if(node->socket != 0){
+        evutil_closesocket(node->socket);
+        node->socket = 0;
     }
 }
 
@@ -227,7 +251,7 @@ fs_node_recv_data(struct fs_node* node, BYTE* data, size_t len){
 void
 fs_node_send_data(struct fs_node* node, BYTE* data, size_t len){
     
-    if(node->closed){
+    if(fs_node_is_closed(node)){
         fprintf(stderr, "Try to an closed node[%d] to send data", node->node_id);
         return;
     }
@@ -265,7 +289,7 @@ libevent_cb_node_onsend_data(int socket, short event, void* arg){
     ssize_t nwrite = 0;
     ssize_t nwrited = 0;
     while (nsize > 0) {
-        nwrite = send(node->socket, data + len - nsize, nsize, 0);
+        nwrite = send(node->socket, (BYTE*)data + (len - nsize), nsize, 0);
         if(nwrite > 0){
             nwrited += nwrite;
         }

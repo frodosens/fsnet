@@ -22,6 +22,7 @@ struct  fs_node* fs_create_node(struct fs_server*);
 fs_bool fs_node_bind_event( struct fs_node* , fs_id , int , struct sockaddr*, socklen_t, struct fs_server*, struct event_base* );
 void    fs_node_send_data(struct fs_node* node, BYTE* data, size_t len);
 void    fs_node_shudown(struct fs_node* node);
+void    fs_node_close_socket(struct fs_node* node);
 void    fs_node_close(struct fs_node* node);
 fs_id   fs_node_get_id(struct fs_node* node_id);
 fs_bool fs_node_is_active( struct fs_node* );
