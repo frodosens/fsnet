@@ -118,8 +118,10 @@ fs_node_is_closed( struct fs_node* node ){
 void
 fs_node_close(struct fs_node* node){
     
-    node->closed = fs_true;
+    if(node->closed)
+        return;
     
+    node->closed = fs_true;
     
     if(node->recv_buffer){
         fs_stream_free_output(node->recv_buffer);
