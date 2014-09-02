@@ -739,12 +739,11 @@ rb_Node_send_pack(VALUE self, VALUE argv){
 
 VALUE
 rb_Node_close(VALUE self){
+    
     struct fs_node* node = NULL;
     Data_Get_Struct(self, struct fs_node, node);
     if(node) {
-        if(!fs_node_is_closed(node)){
-            fs_node_shudown(node);
-        }
+        fs_node_shudown(node);
         return Qtrue;
     }else{
         rb_raise(rb_eRuntimeError, "NODE is NULL");

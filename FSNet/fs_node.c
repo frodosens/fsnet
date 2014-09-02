@@ -135,10 +135,11 @@ fs_node_set_closed( struct fs_node* node ){
 void
 fs_node_close(struct fs_node* node){
     
-    if(fs_node_is_closed(node))
-        return;
     
-    fs_node_set_closed(node);
+    pthread_mutex_lock(&node->close_mutex);
+    
+    if(node->closed) return;
+    node->closed = fs_true;
     
     if(node->recv_buffer){
         fs_stream_free_output(node->recv_buffer);
@@ -152,7 +153,6 @@ fs_node_close(struct fs_node* node){
         pthread_mutex_unlock(&node->write_mutex);
     }
     pthread_mutex_destroy(&node->write_mutex);
-    pthread_mutex_destroy(&node->close_mutex);
     
     fs_node_close_socket(node);
     
@@ -167,6 +167,10 @@ fs_node_close(struct fs_node* node){
     if(fs_node_is_from_listener(node)){
         fs_server_on_node_shudown(node->server, node->node_id);
     }
+    
+    pthread_mutex_unlock(&node->close_mutex);
+    pthread_mutex_destroy(&node->close_mutex);
+    
 
 }
 

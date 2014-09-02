@@ -68,6 +68,9 @@ struct fs_server{
     pthread_mutex_t pthread_work_mutex;
     pthread_cond_t pthread_work_cond;
     
+    
+    pthread_mutex_t pthread_node_mutex;
+    
     uint32_t listener_node_serial_id;
     uint32_t connect_node_serial_id;
     
@@ -107,9 +110,14 @@ fs_server_next_connect_id(struct fs_server* server){
 
 static void
 fs_server_add_node(struct fs_server* server, fs_id node_id, struct fs_node* node){
+    
+    pthread_mutex_lock(&server->pthread_node_mutex);
+    
     char key[64];
     snprintf(key, 64, "%d", node_id);
     sm_put(server->node_map, key, node);
+    
+    pthread_mutex_unlock(&server->pthread_node_mutex);
 }
 
 static void
@@ -313,6 +321,7 @@ fs_server_start(struct fs_server* server, struct fs_node_addr* addr, enum fs_ser
     memcpy(&server->addr, addr, sizeof(struct fs_node_addr));
     server->server_type = type;
     server->running = fs_true;
+    pthread_mutex_init(&server->pthread_node_mutex, NULL);
     
     pthread_create(&server->pthread_io_id,   NULL, fs_server_io_thread, server);
     
@@ -657,7 +666,6 @@ fs_server_close_node(struct fs_server* server, fs_id node_id){
         fs_node_close(node);
         return fs_true;
     }
-    
     
     return fs_false;
 }
