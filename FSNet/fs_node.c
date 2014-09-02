@@ -287,6 +287,14 @@ libevent_cb_node_onsend_data(int socket, short event, void* arg){
     struct fs_node* node = (struct fs_node*)arg;
     
     pthread_mutex_lock(&node->write_mutex);
+    
+    if(node->send_buffer == NULL)
+    {
+        event_del(node->write_ev);
+        pthread_mutex_unlock(&node->write_mutex);
+        return;
+    }
+    
     void* data = (void*)fs_output_stream_get_dataptr(node->send_buffer);
     size_t len = fs_output_stream_get_len(node->send_buffer);
     ssize_t nsize = len;
