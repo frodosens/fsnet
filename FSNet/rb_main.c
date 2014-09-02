@@ -53,6 +53,8 @@ fs_rb_start(const char* main_file, int pathc, const char** pathv){
         rb_eval_string(path);
     }
     
+    rb_eval_string("ARGV << '-xcode'");
+    
     ruby_show_version();
     ruby_script("fsnet");
     rb_load_protect(rb_str_buf_new_cstr(main_file), 0, &ret);

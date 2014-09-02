@@ -343,6 +343,9 @@ fs_server_stop(struct fs_server* server, int32_t what){
     if(!server->running){
         return;
     }
+    
+    event_base_loopbreak(server->event);
+    
     server->running = fs_false;
     
     struct fs_pack* pack = NULL;
@@ -373,7 +376,6 @@ fs_server_stop(struct fs_server* server, int32_t what){
     fs_server_clean_callback(server);
     
     pthread_cond_signal(&server->pthread_work_cond);
-    
     pthread_cond_destroy(&server->pthread_work_cond);
     pthread_mutex_destroy(&server->pthread_work_mutex);
     
