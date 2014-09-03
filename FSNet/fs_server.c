@@ -340,9 +340,9 @@ fs_server_start(struct fs_server* server, struct fs_node_addr* addr, enum fs_ser
 
 
 void
-__hahs_destroy_fn(void* data){
-    if(data){
-        struct fs_node* node = (struct fs_node*)data;
+__hash_each(const char* key, void* val, const void* server){
+    if(val){
+        struct fs_node* node = (struct fs_node*)val;
         fs_node_shudown(node);
     }
 }
@@ -378,6 +378,7 @@ fs_server_stop(struct fs_server* server, int32_t what){
     
     
     if(server->node_map){
+        sm_enum(server->node_map, __hash_each, server);
         sm_delete(server->node_map);
         server->node_map = NULL;
     }

@@ -64,7 +64,7 @@ extern "C"
      *
      * Return value: None.
      */
-    typedef void(*sm_enum_func)(const char *key, const char *value, const void *obj);
+    typedef void(*sm_enum_func)(const char *key, void *value, const void *obj);
     
     /*
      * Creates a string map.
