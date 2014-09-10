@@ -2,7 +2,6 @@ require 'yaml'
 require 'logger'
 require 'tcp_server.rb'
 require 'agent_client.rb'
-require 'cmds/game_cmds.rb'
 require 'pack/pack_type.rb'
 require 'pack/pack.rb'
 
@@ -105,8 +104,6 @@ end
 
 
 class GameServer < GameTCPServer
-
-  include GameCMDS
 
   attr_reader :configure;
   attr_reader :handle_map_configure;
@@ -406,7 +403,7 @@ class GameServer < GameTCPServer
         end
       rescue => e
         err(e.message);
-        client.tips(L(e.message), pack.serial);
+        client.tips(e.message, pack.serial);
       end
     else
       warn("#{name} 无法找到处理#{pack.pack_type}协议的方法");
