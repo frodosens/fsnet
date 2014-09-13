@@ -353,9 +353,10 @@ fs_server_stop(struct fs_server* server, int32_t what){
         return;
     }
     
-    event_base_loopbreak(server->event);
-    
     server->running = fs_false;
+    
+    
+    event_base_loopbreak(server->event);
     
     struct fs_pack* pack = NULL;
     do{
@@ -389,9 +390,15 @@ fs_server_stop(struct fs_server* server, int32_t what){
     pthread_cond_destroy(&server->pthread_work_cond);
     pthread_mutex_destroy(&server->pthread_work_mutex);
     
-    event_base_free(server->event);
-    
-    fs_loop_queue_free(server->loopque);
+    if(server->event != NULL){
+        event_base_free(server->event);
+        server->event = NULL
+    }
+
+    if(server->loopque != NULL){
+        fs_loop_queue_free(server->loopque);
+        server->loopque = NULL;
+    }
 }
 
 static void
@@ -511,6 +518,10 @@ fs_server_on_recv_pack(struct fs_server* server, struct fs_pack* pack){
     
     fs_bool ret = fs_true;
     
+    if(!server->loopque){
+        return ret;
+    }
+    
     if(fs_loop_queue_push(server->loopque, pack)){
         fs_server_need_work(server);
     }else{
@@ -597,6 +608,11 @@ fs_server_find_node_by_id(struct fs_server* server, fs_id id){
     char key[64];
     snprintf(key, 64, "%d", id);
     
+    if(server->node_map == NULL)
+    {
+        return NULL;
+    }
+    
     void* value = sm_get(server->node_map, key);
     
     if(value){
@@ -673,6 +689,10 @@ fs_server_close_node(struct fs_server* server, fs_id node_id){
 
 fs_bool
 fs_server_handle_pack(struct fs_server* server ){
+    
+    if(!server->loopque){
+        return fs_false;
+    }
     
     struct fs_pack* pack = fs_loop_queue_pop(server->loopque);
     if(pack == NULL){
