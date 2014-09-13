@@ -392,7 +392,7 @@ fs_server_stop(struct fs_server* server, int32_t what){
     
     if(server->event != NULL){
         event_base_free(server->event);
-        server->event = NULL
+        server->event = NULL;
     }
 
     if(server->loopque != NULL){
