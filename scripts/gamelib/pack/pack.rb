@@ -19,7 +19,7 @@ class Pack < TCPPack
   end 
   
 	def init_from_is( is, copy=false )
-		@serial     = is.read_uint32();	# 2
+		@serial     = is.read_uint32();	# 4
     @pack_type  = is.read_int16();	# 2
     @version    = is.read_byte();		# 1
     @make_sum   = is.read_int16();  # 2

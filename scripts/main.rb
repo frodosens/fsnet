@@ -1,11 +1,14 @@
-require 'fsnet'
+
+unless ARGV.include?("-xcode")
+    require 'fsnet'
+end
 
 module FSNET
 	
 	class << self
 		
 		alias :game_init :init
-		
+    
 		def init
 			game_init();
 			init_load_path();
@@ -44,6 +47,7 @@ module FSNET
 			$LOAD_PATH.unshift(File.dirname(__FILE__))
 			$LOAD_PATH.unshift(File.dirname(__FILE__) + "/rubylib");
 			$LOAD_PATH.unshift(File.dirname(__FILE__) + "/gamelib");
+			$LOAD_PATH.unshift(File.dirname(__FILE__) + "/mobile_server");
 			Dir.chdir(File.dirname(__FILE__));
 			
 		end

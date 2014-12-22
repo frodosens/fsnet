@@ -11,7 +11,7 @@ class PingNode < GameServer
 		
 		connect_node_by_configure("name" => "pong_node", "addr_ip" => "0.0.0.0", "addr_port" => 50001)
 		
-		@tick_task = scheduler_update(1.0, -1, Proc.new(){ |dt| ping });
+		@tick_task = scheduler_update(1.0, -1, Proc.new  { |dt| ping });
 		
 	end
 	def ping
@@ -54,7 +54,7 @@ pong_conf["server_name"] = "PongServer"
 pong_conf["base_configure"] = {}
 pong_conf["pack_handle"] = {}
 pong_conf["base_configure"]["server_name"] = pong_conf["server_name"]
-pong_conf["base_configure"]["addr_ip"] = "0.0.0.0"
+pong_conf["base_configure"]["addr_ip"] = "127.0.0.1"
 pong_conf["base_configure"]["addr_port"] = 50001
 pong_conf["pack_handle"]["PACK_TYPE_PING"] = "cmd_ping"
 $pong_node = PongNode.new(pong_conf)
@@ -65,7 +65,7 @@ ping_conf = {}
 ping_conf["server_name"] = "PingServer"
 ping_conf["base_configure"] = {}
 ping_conf["base_configure"]["server_name"] = ping_conf["server_name"]
-ping_conf["base_configure"]["addr_ip"] = "0.0.0.0"
+ping_conf["base_configure"]["addr_ip"] = "127.0.0.1"
 ping_conf["base_configure"]["addr_port"] = 50000
 $ping_node = PingNode.new(ping_conf)
 $ping_node.start

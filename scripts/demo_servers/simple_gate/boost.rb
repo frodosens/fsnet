@@ -20,5 +20,5 @@ $simple_server.start()
 $time_server = TimeServer.new("src/time_configure.yaml")
 $time_server.start()
 
-$gate_server = GateServer.new("src/gate_configure.yaml")
+$gate_server = GateServer.new("src/gate_configure1.yaml")
 $gate_server.start()

@@ -212,7 +212,6 @@ class GameServer < GameTCPServer
   end
 
   def connect_node_by_configure(node_configure)
-
     info("#{self.name} Connecting to #{node_configure["name"]}");
 
     client = nil
@@ -317,6 +316,11 @@ class GameServer < GameTCPServer
 
   end
 
+  # 当有一个新的代理节点时
+  def on_agent_node_connect(agent_node)
+
+  end
+
   # 处理请求断开连接
   def on_handle_disconnect(node, pack)
     node_id = pack.read_data.read_uint32
@@ -359,6 +363,7 @@ class GameServer < GameTCPServer
     if (agent_node.nil?)
       agent_node = AgentNode.new(self, node, agent_id)
       @agent_nodes["#{node.id}_#{agent_id}"] = agent_node
+      on_agent_node_connect(agent_node);
     end
 
     # 上一级发过来的序列号
@@ -390,7 +395,6 @@ class GameServer < GameTCPServer
 
   end
 
-
   # 本地处理一个包
   def handle_pack(client, pack)
     method_name = @handle_map_configure[pack.pack_type];
@@ -403,7 +407,6 @@ class GameServer < GameTCPServer
         end
       rescue => e
         err(e.message);
-        client.tips(e.message, pack.serial);
       end
     else
       warn("#{name} 无法找到处理#{pack.pack_type}协议的方法");
@@ -436,10 +439,10 @@ class GameServer < GameTCPServer
 
 
   # 獲取執行包的節點
-  # 如果一個包有多個節點可以處理..這裡默認先返回第0個
+  # 如果一個包有多個節點可以處理, 做一个取余数的处理
   def get_agent_node_id_by_type(sender_id, pack_type)
     if (@childs_node_handle[pack_type].class == Array)
-      return @childs_node_handle[pack_type][0]
+      return @childs_node_handle[pack_type][sender_id % @childs_node_handle[pack_type].size]
     end
     return @childs_node_handle[pack_type];
   end
