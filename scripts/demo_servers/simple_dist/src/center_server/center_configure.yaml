@@ -1,0 +1,13 @@
+base_configure: 
+  server_name: center_server
+  logger_file: center_server.log
+  byte_order: 0
+  addr_ip: 0.0.0.0
+  addr_port: 39999
+pack_handle:
+  PACK_TYPE_REGIST_NODE: cmd_regist_node
+  PACK_TYPE_CALL_GLOBAL_RPC:  cmd_broadcast
+  PACK_TYPE_CALL_NODE_RPC:    cmd_call_node_rpc
+  PACK_TYPE_CREATE_ENTITY: cmd_create_entity
+  PACK_TYPE_DESTROY_ENTITY: cmd_destroy_entity
+  PACK_TYPE_MESSAGE_ENTITY: cmd_message_entity

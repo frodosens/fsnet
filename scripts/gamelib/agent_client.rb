@@ -13,13 +13,20 @@ class AgentNode
 	
 	
 	def method_missing(method_name, *arg, &block)
-		begin
-			m = @node.method(method_name)
-			return m.call(*arg);
-		rescue => msg
-			server.err(msg.message);
-			return super
-		end
+
+		self.instance_eval(
+				"def #{method_name}(*arg, &block)
+					begin
+						m = @node.method('#{method_name}')
+						return m.call(*arg);
+					rescue => msg
+						server.err(msg.message);
+						return super
+					end
+			   end"
+		)
+		self.send(method_name, arg, &block)
+
 
 	end
 

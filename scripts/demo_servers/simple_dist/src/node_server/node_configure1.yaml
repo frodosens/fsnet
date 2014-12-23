@@ -1,0 +1,15 @@
+base_configure: 
+  server_name: node_server1
+  logger_file: node_server1.log
+  byte_order: 0
+  addr_ip: 0.0.0.0
+  addr_port: 40001
+pack_handle:
+  PACK_TYPE_CONNECT: cmd_connect
+  PACK_TYPE_CREATE_ENTITY: cmd_create_entity
+  PACK_TYPE_DESTROY_ENTITY: cmd_destroy_entity
+  PACK_TYPE_MESSAGE_ENTITY: cmd_message_entity
+center_server:
+  name: CenterServer
+  addr_ip: 0.0.0.0
+  addr_port: 39999

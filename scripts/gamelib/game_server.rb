@@ -6,7 +6,7 @@ require 'pack/pack_type.rb'
 require 'pack/pack.rb'
 
 
-class ChildNode < TCPClient
+class TCPClient
 
   attr_accessor :name
   attr_reader :pack_result_callback # serial => proc
@@ -102,6 +102,9 @@ class ChildNode < TCPClient
   end
 end
 
+class ChildNode < TCPClient
+
+end
 
 class GameServer < GameTCPServer
 
@@ -284,11 +287,6 @@ class GameServer < GameTCPServer
     }
 
   end
-
-	  def method_missing(method_name, *arg, &block)
-			super
-	  end
-
 
   def on_start_complete()
     info("#{self.name}[ #{@configure["base_configure"]["addr_ip"]}, #{@configure["base_configure"]["addr_port"].to_i.to_i} ]启动完成");
