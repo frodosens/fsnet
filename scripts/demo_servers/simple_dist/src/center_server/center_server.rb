@@ -3,16 +3,28 @@ require 'pack_type.rb'
 require "game_server.rb"
 require 'util/uuid.rb'
 require 'util/hash.rb'
-require 'center_server/entity/center_entity.rb'
+require "channel/channel_server.rb"
+require 'center_server/channel/center_channel.rb'
 
 
-class CenterServer < GameServer
+class CenterServer < ChannelServer
 
 	attr_reader :nodes
+
+	def initialize(*args)
+		super
+		@nodes = {}
+		self.init_entities
+	end
+
 	def on_start_complete
 		super
 
-		@nodes = {}
+		self.create_server_channel
+	end
+
+	def create_server_channel
+
 
 	end
 
@@ -29,9 +41,14 @@ class CenterServer < GameServer
 		# 纯粹的回应成功
 		sender.send_pack(pack)
 
+
 	end
 	# 请求广播到所有的逻辑节点
 	def cmd_broadcast(sender, pack)
+
+		for client_id, client in @clients
+			client.send_pack(pack)
+		end
 
 	end
 
@@ -46,40 +63,6 @@ class CenterServer < GameServer
 
 	end
 
-
-
-	# 该节点请求在本地创建一个实例
-	def cmd_create_entity(sender, pack)
-
-		entity_id = pack.input.read_string
-		entity_klass_name = pack.input.read_string
-		entity_remote_klass_name = pack.input.read_string
-		entity_data = pack.input.read_hash
-
-		sender.create_entity(eval(entity_remote_klass_name), eval(entity_klass_name), entity_data, entity_id)
-
-
-	end
-
-	# 该节点请求销毁一个本地实例
-	def cmd_destroy_entity(sender, pack)
-
-		entity_id = pack.input.read_string
-		sender.destroy_entity(entity_id)
-
-	end
-
-
-	# 该节点请求调用本地实例的方法
-	def cmd_message_entity(sender, pack)
-
-		entity_id = pack.input.read_string
-		entity_method = pack.input.read_string
-		params_ary = pack.input.read_params_array
-		require_return = pack.input.read_byte == 1
-		sender.message_entity(entity_id, entity_method, params_ary, require_return ? pack.serial : -1)
-
-	end
 
 
 end

@@ -8,6 +8,7 @@ pack_handle:
   PACK_TYPE_REGIST_NODE: cmd_regist_node
   PACK_TYPE_CALL_GLOBAL_RPC:  cmd_broadcast
   PACK_TYPE_CALL_NODE_RPC:    cmd_call_node_rpc
-  PACK_TYPE_CREATE_ENTITY: cmd_create_entity
-  PACK_TYPE_DESTROY_ENTITY: cmd_destroy_entity
-  PACK_TYPE_MESSAGE_ENTITY: cmd_message_entity
+  PACK_TYPE_CREATE_CHANNEL: cmd_create_channel
+  PACK_TYPE_DESTROY_CHANNEL: cmd_destroy_channel
+  PACK_TYPE_MESSAGE_CHANNEL: cmd_message_channel
+  PACK_TYPE_BROADCAST: cmd_broadcast

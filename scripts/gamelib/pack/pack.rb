@@ -6,18 +6,20 @@ class Pack < TCPPack
 	# 标准数据头
 	PACK_HEAD_LENGTH = (2 + 2 + 1 + 2 + 4)
   
-  attr_accessor  :serial;
-  attr_reader  :pack_type;
-  attr_reader  :version;
-  attr_reader  :input;
+  attr_accessor  :serial
+  attr_reader  :pack_type
+  attr_reader  :version
+	attr_accessor  :input
+	attr_reader  :make_sum
+	attr_reader  :data_len
 	
   def initialize(pack_type)
     super()
 		@pack_type = pack_type;
 		@version = 0;
 		@serial = 0;
-  end 
-  
+  end
+
 	def init_from_is( is, copy=false )
 		@serial     = is.read_uint32();	# 4
     @pack_type  = is.read_int16();	# 2

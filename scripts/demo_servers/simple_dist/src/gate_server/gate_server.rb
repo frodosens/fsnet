@@ -8,4 +8,20 @@ class GateServer < GameServer
 		@logic_nodes   = connect_nodes("node_servers")
 	end
 
+	def cmd_reconnect(sender, pack)
+
+	end
+
+
+	# 请求广播
+	def cmd_broadcast(sender, pack)
+
+		p 'gate cmd_broadcast'
+		for client_id, client in @clients
+			client.send_pack(pack)
+		end
+
+	end
+
+
 end

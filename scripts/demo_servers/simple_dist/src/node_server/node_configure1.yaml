@@ -6,9 +6,10 @@ base_configure:
   addr_port: 40001
 pack_handle:
   PACK_TYPE_CONNECT: cmd_connect
-  PACK_TYPE_CREATE_ENTITY: cmd_create_entity
-  PACK_TYPE_DESTROY_ENTITY: cmd_destroy_entity
-  PACK_TYPE_MESSAGE_ENTITY: cmd_message_entity
+  PACK_TYPE_CREATE_CHANNEL: cmd_create_channel
+  PACK_TYPE_DESTROY_CHANNEL: cmd_destroy_channel
+  PACK_TYPE_MESSAGE_CHANNEL: cmd_message_channel
+  PACK_TYPE_BROADCAST: cmd_broadcast
 center_server:
   name: CenterServer
   addr_ip: 0.0.0.0

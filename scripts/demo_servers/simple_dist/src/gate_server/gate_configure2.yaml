@@ -4,7 +4,8 @@ base_configure:
   byte_order: 0
   addr_ip: 0.0.0.0
   addr_port: 40005
-pack_handle: 
+pack_handle:
+  PACK_TYPE_RECONNECT: cmd_reconnect
 node_servers:
   - node_server:
       name: NodeServer1
@@ -15,5 +16,5 @@ node_servers:
       addr_ip: 0.0.0.0
       addr_port: 40002
 disable_route:
-  - PACK_TYPE_CREATE_ENTITY
-  - PACK_TYPE_DESTROY_ENTITY
+  - PACK_TYPE_CREATE_CHANNEL
+  - PACK_TYPE_DESTROY_CHANNEL

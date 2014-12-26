@@ -2,13 +2,13 @@
 require 'pack_type.rb'
 require 'util/uuid.rb'
 require 'util/hash.rb'
-require 'entity/entity_system.rb'
+require 'channel/channel_system.rb'
 
 class TCPClient
 
 
 	include PackTypeDefine
-	include EntitySystem
+	include ChannelSystem
 
 	alias :_tcp_client_initialize :initialize
 	def initialize(*args)
@@ -17,11 +17,11 @@ class TCPClient
 	end
 
 
-	def send_entity(entity)
+	def send_channel(channel)
 
 		os = FSOutputStream.new
-		os.write_entity(entity)
-		pack = Pack.create(Pack.generate_serial, PACK_TYPE_CREATE_ENTITY, os)
+		os.write_channel(channel)
+		pack = Pack.create(Pack.generate_serial, PACK_TYPE_CREATE_CHANNEL, os)
 		self.send_pack(pack)
 
 	end
