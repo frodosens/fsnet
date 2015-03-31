@@ -13,7 +13,7 @@ center -> (node1 node2)#method_name(params)
 去掉了原先使用method_missing的方法来做RPC. 发现这样一旦项目大了后.   
 会很难跟踪问题. 直接使用一个define_rpc函数来定义    
 详细见 simple_dist  这是一个 多网关 多逻辑节点 单一中心服务器的demo  
-其实一开始我是希望做成work分发的功能的. 但是建立channel后. 原先的意义变小了...这个后面看看如何处理会比较优雅      
+其实一开始我是希望做成work分发的功能的. 但是建立channel后. 原先的意义变小了, 之后考虑在包头上加一个定向路由功能.   
 这个只是在原先的基础上做的扩展,package_type 还是可以用的. 互不影响  ：Ｐ
 
   
