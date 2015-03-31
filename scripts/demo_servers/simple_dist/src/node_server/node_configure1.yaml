@@ -9,7 +9,6 @@ pack_handle:
   PACK_TYPE_CREATE_CHANNEL: cmd_create_channel
   PACK_TYPE_DESTROY_CHANNEL: cmd_destroy_channel
   PACK_TYPE_MESSAGE_CHANNEL: cmd_message_channel
-  PACK_TYPE_BROADCAST: cmd_broadcast
 center_server:
   name: CenterServer
   addr_ip: 0.0.0.0

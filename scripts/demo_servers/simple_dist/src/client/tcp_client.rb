@@ -17,12 +17,12 @@ class TCPClient
 	end
 
 
-	def send_channel(channel)
+	def send_channel(channel, &ret_proc)
 
 		os = FSOutputStream.new
 		os.write_channel(channel)
 		pack = Pack.create(Pack.generate_serial, PACK_TYPE_CREATE_CHANNEL, os)
-		self.send_pack(pack)
+		self.send_pack(pack, nil, ret_proc)
 
 	end
 

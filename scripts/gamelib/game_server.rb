@@ -261,23 +261,23 @@ class GameServer < GameTCPServer
 
   def warn(log)
     @logger_file.warn(log);
-    print log, "\n"
+    print "[#{self.name}] ",log, "\n"
   end
 
   def err(log)
     @logger_file.error(log);
-    print log, "\n"
+    print "[#{self.name}] ",log, "\n"
     if ($@ != nil)
-      for ermsg in $@
-        @logger_file.error(ermsg);
-        print ermsg, "\n"
+      for msg in $@
+        @logger_file.error(msg);
+        print "[#{self.name}] ",msg, "\n"
       end
     end
   end
 
   def info(log)
     @logger_file.info(log)
-    print log, "\n"
+    print "[#{self.name}] ", log, "\n"
   end
 
   def start()
@@ -435,13 +435,16 @@ class GameServer < GameTCPServer
 
   }
 
+  def get_agent_node_by_group(sender_id, nodes, pack_type)
+		raise '必须实现集群选择函数'
+  end
 
   # 獲取執行包的節點
-  # 如果一個包有多個節點可以處理, 做一个取余数的处理
+  # 如果一個包有多個節點可以處理, 返回get_agent_node_by_mutile
   def get_agent_node_id_by_type(sender_id, pack_type)
     if (@childs_node_handle[pack_type].class == Array)
-      return @childs_node_handle[pack_type][sender_id % @childs_node_handle[pack_type].size]
-    end
+	    return get_agent_node_by_group(sender_id, @childs_node_handle[pack_type], pack_type)
+	  end
     return @childs_node_handle[pack_type];
   end
 
@@ -466,12 +469,12 @@ class GameServer < GameTCPServer
 
           # print "#{name} send to #{child_node.name} (#{agent_pack.serial}) \n"
 
-          return true;
+          return true
         end
       end
     end
 
-    return false;
+    return false
 
   end
 

@@ -38,10 +38,11 @@ class AgentNode
 
   end
 	
-	def send_pack(pack)
+	def send_pack(pack, *args)
 
 		agent_pack = Pack.create_agent(@agent_id, pack, @agent_serial);
-		@node.send_pack(agent_pack)
+		@node.send_pack(agent_pack, *args)
+
 	end
 
 

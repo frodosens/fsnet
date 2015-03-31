@@ -14,8 +14,11 @@ import java.nio.ByteOrder;
 public class Main {
 
 
-	static final short PACKAGE_VERSION = 1;
-	static final short PACKAGE_TIME = 2;
+	static final short PACKAGE_CONNECT = 1;
+	static final short PACKAGE_CREATE_CHANNEL = 2;
+	static final short PACKAGE_DESTROY_CHANNEL = 3;
+	static final short PACKAGE_CALL_CHANNEL = 4;
+	static final short PACKAGE_RETURN_CHANNEL = 5;
 	/**
 	 * @param args
 	 * @throws IOException 
@@ -33,24 +36,15 @@ public class Main {
 		
 		
 		byte[] data = { 1, 1, 0 };
-		ByteBuffer buff = create_package(data, PACKAGE_VERSION);
+		ByteBuffer buff = create_package(data, PACKAGE_CONNECT);
 		dos.write(buff.array(), 0, buff.position());
 		dos.flush();
-		
-		data = new byte[]{};
-		buff = create_package(data, PACKAGE_TIME);
-		dos.write(buff.array(), 0, buff.position());
-		dos.flush();
+
 		
 		// read package_version
 		data = read_pack(dis);
-		System.out.println(String.format("version is %d,%d,%d", data[0], data[1], data[2]));
-		
-		// read package_time
 		data = read_pack(dis);
-		buff = ByteBuffer.wrap(data);
-		System.out.println(String.format("server time is %d",  buff.getInt()));
-		
+
 		
 		
 	}
@@ -65,6 +59,8 @@ public class Main {
 		int data_len = htol(dis.readInt());
 		byte[] data = new byte[data_len];
 		dis.read(data, 0, data_len);
+		System.out.printf("recv type " + stol(package_type) + "\n" );
+
 		return data;
 	}
 	
@@ -98,5 +94,8 @@ public class Main {
 	public static int htol(int v){
 		return (v >> 24 & 0xff) | (v >> 16 & 0xff) << 8 | (v >> 8 & 0xff) << 16 | (v & 0xff) << 24;
 	}
+	public static int stol(short v){
+    	return (v >> 8 & 0xff) | (v & 0xff) << 8;
+    }
 
 }
