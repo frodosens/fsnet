@@ -41,7 +41,6 @@ struct fs_pack{
     size_t          len;
     struct fs_output_stream* output_stream;
     struct fs_input_stream* input_stream;
-    fs_script_id    data_input_stream_id;
     fs_script_id    script_id;
     
 };
@@ -165,7 +164,7 @@ fs_ruby_tcp_parse_pack(struct fs_server* server, const BYTE* data, ssize_t len, 
         ret_pack->data = fs_malloc(pack_len - pack_head_len/* 减去5个字节头 */);
         ret_pack->input_stream = fs_create_input_stream(ret_pack->data, len);
         ret_pack->len = pack_len - pack_head_len;
-        ret_pack->data_input_stream_id = Qnil;
+        
         
         memcpy(ret_pack->data, data + pack_head_len, pack_len - pack_head_len);
         
@@ -202,7 +201,6 @@ fs_ruby_tcp_parse_pack_with_mb(struct fs_server* server, const BYTE* data, ssize
         ret_pack->data = fs_malloc(pack_len);
         ret_pack->input_stream = fs_create_input_stream(ret_pack->data, len);
         ret_pack->len = pack_len;
-        ret_pack->data_input_stream_id = Qnil;
         
         memcpy(ret_pack->data, data + mb_pack_head_len, pack_len);
         
@@ -269,10 +267,10 @@ fs_ruby_pack_to_data( struct fs_server* server, struct fs_pack* pack, BYTE** out
         
     }
     
-    if(pack->data_input_stream_id != Qnil){
+    VALUE read_data = rb_funcall(pack->script_id, rb_intern("read_data"), 0);
+    if(read_data != Qnil){
         struct fs_input_stream* is = NULL;
-        Data_Get_Struct(pack->data_input_stream_id, struct fs_input_stream, is);
-        
+        Data_Get_Struct(read_data, struct fs_input_stream, is);
         
         data = (BYTE*)fs_input_stream_get_data_ptr(is);
         len = fs_input_stream_get_len(is);
@@ -330,9 +328,11 @@ fs_ruby_pack_to_data_with_mb( struct fs_server* server, struct fs_pack* pack, BY
         
     }
     
-    if(pack->data_input_stream_id != Qnil){
+    
+    VALUE read_data = rb_funcall(pack->script_id, rb_intern("read_data"), 0);
+    if(read_data != Qnil){
         struct fs_input_stream* is = NULL;
-        Data_Get_Struct(pack->data_input_stream_id, struct fs_input_stream, is);
+        Data_Get_Struct(read_data, struct fs_input_stream, is);
         
         
         data = (BYTE*)fs_input_stream_get_data_ptr(is);
@@ -907,45 +907,10 @@ wrap_Pack_allocate (VALUE self)
     fs_zero(p, sizeof(*p));
     VALUE instance = Data_Wrap_Struct (self, NULL, wrap_Pack_free, p);
     p->script_id = (fs_script_id)instance;
-    p->data_input_stream_id = Qnil;
     RSTRING(self)->basic;
     return instance;
 }
 
-
-VALUE
-rb_Pack_set_read_data (VALUE self, VALUE val){
-    
-    struct fs_pack* pack = NULL;
-    Data_Get_Struct(self, struct fs_pack, pack);
-    pack->data_input_stream_id = val;
-    return Qnil;
-}
-
-VALUE
-rb_Pack_read_data (VALUE self)
-{
-    struct fs_pack* pack = NULL;
-    Data_Get_Struct(self, struct fs_pack, pack);
-    if(pack->data_input_stream_id == Qnil){
-        
-        if (pack->input_stream) {
-            
-            VALUE v_len  = INT2FIX(fs_input_stream_get_len(pack->input_stream));
-            VALUE is_argv[] = { (VALUE)fs_input_stream_get_data_ptr(pack->input_stream), v_len, Qtrue };
-            VALUE input_stream = rb_class_new_instance(3, is_argv, rb_cInputStream);
-            pack->data_input_stream_id = input_stream;
-            rb_gc_mark(input_stream);
-            return input_stream;
-            
-        }
-        
-        return Qnil;
-        
-    }
-    VALUE input = (VALUE)pack->data_input_stream_id;
-    return input;
-}
 
 
 VALUE
@@ -966,7 +931,6 @@ rb_Pack_initialize(int argc, VALUE* argv, VALUE self){
         
         struct fs_pack* pack = NULL;
         Data_Get_Struct(self, struct fs_pack, pack);
-        pack->data_input_stream_id = Qnil;
         rb_funcall(self, rb_intern("write_data="), 1, rb_class_new_instance(0, NULL, rb_cOutputStream));
         
         return Qnil;
@@ -986,10 +950,12 @@ rb_Pack_initialize(int argc, VALUE* argv, VALUE self){
         pack->data = (BYTE*)data;
         pack->len = len;
         pack->pack_type = type;
-        
-        
         pack->input_stream = fs_create_input_stream((const BYTE*)data, len);
-        pack->data_input_stream_id = Qnil;
+        
+        VALUE v_len  = INT2FIX(fs_input_stream_get_len(pack->input_stream));
+        VALUE is_argv[] = { (VALUE)fs_input_stream_get_data_ptr(pack->input_stream), v_len, Qtrue };
+        VALUE input_stream = rb_class_new_instance(3, is_argv, rb_cInputStream);
+        rb_funcall(self, rb_intern("read_data="), 1, input_stream);
         
         return Qnil;
     }
@@ -1007,10 +973,10 @@ rb_define_fs_pack(){
     rb_cPack = rb_define_class("FSPack", rb_cObject);
     rb_define_alloc_func(rb_cPack, wrap_Pack_allocate);
     rb_define_method(rb_cPack, "initialize", RUBY_METHOD_FUNC(rb_Pack_initialize), -1);
-    rb_define_method(rb_cPack, "read_data",  RUBY_METHOD_FUNC(rb_Pack_read_data), 0);
-    rb_define_method(rb_cPack, "read_data=", RUBY_METHOD_FUNC(rb_Pack_set_read_data), 1);
     rb_define_method(rb_cPack, "type",       RUBY_METHOD_FUNC(rb_Pack_type), 0);
     rb_define_attr(rb_cPack, "write_data", 1, 1);
+    rb_define_attr(rb_cPack, "read_data", 1, 1);
+    
     
     
 }

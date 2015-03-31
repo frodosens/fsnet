@@ -31,8 +31,8 @@ void event_set_mem_functions(
 
 void
 fs_rb_print_error(){
-    rb_p(rb_errinfo());
     int ret = 0;
+    rb_p(rb_errinfo());
     rb_eval_string_protect("if($@ != nil) ;"
                            "for msg in $@; "
                             " printf msg + '\n'; "

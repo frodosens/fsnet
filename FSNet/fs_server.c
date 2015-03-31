@@ -246,7 +246,10 @@ fs_server_io_thread(void* data){
     sin.sin_addr.s_addr = inet_addr(server->addr.addr);
 	sin.sin_family = AF_INET;
     sin.sin_port = htons(server->addr.port);
+
+#ifdef __APPLE__
     sin.sin_len = sizeof(struct sockaddr_in);
+#endif
     
     single_event = event_base_new();
     
