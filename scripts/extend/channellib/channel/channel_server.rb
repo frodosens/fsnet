@@ -1,5 +1,5 @@
-require "game_server.rb"
-require 'channel/channel_system.rb'
+require "gamelib/game_server.rb"
+require 'channellib/channel/channel_system.rb'
 
 class ChannelServer < GameServer
 

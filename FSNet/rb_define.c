@@ -7,13 +7,13 @@
 //
 
 #include <ruby.h>
-#include <stdio.h>
 #include <evhttp.h>
 #include "rb_define.h"
 #include "fs_server.h"
 #include "fs_node.h"
 
 
+static uint32_t pack_head_len = 5;
 
 VALUE rb_cFSNet ;
 VALUE rb_cServer ;
@@ -32,8 +32,6 @@ void rb_define_fs_pack();
 void rb_define_fs_stream();
 void rb_define_fs_http();
 
-// 5(1字节序 + 4字节长度)
-static uint32_t pack_head_len = 5;
 
 struct fs_pack{
     
@@ -44,7 +42,6 @@ struct fs_pack{
     struct fs_output_stream* output_stream;
     struct fs_input_stream* input_stream;
     fs_script_id    data_input_stream_id;
-    fs_script_id    data_output_stream_id;
     fs_script_id    script_id;
     
 };
@@ -131,7 +128,6 @@ fs_create_time_tick_pack(struct fs_server* server){
     
 }
 
-
 size_t
 fs_ruby_tcp_parse_pack(struct fs_server* server, const BYTE* data, ssize_t len, fs_id node_id,  struct fs_pack** pack){
     
@@ -148,16 +144,17 @@ fs_ruby_tcp_parse_pack(struct fs_server* server, const BYTE* data, ssize_t len, 
     return len;
 #endif
     
+    
     if(len < pack_head_len) {
         return 0;
     }
     
-//    BYTE pack_byte_order = data[0];
+//    BYTE order           = data[0];
     BYTE pack_len1       = data[1];
     BYTE pack_len2       = data[2];
     BYTE pack_len3       = data[3];
     BYTE pack_len4       = data[4];
-    uint32_t pack_len     = (pack_len4 << 24 | pack_len3 << 16 | pack_len2 << 8 | pack_len1);
+    uint32_t pack_len    = (pack_len4 << 24 | pack_len3 << 16 | pack_len2 << 8 | pack_len1);
     
     if(len >= pack_len && pack_len >= pack_head_len){
         
@@ -169,7 +166,6 @@ fs_ruby_tcp_parse_pack(struct fs_server* server, const BYTE* data, ssize_t len, 
         ret_pack->input_stream = fs_create_input_stream(ret_pack->data, len);
         ret_pack->len = pack_len - pack_head_len;
         ret_pack->data_input_stream_id = Qnil;
-        ret_pack->data_output_stream_id = Qnil;
         
         memcpy(ret_pack->data, data + pack_head_len, pack_len - pack_head_len);
         
@@ -178,7 +174,47 @@ fs_ruby_tcp_parse_pack(struct fs_server* server, const BYTE* data, ssize_t len, 
     }
     
     return 0;
+    
+}
 
+
+size_t
+fs_ruby_tcp_parse_pack_with_mb(struct fs_server* server, const BYTE* data, ssize_t len, fs_id node_id,  struct fs_pack** pack){
+    
+    const static uint32_t mb_pack_head_len = 4;
+    
+    if(len < mb_pack_head_len) {
+        return 0;
+    }
+    BYTE pack_len1       = data[0];
+    BYTE pack_len2       = data[1];
+    BYTE pack_len3       = data[2];
+    BYTE pack_len4       = data[3];
+    uint32_t pack_len    = (pack_len4 << 24 | pack_len3 << 16 | pack_len2 << 8 | pack_len1);
+    
+    // 必须有一个rpc_index
+    if(pack_len >= 2){
+        
+        *pack = fs_create_empty_pack();
+        struct fs_pack* ret_pack = *pack;
+        fs_zero(ret_pack, sizeof(*ret_pack));
+        ret_pack->node_id = node_id;
+        ret_pack->data = fs_malloc(pack_len);
+        ret_pack->input_stream = fs_create_input_stream(ret_pack->data, len);
+        ret_pack->len = pack_len;
+        ret_pack->data_input_stream_id = Qnil;
+        
+        memcpy(ret_pack->data, data + mb_pack_head_len, pack_len);
+        
+        
+        return mb_pack_head_len + pack_len;
+        
+        
+    }
+    
+    return 0;
+    
+    
 }
 
 
@@ -221,9 +257,12 @@ fs_ruby_pack_to_data( struct fs_server* server, struct fs_pack* pack, BYTE** out
     
     BYTE* data = NULL;
     size_t len = 0;
-    if(pack->data_output_stream_id != Qnil){
+    
+    VALUE write_data = rb_funcall(pack->script_id, rb_intern("write_data"), 0);
+    
+    if(write_data != Qnil){
         struct fs_output_stream* os = NULL;
-        Data_Get_Struct(pack->data_output_stream_id, struct fs_output_stream, os);
+        Data_Get_Struct(write_data, struct fs_output_stream, os);
         
         data = (BYTE*)fs_output_stream_get_dataptr(os);
         len = fs_output_stream_get_len(os);
@@ -247,12 +286,11 @@ fs_ruby_pack_to_data( struct fs_server* server, struct fs_pack* pack, BYTE** out
     }
     
     
-    VALUE c_server = fs_server_get_script_id(server);
-    VALUE byte_order = rb_funcall(c_server, rb_intern("byte_order"), 0);
-    
+    //VALUE c_server = fs_server_get_script_id(server);
+    //VALUE byte_order = rb_funcall(c_server, rb_intern("byte_order"), 0);
     
     struct fs_output_stream* fos = fs_create_output_stream_ext;
-    fs_stream_write_byte(fos, FIX2INT(byte_order));
+    fs_stream_write_byte(fos, 0);
     fs_stream_write_int32(fos, (int32_t)len + pack_head_len);
     fs_stream_write_data(fos, data, len);
     
@@ -269,6 +307,66 @@ fs_ruby_pack_to_data( struct fs_server* server, struct fs_pack* pack, BYTE** out
     
     return ret_len;
 }
+
+
+
+
+size_t
+fs_ruby_pack_to_data_with_mb( struct fs_server* server, struct fs_pack* pack, BYTE** out){
+    
+    
+    const static uint32_t mb_pack_head_len = 4;
+    
+    BYTE* data = NULL;
+    size_t len = 0;
+    VALUE write_data = rb_funcall(pack->script_id, rb_intern("write_data"), 0);
+    
+    if(write_data != Qnil){
+        struct fs_output_stream* os = NULL;
+        Data_Get_Struct(write_data, struct fs_output_stream, os);
+        
+        data = (BYTE*)fs_output_stream_get_dataptr(os);
+        len = fs_output_stream_get_len(os);
+        
+    }
+    
+    if(pack->data_input_stream_id != Qnil){
+        struct fs_input_stream* is = NULL;
+        Data_Get_Struct(pack->data_input_stream_id, struct fs_input_stream, is);
+        
+        
+        data = (BYTE*)fs_input_stream_get_data_ptr(is);
+        len = fs_input_stream_get_len(is);
+        
+    }
+    
+    
+    if (pack->input_stream != NULL) {
+        data = (BYTE*)fs_input_stream_get_data_ptr(pack->input_stream);
+        len = fs_input_stream_get_len(pack->input_stream);
+    }
+    
+    
+    struct fs_output_stream* fos = fs_create_output_stream_ext;
+    fs_stream_write_int32(fos, (int32_t)len - mb_pack_head_len);
+    fs_stream_write_data(fos, data, len);
+    
+    size_t ret_len = fs_output_stream_get_len(fos);
+    
+    *out = fs_malloc(ret_len);
+    memcpy(*out, fs_output_stream_get_dataptr(fos), ret_len);
+    
+    fs_stream_free_output(fos);
+    
+    if(len == 0){
+        rb_raise(rb_eRuntimeError, "try send data len for 0");
+    }
+    
+    return ret_len;
+}
+
+
+
 
 VALUE
 protect_fs_ruby_call_func(VALUE argv){
@@ -387,7 +485,6 @@ protect_fs_ruby_handle_pack(VALUE argv){
                 argv[2] = INT2FIX(pack->len);
                 argv[3] = INT2FIX(pack->pack_type);
                 VALUE rb_pack = rb_class_new_instance(4, argv, rb_cPack);
-
                 
                 VALUE fun_argvs[5];
                 fun_argvs[0] = INT2FIX(2);
@@ -603,6 +700,8 @@ rb_define_fs_net(){
 void
 rb_define_fs_server(){
     
+
+    
     
     rb_cServer = rb_define_class("FSServer", rb_cObject);
     
@@ -777,6 +876,7 @@ rb_define_fs_node(){
     rb_define_method(rb_cNode, "active", RUBY_METHOD_FUNC(rb_Node_active), 0);
     rb_define_method(rb_cNode, "id", RUBY_METHOD_FUNC(rb_Node_id), 0);
     
+    
 }
 
 
@@ -802,13 +902,13 @@ wrap_Pack_free (struct fs_pack* ptr)
 VALUE
 wrap_Pack_allocate (VALUE self)
 {
+    
     struct fs_pack* p = fs_malloc(sizeof(*p));
     fs_zero(p, sizeof(*p));
     VALUE instance = Data_Wrap_Struct (self, NULL, wrap_Pack_free, p);
     p->script_id = (fs_script_id)instance;
-    p->data_output_stream_id = Qnil;
     p->data_input_stream_id = Qnil;
-    
+    RSTRING(self)->basic;
     return instance;
 }
 
@@ -820,16 +920,6 @@ rb_Pack_set_read_data (VALUE self, VALUE val){
     Data_Get_Struct(self, struct fs_pack, pack);
     pack->data_input_stream_id = val;
     return Qnil;
-}
-
-VALUE
-rb_Pack_set_write_data( VALUE self, VALUE val ){
-    
-    struct fs_pack* pack = NULL;
-    Data_Get_Struct(self, struct fs_pack, pack);
-    pack->data_output_stream_id = val;
-    return Qnil;
-    
 }
 
 VALUE
@@ -857,27 +947,6 @@ rb_Pack_read_data (VALUE self)
     return input;
 }
 
-VALUE
-rb_Pack_write_data (VALUE self)
-{
-    struct fs_pack* pack = NULL;
-    Data_Get_Struct(self, struct fs_pack, pack);
-    
-    
-    if(pack->data_output_stream_id == Qnil){
-        
-        VALUE output_stream = rb_class_new_instance(0, NULL, rb_cOutputStream);
-        rb_gc_mark(output_stream);
-        pack->data_output_stream_id = output_stream;
-        
-        return output_stream;
-    }
-
-    
-    VALUE input = (VALUE)pack->data_output_stream_id;
-    return input;
-}
-
 
 VALUE
 rb_Pack_type (VALUE self)
@@ -897,7 +966,6 @@ rb_Pack_initialize(int argc, VALUE* argv, VALUE self){
         
         struct fs_pack* pack = NULL;
         Data_Get_Struct(self, struct fs_pack, pack);
-        pack->data_output_stream_id = Qnil;
         pack->data_input_stream_id = Qnil;
         
         return Qnil;
@@ -921,7 +989,6 @@ rb_Pack_initialize(int argc, VALUE* argv, VALUE self){
         
         pack->input_stream = fs_create_input_stream((const BYTE*)data, len);
         pack->data_input_stream_id = Qnil;
-        pack->data_output_stream_id = Qnil;
         
         
         
@@ -942,10 +1009,9 @@ rb_define_fs_pack(){
     rb_define_alloc_func(rb_cPack, wrap_Pack_allocate);
     rb_define_method(rb_cPack, "initialize", RUBY_METHOD_FUNC(rb_Pack_initialize), -1);
     rb_define_method(rb_cPack, "read_data",  RUBY_METHOD_FUNC(rb_Pack_read_data), 0);
-    rb_define_method(rb_cPack, "write_data", RUBY_METHOD_FUNC(rb_Pack_write_data), 0);
     rb_define_method(rb_cPack, "read_data=", RUBY_METHOD_FUNC(rb_Pack_set_read_data), 1);
-    rb_define_method(rb_cPack, "write_data=", RUBY_METHOD_FUNC(rb_Pack_set_write_data), 1);
     rb_define_method(rb_cPack, "type",       RUBY_METHOD_FUNC(rb_Pack_type), 0);
+    rb_define_attr(rb_cPack, "write_data", 1, 1);
     
     
 }
@@ -961,6 +1027,7 @@ wrap_IStream_free (struct fs_input_stream* ptr)
     if(ptr){
         fs_stream_free_input(ptr);
     }
+    
 }
 VALUE
 wrap_IStream_allocate (VALUE self)
@@ -995,6 +1062,7 @@ wrap_OStream_free (struct fs_output_stream* ptr)
     if(ptr){
         fs_stream_free_output(ptr);
     }
+    
 }
 VALUE
 wrap_OStream_allocate (VALUE self)
@@ -1165,6 +1233,7 @@ OS_GETER_FUNC( rb_OStream_data, fs_output_stream_get_dataptr, (VALUE), const BYT
 
 void
 rb_define_fs_stream(){
+    
     rb_cInputStream = rb_define_class("FSInputStream", rb_cObject);
     rb_define_alloc_func(rb_cInputStream, wrap_IStream_allocate);
     rb_define_method(rb_cInputStream, "initialize", RUBY_METHOD_FUNC(rb_IStream_initialize), 3);
@@ -1243,6 +1312,7 @@ rb_HTTPRequest_response(VALUE self, VALUE argv){
 
 void
 rb_define_fs_http(){
+    
     
     rb_cHTTPRequest = rb_define_class("HTTPRequest", rb_cObject);
     

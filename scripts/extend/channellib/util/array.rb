@@ -1,4 +1,4 @@
-require 'util/hash.rb'
+require 'channellib/util/hash.rb'
 
 
 class Array
@@ -13,6 +13,7 @@ module IOType
 	PARAMS_TYPE_HASH = 4
 	PARAMS_TYPE_BOOL = 5
 	PARAMS_TYPE_PACK = 6
+	PARAMS_TYPE_NIL  = 7
 
 end
 
@@ -34,8 +35,8 @@ class FSInputStream
 				return self.read_hash
 			when IOType::PARAMS_TYPE_BOOL
 				return self.read_bool
-			when IOType::PARAMS_TYPE_PACK
-				return self.read_pack
+			when IOType::PARAMS_TYPE_NIL
+				return nil
 
 		end
 	end
@@ -78,9 +79,8 @@ class FSOutputStream
 		elsif val.is_a?(FalseClass)
 			self.write_byte(IOType::PARAMS_TYPE_BOOL)
 			self.write_bool(false)
-		elsif val.is_a?(Pack)
-			self.write_byte(IOType::PARAMS_TYPE_PACK)
-			self.write_pack(val)
+		elsif val.nil?
+			self.write_byte(IOType::PARAMS_TYPE_NIL)
 		else
 			raise("Type match miss #{val.class}")
 		end

@@ -1,5 +1,5 @@
 
-require 'tcp_pack.rb'
+require 'rubylib/tcp_pack.rb'
 
 class Pack < TCPPack
 	
@@ -102,8 +102,8 @@ class Pack < TCPPack
 			else
 				os.write_data( pack.read_data.data, pack.read_data.len );
 			end
-      ret = create( serial, PACK_TYPE_AGENT, os);
-			return ret
+      create( serial, PACK_TYPE_AGENT, os)
+
 		end
 		
 		def create_from_agent_pack( agent_pack )

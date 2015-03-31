@@ -1,4 +1,5 @@
-require 'util/array.rb'
+require 'channellib/util/array.rb'
+
 class Hash
 
 

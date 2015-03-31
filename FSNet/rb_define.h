@@ -9,8 +9,7 @@
 #ifndef fsnet_rb_define_h
 #define fsnet_rb_define_h
 
-#include <stdio.h>
-#include <ruby.h>
+#include "ruby.h"
 
 struct fs_invoke_call_function{
     VALUE* argv;

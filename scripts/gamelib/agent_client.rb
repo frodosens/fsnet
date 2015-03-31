@@ -10,15 +10,13 @@ class AgentNode
 		@node = node;
 		@agent_id   = agent_id;
 	end
-	
-	
+
 	def method_missing(method_name, *arg, &block)
 
 		self.instance_eval(
 				"def #{method_name}(*arg, &block)
 					begin
-						m = @node.method('#{method_name}')
-						return m.call(*arg);
+						return m.send(\"#{method_name}\", *arg)
 					rescue => msg
 						server.err(msg.message);
 						return super

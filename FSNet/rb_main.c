@@ -6,12 +6,11 @@
 //  Copyright (c) 2014年 Vincent. All rights reserved.
 //
 
-#include <stdio.h>
-#include <pthread.h>
-#include <signal.h>
 #include "rb_define.h"
 #include "fs_loop_queue.h"
 #include "fs_malloc.h"
+#include <pthread.h>
+#include <signal.h>
 
 
 #define INVOKE_LEN 20480
@@ -151,7 +150,7 @@ VALUE rb_FSNET_mainloop(VALUE self){
         
     }while (fs_true);
     
-    ruby_show_copyright();
+//    ruby_show_copyright();
     
     return Qtrue;
 }

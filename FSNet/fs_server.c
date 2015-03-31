@@ -6,9 +6,8 @@
 //  Copyright (c) 2014年 Vincent. All rights reserved.
 //
 
-#include <stdio.h>
 #include <string.h>
-#include <event.h>
+#include "event.h"
 #include <evhttp.h>
 #include <event2/listener.h>
 #include <event2/thread.h>
@@ -247,6 +246,7 @@ fs_server_io_thread(void* data){
     sin.sin_addr.s_addr = inet_addr(server->addr.addr);
 	sin.sin_family = AF_INET;
     sin.sin_port = htons(server->addr.port);
+    sin.sin_len = sizeof(struct sockaddr_in);
     
     single_event = event_base_new();
     
@@ -261,7 +261,7 @@ fs_server_io_thread(void* data){
                                                LEV_OPT_REUSEABLE|LEV_OPT_CLOSE_ON_FREE,
                                                -1,
                                                (struct sockaddr*)&sin,
-                                               sizeof(sin));
+                                               sizeof(struct sockaddr));
             char msg[128];
             snprintf(msg, 128, "listener %s:%d fail", server->addr.addr, server->addr.port);
             fs_assert(listener != NULL, msg);

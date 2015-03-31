@@ -1,4 +1,3 @@
-require 'channel/channel_base.rb'
 
 class NodeServer < ChannelServer
 
@@ -12,7 +11,7 @@ class NodeServer < ChannelServer
 
 		# 这里是测试广播聊天, 这里可以广播到自己所连接的客户端上
 		def chat(message)
-			p message
+
 		end
 
 		# RPC Method
@@ -20,6 +19,10 @@ class NodeServer < ChannelServer
 		define_rpc(:on_login)
 		define_rpc(:get_online_count)
 		define_rpc(:broadcast)
+		define_rpc(:call_channel)
+		define_rpc(:find_channel_by_pid)
+
+
 
 	end
 

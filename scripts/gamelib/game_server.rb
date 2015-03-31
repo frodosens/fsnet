@@ -1,12 +1,12 @@
 require 'yaml'
 require 'logger'
-require 'tcp_server.rb'
-require 'agent_client.rb'
-require 'pack/pack_type.rb'
-require 'pack/pack.rb'
+require 'rubylib/tcp_server.rb'
+require 'gamelib/agent_client.rb'
+require 'gamelib/pack/pack_type.rb'
+require 'gamelib/pack/pack.rb'
 
 
-class TCPClient
+class TCPClient < FSNode
 
   attr_accessor :name
   attr_reader :pack_result_callback # serial => proc
@@ -480,18 +480,14 @@ class GameServer < GameTCPServer
 
   # 处理一个包
   def on_handle_pack(node_id, fs_pack)
-    super(node_id, fs_pack);
-    pack = Pack.parse(fs_pack);
-
+    super(node_id, fs_pack)
+    pack = Pack.parse(fs_pack)
     # 先找子节点是否可处理
     if child_handle_pack(node_id, pack)
       return
     end
-
     # 如果没有子节点可以处理的
-    if (@handle_map_configure != nil)
-      handle_pack(@clients[node_id], pack);
-    end
+    handle_pack(@clients[node_id], pack)
 
   end
 

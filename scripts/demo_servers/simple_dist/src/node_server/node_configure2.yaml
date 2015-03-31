@@ -3,7 +3,7 @@ base_configure:
   logger_file: node_server2.log
   byte_order: 0
   addr_ip: 0.0.0.0
-  addr_port: 40002
+  addr_port: 40011
 pack_handle:
   PACK_TYPE_CONNECT: cmd_connect
   PACK_TYPE_CREATE_CHANNEL: cmd_create_channel
@@ -12,4 +12,8 @@ pack_handle:
 center_server:
   name: CenterServer
   addr_ip: 0.0.0.0
-  addr_port: 39999
+  addr_port: 40020
+database_server:
+  name: DatabaseServer
+  addr_ip: 0.0.0.0
+  addr_port: 40030

@@ -1,10 +1,10 @@
 
-require 'pack_type.rb'
-require 'util/uuid.rb'
-require 'util/hash.rb'
-require 'channel/channel_system.rb'
+require 'channellib/pack_type.rb'
+require 'channellib/util/uuid.rb'
+require 'channellib/util/hash.rb'
+require 'channellib/channel/channel_system.rb'
 
-class TCPClient
+class TCPClient < FSNode
 
 
 	include PackTypeDefine

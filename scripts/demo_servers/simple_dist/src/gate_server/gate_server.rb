@@ -1,5 +1,3 @@
-require "game_server.rb"
-require 'pack_type.rb'
 require "gate_server/channel/logic_channel.rb"
 
 # ======

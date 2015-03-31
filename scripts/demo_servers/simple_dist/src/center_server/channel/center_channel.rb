@@ -1,4 +1,3 @@
-require 'channel/channel_base.rb'
 
 
 class CenterServer < ChannelServer
@@ -15,16 +14,24 @@ class CenterServer < ChannelServer
 			self.local_owner.broadcast(method_name, *params)
 		end
 
+		def call_channel( channel_name, method_name, *params)
+			self.local_owner.call_channel(channel_name, method_name, *params)
+		end
+
+		def find_channel_by_pid( pid )
+			rpc_return self.local_owner.find_channel_by_pid( pid )
+		end
+
 		def get_online_count
 			rpc_return self.local_owner.online_count
 		end
 
-		def on_login(pid)
-			self.local_owner.on_login(pid)
+		def on_login( channel_name, pid )
+			self.local_owner.on_login( channel_name, pid )
 		end
 
-		def on_logout(pid)
-			self.local_owner.on_login(pid)
+		def on_logout( channel_name, pid )
+			self.local_owner.on_login( channel_name, pid )
 		end
 
 		def regist_logic_node(node_name)
@@ -35,6 +42,7 @@ class CenterServer < ChannelServer
 
 
 		define_rpc(:chat)
+
 
 
 	end

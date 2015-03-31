@@ -1,9 +1,3 @@
-
-require 'pack_type.rb'
-require "game_server.rb"
-require 'util/uuid.rb'
-require 'util/hash.rb'
-require "channel/channel_server.rb"
 require 'center_server/channel/center_channel.rb'
 
 
@@ -11,10 +5,12 @@ class CenterServer < ChannelServer
 
 	attr_reader :nodes
 	attr_reader :online_count
+	attr_reader :online_map
 
 	def initialize(*args)
 		super
 		@nodes = {}
+		@online_map = {}
 		@online_count = 0
 		self.init_entities
 	end
@@ -24,12 +20,18 @@ class CenterServer < ChannelServer
 
 	end
 
-	def on_login(pid)
+	def on_login( channel_name, pid)
+
+		@online_map[pid] = channel_name
 		@online_count += 1
+
 	end
 
-	def on_logout(pid)
+	def on_logout( channel_name, pid)
+
+		@online_map.delete ( pid )
 		@online_count -= 1
+
 	end
 
 	def broadcast( method_name, *params )
@@ -40,6 +42,23 @@ class CenterServer < ChannelServer
 
 			channel.send(method_name, *params)
 		end
+
+	end
+
+	def call_channel( channel_name, method_name, *params )
+
+		for name, node in @nodes
+			if name == channel_name
+				channel = node.find_channel(NodeChannel)
+				channel.send(method_name, *params)
+			end
+		end
+
+	end
+
+	def find_channel_by_pid( pid )
+
+		@online_map[pid]
 
 	end
 

@@ -25,7 +25,9 @@ public class Main {
 	 * @throws UnknownHostException 
 	 */
 	public static void main(String[] args) throws UnknownHostException, IOException {
-		
+		int count = Integer.parseInt(args[0]);
+		for(int i = 0 ; i < count ; i++){
+
 		Socket socket = new Socket("127.0.0.1", 40000);
 		OutputStream os = socket.getOutputStream();
 		DataOutputStream dos = new DataOutputStream(os);
@@ -44,7 +46,9 @@ public class Main {
 		// read package_version
 		data = read_pack(dis);
 		data = read_pack(dis);
+        socket.close();
 
+		}
 		
 		
 	}

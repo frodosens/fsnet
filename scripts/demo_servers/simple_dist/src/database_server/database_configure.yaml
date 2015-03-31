@@ -1,9 +1,9 @@
 base_configure: 
-  server_name: center_server
-  logger_file: center_server.log
+  server_name: database_server
+  logger_file: database_server.log
   byte_order: 0
   addr_ip: 0.0.0.0
-  addr_port: 40020
+  addr_port: 40030
 pack_handle:
   PACK_TYPE_CREATE_CHANNEL: cmd_create_channel
   PACK_TYPE_DESTROY_CHANNEL: cmd_destroy_channel

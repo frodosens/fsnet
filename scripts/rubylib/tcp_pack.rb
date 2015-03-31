@@ -1,7 +1,6 @@
 
 class FSPack
 
-
   def byte_order 
     return 0; 
   end
@@ -18,9 +17,10 @@ class FSPack
 end
 
 class TCPPack < FSPack
-  
+
   def initialize()
-    super()  
+    super()
+		self.write_data = FSOutputStream.new
   end
   
 

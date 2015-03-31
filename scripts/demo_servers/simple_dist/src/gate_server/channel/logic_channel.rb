@@ -1,5 +1,4 @@
-require 'channel/channel_base.rb'
-require 'channel/channel_server.rb'
+
 class GateServer < ChannelServer
 
 

@@ -1,4 +1,10 @@
 
+
+
+require 'enc/encdb'
+require 'rubygems'
+require 'yaml'
+
 unless ARGV.include?("-xcode")
     require 'fsnet'
 end
@@ -47,7 +53,8 @@ module FSNET
 			$LOAD_PATH.unshift(File.dirname(__FILE__))
 			$LOAD_PATH.unshift(File.dirname(__FILE__) + "/rubylib");
 			$LOAD_PATH.unshift(File.dirname(__FILE__) + "/gamelib");
-			$LOAD_PATH.unshift(File.dirname(__FILE__) + "/mobile_server");
+			$LOAD_PATH.unshift(File.dirname(__FILE__) + "/extend");
+
 			Dir.chdir(File.dirname(__FILE__));
 			
 		end

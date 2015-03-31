@@ -1,7 +1,6 @@
 module ChannelSystem
 
 
-
 	attr_reader :entities
 
 	def init_entities

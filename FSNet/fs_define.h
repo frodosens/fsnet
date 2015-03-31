@@ -10,6 +10,11 @@
 #define FSNet_fs_define_h
 
 
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+
+
 #define BYTE unsigned char
 #define fs_bool BYTE
 #define fs_true 1

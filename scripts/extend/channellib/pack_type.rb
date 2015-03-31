@@ -1,4 +1,5 @@
 
+require 'gamelib/game_server.rb'
 
 module PackTypeDefine
 
@@ -13,7 +14,7 @@ module PackTypeDefine
 
 end
 
-class GameServer
+class GameServer < GameTCPServer
 
 	include PackTypeDefine
 

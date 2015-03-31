@@ -6,7 +6,6 @@
 //  Copyright (c) 2014年 Vincent. All rights reserved.
 //
 
-#include <stdio.h>
 #include <string.h>
 #include <errno.h>
 #include <event.h>

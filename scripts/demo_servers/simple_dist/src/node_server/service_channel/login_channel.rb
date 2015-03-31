@@ -1,4 +1,3 @@
-require 'channel/channel_base.rb'
 
 class LoginChannel < ChannelBase
 
