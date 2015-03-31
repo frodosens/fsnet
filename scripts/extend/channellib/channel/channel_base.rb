@@ -69,17 +69,46 @@ class ChannelBase
 		val = ret_pack.input.read_type_val
 		ret_block.call(val)
 	}
+	#
+	# def method_missing(method_name, *arg, &block)
+	#
+	# 	return  super if( @@_rpc_define.nil? or @@_rpc_define[self.class.to_s].nil? )
+	#
+	# 	unless @@_rpc_define[self.class.to_s].include?(method_name)
+	# 		return super
+	# 	end
+	#
+	# 	self.instance_eval(
+	# 		"def #{method_name}(*arg, &block)
+	# 				unless @owner.nil?
+	# 					os = FSOutputStream.new
+	# 					os.write_string(self.uuid.to_s)
+	# 					os.write_string('#{method_name}')
+	# 					os.write_params_array(arg)
+	# 					os.write_byte( block.nil? ? 0 : 1)  # 是否要求返回
+	# 					pack = Pack.create(Pack.generate_serial, PACK_TYPE_MESSAGE_CHANNEL, os)
+	# 					if block.nil?
+	# 						@owner.send_pack(pack)
+	# 					else
+	# 						@owner.send_pack(pack, block, @@_rpc_call_return)
+	# 					end
+	# 				end
+	# 		 end"
+	# 	)
+	# 	self.send(method_name, *arg, &block)
+	#
+	# end
 
-	def method_missing(method_name, *arg, &block)
 
-		return  super if( @@_rpc_define.nil? or @@_rpc_define[self.class.to_s].nil? )
+	class << self
 
-		unless @@_rpc_define[self.class.to_s].include?(method_name)
-			return super
-		end
+		def define_rpc(method_name, *args)
 
-		self.instance_eval(
-			"def #{method_name}(*arg, &block)
+			# @@_rpc_define ||= {}
+			# @@_rpc_define[self.to_s] ||= {}
+			# @@_rpc_define[self.to_s][method_name] = args
+			#
+			class_eval("def #{method_name}(*arg, &block)
 					unless @owner.nil?
 						os = FSOutputStream.new
 						os.write_string(self.uuid.to_s)
@@ -93,36 +122,7 @@ class ChannelBase
 							@owner.send_pack(pack, block, @@_rpc_call_return)
 						end
 					end
-			 end"
-		)
-		self.send(method_name, *arg, &block)
-
-	end
-
-
-	class << self
-
-		def define_rpc(method_name, *args)
-
-			@@_rpc_define ||= {}
-			@@_rpc_define[self.to_s] ||= {}
-			@@_rpc_define[self.to_s][method_name] = args
-			#
-			# class_eval("def #{method_name}(*arg, &block)
-			# 		unless @owner.nil?
-			# 			os = FSOutputStream.new
-			# 			os.write_string(self.uuid.to_s)
-			# 			os.write_string('#{method_name}')
-			# 			os.write_params_array(arg)
-			# 			os.write_byte( block.nil? ? 0 : 1)  # 是否要求返回
-			# 			pack = Pack.create(Pack.generate_serial, PACK_TYPE_MESSAGE_CHANNEL, os)
-			# 			if block.nil?
-			# 				@owner.send_pack(pack)
-			# 			else
-			# 				@owner.send_pack(pack, block, @@_rpc_call_return)
-			# 			end
-			# 		end
-			#  end", __FILE__, __LINE__)
+			end", __FILE__, __LINE__)
 
 
 		end
