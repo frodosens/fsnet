@@ -35,7 +35,7 @@ class Pack < TCPPack
 			nos.write_int16(@make_sum);
 			nos.write_int32( @data_len );
 			nos.write_data( data, @data_len );
-			self.write_data = nos;
+			self.write_data = nos
 			data = nil
 		else
 			@input       = is;

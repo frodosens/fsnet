@@ -967,6 +967,7 @@ rb_Pack_initialize(int argc, VALUE* argv, VALUE self){
         struct fs_pack* pack = NULL;
         Data_Get_Struct(self, struct fs_pack, pack);
         pack->data_input_stream_id = Qnil;
+        rb_funcall(self, rb_intern("write_data="), 1, rb_class_new_instance(0, NULL, rb_cOutputStream));
         
         return Qnil;
         
@@ -989,8 +990,6 @@ rb_Pack_initialize(int argc, VALUE* argv, VALUE self){
         
         pack->input_stream = fs_create_input_stream((const BYTE*)data, len);
         pack->data_input_stream_id = Qnil;
-        
-        
         
         return Qnil;
     }

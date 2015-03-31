@@ -15,6 +15,6 @@ node_servers:
       name: NodeServer2
       addr_ip: 0.0.0.0
       addr_port: 40011
-disable_route:
+disable_route:  # 禁止客户端发起创建或者销毁channel的消息
   - PACK_TYPE_CREATE_CHANNEL
   - PACK_TYPE_DESTROY_CHANNEL

@@ -20,7 +20,7 @@ class TCPPack < FSPack
 
   def initialize()
     super()
-		self.write_data = FSOutputStream.new
+		#self.write_data = FSOutputStream.new
   end
   
 
