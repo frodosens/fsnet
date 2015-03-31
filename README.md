@@ -1,7 +1,7 @@
 #fsnet
 ===20150331======  
 愚人节前夕,再更新一版.  
-1.已经屏蔽掉了stream和package type这种通讯做法. 这样在项目变大的时候 会变得非常棘手(代码了庞大.  
+1.已经屏蔽掉了stream和package type这种通讯做法. 这样在项目变大的时候 会变得非常棘手(代码变庞大, 并且不好看啊啊啊啊   
 2.全部通讯都使用一种叫做channel的通道来通讯, 会在本地与远程都建立一个对应的通道, 双方都可以在这个通道里.互相调用对方的函数.   就像调用本地函数一般.  
 3.这样就不需要定义一大堆的pack_type了. 只剩下最基本的几个 比如 create_channel destory_channel call_channel return_channel  
 4.增加一个广播的demo  其实基础流程就是  
@@ -10,7 +10,12 @@ node2 <-> center
 node1 call center#broadcast( method_name, params )  
 center -> (node1 node2)#method_name(params)  
 唔..还是挺不错的 : P  
-去掉了原先使用method_missing的方法来做RPC. 发现这样一旦项目大了后. 会很难跟踪问题. 直接使用一个define_rpc函数来定义  
+去掉了原先使用method_missing的方法来做RPC. 发现这样一旦项目大了后.   
+会很难跟踪问题. 直接使用一个define_rpc函数来定义    
+详细见 simple_dist  这是一个 多网关 多逻辑节点 单一中心服务器的demo  
+其实一开始我是希望做成work分发的功能的. 但是建立channel后. 原先的意义变小了...这个后面看看如何处理会比较优雅      
+
+
   
 ===20141223======  
 唔.发现如果想给太多的自由, 会导致非常迷惘. 完全不知道如何下手.  
