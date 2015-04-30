@@ -44,9 +44,9 @@ public class Main {
 
 		
 		// read package_version
-		data = read_pack(dis);
-		data = read_pack(dis);
-        socket.close();
+		//data = read_pack(dis);
+		//data = read_pack(dis);
+        //socket.close();
 
 		}
 		

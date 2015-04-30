@@ -11,6 +11,7 @@ class NodeServer < ChannelServer
 
 
 		define_rpc(:find_data_by)
+		define_rpc(:find_table_by)
 
 	end
 

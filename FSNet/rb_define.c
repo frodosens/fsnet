@@ -12,6 +12,7 @@
 #include "fs_server.h"
 #include "fs_node.h"
 
+#define PACK_FLAG 'F'
 
 static uint32_t pack_head_len = 5;
 
@@ -148,11 +149,16 @@ fs_ruby_tcp_parse_pack(struct fs_server* server, const BYTE* data, ssize_t len, 
         return 0;
     }
     
-//    BYTE order           = data[0];
+    BYTE order           = data[0];
     BYTE pack_len1       = data[1];
     BYTE pack_len2       = data[2];
     BYTE pack_len3       = data[3];
     BYTE pack_len4       = data[4];
+    
+    if(order != PACK_FLAG){
+        // not std pack
+    }
+    
     uint32_t pack_len    = (pack_len4 << 24 | pack_len3 << 16 | pack_len2 << 8 | pack_len1);
     
     if(len >= pack_len && pack_len >= pack_head_len){
@@ -288,7 +294,7 @@ fs_ruby_pack_to_data( struct fs_server* server, struct fs_pack* pack, BYTE** out
     //VALUE byte_order = rb_funcall(c_server, rb_intern("byte_order"), 0);
     
     struct fs_output_stream* fos = fs_create_output_stream_ext;
-    fs_stream_write_byte(fos, 0);
+    fs_stream_write_byte(fos, PACK_FLAG);
     fs_stream_write_int32(fos, (int32_t)len + pack_head_len);
     fs_stream_write_data(fos, data, len);
     
@@ -386,10 +392,17 @@ protect_fs_ruby_call_func(VALUE argv){
     if (argc == -1) {
         VALUE proc = (VALUE)argvs[1];
         VALUE proc_argv = LL2NUM(argvs[2]);
-        VALUE proc_argvs = rb_ary_new();
-        rb_ary_push(proc_argvs, proc_argv);
-        rb_proc_call(proc, proc_argvs);
-        rb_ary_free(proc_argvs);
+        VALUE sid = LL2NUM(argvs[3]);
+        
+        VALUE proc_args[2] = { sid, proc_argv };
+        
+        rb_method_call(2, proc_args, proc);
+        
+//        VALUE proc_argvs = rb_ary_new();
+//        rb_ary_push(proc_argvs, proc_argv);
+//        rb_proc_call(proc, proc_argvs);
+//        rb_ary_free(proc_argvs);
+//        
     }
     
     if(argc == 0){
@@ -430,11 +443,13 @@ protect_fs_ruby_handle_pack(VALUE argv){
             
             VALUE proc = (VALUE)argvs[2];
             VALUE proc_argv = (VALUE)argvs[3];
+            VALUE sid = (VALUE)argvs[4];
             
-            VALUE argvs[3];
+            VALUE argvs[4];
             argvs[0] = INT2FIX(-1);
             argvs[1] = proc;
             argvs[2] = proc_argv;
+            argvs[3] = sid;
             
             rb_protect(protect_fs_ruby_call_func, (VALUE)argvs, &ret);
             
@@ -648,18 +663,19 @@ rb_Server_stop(VALUE self){
 }
 
 void
-rb_Server_scheduler_function(struct fs_server* server, unsigned long dt, void* data){
+rb_Server_scheduler_function(struct fs_timer* timer, struct fs_server* server, unsigned long dt, void* data){
    
     VALUE proc = (VALUE)data;
     
-    VALUE argv[4];
+    VALUE argv[5];
     argv[0] = (VALUE)server;
     argv[1] = (VALUE)fs_create_time_tick_pack(server);
     argv[2] = proc;
     argv[3] = (VALUE)dt;
+    argv[4] = (VALUE)timer;
     
     
-    struct fs_invoke_call_function* invoke = fs_create_invoke_call(protect_fs_ruby_handle_pack, 4, argv);
+    struct fs_invoke_call_function* invoke = fs_create_invoke_call(protect_fs_ruby_handle_pack, 5, argv);
     fs_ruby_invoke(invoke);
     
     

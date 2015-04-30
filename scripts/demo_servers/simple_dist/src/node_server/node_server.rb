@@ -17,7 +17,7 @@ class NodeServer < ChannelServer
 
 	def initialize(*args)
 		super
-		self.init_entities
+		self.init_channel
 	end
 
 	def on_start_complete
@@ -33,7 +33,7 @@ class NodeServer < ChannelServer
 		@database_channel = @database_server.create_channel(NodeServer::DatabaseChannel, "DatabaseServer::OwnerChannel", self)
 		@database_server.send_channel(@database_channel)
 
-		@database_channel.find_data_by( "server_init_table", nil ) do |ret|
+		@database_channel.find_table_by( "server_init_table", "node_init_conf" ) do |ret|
 
 			# init from ret
 			info( "init from #{ret}" )

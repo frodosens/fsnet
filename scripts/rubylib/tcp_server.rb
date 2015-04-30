@@ -9,8 +9,7 @@ require "rubylib/tcp_client.rb"
 #     
 #_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/
 class GameTCPServer < FSServer
-	
-	
+
 	#_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/
 	# * Scheduler 定時任務
 	#-------------------------------------------------------------------------------------------------------
@@ -21,7 +20,6 @@ class GameTCPServer < FSServer
 		attr_reader :server
 		attr_reader :execute_proc
 		def initialize()
-			
 		end
 		#_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/
 		# * 計時器啟動
@@ -29,18 +27,15 @@ class GameTCPServer < FSServer
 		#  
 		#_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/
 		def start(server, dt, times, execute_proc)
-			
-			@prote_proc = Proc.new do |dt|
-				@execute_proc.call(dt / 1000000.0)
-			end
-			
+
 			@execute_proc = execute_proc
 			@server = server
-			@sid = @server.scheduler(dt, times, @prote_proc)
+
+			@sid = @server.scheduler(dt, times, @execute_proc)
 		end
 		def stop
-			if(@sid != 0 and @server != nil)
-				@server.unscheduler(@sid)
+			if(@server != nil)
+				@server.unscheduler_update(@sid)
 				@sid = 0
 				@server = nil
 			end
@@ -49,9 +44,9 @@ class GameTCPServer < FSServer
 	end
   
   # 所有客户端
-  attr_reader :clients;
+  attr_reader :clients
   attr_reader :byte_order
-  
+	attr_reader :schedulers
 
 	#_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/
 	# * server 初始化
@@ -59,25 +54,36 @@ class GameTCPServer < FSServer
 	#  @server_name
 	#_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/
   def initialize(server_name)
-     super(server_name);
+     super(server_name)
      @clients = {}
-     @byte_order = 0;
-     @start_proc = nil;
+     @byte_order = 0
+     @start_proc = nil
+		 @schedulers = {}
   end
-  
-  #_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/
-  # * 開始一個定時任務
-  #-------------------------------------------------------------------------------------------------------
-  #     @dt     dt (float) 間隔
-  #     @times  循環次數
-  #     @proc   每次執行的回調
-  #_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/
-	def scheduler_update(dt, times, proc)
+
+	#_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/
+	# * 開始一個定時任務
+	#-------------------------------------------------------------------------------------------------------
+	#     @dt     dt (float) 間隔
+	#     @times  循環次數
+	#     @proc   每次執行的回調方法  从 proc -> method  测试证明 call_method  比 proc.call 效率快
+	#_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/
+	def scheduler_update(dt, times, method_sym)
 		scheduler = Scheduler.new()
-		scheduler.start(self, dt, times, proc)
-		return scheduler
+		scheduler.start(self, dt, times, method(method_sym))
+		@schedulers[scheduler.sid] = scheduler
+		scheduler.sid
 	end
-  #_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/
+
+	def stop_scheduler(sid)
+		if @schedulers.has_key?(sid)
+			@schedulers.delete(sid)
+			unscheduler(sid)
+		end
+	end
+
+
+	#_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/
   # * 开始服务
   #-------------------------------------------------------------------------------------------------------
   #     @ip     ip地址
@@ -157,6 +163,7 @@ class GameTCPServer < FSServer
 #		raise("#{self.name} send_pack_to target_id(#{node_id}) is NULL clients id => #{@clients.keys}  pack_type => #{pack.pack_type}")
 		return false
   end
+
 
 
 end

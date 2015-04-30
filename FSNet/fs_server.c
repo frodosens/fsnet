@@ -418,7 +418,7 @@ timeout_cb(evutil_socket_t fd, short event, void *arg){
     
     
     if(!timer->stoped){
-        timer->fn(timer->server, dt, timer->data);
+        timer->fn(timer, timer->server, dt, timer->data);
     }
     
     timer->last_dt = lasttime.tv_sec * 1000000 + lasttime.tv_usec;

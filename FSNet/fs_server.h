@@ -37,7 +37,7 @@ typedef size_t (*fn_fs_pack_to_data)( struct fs_server*, struct fs_pack* , BYTE*
 typedef void (*fn_fs_server_on_start)( struct fs_server* );
 typedef void (*fn_fs_node_connect)( struct fs_server*, fs_id );
 typedef void (*fn_fs_node_shudown)( struct fs_server*, fs_id );
-typedef void (*fn_fs_server_scheduler)( struct fs_server* , unsigned long dt, void* data);
+typedef void (*fn_fs_server_scheduler)( struct fs_timer*, struct fs_server* , unsigned long dt, void* data);
 
 
 struct  fs_server* fs_create_server(const char* name);

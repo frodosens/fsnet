@@ -1,9 +1,4 @@
 
-
-class A
-
-end
-
 class DatabaseServer < ChannelServer
 
 	class OwnerChannel < ChannelBase
@@ -14,7 +9,18 @@ class DatabaseServer < ChannelServer
 		end
 
 		def find_data_by( table_name, key )
-			rpc_return ({  })
+
+			full_key = "#{table_name}_#{key}"
+
+			rpc_return self.local_owner.database.get( full_key )
+
+		end
+		def find_table_by( table_name, key )
+
+			full_key = "#{table_name}_#{key}"
+
+			rpc_return self.local_owner.database.hgetall( full_key )
+
 		end
 
 

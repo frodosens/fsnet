@@ -220,7 +220,8 @@ class GameServer < GameTCPServer
     client = nil
     begin
       client = ChildNode.new(self, node_configure["addr_ip"], node_configure["addr_port"]);
-    rescue => err
+    rescue => e
+			err(e)
       warn("#{self.name} Connecting to #{node_configure["name"]} fail retrying");
       sleep(2)
       retry

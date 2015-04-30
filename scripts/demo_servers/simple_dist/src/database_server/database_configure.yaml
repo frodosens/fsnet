@@ -8,3 +8,12 @@ pack_handle:
   PACK_TYPE_CREATE_CHANNEL: cmd_create_channel
   PACK_TYPE_DESTROY_CHANNEL: cmd_destroy_channel
   PACK_TYPE_MESSAGE_CHANNEL: cmd_message_channel
+mysql_configure:
+  host: "172.16.96.149"
+  port: 3306
+  username: "root"
+  password: "123456"
+  database: "boomman"
+redis_configure:
+  - "172.16.96.147:6400"
+redis_virtual_count: 10

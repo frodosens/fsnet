@@ -12,14 +12,21 @@ class CenterServer < ChannelServer
 		@nodes = {}
 		@online_map = {}
 		@online_count = 0
-		self.init_entities
 	end
 
 	def on_start_complete
 		super
 
+		@tick_id = scheduler_update(0.16, -1, :on_tick)
+		@tick_id2 = scheduler_update(0.32, -1, :on_tick)
+
 	end
 
+	def on_tick( sid,  dt )
+        p sid
+	end
+
+    
 	def on_login( channel_name, pid)
 
 		@online_map[pid] = channel_name
@@ -35,7 +42,6 @@ class CenterServer < ChannelServer
 	end
 
 	def broadcast( method_name, *params )
-
 
 		for node in @nodes.values
 			channel = node.find_channel(NodeChannel)

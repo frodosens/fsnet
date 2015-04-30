@@ -354,7 +354,9 @@ libevent_cb_node_onrecv_data(int socket, short event, void* arg){
                 if(errno == EAGAIN){
                     break;
                 }else{
-                    fprintf(stderr, "%d on recv_data error[%d] \n", node->node_id, errno);
+                    if(errno != ECONNRESET){
+                        fprintf(stderr, "%d on recv_data error[%d] \n", node->node_id, errno);
+                    }
                     fs_node_shudown(node);
                     return;
                 }
