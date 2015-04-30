@@ -391,7 +391,7 @@ protect_fs_ruby_call_func(VALUE argv){
     
     if (argc == -1) {
         VALUE proc = (VALUE)argvs[1];
-        VALUE proc_argv = LL2NUM(argvs[2]);
+        VALUE proc_argv = argvs[2];
         VALUE sid = LL2NUM(argvs[3]);
         
         VALUE proc_args[2] = { sid, proc_argv };
@@ -671,7 +671,7 @@ rb_Server_scheduler_function(struct fs_timer* timer, struct fs_server* server, u
     argv[0] = (VALUE)server;
     argv[1] = (VALUE)fs_create_time_tick_pack(server);
     argv[2] = proc;
-    argv[3] = (VALUE)dt;
+    argv[3] = rb_float_new(dt / 1000.0f / 1000.0f);
     argv[4] = (VALUE)timer;
     
     
