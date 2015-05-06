@@ -108,7 +108,10 @@ class ChannelBase
 			# @@_rpc_define[self.to_s] ||= {}
 			# @@_rpc_define[self.to_s][method_name] = args
 			#
-			class_eval("def #{method_name}(*arg, &block)
+
+
+			class_eval("
+                def #{method_name}(*arg, &block)
 					unless @owner.nil?
 						os = FSOutputStream.new
 						os.write_string(self.uuid.to_s)
@@ -122,7 +125,8 @@ class ChannelBase
 							@owner.send_pack(pack, block, @@_rpc_call_return)
 						end
 					end
-			end", __FILE__, __LINE__)
+                end
+                    ", __FILE__, __LINE__)
 
 
 		end

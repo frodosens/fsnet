@@ -15,5 +15,5 @@ mysql_configure:
   password: "123456"
   database: "boomman"
 redis_configure:
-  - "172.16.96.147:6400"
+  - "172.16.96.149:6400"
 redis_virtual_count: 10

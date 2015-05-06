@@ -28,7 +28,7 @@ class FSOutputStream
 	def write_hash(hash)
 		self.write_uint16(hash.size)
 		for k, v in hash
-			self.write_type_val(k)
+			self.write_string(k.to_s)
 			self.write_type_val(v)
 		end
 	end

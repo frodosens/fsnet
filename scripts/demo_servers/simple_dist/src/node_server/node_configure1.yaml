@@ -17,3 +17,7 @@ database_server:
   name: DatabaseServer
   addr_ip: 0.0.0.0
   addr_port: 40030
+disable_route:
+  - PACK_TYPE_CREATE_CHANNEL
+  - PACK_TYPE_DESTROY_CHANNEL
+  - PACK_TYPE_MESSAGE_CHANNEL

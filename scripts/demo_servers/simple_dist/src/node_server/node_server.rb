@@ -67,21 +67,21 @@ class NodeServer < ChannelServer
 		# 新连接, 创建新的通讯管道
 		login_channel = sender.create_channel( LoginChannel, "LoginChannel", self )
 		sender.send_channel(login_channel)
-		login_channel.init
-
-		# 登陆的PID
-		pid = 0
-
-		# 告诉中心服务器有人登陆了
-		@center_channel.on_login(self.name, pid)
-
-		# 广播一条登陆消息
-		@center_channel.broadcast( :chat, "Hi" )
-
-		# 通过PID找到channel
-		@center_channel.find_channel_by_pid(pid) do |channel_name|
-				@center_channel.call_channel( channel_name, :chat, "Yo" )
-		end
+		login_channel.init( { :server_name => self.name } )
+		#
+		# # 登陆的PID
+		# pid = 0
+		#
+		# # 告诉中心服务器有人登陆了
+		# @center_channel.on_login(self.name, pid)
+		#
+		# # 广播一条登陆消息
+		# @center_channel.broadcast( :chat, "Hi" )
+		#
+		# # 通过PID找到channel
+		# @center_channel.find_channel_by_pid(pid) do |channel_name|
+		# 		@center_channel.call_channel( channel_name, :chat, "Yo" )
+		# end
 
 
 	end

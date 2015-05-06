@@ -6,9 +6,12 @@ class LoginChannel < ChannelBase
 	end
 
 	def login(user_name, user_pwd)
-		self.local.creaet_channel( nil, nil , self.local_server )
+
+		login_ret(true)
+
 	end
 
 	define_rpc(:init)
+	define_rpc(:login_ret)
 
 end

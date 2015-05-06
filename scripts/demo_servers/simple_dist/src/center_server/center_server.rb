@@ -16,14 +16,10 @@ class CenterServer < ChannelServer
 
 	def on_start_complete
 		super
-
-		@tick_id = scheduler_update(0.16, -1, :on_tick)
-		@tick_id2 = scheduler_update(0.32, -1, :on_tick)
-
 	end
 
 	def on_tick( sid,  dt )
-        p sid
+        p dt
 	end
 
     

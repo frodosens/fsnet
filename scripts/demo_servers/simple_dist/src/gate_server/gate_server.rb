@@ -38,6 +38,10 @@ class GateServer < ChannelServer
 	end
 
 
+	def cmd_reconnect(sender, pack)
+
+	end
+
 	# ====
 	# 如果有子集群可以执行的情况下, 交给选择器选择
 	#

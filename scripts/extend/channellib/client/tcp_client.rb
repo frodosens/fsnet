@@ -13,7 +13,7 @@ class TCPClient < FSNode
 	alias :_tcp_client_initialize :initialize
 	def initialize(*args)
 		_tcp_client_initialize(*args)
-		self.init_entities
+		self.init_channel
 	end
 
 

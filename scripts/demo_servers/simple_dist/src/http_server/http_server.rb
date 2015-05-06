@@ -58,7 +58,7 @@ class GameHttpServer < HTTPServer
 		
 		rescue => err
 		
-			noexist = HTTPResponse.new(404, "出錯了喔 GET #{request.uri} #{err.message}")
+			noexist = HTTPResponse.new(404, "出錯了喔 GET #{request.uri} ")
 			return noexist;
 		
 		end

@@ -11,7 +11,7 @@ class DatabaseServer < ChannelServer
 	def on_start_complete
 		super
 		info("开始连接数据库 from #{@configure}")
-		@database = GameDatabase.new(self, @configure)
+		#@database = GameDatabase.new(self, @configure)
 	end
 
 

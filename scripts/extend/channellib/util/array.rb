@@ -12,7 +12,7 @@ module IOType
 	PARAMS_TYPE_ARY = 3
 	PARAMS_TYPE_HASH = 4
 	PARAMS_TYPE_BOOL = 5
-	PARAMS_TYPE_PACK = 6
+	PARAMS_TYPE_INT64 = 6
 	PARAMS_TYPE_NIL  = 7
 
 end
@@ -37,6 +37,8 @@ class FSInputStream
 				return self.read_bool
 			when IOType::PARAMS_TYPE_NIL
 				return nil
+			when IOType::PARAMS_TYPE_INT64
+				return self.read_int64
 
 		end
 	end
@@ -52,7 +54,6 @@ class FSInputStream
 		return ary
 	end
 
-
 end
 
 class FSOutputStream
@@ -64,6 +65,9 @@ class FSOutputStream
 		elsif val.is_a?(Integer)
 			self.write_byte(IOType::PARAMS_TYPE_INT)
 			self.write_int32(val)
+		elsif val.is_a?(Bignum)
+			self.write_byte(IOType::PARAMS_TYPE_INT64)
+			self.write_int64(val)
 		elsif val.is_a?(Float)
 			self.write_byte(IOType::PARAMS_TYPE_FLOAT)
 			self.write_float(val)

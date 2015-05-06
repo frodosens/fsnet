@@ -5,6 +5,11 @@ class ChannelServer < GameServer
 
 	include ChannelSystem
 
+	def initialize(*args)
+		super
+		self.init_channel
+	end
+
 	# 该节点请求在本地创建一个实例
 	def cmd_create_channel(sender, pack)
 
@@ -33,7 +38,6 @@ class ChannelServer < GameServer
 
 	# 该节点请求调用本地实例的方法
 	def cmd_message_channel(sender, pack)
-
 		channel_id = pack.input.read_string
 		channel_method = pack.input.read_string
 		params_ary = pack.input.read_params_array

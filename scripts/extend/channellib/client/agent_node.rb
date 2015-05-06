@@ -14,7 +14,7 @@ class AgentNode
 	alias :_agent_node_initialize :initialize
 	def initialize(*args)
 		_agent_node_initialize(*args)
-		self.init_entities
+		self.init_channel
 	end
 
 

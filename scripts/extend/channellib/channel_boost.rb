@@ -11,4 +11,4 @@ require 'extend/channellib/client/agent_node.rb'
 require 'extend/channellib/client/tcp_client.rb'
 require 'extend/channellib/channel/channel_base.rb'
 require 'extend/channellib/channel/channel_system.rb'
-require "extend/channellib/channel/channel_server.rb"
+require 'extend/channellib/channel/channel_server.rb'

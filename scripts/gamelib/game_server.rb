@@ -400,10 +400,7 @@ class GameServer < GameTCPServer
     if (method_name != nil)
       begin
         # info("execute #{method_name}")
-        pack_method = method(method_name);
-        if (pack_method != nil)
-          pack_method.call(client, pack);
-        end
+				self.send(method_name, client, pack)
       rescue => e
         err(e.message);
       end
@@ -437,7 +434,7 @@ class GameServer < GameTCPServer
   }
 
   def get_agent_node_by_group(sender_id, nodes, pack_type)
-		raise '必须实现集群选择函数'
+		raise "必须实现集群选择函数 #{pack_type}"
   end
 
   # 獲取執行包的節點
