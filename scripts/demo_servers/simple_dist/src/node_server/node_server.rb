@@ -68,7 +68,7 @@ class NodeServer < ChannelServer
 		login_channel = sender.create_channel( LoginChannel, "LoginChannel", self )
 		sender.send_channel(login_channel)
 		login_channel.init( { :server_name => self.name } )
-		#
+
 		# # 登陆的PID
 		# pid = 0
 		#
@@ -84,6 +84,14 @@ class NodeServer < ChannelServer
 		# end
 
 
+	end
+
+
+	def on_agent_node_shudown(agent_node)
+		for uid, channel in agent_node.channels
+			channel.on_destroy
+		end
+        agent_node.channels.clear
 	end
 
 

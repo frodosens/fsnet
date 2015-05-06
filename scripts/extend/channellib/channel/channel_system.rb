@@ -3,7 +3,7 @@ require 'fiber'
 
 module ChannelSystem
 
-	attr_reader :entities
+	attr_reader :channels
 
 	def init_channel
 		@channels = {}
