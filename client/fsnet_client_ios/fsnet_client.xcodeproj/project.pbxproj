@@ -21,15 +21,8 @@
 		6ABDA32A1A4705B8005AAB60 /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 6ABDA3291A4705B8005AAB60 /* Images.xcassets */; };
 		6ABDA32D1A4705B8005AAB60 /* LaunchScreen.xib in Resources */ = {isa = PBXBuildFile; fileRef = 6ABDA32B1A4705B8005AAB60 /* LaunchScreen.xib */; };
 		6ABDA3391A4705B8005AAB60 /* fsnet_clientTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 6ABDA3381A4705B8005AAB60 /* fsnet_clientTests.m */; };
-		6ABDA3561A4705CE005AAB60 /* base64.c in Sources */ = {isa = PBXBuildFile; fileRef = 6ABDA3431A4705CE005AAB60 /* base64.c */; };
-		6ABDA3571A4705CE005AAB60 /* fs_malloc.c in Sources */ = {isa = PBXBuildFile; fileRef = 6ABDA3461A4705CE005AAB60 /* fs_malloc.c */; };
-		6ABDA3581A4705CE005AAB60 /* fs_stream.c in Sources */ = {isa = PBXBuildFile; fileRef = 6ABDA3481A4705CE005AAB60 /* fs_stream.c */; };
-		6ABDA3591A4705CE005AAB60 /* hash.c in Sources */ = {isa = PBXBuildFile; fileRef = 6ABDA34A1A4705CE005AAB60 /* hash.c */; };
-		6ABDA35A1A4705CE005AAB60 /* mb_client.c in Sources */ = {isa = PBXBuildFile; fileRef = 6ABDA34C1A4705CE005AAB60 /* mb_client.c */; };
-		6ABDA35B1A4705CE005AAB60 /* mb_entity.c in Sources */ = {isa = PBXBuildFile; fileRef = 6ABDA34E1A4705CE005AAB60 /* mb_entity.c */; };
-		6ABDA35C1A4705CE005AAB60 /* mb_pack.c in Sources */ = {isa = PBXBuildFile; fileRef = 6ABDA3501A4705CE005AAB60 /* mb_pack.c */; };
-		6ABDA35D1A4705CE005AAB60 /* mb_proto.c in Sources */ = {isa = PBXBuildFile; fileRef = 6ABDA3521A4705CE005AAB60 /* mb_proto.c */; };
-		6ABDA35E1A4705CE005AAB60 /* md5.c in Sources */ = {isa = PBXBuildFile; fileRef = 6ABDA3541A4705CE005AAB60 /* md5.c */; };
+		6AE92A991AF9E6D6009F6CEC /* fs_malloc.c in Sources */ = {isa = PBXBuildFile; fileRef = 6AE92A951AF9E6D6009F6CEC /* fs_malloc.c */; };
+		6AE92A9A1AF9E6D6009F6CEC /* fs_stream.c in Sources */ = {isa = PBXBuildFile; fileRef = 6AE92A971AF9E6D6009F6CEC /* fs_stream.c */; };
 		6AEF43451AF91657003AF532 /* FSParams.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6AEF43431AF91657003AF532 /* FSParams.cpp */; };
 		6AEF43481AF91668003AF532 /* FSMethod.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6AEF43461AF91668003AF532 /* FSMethod.cpp */; };
 /* End PBXBuildFile section */
@@ -72,25 +65,11 @@
 		6ABDA3321A4705B8005AAB60 /* fsnet_clientTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = fsnet_clientTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		6ABDA3371A4705B8005AAB60 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		6ABDA3381A4705B8005AAB60 /* fsnet_clientTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = fsnet_clientTests.m; sourceTree = "<group>"; };
-		6ABDA3431A4705CE005AAB60 /* base64.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = base64.c; sourceTree = "<group>"; };
-		6ABDA3441A4705CE005AAB60 /* base64.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = base64.h; sourceTree = "<group>"; };
-		6ABDA3451A4705CE005AAB60 /* fs_define.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = fs_define.h; sourceTree = "<group>"; };
-		6ABDA3461A4705CE005AAB60 /* fs_malloc.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = fs_malloc.c; sourceTree = "<group>"; };
-		6ABDA3471A4705CE005AAB60 /* fs_malloc.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = fs_malloc.h; sourceTree = "<group>"; };
-		6ABDA3481A4705CE005AAB60 /* fs_stream.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = fs_stream.c; sourceTree = "<group>"; };
-		6ABDA3491A4705CE005AAB60 /* fs_stream.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = fs_stream.h; sourceTree = "<group>"; };
-		6ABDA34A1A4705CE005AAB60 /* hash.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = hash.c; sourceTree = "<group>"; };
-		6ABDA34B1A4705CE005AAB60 /* hash.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = hash.h; sourceTree = "<group>"; };
-		6ABDA34C1A4705CE005AAB60 /* mb_client.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = mb_client.c; sourceTree = "<group>"; };
-		6ABDA34D1A4705CE005AAB60 /* mb_client.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = mb_client.h; sourceTree = "<group>"; };
-		6ABDA34E1A4705CE005AAB60 /* mb_entity.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = mb_entity.c; sourceTree = "<group>"; };
-		6ABDA34F1A4705CE005AAB60 /* mb_entity.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = mb_entity.h; sourceTree = "<group>"; };
-		6ABDA3501A4705CE005AAB60 /* mb_pack.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = mb_pack.c; sourceTree = "<group>"; };
-		6ABDA3511A4705CE005AAB60 /* mb_pack.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = mb_pack.h; sourceTree = "<group>"; };
-		6ABDA3521A4705CE005AAB60 /* mb_proto.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = mb_proto.c; sourceTree = "<group>"; };
-		6ABDA3531A4705CE005AAB60 /* mb_proto.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = mb_proto.h; sourceTree = "<group>"; };
-		6ABDA3541A4705CE005AAB60 /* md5.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = md5.c; sourceTree = "<group>"; };
-		6ABDA3551A4705CE005AAB60 /* md5.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = md5.h; sourceTree = "<group>"; };
+		6AE92A941AF9E6D6009F6CEC /* fs_define.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = fs_define.h; sourceTree = "<group>"; };
+		6AE92A951AF9E6D6009F6CEC /* fs_malloc.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = fs_malloc.c; sourceTree = "<group>"; };
+		6AE92A961AF9E6D6009F6CEC /* fs_malloc.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = fs_malloc.h; sourceTree = "<group>"; };
+		6AE92A971AF9E6D6009F6CEC /* fs_stream.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = fs_stream.c; sourceTree = "<group>"; };
+		6AE92A981AF9E6D6009F6CEC /* fs_stream.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = fs_stream.h; sourceTree = "<group>"; };
 		6AEF43431AF91657003AF532 /* FSParams.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = FSParams.cpp; sourceTree = "<group>"; };
 		6AEF43441AF91657003AF532 /* FSParams.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = FSParams.h; sourceTree = "<group>"; };
 		6AEF43461AF91668003AF532 /* FSMethod.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = FSMethod.cpp; sourceTree = "<group>"; };
@@ -118,6 +97,7 @@
 		6A6FF6091AF8B14A00CD00B9 /* client_lib */ = {
 			isa = PBXGroup;
 			children = (
+				6AE92A931AF9E6D6009F6CEC /* fsnet_std */,
 				6A6FF61C1AF8E33F00CD00B9 /* Channels */,
 				6AEF43431AF91657003AF532 /* FSParams.cpp */,
 				6AEF43441AF91657003AF532 /* FSParams.h */,
@@ -152,7 +132,6 @@
 			isa = PBXGroup;
 			children = (
 				6A6FF6091AF8B14A00CD00B9 /* client_lib */,
-				6ABDA3421A4705CE005AAB60 /* mb_client */,
 				6ABDA31B1A4705B8005AAB60 /* fsnet_client */,
 				6ABDA3351A4705B8005AAB60 /* fsnet_clientTests */,
 				6ABDA31A1A4705B8005AAB60 /* Products */,
@@ -209,31 +188,17 @@
 			name = "Supporting Files";
 			sourceTree = "<group>";
 		};
-		6ABDA3421A4705CE005AAB60 /* mb_client */ = {
+		6AE92A931AF9E6D6009F6CEC /* fsnet_std */ = {
 			isa = PBXGroup;
 			children = (
-				6ABDA3431A4705CE005AAB60 /* base64.c */,
-				6ABDA3441A4705CE005AAB60 /* base64.h */,
-				6ABDA3451A4705CE005AAB60 /* fs_define.h */,
-				6ABDA3461A4705CE005AAB60 /* fs_malloc.c */,
-				6ABDA3471A4705CE005AAB60 /* fs_malloc.h */,
-				6ABDA3481A4705CE005AAB60 /* fs_stream.c */,
-				6ABDA3491A4705CE005AAB60 /* fs_stream.h */,
-				6ABDA34A1A4705CE005AAB60 /* hash.c */,
-				6ABDA34B1A4705CE005AAB60 /* hash.h */,
-				6ABDA34C1A4705CE005AAB60 /* mb_client.c */,
-				6ABDA34D1A4705CE005AAB60 /* mb_client.h */,
-				6ABDA34E1A4705CE005AAB60 /* mb_entity.c */,
-				6ABDA34F1A4705CE005AAB60 /* mb_entity.h */,
-				6ABDA3501A4705CE005AAB60 /* mb_pack.c */,
-				6ABDA3511A4705CE005AAB60 /* mb_pack.h */,
-				6ABDA3521A4705CE005AAB60 /* mb_proto.c */,
-				6ABDA3531A4705CE005AAB60 /* mb_proto.h */,
-				6ABDA3541A4705CE005AAB60 /* md5.c */,
-				6ABDA3551A4705CE005AAB60 /* md5.h */,
+				6AE92A941AF9E6D6009F6CEC /* fs_define.h */,
+				6AE92A951AF9E6D6009F6CEC /* fs_malloc.c */,
+				6AE92A961AF9E6D6009F6CEC /* fs_malloc.h */,
+				6AE92A971AF9E6D6009F6CEC /* fs_stream.c */,
+				6AE92A981AF9E6D6009F6CEC /* fs_stream.h */,
 			);
-			path = mb_client;
-			sourceTree = "<group>";
+			path = fsnet_std;
+			sourceTree = SOURCE_ROOT;
 		};
 /* End PBXGroup section */
 
@@ -335,26 +300,19 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				6ABDA35E1A4705CE005AAB60 /* md5.c in Sources */,
+				6AE92A9A1AF9E6D6009F6CEC /* fs_stream.c in Sources */,
 				6A6FF61F1AF8E35100CD00B9 /* LoginChannel.cpp in Sources */,
 				6ABDA3251A4705B8005AAB60 /* ViewController.mm in Sources */,
-				6ABDA35C1A4705CE005AAB60 /* mb_pack.c in Sources */,
 				6A6FF6151AF8D0B200CD00B9 /* FSPack.cpp in Sources */,
 				6A6FF6121AF8CCB500CD00B9 /* FSChannel.cpp in Sources */,
 				6AEF43451AF91657003AF532 /* FSParams.cpp in Sources */,
+				6AE92A991AF9E6D6009F6CEC /* fs_malloc.c in Sources */,
 				6A6FF6181AF8DC0800CD00B9 /* FSClientImpl.cpp in Sources */,
-				6ABDA35A1A4705CE005AAB60 /* mb_client.c in Sources */,
 				6A6FF60C1AF8B15B00CD00B9 /* FSClientBase.cpp in Sources */,
-				6ABDA35D1A4705CE005AAB60 /* mb_proto.c in Sources */,
 				6ABDA3221A4705B8005AAB60 /* AppDelegate.m in Sources */,
-				6ABDA3561A4705CE005AAB60 /* base64.c in Sources */,
 				6ABDA31F1A4705B8005AAB60 /* main.m in Sources */,
-				6ABDA3581A4705CE005AAB60 /* fs_stream.c in Sources */,
 				6A6FF61B1AF8DEE600CD00B9 /* FSChannelFactory.cpp in Sources */,
-				6ABDA3571A4705CE005AAB60 /* fs_malloc.c in Sources */,
 				6AEF43481AF91668003AF532 /* FSMethod.cpp in Sources */,
-				6ABDA3591A4705CE005AAB60 /* hash.c in Sources */,
-				6ABDA35B1A4705CE005AAB60 /* mb_entity.c in Sources */,
 				6A6FF60F1AF8B30B00CD00B9 /* FSObject.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
