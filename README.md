@@ -139,30 +139,24 @@ $ping_node.start
 # 如何编译,安装
 
 #libevent
-解压libs里的libevent-2.1.4-alpha.zip
-cd libevent-2.1.4-alpha
-./configure 
-make
-sudo make install
+解压libs里的libevent-2.1.4-alpha.zip  
+cd libevent-2.1.4-alpha  
+./configure   
+make  
+sudo make install   
 
 #ruby
-解压libs 里的ruby-2.1.2.zip 
-cd ruby-2.1.2
-./configure --enable-shared
-make
-sudo make install
-
-#jemalloc
-解压jemalloc-3.6.0.tar.bz2
-./configure
-make
-sudo make install
+解压libs 里的ruby-2.1.2.zip   
+cd ruby-2.1.2  
+./configure --enable-shared  
+make  
+sudo make install  
 
 #fsnet
-进入fsnet
-执行
-ruby extconf.rb
-make & make install
+进入fsnet  
+执行  
+ruby extconf.rb  
+make & make install  
 
 
 #demo
