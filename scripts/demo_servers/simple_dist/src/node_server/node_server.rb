@@ -7,6 +7,20 @@ require 'node_server/channel/database_channel.rb'
 
 # 对客户端的通讯渠道
 require 'node_server/service_channel/login_channel.rb'
+require 'node_server/service_channel/aio_channel.rb'
+
+# 游戏模块
+require 'game/modules/game_module.rb'
+
+class AgentNode
+
+	attr_reader :game_player
+
+	def init_player(game_player)
+		@game_player = game_player
+	end
+
+end
 
 class NodeServer < ChannelServer
 
@@ -14,6 +28,7 @@ class NodeServer < ChannelServer
 
 	attr_reader :center_channel
 	attr_reader :database_channel
+	attr_reader :game_module
 
 	def initialize(*args)
 		super
@@ -25,8 +40,23 @@ class NodeServer < ChannelServer
 		@center_server   = connect_node("center_server")
 		@database_server   = connect_node("database_server")
 		# 从数据库初始化
+		self.init_modules
 		self.init_database
 	end
+
+	def init_modules
+
+		@game_module = GameModule.new(self)
+
+		# 8fps
+		scheduler_update(1/8.0, 1, :update_module)
+
+	end
+
+	def update_module(sid, dt)
+		@game_module.update(dt)
+	end
+
 
 	def init_database
 
@@ -69,21 +99,6 @@ class NodeServer < ChannelServer
 		sender.send_channel(login_channel)
 		login_channel.init( { :server_name => self.name } )
 
-		# # 登陆的PID
-		# pid = 0
-		#
-		# # 告诉中心服务器有人登陆了
-		# @center_channel.on_login(self.name, pid)
-		#
-		# # 广播一条登陆消息
-		# @center_channel.broadcast( :chat, "Hi" )
-		#
-		# # 通过PID找到channel
-		# @center_channel.find_channel_by_pid(pid) do |channel_name|
-		# 		@center_channel.call_channel( channel_name, :chat, "Yo" )
-		# end
-
-
 	end
 
 
@@ -91,7 +106,7 @@ class NodeServer < ChannelServer
 		for uid, channel in agent_node.channels
 			channel.on_destroy
 		end
-        agent_node.channels.clear
+    agent_node.channels.clear
 	end
 
 

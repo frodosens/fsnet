@@ -30,7 +30,6 @@ class GateServer < ChannelServer
 		for node in @logic_nodes
 
 			channel = node.create_channel(GateServer::LogicChannel, "NodeServer::GateChannel", self)
-
 			node.send_channel(channel)
 
 		end
@@ -46,7 +45,7 @@ class GateServer < ChannelServer
 	# 如果有子集群可以执行的情况下, 交给选择器选择
 	#
 	def get_agent_node_by_group(sender_id, group, pack_type)
-		group[ sender_id %  group.size]
+		group[0]# sender_id %  group.size]
 	end
 
 

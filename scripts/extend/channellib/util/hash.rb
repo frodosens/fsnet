@@ -13,7 +13,7 @@ class FSInputStream
 		size = self.read_uint16
 		hash = {}
 		for i in 0...size
-			key = self.read_type_val
+			key = self.read_string
 			value = self.read_type_val
 			hash[key] = value
 		end

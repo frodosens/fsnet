@@ -11,20 +11,23 @@ class AgentNode
 		@agent_id   = agent_id;
 	end
 
+	def id
+		return @agent_id
+	end
+
 	def method_missing(method_name, *arg, &block)
 
-		self.instance_eval(
-				"def #{method_name}(*arg, &block)
-					begin
-						return m.send(\"#{method_name}\", *arg)
-					rescue => msg
-						server.err(msg.message);
-						return super
-					end
-			   end"
-		)
-		self.send(method_name, arg, &block)
 
+		if @nodes.methods.include?(method_name)
+			self.instance_eval(
+					"def #{method_name}(*arg, &block)
+						return @node.send(#{method_name.to_sym}, *arg)
+				   end"
+			)
+			self.send(method_name, arg, &block)
+		else
+			super
+		end
 
 	end
 

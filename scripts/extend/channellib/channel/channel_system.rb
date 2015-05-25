@@ -61,6 +61,7 @@ module ChannelSystem
 		if channel.nil?
 			return channel_missing(uuid, method_name, params, call_serial)
 		end
+		
 		channel.calling_serial = call_serial
 
 		channel.send(method_name, *params)

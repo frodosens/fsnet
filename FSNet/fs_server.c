@@ -501,6 +501,10 @@ fs_server_connect_node(struct fs_server* server, struct fs_node* node, struct fs
     sin.sin_addr.s_addr = inet_addr(addr->addr);
     int ret = connect(sock, (struct sockaddr*)&sin, sizeof(sin));
     
+    int tcp_nodelay = 1;
+    setsockopt(sock, IPPROTO_TCP, TCP_NODELAY, (const void *) &tcp_nodelay, sizeof(int));
+                   
+    
     if(ret != 0){
         return fs_false;
     }

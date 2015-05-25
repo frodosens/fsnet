@@ -401,7 +401,7 @@ class GameServer < GameTCPServer
       begin
         # info("execute #{method_name}")
 				self.send(method_name, client, pack)
-      rescue => e
+      rescue NoMethodError => e
         err(e.message);
       end
     else

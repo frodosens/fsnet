@@ -37,6 +37,7 @@ class ChannelBase
 	attr_accessor :calling_serial
 	attr_accessor :on_create_data
 
+
 	def initialize(  )
 		@uuid = nil
 		@remote_class_name = self.class.to_s

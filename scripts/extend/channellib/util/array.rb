@@ -26,7 +26,7 @@ class FSInputStream
 			when IOType::PARAMS_TYPE_INT
 				return self.read_int32
 			when IOType::PARAMS_TYPE_FLOAT
-				return self.read_float
+				return self.read_double
 			when IOType::PARAMS_TYPE_STRING
 				return self.read_string
 			when IOType::PARAMS_TYPE_ARY
@@ -70,7 +70,7 @@ class FSOutputStream
 			self.write_int64(val)
 		elsif val.is_a?(Float)
 			self.write_byte(IOType::PARAMS_TYPE_FLOAT)
-			self.write_float(val)
+			self.write_double(val)
 		elsif val.is_a?(String) or val.is_a?(Symbol)
 			self.write_byte(IOType::PARAMS_TYPE_STRING)
 			self.write_string(val.to_s)

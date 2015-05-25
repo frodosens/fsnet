@@ -31,7 +31,7 @@ class GameTCPServer < FSServer
 			@execute_proc = execute_proc
 			@server = server
 
-			@sid = @server.scheduler(dt, times, @execute_proc)
+			@sid = @server.scheduler(dt.to_f, times, @execute_proc)
 		end
 		def stop
 			if(@server != nil)
@@ -65,7 +65,7 @@ class GameTCPServer < FSServer
 	# * 開始一個定時任務
 	#-------------------------------------------------------------------------------------------------------
 	#     @dt     dt (float) 間隔
-	#     @times  循環次數
+	#     @times  循環次數 -1 unlimit
 	#     @proc   每次執行的回調方法  从 proc -> method  测试证明 call_method  比 proc.call 效率快
 	#_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/
 	def scheduler_update(dt, times, method_sym)
