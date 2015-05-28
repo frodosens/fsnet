@@ -915,17 +915,12 @@ wrap_Pack_free (struct fs_pack* ptr)
         }
         
         fs_free(ptr);
-        
-        _pack_count -- ;
-        printf(" pack count %d \n", _pack_count);
     }
 }
 
 VALUE
 wrap_Pack_allocate (VALUE self)
 {
-    _pack_count++;
-    printf(" pack count %d \n", _pack_count);
     struct fs_pack* p = fs_malloc(sizeof(*p));
     fs_zero(p, sizeof(*p));
     VALUE instance = Data_Wrap_Struct (self, NULL, wrap_Pack_free, p);
