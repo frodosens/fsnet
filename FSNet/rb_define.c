@@ -79,6 +79,7 @@ fs_create_invoke_call(VALUE (*func)(VALUE), int argc, VALUE* argv){
     return ret;
 }
 
+
 void
 fs_pack_free(struct fs_pack* pack){
     if(pack->data){
@@ -86,6 +87,9 @@ fs_pack_free(struct fs_pack* pack){
     }
     if(pack->input_stream){
         fs_stream_free_input(pack->input_stream);
+    }
+    if(pack->output_stream){
+        fs_stream_free_output(pack->output_stream);
     }
     fs_free(pack);
 }
@@ -293,7 +297,7 @@ fs_ruby_pack_to_data( struct fs_server* server, struct fs_pack* pack, BYTE** out
     //VALUE c_server = fs_server_get_script_id(server);
     //VALUE byte_order = rb_funcall(c_server, rb_intern("byte_order"), 0);
     
-    struct fs_output_stream* fos = fs_create_output_stream_ext;
+    struct fs_output_stream* fos = fs_create_output_stream(1 + len + pack_head_len);
     fs_stream_write_byte(fos, PACK_FLAG);
     fs_stream_write_int32(fos, (int32_t)len + pack_head_len);
     fs_stream_write_data(fos, data, len);
@@ -895,8 +899,7 @@ rb_define_fs_node(){
     
 }
 
-
-
+int _pack_count = 0;
 
 void
 wrap_Pack_free (struct fs_pack* ptr)
@@ -912,13 +915,17 @@ wrap_Pack_free (struct fs_pack* ptr)
         }
         
         fs_free(ptr);
+        
+        _pack_count -- ;
+        printf(" pack count %d \n", _pack_count);
     }
 }
 
 VALUE
 wrap_Pack_allocate (VALUE self)
 {
-    
+    _pack_count++;
+    printf(" pack count %d \n", _pack_count);
     struct fs_pack* p = fs_malloc(sizeof(*p));
     fs_zero(p, sizeof(*p));
     VALUE instance = Data_Wrap_Struct (self, NULL, wrap_Pack_free, p);
@@ -1034,7 +1041,6 @@ rb_IStream_initialize(VALUE self, VALUE vData, VALUE vLen, VALUE cPtr){
     
     return Qnil;
 }
-
 
 
 void

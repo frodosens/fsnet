@@ -30,6 +30,9 @@ fs_bool fs_node_is_from_connect( struct fs_node* );
 fs_bool fs_node_is_from_listener( struct fs_node* );
 fs_bool fs_node_is_closed( struct fs_node* );
 
+void    fs_node_set_from_connect( struct fs_node* );
+void    fs_node_set_from_listener( struct fs_node* );
+
 void         fs_node_set_script_id( struct fs_node* , fs_script_id _id );
 fs_script_id fs_node_get_script_id( struct fs_node* );
 

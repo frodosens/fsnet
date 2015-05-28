@@ -32,6 +32,8 @@ struct fs_node{
     struct fs_output_stream* send_buffer;
     pthread_mutex_t write_mutex;
     pthread_mutex_t close_mutex;
+    fs_bool         from_listener;
+    fs_bool         from_connect;
     fs_bool         closed;
     fs_script_id    script_id;
     
@@ -82,7 +84,7 @@ fs_node_bind_event(struct fs_node* node,
                        node->socket, EV_READ | EV_PERSIST,
                        libevent_cb_node_onrecv_data, node);
     
-    ret = event_assign(node->write_ev, event_base,
+    ret |= event_assign(node->write_ev, event_base,
                        node->socket, EV_WRITE | EV_PERSIST,
                        libevent_cb_node_onsend_data, node);
     
@@ -92,8 +94,8 @@ fs_node_bind_event(struct fs_node* node,
         goto fail;
     }
     
-    node->recv_buffer = fs_create_output_stream_ext;
-    node->send_buffer = fs_create_output_stream_ext;
+    node->recv_buffer = fs_create_output_stream(1024);
+    node->send_buffer = fs_create_output_stream(1024);
     
     pthread_mutex_init(&node->write_mutex, NULL);
     pthread_mutex_init(&node->close_mutex, NULL);
@@ -209,11 +211,11 @@ fs_node_is_active( struct fs_node* node){
 
 fs_bool
 fs_node_is_from_connect(struct fs_node* node){
-    return (node->node_id & 0xff000000) != 0;
+    return node->from_connect;
 }
 fs_bool
 fs_node_is_from_listener(struct fs_node* node){
-    return (node->node_id & 0x00ffffff) != 0;
+    return node->from_listener;
 }
 
 
@@ -375,6 +377,17 @@ libevent_cb_node_onrecv_data(int socket, short event, void* arg){
 
 
 
+void
+fs_node_set_from_connect( struct fs_node* node ){
+    fs_assert(!node->from_listener, "");
+    node->from_connect = fs_true;
+}
+
+void
+fs_node_set_from_listener( struct fs_node* node ){
+    fs_assert(!node->from_connect, "");
+    node->from_listener = fs_true;
+}
 
 
 void

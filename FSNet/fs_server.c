@@ -99,12 +99,12 @@ struct fs_server{
 
 fs_id
 fs_server_next_listener_id(struct fs_server* server){
-    return (++server->listener_node_serial_id) & 0x00ffffff;
+    return (++server->listener_node_serial_id);
 }
 
 fs_id
 fs_server_next_connect_id(struct fs_server* server){
-    return (++server->connect_node_serial_id) << 24;
+    return (++server->listener_node_serial_id);
 }
 
 static void
@@ -134,6 +134,8 @@ libevent_cb_listener(struct evconnlistener *listener, evutil_socket_t fd,
     struct fs_server* server = (struct fs_server*)user_data;
     struct fs_node* node = fs_create_node(server);
     fs_id node_id = fs_server_next_listener_id(server);
+    
+    fs_node_set_from_listener(node);
     
     fs_node_bind_event(node, node_id, fd, sa, socklen, server, server->event);
     
@@ -418,7 +420,9 @@ timeout_cb(evutil_socket_t fd, short event, void *arg){
     
     
     if(!timer->stoped){
-        timer->fn(timer, timer->server, dt, timer->data);
+        if(timer->fn){
+            timer->fn(timer, timer->server, dt, timer->data);
+        }
     }
     
     timer->last_dt = lasttime.tv_sec * 1000000 + lasttime.tv_usec;
@@ -510,6 +514,8 @@ fs_server_connect_node(struct fs_server* server, struct fs_node* node, struct fs
     }
     
     fs_id node_id = fs_server_next_connect_id(server);
+    
+    fs_node_set_from_connect(node);
     
     ret = fs_node_bind_event(node, node_id, sock, (struct sockaddr*)&sin, sizeof(sin), server, server->event);
     
