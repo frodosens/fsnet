@@ -10,11 +10,11 @@ module ChannelSystem
 	end
 
 	def find_channel(key, operation={ :with => :klass })
+		
 		if operation[:with] == :uuid
 			return @channels[key]
 		end
-
-
+		
 		if operation[:with] == :klass
 			for k, v in @channels
 				if v.class == key
@@ -22,6 +22,7 @@ module ChannelSystem
 				end
 			end
 		end
+		
 		nil
 	end
 

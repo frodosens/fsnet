@@ -11,10 +11,23 @@ class PingNode < GameServer
 		
 		connect_node_by_configure("name" => "pong_node", "addr_ip" => "0.0.0.0", "addr_port" => 50001)
 		
-		@tick_task = scheduler_update(1.0, -1, Proc.new  { |dt| ping });
+		@tick_task = scheduler_update(1.0, -1, :ping);
+		@tick_task2 = scheduler_update(0.016, -1, :tick);
 		
 	end
-	def ping
+	
+	def tick(sid, dt)
+
+		os = FSOutputStream.new
+		os.write_data("asdasdasd", 100)
+		
+		is = FSInputStream.new(os.data, os.len, true)
+		p is.read_data(100	)
+		GC.start
+		
+	end
+	
+	def ping(sid, dt)
 		response = Proc.new() do |result, data|
 		  pong_time = result.input.read_uint32
 		  p "pong_time is #{pong_time}"
@@ -69,6 +82,27 @@ ping_conf["base_configure"]["addr_ip"] = "127.0.0.1"
 ping_conf["base_configure"]["addr_port"] = 50000
 $ping_node = PingNode.new(ping_conf)
 $ping_node.start
+
+
+
+
+class Object
+	
+	class << self
+		
+		@@_objects = {}
+		
+	end
+		
+	def write_to_stream(fs)
+		
+		
+		
+	end
+	
+end
+
+
 
 
 

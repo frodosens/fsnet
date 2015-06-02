@@ -97,14 +97,34 @@ struct fs_server{
     
 };
 
-fs_id
-fs_server_next_listener_id(struct fs_server* server){
-    return (++server->listener_node_serial_id);
+static fs_bool
+fs_server_exist_node(struct fs_server* server, fs_id node_id){
+    pthread_mutex_lock(&server->pthread_node_mutex);
+    
+    char key[16];
+    snprintf(key, 16, "%d", node_id);
+    fs_bool exist = sm_get(server->node_map, key) != NULL;
+    
+    pthread_mutex_unlock(&server->pthread_node_mutex);
+    
+    return exist;
 }
 
 fs_id
-fs_server_next_connect_id(struct fs_server* server){
-    return (++server->listener_node_serial_id);
+fs_server_next_listener_id(struct fs_server* server){
+    fs_id ret = 0;
+    do{
+        ret = (++server->listener_node_serial_id);
+    }while(fs_server_exist_node(server, ret));
+    return ret;
+}
+
+fs_id
+fs_server_next_connect_id(struct fs_server* server){fs_id ret = 0;
+    do{
+        ret = (++server->listener_node_serial_id);
+    }while(fs_server_exist_node(server, ret));
+    return ret;
 }
 
 static void
@@ -112,8 +132,8 @@ fs_server_add_node(struct fs_server* server, fs_id node_id, struct fs_node* node
     
     pthread_mutex_lock(&server->pthread_node_mutex);
     
-    char key[64];
-    snprintf(key, 64, "%d", node_id);
+    char key[16];
+    snprintf(key, 16, "%d", node_id);
     sm_put(server->node_map, key, node);
     
     pthread_mutex_unlock(&server->pthread_node_mutex);
@@ -133,7 +153,9 @@ libevent_cb_listener(struct evconnlistener *listener, evutil_socket_t fd,
 
     struct fs_server* server = (struct fs_server*)user_data;
     struct fs_node* node = fs_create_node(server);
+    
     fs_id node_id = fs_server_next_listener_id(server);
+    
     
     fs_node_set_from_listener(node);
     

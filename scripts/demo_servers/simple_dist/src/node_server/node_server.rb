@@ -37,11 +37,15 @@ class NodeServer < ChannelServer
 
 	def on_start_complete
 		super
+		
 		@center_server   = connect_node("center_server")
 		@database_server   = connect_node("database_server")
 		# 从数据库初始化
 		self.init_modules
 		self.init_database
+		
+		
+		
 	end
 
 	def init_modules

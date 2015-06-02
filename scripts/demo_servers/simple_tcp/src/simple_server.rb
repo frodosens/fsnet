@@ -10,6 +10,8 @@ class SimpleServer < GameServer
 	
 	def on_start_complete
 		super()
+
+		
 	end
 	
 	

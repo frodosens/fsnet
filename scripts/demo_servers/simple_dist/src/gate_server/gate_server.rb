@@ -31,7 +31,7 @@ class GateServer < ChannelServer
 
 			channel = node.create_channel(GateServer::LogicChannel, "NodeServer::GateChannel", self)
 			node.send_channel(channel)
-
+            
 		end
 
 	end

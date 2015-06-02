@@ -1,7 +1,7 @@
+module Model
 
+	class SerialObject
 
-module Player
-	class GamePlayerData
 
 		@@_user_data = {}
 		class << self
@@ -37,7 +37,14 @@ module Player
 			end
 			for attr_name in @@_user_data[self.class]
 
-				ret[attr_name] = self.instance_variable_get("@#{attr_name}")
+				val = self.instance_variable_get("@#{attr_name}")
+				if val.is_a?(SerialObject)
+					if self == val
+						raise("loop ref")
+					end
+					val = val.to_hash
+				end
+				ret[attr_name] = val
 
 			end
 
@@ -45,5 +52,7 @@ module Player
 
 		end
 
+
 	end
+
 end

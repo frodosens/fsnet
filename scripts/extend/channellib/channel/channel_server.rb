@@ -46,6 +46,30 @@ class ChannelServer < GameServer
 
 	end
 
+  # 本地处理一个包
+	# 处理Gate无法与child的channel通讯的问题
+  def handle_pack(client, pack)
+    method_name = @handle_map_configure[pack.pack_type];
+    if (method_name.nil?)
+			
+			case pack.pack_type
+			
+			when PACK_TYPE_CREATE_CHANNEL 
+				cmd_create_channel(client,pack)
+			when PACK_TYPE_DESTROY_CHANNEL 
+				cmd_destroy_channel(client,pack)
+			when PACK_TYPE_MESSAGE_CHANNEL 
+				cmd_message_channel(client,pack)
+				
+			end
+			
+		else
+			
+			super
+			
+    end
+
+  end
 
 
 end

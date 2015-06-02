@@ -3,6 +3,6 @@ base_configure:
   logger_file: simple_server.log
   byte_order: 0
   addr_ip: 0.0.0.0
-  addr_port: 40000
+  addr_port: 40001
 pack_handle:
   PACK_TYPE_HELLO: cmd_hello

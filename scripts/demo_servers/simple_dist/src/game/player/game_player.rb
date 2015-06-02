@@ -1,5 +1,5 @@
 
-require 'game/player/player_data/equip.rb'
+require 'game/player/player_data/equips.rb'
 require 'game/player/player_data/items.rb'
 require 'game/player/player_data/aio.rb'
 
@@ -18,7 +18,7 @@ module Player
 			@name = ""
 			@player_data = {}
 
-			require_data(:equip, Equip)
+			require_data(:equip, Equips)
 			require_data(:items, Items)
 			require_data(:aio, AIO)
 
