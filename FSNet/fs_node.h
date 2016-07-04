@@ -24,6 +24,7 @@ void    fs_node_send_data(struct fs_node* node, BYTE* data, size_t len);
 void    fs_node_shudown(struct fs_node* node);
 void    fs_node_close_socket(struct fs_node* node);
 void    fs_node_close(struct fs_node* node);
+void    fs_node_clear(struct fs_node* node);
 fs_id   fs_node_get_id(struct fs_node* node_id);
 fs_bool fs_node_is_active( struct fs_node* );
 fs_bool fs_node_is_from_connect( struct fs_node* );
@@ -35,6 +36,9 @@ void    fs_node_set_from_listener( struct fs_node* );
 
 void         fs_node_set_script_id( struct fs_node* , fs_script_id _id );
 fs_script_id fs_node_get_script_id( struct fs_node* );
+
+void fs_node_set_name( struct fs_node*, const char* name );
+const char* fs_node_get_name( struct fs_node* );
 
 
 #endif

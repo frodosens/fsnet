@@ -14,6 +14,8 @@
 
 #define PACK_FLAG 'F'
 
+#define FS_NET_USE_FIBER 1
+
 static uint32_t pack_head_len = 5;
 
 VALUE rb_cFSNet ;
@@ -48,10 +50,11 @@ struct fs_pack{
 
 enum fs_sys_pack_type{
     
-    fs_sys_pack_type_tick = -4,
-    fs_sys_pack_type_start = -3,
-    fs_sys_pack_type_connect = -2,
-    fs_sys_pack_type_diconnect = -1
+    fs_sys_pack_type_tick = -5,
+    fs_sys_pack_type_start = -4,
+    fs_sys_pack_type_connect = -3,
+    fs_sys_pack_type_node_disconnect = -2,
+    fs_sys_pack_type_server_disconnect = -1
     
 };
 
@@ -62,7 +65,6 @@ extern VALUE rb_cOutputStream;
 extern VALUE rb_cNode;
 extern VALUE rb_cHTTPRequest;
 extern VALUE rb_cHTTPResponse;
-
 
 
 struct fs_invoke_call_function*
@@ -116,9 +118,18 @@ fs_create_connect_pack(fs_id node_id){
 };
 
 struct fs_pack*
-fs_create_diconnect_pack(fs_id node_id){
+fs_create_node_disconnect_pack(fs_id node_id){
     struct fs_pack*  ret = fs_create_empty_pack();
-    ret->pack_type = fs_sys_pack_type_diconnect;
+    ret->pack_type = fs_sys_pack_type_node_disconnect;
+    ret->node_id = node_id;
+    return ret;
+};
+
+struct fs_pack*
+fs_create_server_disconnect_pack(fs_id node_id, fs_script_id node_script_id){
+    struct fs_pack*  ret = fs_create_empty_pack();
+    ret->pack_type = fs_sys_pack_type_server_disconnect;
+    ret->script_id = node_script_id;
     ret->node_id = node_id;
     return ret;
 };
@@ -259,7 +270,7 @@ fs_ruby_parse_pack (struct fs_server* server, const BYTE* data, ssize_t len, fs_
 
 
 size_t
-fs_ruby_pack_to_data( struct fs_server* server, struct fs_pack* pack, BYTE** out){
+fs_ruby_pack_to_data( struct fs_server* server, struct fs_pack* pack, struct fs_output_stream** out_stream ){
     
     
     
@@ -297,17 +308,14 @@ fs_ruby_pack_to_data( struct fs_server* server, struct fs_pack* pack, BYTE** out
     //VALUE c_server = fs_server_get_script_id(server);
     //VALUE byte_order = rb_funcall(c_server, rb_intern("byte_order"), 0);
     
-    struct fs_output_stream* fos = fs_create_output_stream(1 + len + pack_head_len);
+    *out_stream = fs_create_output_stream(1 + len + pack_head_len);
+    
+    struct fs_output_stream* fos = *out_stream;
     fs_stream_write_byte(fos, PACK_FLAG);
     fs_stream_write_int32(fos, (int32_t)len + pack_head_len);
     fs_stream_write_data(fos, data, len);
     
     size_t ret_len = fs_output_stream_get_len(fos);
-    
-    *out = fs_malloc(ret_len);
-    memcpy(*out, fs_output_stream_get_dataptr(fos), ret_len);
-    
-    fs_stream_free_output(fos);
     
     if(len == 0){
         rb_raise(rb_eRuntimeError, "try send data len for 0");
@@ -376,10 +384,7 @@ fs_ruby_pack_to_data_with_mb( struct fs_server* server, struct fs_pack* pack, BY
 }
 
 
-
-
-VALUE
-protect_fs_ruby_call_func(VALUE argv){
+VALUE fiber_handle_pack(VALUE params, VALUE argv){
     
     VALUE* argvs = (VALUE*)argv;
     VALUE argc_num = argvs[0];
@@ -391,22 +396,21 @@ protect_fs_ruby_call_func(VALUE argv){
     if(server_instance == Qnil){
         return Qnil;
     }
-    
+    int type = TYPE(server_instance);
+    if (type == T_ZOMBIE){
+        fprintf(stderr, "pack handle type is T_ZOMBIE\n");
+        return Qnil;
+    }
     
     if (argc == -1) {
-        VALUE proc = (VALUE)argvs[1];
-        VALUE proc_argv = argvs[2];
-        VALUE sid = LL2NUM(argvs[3]);
         
-        VALUE proc_args[2] = { sid, proc_argv };
+        VALUE proc = (VALUE)argvs[2];
+        VALUE proc_argv = argvs[3];
+        VALUE sid = LL2NUM(argvs[4]);
+        struct fs_timer* timer = argvs[4];
         
-        rb_method_call(2, proc_args, proc);
+        rb_funcall(server_instance, rb_intern(fs_timer_get_data(timer)), 2, sid, proc_argv);
         
-//        VALUE proc_argvs = rb_ary_new();
-//        rb_ary_push(proc_argvs, proc_argv);
-//        rb_proc_call(proc, proc_argvs);
-//        rb_ary_free(proc_argvs);
-//        
     }
     
     if(argc == 0){
@@ -424,9 +428,24 @@ protect_fs_ruby_call_func(VALUE argv){
         rb_funcall(server_instance, method_id, argc, node_id, pack);
     }
     
-    
     return Qnil;
 }
+
+
+
+
+VALUE
+protect_fs_ruby_call_func(VALUE argv){
+    
+#if FS_NET_USE_FIBER
+    VALUE fiber = rb_fiber_new(fiber_handle_pack, argv);
+    rb_fiber_resume(fiber, 0, argv);
+#else
+    fiber_handle_pack(0, argv);
+#endif
+    return Qnil;
+}
+
 
 
 VALUE
@@ -449,12 +468,12 @@ protect_fs_ruby_handle_pack(VALUE argv){
             VALUE proc_argv = (VALUE)argvs[3];
             VALUE sid = (VALUE)argvs[4];
             
-            VALUE argvs[4];
+            VALUE argvs[5];
             argvs[0] = INT2FIX(-1);
-            argvs[1] = proc;
-            argvs[2] = proc_argv;
-            argvs[3] = sid;
-            
+            argvs[1] = server_instance;
+            argvs[2] = proc;
+            argvs[3] = proc_argv;
+            argvs[4] = sid;
             rb_protect(protect_fs_ruby_call_func, (VALUE)argvs, &ret);
             
         }
@@ -479,14 +498,47 @@ protect_fs_ruby_handle_pack(VALUE argv){
             rb_protect(protect_fs_ruby_call_func, (VALUE)argvs, &ret);
         }
             break;
-        case fs_sys_pack_type_diconnect:
+        case fs_sys_pack_type_server_disconnect:
+        {
+            
+            struct fs_node* node = fs_server_find_node_by_id(server, pack->node_id);
+            
+            
+            VALUE argvs[3];
+            argvs[0] = INT2FIX(0);
+            argvs[1] = fs_node_get_script_id(node);
+            argvs[2] = rb_intern("on_disconnect");
+            rb_protect(protect_fs_ruby_call_func, (VALUE)argvs, &ret);
+            
+            // laze free
+            if(node){
+                VALUE fsnode = fs_node_get_script_id(node);
+                if(fsnode != Qnil){
+                    RDATA(fsnode)->data = NULL;
+                }
+                fs_free(node);
+            }
+            
+        }
+            break;
+        case fs_sys_pack_type_node_disconnect:
         {
             VALUE argvs[4];
             argvs[0] = INT2FIX(1);
             argvs[1] = server_instance;
-            argvs[2] = rb_intern("on_shudown_node");
+            argvs[2] = rb_intern("on_shutdown_node");
             argvs[3] = INT2FIX(pack->node_id);
             rb_protect(protect_fs_ruby_call_func, (VALUE)argvs, &ret);
+            
+            
+            // laze free
+            struct fs_node* node = fs_server_find_node_by_id(server, pack->node_id);
+            if(node){
+                VALUE fsnode = fs_node_get_script_id(node);
+                RDATA(fsnode)->data = NULL;
+                fs_free(node);
+            }
+            
         }
             break;
         default:
@@ -503,7 +555,6 @@ protect_fs_ruby_handle_pack(VALUE argv){
                 argv[1] = (VALUE)pack->data;
                 argv[2] = INT2FIX(pack->len);
                 argv[3] = INT2FIX(pack->pack_type);
-                VALUE rb_pack = rb_class_new_instance(4, argv, rb_cPack);
                 
                 VALUE fun_argvs[5];
                 fun_argvs[0] = INT2FIX(2);
@@ -524,7 +575,7 @@ protect_fs_ruby_handle_pack(VALUE argv){
                 }
                 
                 fun_argvs[3] = INT2FIX(pack->node_id);
-                fun_argvs[4] = rb_pack;
+                fun_argvs[4] = rb_class_new_instance(4, argv, rb_cPack);
                 
                 rb_protect(protect_fs_ruby_call_func, (VALUE)fun_argvs, &ret);
                 
@@ -583,9 +634,16 @@ fs_ruby_on_node_connect( struct fs_server* server, fs_id node_id){
 }
 
 void
-fs_ruby_on_node_shudown( struct fs_server* server, fs_id node_id){
+fs_ruby_on_node_disconnect( struct fs_server* server, fs_id node_id){
+    
+    fs_server_on_recv_pack(server, fs_create_node_disconnect_pack(node_id));
+    
+}
 
-    fs_server_on_recv_pack(server, fs_create_diconnect_pack(node_id));
+void
+fs_ruby_on_server_disconnect( struct fs_server* server, fs_id node_id, fs_script_id node_script_id){
+    
+    fs_server_on_recv_pack(server, fs_create_server_disconnect_pack(node_id, node_script_id));
     
 }
 
@@ -619,10 +677,10 @@ rb_Server_initialize(VALUE self, VALUE v_server_name){
     fs_server_set_handle_pack_fn(server, fs_ruby_handle_pack);
     fs_server_set_on_server_start(server, fs_ruby_on_server_start);
     fs_server_set_node_connect(server, fs_ruby_on_node_connect);
-    fs_server_set_node_shudwon(server, fs_ruby_on_node_shudown);
+    fs_server_set_node_disconnect(server, fs_ruby_on_node_disconnect);
+    fs_server_set_server_disconnect(server, fs_ruby_on_server_disconnect);
     fs_server_set_parsepack_fn(server, fs_ruby_parse_pack);
     fs_server_set_topack_fn(server, fs_ruby_pack_to_data);
-    
     
     return Qnil;
 }
@@ -660,6 +718,7 @@ rb_Server_name(VALUE self){
 
 VALUE
 rb_Server_stop(VALUE self){
+    // set the server can gc
     struct fs_server* server = NULL;
     Data_Get_Struct(self, struct fs_server, server);
     fs_server_stop(server, 0);
@@ -668,7 +727,7 @@ rb_Server_stop(VALUE self){
 
 void
 rb_Server_scheduler_function(struct fs_timer* timer, struct fs_server* server, unsigned long dt, void* data){
-   
+    
     VALUE proc = (VALUE)data;
     
     VALUE argv[5];
@@ -677,7 +736,6 @@ rb_Server_scheduler_function(struct fs_timer* timer, struct fs_server* server, u
     argv[2] = proc;
     argv[3] = rb_float_new(dt / 1000.0f / 1000.0f);
     argv[4] = (VALUE)timer;
-    
     
     struct fs_invoke_call_function* invoke = fs_create_invoke_call(protect_fs_ruby_handle_pack, 5, argv);
     fs_ruby_invoke(invoke);
@@ -692,7 +750,9 @@ rb_Server_scheduler(VALUE self, VALUE dt, VALUE times, VALUE proc){
     Check_Type(dt, T_FLOAT);
     struct fs_server* server = NULL;
     Data_Get_Struct(self, struct fs_server, server);
-    struct fs_timer* timer = fs_server_scheduler(server, rb_float_value(dt), FIX2INT(times), rb_Server_scheduler_function, (void*)proc);
+    
+    
+    struct fs_timer* timer = fs_server_scheduler(server, rb_float_value(dt), FIX2INT(times), rb_Server_scheduler_function, RSTRING_PTR(proc));
     
     return ULONG2NUM((unsigned long)timer);
 }
@@ -701,6 +761,7 @@ VALUE
 rb_Server_unscheduler(VALUE self, VALUE timer){
     
     struct fs_timer* ptimer = (struct fs_timer*)NUM2ULONG(timer);
+    
     struct fs_server* server = NULL;
     Data_Get_Struct(self, struct fs_server, server);
     
@@ -749,9 +810,13 @@ wrap_Node_free (struct fs_node* ptr)
     if(ptr){
         VALUE vid = fs_node_get_script_id(ptr);
         if (vid != Qnil && RDATA(vid)->data) {
+            
+            if(!fs_node_is_closed(ptr)){
+                fprintf(stderr, "RB-Node[%s] is free but C-Node is not closed, pls Check the code\n", fs_node_get_name(ptr));
+            }
+            
             RDATA(vid)->data = NULL;
             fs_node_set_script_id(ptr, Qnil);
-            fs_free(ptr);
         }
     }
 }
@@ -766,6 +831,7 @@ wrap_Node_allocate (VALUE self)
 VALUE
 rb_Node_initialize(int argc, VALUE* argv, VALUE self){
     
+    
     // connect
     if(argc == 3){
         VALUE server_value = argv[0];
@@ -777,6 +843,9 @@ rb_Node_initialize(int argc, VALUE* argv, VALUE self){
         
         
         struct fs_node* node = fs_create_node(server);
+        
+        const char* name = rb_obj_classname(self);
+        fs_node_set_name(node, name);
         
         struct fs_node_addr addr;
         strcpy(addr.addr, StringValueCStr(argv[1]));
@@ -810,6 +879,9 @@ rb_Node_initialize(int argc, VALUE* argv, VALUE self){
         
         
         struct fs_node* node = fs_server_find_node_by_id(server, node_id);
+        
+        const char* name = rb_obj_classname(self);
+        fs_node_set_name(node, name);
         
         if(node){
             RDATA(self)->data = node;
@@ -862,7 +934,11 @@ rb_Node_close(VALUE self){
     struct fs_node* node = NULL;
     Data_Get_Struct(self, struct fs_node, node);
     if(node) {
-        fs_node_shudown(node);
+        if(!fs_node_is_closed(node)){
+            fs_node_shudown(node);
+        }else{
+            fprintf(stderr, "C-NODE is already closed\n");
+        }
         return Qtrue;
     }else{
         rb_raise(rb_eRuntimeError, "NODE is NULL");

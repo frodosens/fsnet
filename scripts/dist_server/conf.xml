@@ -1,0 +1,35 @@
+
+<server_conf>
+
+  <services>
+    <service name = "PlayerService" publicity_to_client="true" />
+    <service name = "FriendService" publicity_to_client="true" />
+    <service name = "LoginService" publicity_to_client="true" />
+  </services>
+
+   <gate>
+     <server name="G1" type = 'GateServer' host = '0.0.0.0' port = '5000'/>
+     <server name="G2" type = 'GateServer' host = '0.0.0.0' port = '5001'/>
+     <server name="G3" type = 'GateServer' host = '0.0.0.0' port = '5002'/>
+   </gate>
+
+  <logic>
+
+    <server name="S1" type = 'LogicServer' host = '0.0.0.0' port = '6001' services = 'PlayerService'/>
+    <server name="S2" type = 'LogicServer' host = '0.0.0.0' port = '6002' services = 'PlayerService'/>
+    <server name="S3" type = 'LogicServer' host = '0.0.0.0' port = '6003' services = 'PlayerService'/>
+    <server name="S4" type = 'LogicServer' host = '0.0.0.0' port = '6004' services = 'PlayerService'/>
+    <server name="S5" type = 'LogicServer' host = '0.0.0.0' port = '6005' services = 'FriendService,LoginService'/>
+
+  </logic>
+
+  <db>
+
+  </db>
+
+  <center>
+    <server type = 'CenterServer' host = '0.0.0.0' port = '8001'/>
+  </center>
+
+
+</server_conf>

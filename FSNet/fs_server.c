@@ -47,7 +47,7 @@ struct fs_timer{
     struct timeval tv;
     struct fs_server* server;
     fn_fs_server_scheduler fn;
-    void* data;
+    char data[64];
 };
 
 struct fs_server{
@@ -91,7 +91,8 @@ struct fs_server{
     fn_fs_pack_to_data _fn_pack_to_data;
     fn_fs_server_on_start _fn_on_start;
     fn_fs_node_connect _fn_node_connect;
-    fn_fs_node_shudown _fn_node_shudown;
+    fn_fs_node_disconnect _fn_node_disconnect;
+    fn_fs_server_disconnect _fn_server_disconnect;
     
     fs_script_id script_id;
     
@@ -470,7 +471,7 @@ timeout_cb(evutil_socket_t fd, short event, void *arg){
 }
 
 struct fs_timer*
-fs_server_scheduler(struct fs_server* server, float dt, int times, fn_fs_server_scheduler fn, void* data){
+fs_server_scheduler(struct fs_server* server, float dt, int times, fn_fs_server_scheduler fn, const char* data){
     
     struct fs_timer* timer = (struct fs_timer*)fs_malloc(sizeof(struct fs_timer));
     struct timeval lasttime;
@@ -481,12 +482,12 @@ fs_server_scheduler(struct fs_server* server, float dt, int times, fn_fs_server_
     
     timer->stoped = fs_false;
     timer->fn = fn;
-    timer->data = data;
     timer->times = times;
     timer->server = server;
     timer->last_dt = lasttime.tv_sec * 1000000 + lasttime.tv_usec;
     timer->tv.tv_sec = floorf(dt);
     timer->tv.tv_usec  = (dt - floorf(dt)) * 1000000;
+    fs_timer_set_data(timer, data);
     
     
 	event_assign(&timer->timeout, server->event, -1, flags, timeout_cb, (void*) timer);
@@ -598,9 +599,13 @@ fs_server_set_node_connect(struct fs_server* server, fn_fs_node_connect fn){
 }
 
 void
-fs_server_set_node_shudwon(struct fs_server* server, fn_fs_node_shudown fn){
-    server->_fn_node_shudown = fn;
-    
+fs_server_set_node_disconnect(struct fs_server* server, fn_fs_node_disconnect fn){
+    server->_fn_node_disconnect = fn;
+}
+
+void
+fs_server_set_server_disconnect(struct fs_server* server, fn_fs_server_disconnect fn){
+    server->_fn_server_disconnect = fn;
 }
 
 void
@@ -608,7 +613,8 @@ fs_server_clean_callback(struct fs_server* server){
     fs_server_set_handle_pack_fn(server, NULL);
     fs_server_set_on_server_start(server, NULL);
     fs_server_set_node_connect(server, NULL);
-    fs_server_set_node_shudwon(server, NULL);
+    fs_server_set_node_disconnect(server, NULL);
+    fs_server_set_server_disconnect(server, NULL);
     fs_server_set_parsepack_fn(server, NULL);
     fs_server_set_topack_fn(server, NULL);
 }
@@ -648,7 +654,11 @@ fs_server_find_node_by_id(struct fs_server* server, fs_id id){
         return NULL;
     }
     
+    pthread_mutex_lock(&server->pthread_node_mutex);
+    
     void* value = sm_get(server->node_map, key);
+    
+    pthread_mutex_unlock(&server->pthread_node_mutex);
     
     if(value){
         return (struct fs_node*)value;
@@ -658,9 +668,16 @@ fs_server_find_node_by_id(struct fs_server* server, fs_id id){
 }
 
 void
-fs_server_on_node_shudown(struct fs_server* server, fs_id node_id){
-    if(server->_fn_node_shudown){
-        server->_fn_node_shudown(server, node_id);
+fs_server_on_node_disconnect(struct fs_server* server, fs_id node_id){
+    if(server->_fn_node_disconnect){
+        server->_fn_node_disconnect(server, node_id);
+    }
+    fs_server_rm_node(server, node_id);
+}
+void
+fs_server_on_server_disconnect(struct fs_server* server, fs_id node_id, fs_script_id node_script_id){
+    if(server->_fn_server_disconnect){
+        server->_fn_server_disconnect(server, node_id, node_script_id);
     }
     fs_server_rm_node(server, node_id);
 }
@@ -678,16 +695,16 @@ fs_server_send_pack_node(struct fs_server* server, fs_id node_id, struct fs_pack
 fs_bool
 fs_server_send_pack_node_by_node(struct fs_server* server, struct fs_node* node, struct fs_pack* pack){
     
-    
+    fs_assert(pack != NULL, "try send NULL pack");
     if(server->_fn_pack_to_data){
         
         
-        BYTE* data = NULL;
-        size_t len = server->_fn_pack_to_data(server, pack, &data);
-        if(node != NULL){
+        struct fs_output_stream* out_stream = NULL;
+        size_t len = server->_fn_pack_to_data(server, pack, &out_stream);
+        if(node != NULL && out_stream){
             fs_assert(len != 0, "");
-            fs_node_send_data(node, data, len);
-            fs_free(data);
+            fs_node_send_data(node, (BYTE*)fs_output_stream_get_dataptr(out_stream), fs_output_stream_get_len(out_stream));
+            fs_stream_free_output(out_stream);
             return fs_true;
         }
         
@@ -751,3 +768,14 @@ fs_server_parse_pack(struct fs_server* server, const BYTE* data, ssize_t len, fs
 }
 
 
+
+void*
+fs_timer_get_data(struct fs_timer* timer){
+    return timer->data;
+}
+
+void
+fs_timer_set_data(struct fs_timer* timer, const char* data){
+    fs_zero(timer->data, 64);
+    strcpy(timer->data, data);
+}

@@ -94,8 +94,8 @@ fs_node_bind_event(struct fs_node* node,
         goto fail;
     }
     
-    node->recv_buffer = fs_create_output_stream(1024);
-    node->send_buffer = fs_create_output_stream(1024);
+    node->recv_buffer = fs_create_output_stream(5120);
+    node->send_buffer = fs_create_output_stream(5120);
     
     pthread_mutex_init(&node->write_mutex, NULL);
     pthread_mutex_init(&node->close_mutex, NULL);
@@ -139,7 +139,10 @@ fs_node_close(struct fs_node* node){
     
     pthread_mutex_lock(&node->close_mutex);
     
-    if(node->closed) return;
+    if(node->closed) {
+        pthread_mutex_unlock(&node->close_mutex);
+        return;
+    }
     node->closed = fs_true;
     
     if(node->recv_buffer){
@@ -165,8 +168,10 @@ fs_node_close(struct fs_node* node){
         event_free(node->write_ev);
         node->write_ev = NULL;
     }
-    if(fs_node_is_from_listener(node)){
-        fs_server_on_node_shudown(node->server, node->node_id);
+    if (fs_node_is_from_listener(node)){
+        fs_server_on_node_disconnect(node->server, node->node_id);
+    }else{
+        fs_server_on_server_disconnect(node->server, node->node_id, node->script_id);
     }
     
     pthread_mutex_unlock(&node->close_mutex);
@@ -224,7 +229,7 @@ void
 fs_node_recv_data(struct fs_node* node, BYTE* data, size_t len){
     
     if(!node->recv_buffer){
-        fprintf(stderr, "fs_node_recv_data but node recvbuffer is NULL");
+        fprintf(stderr, "fs_node_recv_data but node recvbuffer is NULL\n");
         return ;
     }
     
@@ -402,11 +407,18 @@ fs_node_get_script_id( struct fs_node* node){
 }
 
 
+void
+fs_node_set_name( struct fs_node* node, const char* name ){
+    
+    strncpy( node->node_name, name, 64 );
+    
+}
 
 
-
-
-
+const char*
+fs_node_get_name( struct fs_node* node ){
+    return node->node_name;
+}
 
 
 

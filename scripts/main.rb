@@ -28,7 +28,7 @@ module FSNET
 				set_daemon
 			end
 			require 'server.rb'
-			
+
 			FSNET.main_loop
 			
 		end

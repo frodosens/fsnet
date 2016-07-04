@@ -13,4 +13,7 @@
 # scheduler demo
 # require 'demo_servers/simple_timer/boost.rb'
 
-require 'demo_servers/simple_dist/boost.rb'
+# require 'demo_servers/simple_dist/boost.rb'
+
+
+require 'dist_server/main'

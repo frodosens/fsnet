@@ -11,7 +11,7 @@
 
 #include "fs_define.h"
 
-#define OUTPUT_STRAEM_DEFAULT_MAX 128
+#define OUTPUT_STRAEM_DEFAULT_MAX 64
 
 struct fs_stream;
 struct fs_input_stream;

@@ -13,7 +13,7 @@
 #include <signal.h>
 
 
-#define INVOKE_LEN 204800
+#define INVOKE_LEN (512000)
 
 pthread_mutex_t pthread_ruby_invoke_call_invoke_mutex;
 pthread_cond_t pthread_ruby_invoke_call_invoke_cond;
@@ -77,8 +77,9 @@ fs_ruby_invoke(struct fs_invoke_call_function* invoke){
     }else{
         do{
             ret = fs_loop_queue_push(ruby_invoke_loop_que, invoke);
-            pthread_mutex_unlock(&pthread_ruby_invoke_call_invoke_mutex);
-            pthread_cond_signal(&pthread_ruby_invoke_call_invoke_cond);
+            if(ret){
+                pthread_cond_signal(&pthread_ruby_invoke_call_invoke_cond);
+            }
             usleep(5000);
         }while (!ret);
     }

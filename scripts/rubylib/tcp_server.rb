@@ -28,7 +28,7 @@ class GameTCPServer < FSServer
 		#_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/
 		def start(server, dt, times, execute_proc)
 
-			@execute_proc = execute_proc
+			@execute_proc = execute_proc.to_s
 			@server = server
 
 			@sid = @server.scheduler(dt.to_f, times, @execute_proc)
@@ -70,15 +70,15 @@ class GameTCPServer < FSServer
 	#_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/
 	def scheduler_update(dt, times, method_sym)
 		scheduler = Scheduler.new()
-		scheduler.start(self, dt, times, method(method_sym))
+		scheduler.start(self, dt, times, method_sym)
 		@schedulers[scheduler.sid] = scheduler
 		scheduler.sid
 	end
 
 	def stop_scheduler(sid)
 		if @schedulers.has_key?(sid)
-			@schedulers.delete(sid)
 			unscheduler(sid)
+			@schedulers.delete(sid)
 		end
 	end
 
@@ -95,7 +95,7 @@ class GameTCPServer < FSServer
       @start_proc = proc;
   end
   
-  
+
   @@_start_time = Time.now.to_i;
   @@_times = 0;
   #_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/
@@ -108,8 +108,8 @@ class GameTCPServer < FSServer
       @@_times += 1
 			now = Time.now.to_i;
       if(now - @@_start_time > 0)
-          print "#{self.name} handle packs #{@@_times}/#{now - @@_start_time}s \n"
-          @@_start_time = now;
+          # print "#{self.name} handle packs #{@@_times}/#{now - @@_start_time}s \n"
+          @@_start_time = now
           @@_times = 0
       end
   end
@@ -134,7 +134,7 @@ class GameTCPServer < FSServer
   #_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/
   def on_connect_node(node_id)
       # p "#{self.name} new connect node_id:#{node_id}, say'it hello ";
-      @clients[node_id] = TCPClient.new(self, node_id);
+      @clients[node_id] = on_create_new_client.new(self, node_id);
   end
   
   #_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/
@@ -143,9 +143,10 @@ class GameTCPServer < FSServer
   #     @node_id    关闭掉的节点ID
   #
   #_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/
-  def on_shudown_node(node_id)
-			@clients.delete(node_id)
-      # p "#{self.name} shudown connect #{node_id}";
+  def on_shutdown_node(node_id)
+	    @clients[node_id].on_shutdown
+      @clients.delete(node_id)
+      # p "#{self.name} shutdown connect #{node_id}";
   end
  
   
@@ -165,5 +166,13 @@ class GameTCPServer < FSServer
   end
 
 
+	#_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/
+	# * 创建新client
+	#-------------------------------------------------------------------------------------------------------
+	#
+	#_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/n_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/
+	def on_create_new_client
+		TCPClient
+	end
 
 end
