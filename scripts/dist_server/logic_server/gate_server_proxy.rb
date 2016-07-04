@@ -15,7 +15,6 @@ module Logic
 
 		def new_client(client_id)
 
-			GC.start
 			FSLogger.get_logger(self).info("has new connect id => %s", client_id)
 
 		end

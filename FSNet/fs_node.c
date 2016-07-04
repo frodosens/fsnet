@@ -94,8 +94,8 @@ fs_node_bind_event(struct fs_node* node,
         goto fail;
     }
     
-    node->recv_buffer = fs_create_output_stream(5120);
-    node->send_buffer = fs_create_output_stream(5120);
+    node->recv_buffer = fs_create_output_stream(1024);
+    node->send_buffer = fs_create_output_stream(1024);
     
     pthread_mutex_init(&node->write_mutex, NULL);
     pthread_mutex_init(&node->close_mutex, NULL);
