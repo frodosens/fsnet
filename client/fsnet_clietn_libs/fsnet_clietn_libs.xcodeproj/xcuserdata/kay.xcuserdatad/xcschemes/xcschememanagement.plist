@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>SchemeUserState</key>
+	<dict>
+		<key>fsnet_clietn_libs.xcscheme</key>
+		<dict>
+			<key>orderHint</key>
+			<integer>0</integer>
+		</dict>
+		<key>fsnet_lib mac.xcscheme</key>
+		<dict>
+			<key>orderHint</key>
+			<integer>1</integer>
+		</dict>
+		<key>sample.xcscheme</key>
+		<dict>
+			<key>orderHint</key>
+			<integer>2</integer>
+		</dict>
+		<key>sample_test.xcscheme</key>
+		<dict>
+			<key>orderHint</key>
+			<integer>3</integer>
+		</dict>
+	</dict>
+	<key>SuppressBuildableAutocreation</key>
+	<dict>
+		<key>6A6A8E311D294E4C00FED12F</key>
+		<dict>
+			<key>primary</key>
+			<true/>
+		</dict>
+		<key>6A6A8E3C1D294EBD00FED12F</key>
+		<dict>
+			<key>primary</key>
+			<true/>
+		</dict>
+		<key>6AE92AD51AFA52BE009F6CEC</key>
+		<dict>
+			<key>primary</key>
+			<true/>
+		</dict>
+		<key>6AE92AE01AFA52BE009F6CEC</key>
+		<dict>
+			<key>primary</key>
+			<true/>
+		</dict>
+		<key>6AE92B431AFA681D009F6CEC</key>
+		<dict>
+			<key>primary</key>
+			<true/>
+		</dict>
+	</dict>
+</dict>
+</plist>

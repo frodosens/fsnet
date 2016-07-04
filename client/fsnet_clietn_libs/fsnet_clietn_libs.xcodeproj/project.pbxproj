@@ -1,0 +1,509 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 46;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		6A6A8E401D294EBD00FED12F /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6A6A8E3F1D294EBD00FED12F /* main.cpp */; };
+		6A6A8E461D294FA300FED12F /* libfsnet_lib mac.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 6AE92B441AFA681D009F6CEC /* libfsnet_lib mac.a */; };
+		6AE92B0B1AFA52DA009F6CEC /* FSChannel.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6AE92AF41AFA52DA009F6CEC /* FSChannel.cpp */; };
+		6AE92B0C1AFA52DA009F6CEC /* FSChannelFactory.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6AE92AF61AFA52DA009F6CEC /* FSChannelFactory.cpp */; };
+		6AE92B0D1AFA52DA009F6CEC /* FSClientBase.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6AE92AF81AFA52DA009F6CEC /* FSClientBase.cpp */; };
+		6AE92B0E1AFA52DA009F6CEC /* FSClientImpl.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6AE92AFA1AFA52DA009F6CEC /* FSClientImpl.cpp */; };
+		6AE92B0F1AFA52DA009F6CEC /* FSMethod.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6AE92AFC1AFA52DA009F6CEC /* FSMethod.cpp */; };
+		6AE92B101AFA52DA009F6CEC /* FSObject.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6AE92AFE1AFA52DA009F6CEC /* FSObject.cpp */; };
+		6AE92B111AFA52DA009F6CEC /* FSPack.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6AE92B001AFA52DA009F6CEC /* FSPack.cpp */; };
+		6AE92B121AFA52DA009F6CEC /* FSParams.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6AE92B021AFA52DA009F6CEC /* FSParams.cpp */; };
+		6AE92B2E1AFA62CD009F6CEC /* fs_malloc.c in Sources */ = {isa = PBXBuildFile; fileRef = 6AE92B2A1AFA62CD009F6CEC /* fs_malloc.c */; };
+		6AE92B2F1AFA62CD009F6CEC /* fs_stream.c in Sources */ = {isa = PBXBuildFile; fileRef = 6AE92B2C1AFA62CD009F6CEC /* fs_stream.c */; };
+		6AE92B481AFA6831009F6CEC /* fs_malloc.c in Sources */ = {isa = PBXBuildFile; fileRef = 6AE92B2A1AFA62CD009F6CEC /* fs_malloc.c */; };
+		6AE92B491AFA6831009F6CEC /* fs_stream.c in Sources */ = {isa = PBXBuildFile; fileRef = 6AE92B2C1AFA62CD009F6CEC /* fs_stream.c */; };
+		6AE92B4A1AFA6831009F6CEC /* FSChannel.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6AE92AF41AFA52DA009F6CEC /* FSChannel.cpp */; };
+		6AE92B4B1AFA6831009F6CEC /* FSChannelFactory.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6AE92AF61AFA52DA009F6CEC /* FSChannelFactory.cpp */; };
+		6AE92B4C1AFA6831009F6CEC /* FSClientBase.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6AE92AF81AFA52DA009F6CEC /* FSClientBase.cpp */; };
+		6AE92B4D1AFA6831009F6CEC /* FSClientImpl.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6AE92AFA1AFA52DA009F6CEC /* FSClientImpl.cpp */; };
+		6AE92B4E1AFA6831009F6CEC /* FSMethod.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6AE92AFC1AFA52DA009F6CEC /* FSMethod.cpp */; };
+		6AE92B4F1AFA6831009F6CEC /* FSObject.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6AE92AFE1AFA52DA009F6CEC /* FSObject.cpp */; };
+		6AE92B501AFA6831009F6CEC /* FSPack.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6AE92B001AFA52DA009F6CEC /* FSPack.cpp */; };
+		6AE92B511AFA6831009F6CEC /* FSParams.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6AE92B021AFA52DA009F6CEC /* FSParams.cpp */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		6A6A8E3B1D294EBD00FED12F /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = /usr/share/man/man1/;
+			dstSubfolderSpec = 0;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 1;
+		};
+		6AE92AD41AFA52BE009F6CEC /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "include/$(PRODUCT_NAME)";
+			dstSubfolderSpec = 16;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		6A6A8E3D1D294EBD00FED12F /* sample_test */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = sample_test; sourceTree = BUILT_PRODUCTS_DIR; };
+		6A6A8E3F1D294EBD00FED12F /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
+		6AE92AD61AFA52BE009F6CEC /* libfsnet_clietn_libs.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libfsnet_clietn_libs.a; sourceTree = BUILT_PRODUCTS_DIR; };
+		6AE92AF41AFA52DA009F6CEC /* FSChannel.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = FSChannel.cpp; sourceTree = "<group>"; };
+		6AE92AF51AFA52DA009F6CEC /* FSChannel.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = FSChannel.h; sourceTree = "<group>"; };
+		6AE92AF61AFA52DA009F6CEC /* FSChannelFactory.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = FSChannelFactory.cpp; sourceTree = "<group>"; };
+		6AE92AF71AFA52DA009F6CEC /* FSChannelFactory.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = FSChannelFactory.h; sourceTree = "<group>"; };
+		6AE92AF81AFA52DA009F6CEC /* FSClientBase.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = FSClientBase.cpp; sourceTree = "<group>"; };
+		6AE92AF91AFA52DA009F6CEC /* FSClientBase.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = FSClientBase.h; sourceTree = "<group>"; };
+		6AE92AFA1AFA52DA009F6CEC /* FSClientImpl.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = FSClientImpl.cpp; sourceTree = "<group>"; };
+		6AE92AFB1AFA52DA009F6CEC /* FSClientImpl.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = FSClientImpl.h; sourceTree = "<group>"; };
+		6AE92AFC1AFA52DA009F6CEC /* FSMethod.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = FSMethod.cpp; sourceTree = "<group>"; };
+		6AE92AFD1AFA52DA009F6CEC /* FSMethod.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = FSMethod.h; sourceTree = "<group>"; };
+		6AE92AFE1AFA52DA009F6CEC /* FSObject.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = FSObject.cpp; sourceTree = "<group>"; };
+		6AE92AFF1AFA52DA009F6CEC /* FSObject.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = FSObject.h; sourceTree = "<group>"; };
+		6AE92B001AFA52DA009F6CEC /* FSPack.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = FSPack.cpp; sourceTree = "<group>"; };
+		6AE92B011AFA52DA009F6CEC /* FSPack.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = FSPack.h; sourceTree = "<group>"; };
+		6AE92B021AFA52DA009F6CEC /* FSParams.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = FSParams.cpp; sourceTree = "<group>"; };
+		6AE92B031AFA52DA009F6CEC /* FSParams.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = FSParams.h; sourceTree = "<group>"; };
+		6AE92B241AFA5498009F6CEC /* FSNet.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = FSNet.h; sourceTree = "<group>"; };
+		6AE92B291AFA62CD009F6CEC /* fs_define.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = fs_define.h; sourceTree = "<group>"; };
+		6AE92B2A1AFA62CD009F6CEC /* fs_malloc.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = fs_malloc.c; sourceTree = "<group>"; };
+		6AE92B2B1AFA62CD009F6CEC /* fs_malloc.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = fs_malloc.h; sourceTree = "<group>"; };
+		6AE92B2C1AFA62CD009F6CEC /* fs_stream.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = fs_stream.c; sourceTree = "<group>"; };
+		6AE92B2D1AFA62CD009F6CEC /* fs_stream.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = fs_stream.h; sourceTree = "<group>"; };
+		6AE92B441AFA681D009F6CEC /* libfsnet_lib mac.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libfsnet_lib mac.a"; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		6A6A8E3A1D294EBD00FED12F /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				6A6A8E461D294FA300FED12F /* libfsnet_lib mac.a in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		6AE92AD31AFA52BE009F6CEC /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		6AE92B411AFA681D009F6CEC /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		6A6A8E3E1D294EBD00FED12F /* sample_test */ = {
+			isa = PBXGroup;
+			children = (
+				6A6A8E3F1D294EBD00FED12F /* main.cpp */,
+			);
+			path = sample_test;
+			sourceTree = "<group>";
+		};
+		6AE92ACD1AFA52BE009F6CEC = {
+			isa = PBXGroup;
+			children = (
+				6AE92AD81AFA52BE009F6CEC /* fsnet_clietn_libs */,
+				6A6A8E3E1D294EBD00FED12F /* sample_test */,
+				6AE92AD71AFA52BE009F6CEC /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		6AE92AD71AFA52BE009F6CEC /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				6AE92AD61AFA52BE009F6CEC /* libfsnet_clietn_libs.a */,
+				6AE92B441AFA681D009F6CEC /* libfsnet_lib mac.a */,
+				6A6A8E3D1D294EBD00FED12F /* sample_test */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		6AE92AD81AFA52BE009F6CEC /* fsnet_clietn_libs */ = {
+			isa = PBXGroup;
+			children = (
+				6AE92AF01AFA52DA009F6CEC /* client_lib */,
+			);
+			path = fsnet_clietn_libs;
+			sourceTree = "<group>";
+		};
+		6AE92AF01AFA52DA009F6CEC /* client_lib */ = {
+			isa = PBXGroup;
+			children = (
+				6AE92B291AFA62CD009F6CEC /* fs_define.h */,
+				6AE92B2A1AFA62CD009F6CEC /* fs_malloc.c */,
+				6AE92B2B1AFA62CD009F6CEC /* fs_malloc.h */,
+				6AE92B2C1AFA62CD009F6CEC /* fs_stream.c */,
+				6AE92B2D1AFA62CD009F6CEC /* fs_stream.h */,
+				6AE92AF41AFA52DA009F6CEC /* FSChannel.cpp */,
+				6AE92AF51AFA52DA009F6CEC /* FSChannel.h */,
+				6AE92AF61AFA52DA009F6CEC /* FSChannelFactory.cpp */,
+				6AE92AF71AFA52DA009F6CEC /* FSChannelFactory.h */,
+				6AE92AF81AFA52DA009F6CEC /* FSClientBase.cpp */,
+				6AE92AF91AFA52DA009F6CEC /* FSClientBase.h */,
+				6AE92AFA1AFA52DA009F6CEC /* FSClientImpl.cpp */,
+				6AE92AFB1AFA52DA009F6CEC /* FSClientImpl.h */,
+				6AE92AFC1AFA52DA009F6CEC /* FSMethod.cpp */,
+				6AE92AFD1AFA52DA009F6CEC /* FSMethod.h */,
+				6AE92AFE1AFA52DA009F6CEC /* FSObject.cpp */,
+				6AE92AFF1AFA52DA009F6CEC /* FSObject.h */,
+				6AE92B001AFA52DA009F6CEC /* FSPack.cpp */,
+				6AE92B011AFA52DA009F6CEC /* FSPack.h */,
+				6AE92B021AFA52DA009F6CEC /* FSParams.cpp */,
+				6AE92B031AFA52DA009F6CEC /* FSParams.h */,
+				6AE92B241AFA5498009F6CEC /* FSNet.h */,
+			);
+			path = client_lib;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXHeadersBuildPhase section */
+		6AE92B421AFA681D009F6CEC /* Headers */ = {
+			isa = PBXHeadersBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXHeadersBuildPhase section */
+
+/* Begin PBXNativeTarget section */
+		6A6A8E3C1D294EBD00FED12F /* sample_test */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 6A6A8E411D294EBD00FED12F /* Build configuration list for PBXNativeTarget "sample_test" */;
+			buildPhases = (
+				6A6A8E391D294EBD00FED12F /* Sources */,
+				6A6A8E3A1D294EBD00FED12F /* Frameworks */,
+				6A6A8E3B1D294EBD00FED12F /* CopyFiles */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = sample_test;
+			productName = sample_test;
+			productReference = 6A6A8E3D1D294EBD00FED12F /* sample_test */;
+			productType = "com.apple.product-type.tool";
+		};
+		6AE92AD51AFA52BE009F6CEC /* fsnet_clietn_libs */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 6AE92AEA1AFA52BE009F6CEC /* Build configuration list for PBXNativeTarget "fsnet_clietn_libs" */;
+			buildPhases = (
+				6AE92AD21AFA52BE009F6CEC /* Sources */,
+				6AE92AD31AFA52BE009F6CEC /* Frameworks */,
+				6AE92AD41AFA52BE009F6CEC /* CopyFiles */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = fsnet_clietn_libs;
+			productName = fsnet_clietn_libs;
+			productReference = 6AE92AD61AFA52BE009F6CEC /* libfsnet_clietn_libs.a */;
+			productType = "com.apple.product-type.library.static";
+		};
+		6AE92B431AFA681D009F6CEC /* fsnet_lib mac */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 6AE92B471AFA681D009F6CEC /* Build configuration list for PBXNativeTarget "fsnet_lib mac" */;
+			buildPhases = (
+				6AE92B401AFA681D009F6CEC /* Sources */,
+				6AE92B411AFA681D009F6CEC /* Frameworks */,
+				6AE92B421AFA681D009F6CEC /* Headers */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = "fsnet_lib mac";
+			productName = "fsnet_lib mac";
+			productReference = 6AE92B441AFA681D009F6CEC /* libfsnet_lib mac.a */;
+			productType = "com.apple.product-type.library.static";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		6AE92ACE1AFA52BE009F6CEC /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				LastUpgradeCheck = 0610;
+				ORGANIZATIONNAME = Vincent;
+				TargetAttributes = {
+					6A6A8E3C1D294EBD00FED12F = {
+						CreatedOnToolsVersion = 7.3.1;
+					};
+					6AE92AD51AFA52BE009F6CEC = {
+						CreatedOnToolsVersion = 6.1;
+					};
+					6AE92B431AFA681D009F6CEC = {
+						CreatedOnToolsVersion = 6.1;
+					};
+				};
+			};
+			buildConfigurationList = 6AE92AD11AFA52BE009F6CEC /* Build configuration list for PBXProject "fsnet_clietn_libs" */;
+			compatibilityVersion = "Xcode 3.2";
+			developmentRegion = English;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+			);
+			mainGroup = 6AE92ACD1AFA52BE009F6CEC;
+			productRefGroup = 6AE92AD71AFA52BE009F6CEC /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				6AE92AD51AFA52BE009F6CEC /* fsnet_clietn_libs */,
+				6AE92B431AFA681D009F6CEC /* fsnet_lib mac */,
+				6A6A8E3C1D294EBD00FED12F /* sample_test */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXSourcesBuildPhase section */
+		6A6A8E391D294EBD00FED12F /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				6A6A8E401D294EBD00FED12F /* main.cpp in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		6AE92AD21AFA52BE009F6CEC /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				6AE92B2E1AFA62CD009F6CEC /* fs_malloc.c in Sources */,
+				6AE92B0D1AFA52DA009F6CEC /* FSClientBase.cpp in Sources */,
+				6AE92B0E1AFA52DA009F6CEC /* FSClientImpl.cpp in Sources */,
+				6AE92B0B1AFA52DA009F6CEC /* FSChannel.cpp in Sources */,
+				6AE92B111AFA52DA009F6CEC /* FSPack.cpp in Sources */,
+				6AE92B0C1AFA52DA009F6CEC /* FSChannelFactory.cpp in Sources */,
+				6AE92B0F1AFA52DA009F6CEC /* FSMethod.cpp in Sources */,
+				6AE92B121AFA52DA009F6CEC /* FSParams.cpp in Sources */,
+				6AE92B2F1AFA62CD009F6CEC /* fs_stream.c in Sources */,
+				6AE92B101AFA52DA009F6CEC /* FSObject.cpp in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		6AE92B401AFA681D009F6CEC /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				6AE92B481AFA6831009F6CEC /* fs_malloc.c in Sources */,
+				6AE92B491AFA6831009F6CEC /* fs_stream.c in Sources */,
+				6AE92B4A1AFA6831009F6CEC /* FSChannel.cpp in Sources */,
+				6AE92B4B1AFA6831009F6CEC /* FSChannelFactory.cpp in Sources */,
+				6AE92B4C1AFA6831009F6CEC /* FSClientBase.cpp in Sources */,
+				6AE92B4D1AFA6831009F6CEC /* FSClientImpl.cpp in Sources */,
+				6AE92B4E1AFA6831009F6CEC /* FSMethod.cpp in Sources */,
+				6AE92B4F1AFA6831009F6CEC /* FSObject.cpp in Sources */,
+				6AE92B501AFA6831009F6CEC /* FSPack.cpp in Sources */,
+				6AE92B511AFA6831009F6CEC /* FSParams.cpp in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		6A6A8E421D294EBD00FED12F /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ANALYZER_NONNULL = YES;
+				CODE_SIGN_IDENTITY = "-";
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_TESTABILITY = YES;
+				GCC_NO_COMMON_BLOCKS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 10.11;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		6A6A8E431D294EBD00FED12F /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ANALYZER_NONNULL = YES;
+				CODE_SIGN_IDENTITY = "-";
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				GCC_NO_COMMON_BLOCKS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 10.11;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+		6AE92AE81AFA52BE009F6CEC /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 8.1;
+				MTL_ENABLE_DEBUG_INFO = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+			};
+			name = Debug;
+		};
+		6AE92AE91AFA52BE009F6CEC /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = YES;
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 8.1;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				SDKROOT = iphoneos;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		6AE92AEB1AFA52BE009F6CEC /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				OTHER_LDFLAGS = "-ObjC";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+			};
+			name = Debug;
+		};
+		6AE92AEC1AFA52BE009F6CEC /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				OTHER_LDFLAGS = "-ObjC";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+			};
+			name = Release;
+		};
+		6AE92B451AFA681D009F6CEC /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				EXECUTABLE_PREFIX = lib;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 10.10;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		6AE92B461AFA681D009F6CEC /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				EXECUTABLE_PREFIX = lib;
+				MACOSX_DEPLOYMENT_TARGET = 10.10;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		6A6A8E411D294EBD00FED12F /* Build configuration list for PBXNativeTarget "sample_test" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				6A6A8E421D294EBD00FED12F /* Debug */,
+				6A6A8E431D294EBD00FED12F /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+		};
+		6AE92AD11AFA52BE009F6CEC /* Build configuration list for PBXProject "fsnet_clietn_libs" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				6AE92AE81AFA52BE009F6CEC /* Debug */,
+				6AE92AE91AFA52BE009F6CEC /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		6AE92AEA1AFA52BE009F6CEC /* Build configuration list for PBXNativeTarget "fsnet_clietn_libs" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				6AE92AEB1AFA52BE009F6CEC /* Debug */,
+				6AE92AEC1AFA52BE009F6CEC /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		6AE92B471AFA681D009F6CEC /* Build configuration list for PBXNativeTarget "fsnet_lib mac" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				6AE92B451AFA681D009F6CEC /* Debug */,
+				6AE92B461AFA681D009F6CEC /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 6AE92ACE1AFA52BE009F6CEC /* Project object */;
+}
