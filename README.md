@@ -1,24 +1,24 @@
 #fsnet
 ===20160704======  
-放弃之前的设计, 重新为游戏服务器设计API.
-加入协程做同步RPC调用, 不再需要写任何callback.
-现在每一个invoke都是在一个独立的fiber上执行, 可以随时yield,再resume.
-发现一旦API设计的太过抽象, 会导致API特难用, 除非特别熟悉.
-我的期望看到函数名字就能知道干嘛 是最好的.
+放弃之前的设计, 重新为游戏服务器设计API.  
+加入协程做同步RPC调用, 不再需要写任何callback.  
+现在每一个invoke都是在一个独立的fiber上执行, 可以随时yield,再resume.  
+发现一旦API设计的太过抽象, 会导致API特难用, 除非特别熟悉.  
+我的期望看到函数名字就能知道干嘛 是最好的.  
+  
+新设计如下.  
+  
+分3个类型的server  
+gate  
+logic  
+center  
+  
+最小执行单元是一个service  
 
-新设计如下.
-
-分3个类型的server.
-gate.
-logic.
-center.
-
-最小执行单元是一个service.
-
-一个logic可以承载N个service.
-logic在启动的时候会把自身承载的service通知给gate和center.
-当gate收到客户端的service消息的时候直接发送到对应的logic进程上.
-center会做一个类似地址表的东西 会标记 哪一个service在哪一个logic.
+一个logic可以承载N个service  
+logic在启动的时候会把自身承载的service通知给gate和center  
+当gate收到客户端的service消息的时候直接发送到对应的logic进程上  
+center会做一个类似地址表的东西 会标记 哪一个service在哪一个logic  
 
 
 
