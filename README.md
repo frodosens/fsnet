@@ -1,4 +1,4 @@
-#fsnet
+# fsnet
 ===20160704======  
 放弃之前的设计, 重新为游戏服务器设计API.  
 加入协程做同步RPC调用, 不再需要写任何callback.  
@@ -160,28 +160,28 @@ $ping_node.start
 
 # 如何编译,安装
 
-#libevent
+# libevent
 解压libs里的libevent-2.1.4-alpha.zip  
 cd libevent-2.1.4-alpha  
 ./configure   
 make  
 sudo make install   
 
-#ruby
+# ruby
 解压libs 里的ruby-2.1.2.zip   
 cd ruby-2.1.2  
 ./configure --enable-shared  
 make  
 sudo make install  
 
-#fsnet
+# fsnet
 进入fsnet  
 执行  
 ruby extconf.rb  
 make & make install  
 
 
-#demo
+# demo
 进入scripts/ 
 编辑server.rb
 可以根据自己想看的demo取消注释. ：）
