@@ -4,7 +4,7 @@ C++20 网络核心、Lua 5.4 脚本宿主与可选 Ruby 逻辑接口。当前版
 
 目标边界：C++ 仅实现网络与分布式运行时、场景/实体载体及脚本宿主；游戏业务全部由脚本实现。Lua 是首选嵌入式适配器，Ruby 是可选外部适配器。场景/实体的调度载体尚待后续阶段实现。阶段计划见 [ROADMAP.md](docs/ROADMAP.md)。
 
-**当前是可运行的重构基础，不是已经验收的生产级 MMO 框架。** 已实现能力、测试和未完成的高可用/安全工作见 [架构与验收](docs/ARCHITECTURE.md)；旧实现的严重缺陷见 [代码审查](docs/REVIEW.md)。历史文档保存在 [LEGACY_README.md](docs/LEGACY_README.md)。
+**当前是可运行的重构基础，不是已经验收的生产级 MMO 框架。** 已实现能力、测试和未完成的高可用/安全工作见 [架构与验收](docs/ARCHITECTURE.md)；旧实现的严重缺陷见 [代码审查](docs/REVIEW.md)。旧源码和原始文档保存在 [归档标签 archive/legacy-c-ruby21](https://github.com/frodosens/fsnet/tree/archive/legacy-c-ruby21)。
 
 ## 构建和测试
 
@@ -129,6 +129,6 @@ C++ 的 `ClusterClient` 支持静态成员健康探测、指数退避重连、�
 
 ## 兼容性
 
-旧 C/libevent/Ruby 2.1 实现和旧 C++ 客户端保留供迁移参考，默认 CMake 不构建它们。新协议有版本和边界检查，与旧的 `F` 包头协议不兼容。旧逻辑需要迁移到显式服务，旧客户端需要适配新协议或经过专门的隔离兼容网关；不能直接接入新节点。
+旧 C/libevent/Ruby 2.1 实现、旧 C++ 客户端、Xcode 用户文件、旧构建产物、依赖压缩包和旧示例已从主线移除，通过上述归档标签保留历史。新协议有版本和边界检查，与旧的 `F` 包头协议不兼容。旧逻辑需要迁移到显式服务，旧客户端需要适配新协议或经过专门的隔离兼容网关；不能直接接入新节点。
 
 依赖与许可证见 [THIRD_PARTY.md](docs/THIRD_PARTY.md)。

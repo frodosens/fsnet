@@ -10,4 +10,4 @@ CMake downloads source archives over verified TLS and checks SHA256 before use. 
 | Lua | 5.4.7 | MIT | Optional embedded script VM (built in C++ mode) |
 | libjuice | 1.6.2 | MPL 2.0 | ICE/STUN/TURN client and relay |
 
-Archive URLs and exact hashes are in the root CMakeLists.txt. The repository's historical `libs/` archives are separate legacy dependencies and are not part of the new build.
+Archive URLs and exact hashes are in the root CMakeLists.txt. Historical dependency archives were removed from mainline and remain available in the `archive/legacy-c-ruby21` Git tag.

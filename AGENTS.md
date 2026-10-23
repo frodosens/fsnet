@@ -7,8 +7,9 @@
   for the implemented host contract and adapter limits.
 - Native protocol/transport test handlers and benchmarks are framework fixtures,
   not a reason to add native player/combat/economy services.
-- Legacy C/Ruby 2.1 code is migration reference, excluded from the default build.
-  Archive its Git revision before removing it after replacement coverage exists.
+- Legacy C/Ruby 2.1 code, SDK, examples, and binary archives were removed from
+  mainline. The original implementation is preserved in the pushed tag
+  `archive/legacy-c-ruby21`; do not restore it as a runtime dependency.
 
 # Workflow
 
