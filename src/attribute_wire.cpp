@@ -44,9 +44,16 @@ template<class Output> void encode_value(Output& out,const AttributeValue& value
             check_name(name); put(out,name.size(),1); out+=name;
             encode_value(out,child,depth+1,remaining);
         }
+    } else if(auto entries=std::get_if<AttributeMap>(&value)) {
+        if(entries->size()>256) throw std::length_error("map entry limit");
+        put(out,entries->size(),2);
+        for(const auto& [key,child]:*entries) {
+            if(key.empty() || key.size()>127 || key.find('\0')!=std::string::npos) throw std::invalid_argument("invalid map key");
+            put(out,key.size(),1); out+=key; encode_value(out,child,depth+1,remaining);
+        }
     } else {
         const auto& items=std::get<AttributeArray>(value);
-        if(items.empty() || items.size()>256) throw std::length_error("array length limit");
+        if(items.size()>256) throw std::length_error("array length limit");
         put(out,items.size(),2);
         for(const auto& child:items) encode_value(out,child,depth+1,remaining);
     }
@@ -79,9 +86,21 @@ AttributeValue decode_value(std::string_view& in,unsigned depth,std::size_t& rem
         return out;
     }
     if(tag==5) {
-        auto count=get(in,2); if(!count || count>256) throw std::invalid_argument("invalid array length");
+        auto count=get(in,2); if(count>256) throw std::invalid_argument("invalid array length");
         AttributeArray out; out.reserve(count);
         for(std::uint64_t i=0;i<count;++i) out.push_back(decode_value(in,depth+1,remaining));
+        return out;
+    }
+    if(tag==6) {
+        auto count=get(in,2); if(count>256) throw std::invalid_argument("invalid map length");
+        AttributeMap out;
+        for(std::uint64_t i=0;i<count;++i) {
+            auto n=get(in,1); if(!n || n>127 || n>in.size()) throw std::invalid_argument("invalid map key");
+            std::string key(in.substr(0,n)); in.remove_prefix(n);
+            if(key.find('\0')!=std::string::npos) throw std::invalid_argument("invalid map key");
+            auto child=decode_value(in,depth+1,remaining);
+            if(!out.emplace(std::move(key),std::move(child)).second) throw std::invalid_argument("duplicate map key");
+        }
         return out;
     }
     throw std::invalid_argument("invalid property type");

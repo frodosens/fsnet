@@ -9,7 +9,9 @@ bool reads(Access a) { return a == Access::read || a == Access::read_write; }
 bool writes(Access a) { return a == Access::write || a == Access::read_write; }
 bool valid(const AttributeDefinition& d, const AttributeValue& v,unsigned depth=0,std::size_t* remaining=nullptr) {
     std::size_t budget=4096; if(!remaining) remaining=&budget;
-    if(depth>8 || !*remaining || v.index()!=static_cast<std::size_t>(d.type)) return false;
+    auto expected=d.type==AttributeType::list || d.type==AttributeType::set ? 5u :
+        d.type==AttributeType::map ? 6u : static_cast<unsigned>(d.type);
+    if(depth>8 || !*remaining || v.index()!=expected) return false;
     --*remaining;
     if(auto n=std::get_if<std::int64_t>(&v)) return *n>=d.minimum && *n<=d.maximum;
     if(auto n=std::get_if<double>(&v)) return std::isfinite(*n);
@@ -22,8 +24,15 @@ bool valid(const AttributeDefinition& d, const AttributeValue& v,unsigned depth=
         }
     }
     if(auto items=std::get_if<AttributeArray>(&v)) {
-        if(!d.element || items->size()!=d.length) return false;
+        if(!d.element || (d.type==AttributeType::array ? items->size()!=d.length : items->size()>d.max_items)) return false;
+        if(d.type==AttributeType::set) for(std::size_t i=0;i<items->size();++i)
+            for(std::size_t j=0;j<i;++j) if((*items)[i]==(*items)[j]) return false;
         for(const auto& child:*items) if(!valid(*d.element,child,depth+1,remaining)) return false;
+    }
+    if(auto entries=std::get_if<AttributeMap>(&v)) {
+        if(!d.element || entries->size()>d.max_items) return false;
+        for(const auto& [key,child]:*entries)
+            if(key.empty() || key.size()>127 || key.find('\0')!=std::string::npos || !valid(*d.element,child,depth+1,remaining)) return false;
     }
     return true;
 }
@@ -34,6 +43,7 @@ void definition_valid(const AttributeDefinition& d,unsigned depth,std::size_t& r
     if(depth>8 || !remaining) throw std::invalid_argument("attribute schema depth/node limit");
     --remaining;
     if(d.minimum>d.maximum) throw std::invalid_argument("invalid attribute range");
+    if(d.max_items && d.type!=AttributeType::list && d.type!=AttributeType::map && d.type!=AttributeType::set) throw std::invalid_argument("capacity on non-container");
     if(d.type==AttributeType::structure) {
         if(d.fields.empty() || d.fields.size()>64 || d.element || d.length) throw std::invalid_argument("invalid struct schema");
         for(const auto& [name,child]:d.fields) {
@@ -43,7 +53,11 @@ void definition_valid(const AttributeDefinition& d,unsigned depth,std::size_t& r
     } else if(d.type==AttributeType::array) {
         if(!d.element || !d.fields.empty() || !d.length || d.length>256) throw std::invalid_argument("invalid fixed array schema");
         definition_valid(*d.element,depth+1,remaining);
-    } else if(!d.fields.empty() || d.element || d.length || static_cast<unsigned>(d.type)>5)
+    } else if(d.type==AttributeType::list || d.type==AttributeType::map || d.type==AttributeType::set) {
+        if(!d.element || !d.fields.empty() || d.length || !d.max_items || d.max_items>256) throw std::invalid_argument("invalid container schema");
+        if(d.type==AttributeType::set && static_cast<unsigned>(d.element->type)>3) throw std::invalid_argument("set elements must be scalar");
+        definition_valid(*d.element,depth+1,remaining);
+    } else if(!d.fields.empty() || d.element || d.length || static_cast<unsigned>(d.type)>8)
         throw std::invalid_argument("invalid scalar schema");
 }
 }
@@ -53,11 +67,13 @@ std::size_t attribute_image_bytes(const AttributeStruct& values) {
         bytes+=256+name.size();
         if(auto text=std::get_if<std::string>(&value)) bytes+=text->size();
         else if(auto fields=std::get_if<AttributeStruct>(&value)) bytes+=attribute_image_bytes(*fields);
+        else if(auto entries=std::get_if<AttributeMap>(&value)) bytes+=attribute_image_bytes(*entries);
         else if(auto items=std::get_if<AttributeArray>(&value)) {
             // Reuse the same recursive charge without allocating a map.
             auto charge=[&](auto&& recurse,const AttributeValue& child)->std::size_t {
                 if(auto s=std::get_if<std::string>(&child)) return 256+s->size();
                 if(auto f=std::get_if<AttributeStruct>(&child)) return attribute_image_bytes(*f);
+                if(auto m=std::get_if<AttributeMap>(&child)) return attribute_image_bytes(*m);
                 if(auto a=std::get_if<AttributeArray>(&child)) { std::size_t n=256; for(const auto& v:*a) n+=recurse(recurse,v); return n; }
                 return 256;
             };

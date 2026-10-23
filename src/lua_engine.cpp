@@ -119,6 +119,7 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
         std::size_t n=1;
         if(auto fields=std::get_if<AttributeStruct>(&value)) for(const auto& [key,v]:*fields) { (void)key; n+=value_nodes(v); }
         if(auto items=std::get_if<AttributeArray>(&value)) for(const auto& v:*items) n+=value_nodes(v);
+        if(auto entries=std::get_if<AttributeMap>(&value)) for(const auto& [key,v]:*entries) { (void)key; n+=value_nodes(v); }
         return n;
     }
     static std::size_t carrier_charge(const EntityAttributes& model) {
@@ -166,7 +167,7 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
             if(lua_type(L,-2)!=LUA_TSTRING) throw std::invalid_argument("named type descriptor options required");
             std::string key=lua_tostring(L,-2);
             if(key!="kind" && !(kind=="struct" && (key=="name" || key=="fields")) &&
-               !(kind=="array" && (key=="element" || key=="length"))) throw std::invalid_argument("unknown type descriptor option");
+               !((kind=="array" || kind=="list" || kind=="map" || kind=="set") && (key=="element" || (kind=="array" ? key=="length" : key=="max_items")))) throw std::invalid_argument("unknown type descriptor option");
             lua_pop(L,1);
         }
         if(kind=="struct") {
@@ -190,13 +191,30 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
             d.type=AttributeType::array; d.length=static_cast<std::size_t>(length);
             d.initial=AttributeArray(d.length,element.initial);
             d.element=std::make_shared<const AttributeDefinition>(std::move(element));
+        } else if(kind=="list" || kind=="map" || kind=="set") {
+            lua_getfield(L,index,"max_items");
+            if(!lua_isnil(L,-1) && !lua_isinteger(L,-1)) throw std::invalid_argument("integer container capacity required");
+            auto capacity=lua_isnil(L,-1)?256:lua_tointeger(L,-1); lua_pop(L,1);
+            if(capacity<1 || capacity>256) throw std::invalid_argument("container capacity must be 1..256");
+            lua_getfield(L,index,"element"); auto element=value_definition(L,-1,depth+1,remaining); lua_pop(L,1);
+            d.type=kind=="list"?AttributeType::list:kind=="map"?AttributeType::map:AttributeType::set;
+            d.max_items=static_cast<std::size_t>(capacity);
+            d.initial=kind=="map"?AttributeValue(AttributeMap{}):AttributeValue(AttributeArray{});
+            d.element=std::make_shared<const AttributeDefinition>(std::move(element));
         } else throw std::invalid_argument("invalid structured type descriptor");
         return d;
     }
-    static AttributeValue attribute_value(lua_State* L,int index,const AttributeDefinition& d,unsigned depth=0) {
+    static AttributeValue attribute_value(lua_State* L,int index,const AttributeDefinition& d,unsigned depth=0,std::size_t* remaining=nullptr) {
+        std::size_t budget=4096; if(!remaining) remaining=&budget;
+        if(!*remaining) throw std::length_error("attribute value node limit");
+        --*remaining;
         if(depth>8) throw std::length_error("attribute value depth limit");
         index=lua_absindex(L,index);
-        if(luaL_testudata(L,index,"fsnet.field")) return proxy_value(L,index);
+        if(luaL_testudata(L,index,"fsnet.field")) {
+            auto value=proxy_value(L,index); auto nodes=value_nodes(value)-1;
+            if(nodes>*remaining) throw std::length_error("attribute value node limit");
+            *remaining-=nodes; return value;
+        }
         if(d.type==AttributeType::integer) {
             if(!lua_isinteger(L,index)) throw std::invalid_argument("integer attribute required");
             return static_cast<std::int64_t>(lua_tointeger(L,index));
@@ -217,37 +235,58 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
         }
         if(lua_type(L,index)!=LUA_TTABLE) throw std::invalid_argument("structured attribute requires a table or field view");
         if(lua_getmetatable(L,index)) { lua_pop(L,1); throw std::invalid_argument("attribute values must use plain tables"); }
+        if(d.type==AttributeType::map) {
+            AttributeMap entries; lua_pushnil(L);
+            while(lua_next(L,index)) {
+                if(lua_type(L,-2)!=LUA_TSTRING || entries.size()>=d.max_items) throw std::invalid_argument("map requires string keys within capacity");
+                std::size_t n; const char* key=lua_tolstring(L,-2,&n);
+                if(!n || n>127 || std::string_view(key,n).find('\0')!=std::string_view::npos) throw std::invalid_argument("invalid map key");
+                entries.emplace(std::string(key,n),attribute_value(L,-1,*d.element,depth+1,remaining)); lua_pop(L,1);
+            }
+            return entries;
+        }
         std::size_t count=0; lua_pushnil(L);
         while(lua_next(L,index)) {
             if(d.type==AttributeType::structure) {
                 if(lua_type(L,-2)!=LUA_TSTRING) throw std::invalid_argument("struct requires named fields");
                 std::size_t n; const char* text=lua_tolstring(L,-2,&n);
                 if(!d.fields.contains(std::string(text,n))) throw std::invalid_argument("unknown struct field");
-            } else if(!lua_isinteger(L,-2) || lua_tointeger(L,-2)<1 || static_cast<std::uint64_t>(lua_tointeger(L,-2))>d.length)
+            } else if(!lua_isinteger(L,-2) || lua_tointeger(L,-2)<1 || static_cast<std::uint64_t>(lua_tointeger(L,-2))>(d.type==AttributeType::array?d.length:d.max_items))
                 throw std::invalid_argument("fixed array requires dense integer indices");
-            ++count; lua_pop(L,1);
+            if(++count>256) throw std::length_error("attribute entry limit");
+            lua_pop(L,1);
         }
         if(d.type==AttributeType::structure) {
             if(count!=d.fields.size()) throw std::invalid_argument("missing struct field");
             AttributeStruct value;
             for(const auto& [key,child]:d.fields) {
-                lua_getfield(L,index,key.c_str()); value.emplace(key,attribute_value(L,-1,child,depth+1)); lua_pop(L,1);
+                lua_getfield(L,index,key.c_str()); value.emplace(key,attribute_value(L,-1,child,depth+1,remaining)); lua_pop(L,1);
             }
             return value;
         }
-        if(count!=d.length) throw std::invalid_argument("fixed array length mismatch");
+        if(d.type==AttributeType::array && count!=d.length) throw std::invalid_argument("fixed array length mismatch");
         AttributeArray value; value.reserve(count);
         for(std::size_t i=1;i<=count;++i) {
-            lua_rawgeti(L,index,static_cast<lua_Integer>(i)); value.push_back(attribute_value(L,-1,*d.element,depth+1)); lua_pop(L,1);
+            lua_rawgeti(L,index,static_cast<lua_Integer>(i)); auto child=attribute_value(L,-1,*d.element,depth+1,remaining); lua_pop(L,1);
+            if(d.type==AttributeType::set && std::find(value.begin(),value.end(),child)!=value.end()) throw std::invalid_argument("duplicate set element");
+            value.push_back(std::move(child));
         }
         return value;
+    }
+    static const AttributeStruct* value_members(const AttributeValue& value) {
+        if(auto fields=std::get_if<AttributeStruct>(&value)) return fields;
+        return std::get_if<AttributeMap>(&value);
+    }
+    static AttributeStruct* value_members(AttributeValue& value) {
+        if(auto fields=std::get_if<AttributeStruct>(&value)) return fields;
+        return std::get_if<AttributeMap>(&value);
     }
     static void push_attribute(lua_State* L,const AttributeValue& value) {
         if(auto n=std::get_if<std::int64_t>(&value)) lua_pushinteger(L,static_cast<lua_Integer>(*n));
         else if(auto n=std::get_if<double>(&value)) lua_pushnumber(L,*n);
         else if(auto b=std::get_if<bool>(&value)) lua_pushboolean(L,*b);
         else if(auto text=std::get_if<std::string>(&value)) lua_pushlstring(L,text->data(),text->size());
-        else if(auto fields=std::get_if<AttributeStruct>(&value)) {
+        else if(auto fields=value_members(value)) {
             lua_createtable(L,0,static_cast<int>(fields->size()));
             for(const auto& [key,child]:*fields) { push_attribute(L,child); lua_setfield(L,-2,key.c_str()); }
         } else {
@@ -291,7 +330,7 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
                 if(authority!="driver" && authority!="server") throw std::invalid_argument("invalid property authority");
                 d.driver_authority=authority=="driver";
                 lua_getfield(L, definition, "default");
-                if(!lua_isnil(L,-1) || (d.type!=AttributeType::structure && d.type!=AttributeType::array)) d.initial=attribute_value(L,-1,d);
+                if(!lua_isnil(L,-1) || static_cast<unsigned>(d.type)<4) d.initial=attribute_value(L,-1,d);
                 lua_pop(L,1);
                 schema.attributes.emplace(std::move(name), std::move(d)); lua_pop(L, 1);
             }
@@ -471,17 +510,17 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
         return object.model.read(key,{Caller::server,{}});
     }
     static const AttributeValue& field_child(const AttributeValue& value,const FieldPart& part) {
-        if(auto name=std::get_if<std::string>(&part)) return std::get<AttributeStruct>(value).at(*name);
+        if(auto name=std::get_if<std::string>(&part)) return value_members(value)->at(*name);
         return std::get<AttributeArray>(value).at(std::get<std::size_t>(part));
     }
     static AttributeValue& field_child(AttributeValue& value,const FieldPart& part) {
-        if(auto name=std::get_if<std::string>(&part)) return std::get<AttributeStruct>(value).at(*name);
+        if(auto name=std::get_if<std::string>(&part)) return value_members(value)->at(*name);
         return std::get<AttributeArray>(value).at(std::get<std::size_t>(part));
     }
     static const AttributeDefinition& field_definition(const AttributeDefinition& d,const FieldPart& part) {
-        if(auto name=std::get_if<std::string>(&part)) return d.fields.at(*name);
+        if(auto name=std::get_if<std::string>(&part)) return d.type==AttributeType::map?*d.element:d.fields.at(*name);
         auto index=std::get<std::size_t>(part);
-        if(!d.element || index>=d.length) throw std::out_of_range("array index out of range");
+        if(!d.element || index>=(d.type==AttributeType::array?d.length:d.max_items)) throw std::out_of_range("array index out of range");
         return *d.element;
     }
     static const AttributeValue& resolve_field(lua_State* L,int root,const FieldProxy& proxy) {
@@ -508,7 +547,7 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
         luaL_setmetatable(L,"fsnet.field"); lua_pushvalue(L,root); lua_setiuservalue(L,-2,1);
     }
     static FieldPart field_key(lua_State* L,int index,const AttributeValue& parent) {
-        if(std::holds_alternative<AttributeStruct>(parent)) {
+        if(value_members(parent)) {
             if(lua_type(L,index)!=LUA_TSTRING) throw std::invalid_argument("struct field must be a name");
             std::size_t n; const char* key=lua_tolstring(L,index,&n); return std::string(key,n);
         }
@@ -519,12 +558,25 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
         auto& proxy=*static_cast<FieldProxy*>(luaL_checkudata(L,1,"fsnet.field"));
         proxy.engine->used-=proxy.charge; proxy.~FieldProxy(); return 0;
     }
+    static const AttributeDefinition& proxy_definition(const AttributeObject& object,const FieldProxy& proxy) {
+        auto* definition=&object.model.schema().attributes.at(std::get<std::string>(proxy.path.at(0)));
+        for(std::size_t i=1;i<proxy.path.size();++i) definition=&field_definition(*definition,proxy.path[i]);
+        return *definition;
+    }
     static int field_index(lua_State* L) {
         try {
             auto& proxy=*static_cast<FieldProxy*>(luaL_checkudata(L,1,"fsnet.field"));
             lua_getiuservalue(L,1,1); int root=lua_gettop(L);
             const auto& parent=resolve_field(L,root,proxy);
+            const auto& definition=proxy_definition(attribute_object(L,root),proxy);
+            if((definition.type==AttributeType::list || definition.type==AttributeType::set) && lua_type(L,2)==LUA_TSTRING) {
+                std::string method=lua_tostring(L,2);
+                if(method=="add" || method=="remove" || method=="clear" || method=="contains" || (method=="insert" && definition.type==AttributeType::list)) {
+                    lua_pushvalue(L,2); lua_pushcclosure(L,container_method,1); return 1;
+                }
+            }
             auto part=field_key(L,2,parent);
+            if(auto entries=std::get_if<AttributeMap>(&parent); entries && !entries->contains(std::get<std::string>(part))) { lua_pushnil(L); return 1; }
             if(auto items=std::get_if<AttributeArray>(&parent); items && std::get<std::size_t>(part)>=items->size()) { lua_pushnil(L); return 1; }
             const auto& child=field_child(parent,part);
             if(child.index()<4) push_attribute(L,child);
@@ -536,7 +588,7 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
         try {
             auto& proxy=*static_cast<FieldProxy*>(luaL_checkudata(L,1,"fsnet.field"));
             lua_getiuservalue(L,1,1); const auto& value=resolve_field(L,lua_gettop(L),proxy);
-            auto size=std::holds_alternative<AttributeArray>(value)?std::get<AttributeArray>(value).size():std::get<AttributeStruct>(value).size();
+            auto size=std::holds_alternative<AttributeArray>(value)?std::get<AttributeArray>(value).size():value_members(value)->size();
             lua_pushinteger(L,static_cast<lua_Integer>(size)); return 1;
         } catch(const std::exception& e) { return luaL_error(L,"%s",e.what()); }
     }
@@ -545,7 +597,7 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
             auto& proxy=*static_cast<FieldProxy*>(luaL_checkudata(L,1,"fsnet.field"));
             lua_getiuservalue(L,1,1); int root=lua_gettop(L);
             const auto& parent=resolve_field(L,root,proxy);
-            if(auto fields=std::get_if<AttributeStruct>(&parent)) {
+            if(auto fields=value_members(parent)) {
                 auto it=fields->begin();
                 if(!lua_isnil(L,2)) { std::size_t n; const char* key=luaL_checklstring(L,2,&n); it=fields->upper_bound(std::string(key,n)); }
                 if(it==fields->end()) return 0;
@@ -606,8 +658,47 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
                 parent=&field_child(*parent,proxy.path[i]); definition=&field_definition(*definition,proxy.path[i]);
             }
             auto part=field_key(L,2,*parent);
-            auto replacement=attribute_value(L,3,field_definition(*definition,part));
-            field_child(*parent,part)=std::move(replacement);
+            if(definition->type==AttributeType::map) {
+                auto& entries=std::get<AttributeMap>(*parent); const auto& key=std::get<std::string>(part);
+                if(lua_isnil(L,3)) entries.erase(key);
+                else entries.insert_or_assign(key,attribute_value(L,3,*definition->element));
+            } else {
+                if(definition->type==AttributeType::set) throw std::logic_error("use set add/remove to change membership");
+                auto replacement=attribute_value(L,3,field_definition(*definition,part));
+                if(definition->type==AttributeType::list && std::get<std::size_t>(part)==std::get<AttributeArray>(*parent).size())
+                    std::get<AttributeArray>(*parent).push_back(std::move(replacement));
+                else field_child(*parent,part)=std::move(replacement);
+            }
+            waiting=set_property(L,root,top,std::move(value));
+        } catch(const std::exception& e) { return luaL_error(L,"%s",e.what()); }
+        return waiting?lua_yieldk(L,0,0,assignment_complete):0;
+    }
+    static int container_method(lua_State* L) {
+        bool waiting=false;
+        try {
+            auto& proxy=*static_cast<FieldProxy*>(luaL_checkudata(L,1,"fsnet.field"));
+            lua_getiuservalue(L,1,1); int root=lua_gettop(L);
+            const auto& top=std::get<std::string>(proxy.path.at(0));
+            auto value=read_property(L,root,top); auto* container=&value;
+            for(std::size_t i=1;i<proxy.path.size();++i) container=&field_child(*container,proxy.path[i]);
+            const auto& definition=proxy_definition(attribute_object(L,root),proxy);
+            if(definition.type!=AttributeType::list && definition.type!=AttributeType::set) throw std::logic_error("expected list or set");
+            auto& items=std::get<AttributeArray>(*container);
+            std::string method=lua_tostring(L,lua_upvalueindex(1));
+            if(method=="clear") items.clear();
+            else if(method=="remove" && definition.type==AttributeType::list) {
+                if(!lua_isinteger(L,2) || lua_tointeger(L,2)<1 || static_cast<std::size_t>(lua_tointeger(L,2))>items.size()) throw std::out_of_range("list removal index");
+                items.erase(items.begin()+lua_tointeger(L,2)-1);
+            } else {
+                auto child=attribute_value(L,method=="insert"?3:2,*definition.element);
+                auto found=std::find(items.begin(),items.end(),child);
+                if(method=="contains") { lua_pushboolean(L,found!=items.end()); return 1; }
+                if(method=="remove") { if(found!=items.end()) items.erase(found); }
+                else if(method=="insert") {
+                    if(!lua_isinteger(L,2) || lua_tointeger(L,2)<1 || static_cast<std::size_t>(lua_tointeger(L,2))>items.size()+1) throw std::out_of_range("list insertion index");
+                    items.insert(items.begin()+lua_tointeger(L,2)-1,std::move(child));
+                } else if(definition.type!=AttributeType::set || found==items.end()) items.push_back(std::move(child));
+            }
             waiting=set_property(L,root,top,std::move(value));
         } catch(const std::exception& e) { return luaL_error(L,"%s",e.what()); }
         return waiting?lua_yieldk(L,0,0,assignment_complete):0;

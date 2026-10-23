@@ -92,3 +92,10 @@ FSNET_CLUSTER_TOKEN=local-demo /path/to/build/fsnet-client /tmp/fsnet-struct-cli
 
 示例依次整值写 position、修改 position.x、矩阵行/元素及嵌套 pose 字段，隐式提交服务器
 校验后读取确认值；最后展示被服务器拒绝的写入。见 [结构属性](../docs/STRUCTURED_ATTRIBUTES.md)。
+
+
+## 变长背包与任务
+
+共享声明、服务端增删与客户端新增/修改/删除通知见
+[容器属性示例](../docs/CONTAINER_ATTRIBUTES.md#可运行示例与验证)。支持 list、字符串键 map 和标量 set，
+服务端成功提交后自动更新获准客户端副本。

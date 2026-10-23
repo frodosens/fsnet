@@ -28,13 +28,14 @@ struct RpcPolicy {
 struct AttributeValue;
 using AttributeStruct = std::map<std::string, AttributeValue>;
 using AttributeArray = std::vector<AttributeValue>;
+struct AttributeMap : AttributeStruct { using AttributeStruct::map; };
 // Owned recursive values: copies cannot alias another entity or a Lua table.
-struct AttributeValue : std::variant<std::int64_t,double,bool,std::string,AttributeStruct,AttributeArray> {
+struct AttributeValue : std::variant<std::int64_t,double,bool,std::string,AttributeStruct,AttributeArray,AttributeMap> {
     using variant::variant;
     using variant::operator=;
 };
 std::size_t attribute_image_bytes(const AttributeStruct&); // conservative native value allocation charge
-enum class AttributeType { integer, number, boolean, string, structure, array };
+enum class AttributeType { integer, number, boolean, string, structure, array, list, map, set };
 struct AttributeDefinition {
     AttributeType type;
     AttributeValue initial;
@@ -46,6 +47,7 @@ struct AttributeDefinition {
     std::map<std::string, AttributeDefinition> fields{};
     std::shared_ptr<const AttributeDefinition> element{};
     std::size_t length = 0;
+    std::size_t max_items = 0; // dynamic containers: 1..256, empty is allowed
 };
 struct EntitySchema {
     std::map<std::string, AttributeDefinition> attributes;

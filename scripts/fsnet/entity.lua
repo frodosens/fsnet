@@ -515,5 +515,14 @@ fsnet.array=function(element,length)
     assert((type(element)=='string' or type(element)=='table') and math.type(length)=='integer' and length>=1 and length<=256,'invalid fixed array type')
     return {kind='array',element=copy(element),length=length}
 end
+-- Variable containers have a declared element type and bounded capacity.
+local function container(kind,element,max_items)
+    if max_items==nil then max_items=256 end
+    assert((type(element)=='string' or type(element)=='table') and math.type(max_items)=='integer' and max_items>=1 and max_items<=256,'invalid container type')
+    return {kind=kind,element=copy(element),max_items=max_items}
+end
+fsnet.list=function(element,max_items) return container('list',element,max_items) end
+fsnet.map=function(element,max_items) return container('map',element,max_items) end
+fsnet.set=function(element,max_items) return container('set',element,max_items) end
 fsnet.vec3=fsnet.struct('Vec3',{x='number',y='number',z='number'})
 fsnet.mat4x4=fsnet.array(fsnet.array('number',4),4)
