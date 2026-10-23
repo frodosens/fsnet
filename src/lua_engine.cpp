@@ -28,7 +28,7 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
         std::string data, entity_id, mailbox;
         Reply reply;
         CallIdentity identity;
-        bool contextual = false;
+        bool contextual = false, rejected = false;
         std::optional<Await> await;
         bool waiting = false, startup = false, completion_queued = false;
         std::uint64_t generation = 0;
@@ -121,6 +121,11 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
             if (kind.empty() || kind.size() > 127 || kind.find_first_of(".\0", 0, 2) != std::string::npos || engine.schemas.size() >= 256)
                 throw std::invalid_argument("invalid attribute entity kind");
             EntitySchema schema;
+            if (!lua_isnoneornil(L,3)) {
+                std::size_t length; const char* owner = luaL_checklstring(L,3,&length);
+                if (std::string_view(owner,length)!="id") throw std::invalid_argument("unsupported declarative entity owner");
+                schema.owner_from_id = true;
+            }
             lua_pushnil(L);
             while (lua_next(L, 2)) {
                 if (schema.attributes.size() >= 256) throw std::length_error("attribute count limit");
@@ -166,7 +171,9 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
             const auto& schema = engine.schemas.at(std::string(kind, n));
             auto image = decode_attributes(std::string_view(state, size));
             if (!image.snapshot) throw std::invalid_argument("attribute state must be a snapshot");
-            EntityAttributes model(schema, ""); model.restore_full(image.values, image.revision);
+            std::string account;
+            if (engine.threads.contains(L)) account = engine.host->entity_owner(std::string(kind,n), engine.tasks.at(engine.threads.at(L)).entity_id);
+            EntityAttributes model(schema, account); model.restore_full(image.values, image.revision);
             auto defaults = encode_attributes({0, 0, true, EntityAttributes(schema, "").all_values()});
             auto charge = 65536 + 4 * size + 2 * defaults.size();
             if (charge > engine.limits.memory_bytes - engine.used) throw std::length_error("attribute object memory limit");
@@ -201,6 +208,46 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
             if (!object.model.publish(mutation)) throw std::runtime_error("stale attribute object");
             engine.used = engine.used - object.charge + charge; object.charge = charge; return 0;
         } catch (const std::exception& e) { return luaL_error(L, "%s", e.what()); }
+    }
+    static int reject_request(lua_State* L) {
+        auto& engine = self(L);
+        if (!engine.threads.contains(L)) return luaL_error(L, "reject requires an RPC coroutine");
+        engine.tasks.at(engine.threads.at(L)).rejected = true;
+        return luaL_error(L, "request rejected by script");
+    }
+    static int attributes_proposal(lua_State* L) {
+        std::size_t size; const char* input = luaL_checklstring(L, 2, &size);
+        try {
+            auto& engine = self(L); auto& object = attribute_object(L, 1);
+            auto proposal = decode_attributes(std::string_view(input,size));
+            if (!engine.threads.contains(L) || proposal.snapshot || proposal.base != object.model.revision() || proposal.revision != proposal.base)
+                throw std::invalid_argument("invalid or stale client proposal");
+            auto mutation = object.model.stage(proposal.values, engine.tasks.at(engine.threads.at(L)).identity);
+            lua_createtable(L, 0, static_cast<int>(mutation.values.size()));
+            for (const auto& [name,value] : mutation.values) {
+                lua_pushlstring(L,name.data(),name.size()); push_attribute(L,value); lua_settable(L,-3);
+            }
+            return 1;
+        } catch (const std::exception&) { return reject_request(L); }
+    }
+    static int attributes_apply(lua_State* L) {
+        std::size_t size; const char* input = luaL_checklstring(L, 2, &size);
+        try {
+            auto& engine = self(L); auto& object = attribute_object(L, 1);
+            auto proposal = decode_attributes(std::string_view(input,size));
+            if (!engine.threads.contains(L) || proposal.snapshot || proposal.base != object.model.revision() || proposal.revision != proposal.base)
+                throw std::invalid_argument("invalid or stale client proposal");
+            auto mutation = object.model.stage(proposal.values, engine.tasks.at(engine.threads.at(L)).identity);
+            auto projected = object.model.all_values();
+            for (const auto& [name,value] : mutation.values) projected.at(name) = value;
+            auto encoded = encode_attributes({0,object.model.revision(),true,std::move(projected)});
+            auto defaults = encode_attributes({0,0,true,EntityAttributes(object.model.schema(), "").all_values()});
+            auto charge = 65536 + 4 * encoded.size() + 2 * defaults.size();
+            if (charge > object.charge && charge - object.charge > engine.limits.memory_bytes - engine.used)
+                throw std::length_error("attribute object memory limit");
+            if (!object.model.publish(mutation)) throw std::runtime_error("stale client mutation");
+            engine.used = engine.used - object.charge + charge; object.charge = charge; return 0;
+        } catch (const std::exception&) { return reject_request(L); }
     }
     static int attributes_close(lua_State* L) {
         try {
@@ -309,6 +356,9 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
         luaL_requiref(L, LUA_UTF8LIBNAME, luaopen_utf8, 1); lua_pop(L, 1);
         for (const char* name : {"dofile", "loadfile", "load", "collectgarbage"}) { lua_pushnil(L); lua_setglobal(L, name); }
         lua_newtable(L);
+        lua_pushcfunction(L, reject_request); lua_setfield(L, -2, "reject");
+        lua_pushcfunction(L, attributes_proposal); lua_setfield(L, -2, "_attributes_proposal");
+        lua_pushcfunction(L, attributes_apply); lua_setfield(L, -2, "_attributes_apply");
         lua_pushcfunction(L, attributes_define); lua_setfield(L, -2, "_attributes_define");
         lua_pushcfunction(L, attributes_open); lua_setfield(L, -2, "_attributes_open");
         lua_pushcfunction(L, attributes_close); lua_setfield(L, -2, "_attributes_close");
@@ -332,6 +382,21 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
         if (luaL_loadstring(L, wrapper) != LUA_OK) return lua_error(L);
         lua_call(L, 0, 0);
         const char* entities = R"lua(
+            local register_rpc = runtime.rpc
+            runtime.rpc = function(route, handler, kind, initial, policy)
+                if type(handler) == 'table' then
+                    local definition = handler
+                    assert(kind == nil and initial == nil and policy == nil and definition.access == nil, 'invalid stateless RPC definition')
+                    assert(type(definition.handler) == 'function' and type(definition.callers) == 'table' and #definition.callers > 0, 'explicit RPC callers and handler required')
+                    policy = {}
+                    for _, caller in ipairs(definition.callers) do
+                        assert(caller == 'client' or caller == 'server', 'invalid RPC caller')
+                        policy[caller] = true
+                    end
+                    handler = function(data, ctx) return definition.handler(ctx, data) end
+                end
+                return register_rpc(route, handler, kind, initial, policy)
+            end
             runtime.entity_rpc = function(kind, method, handler)
                 assert(type(method) == 'string' and #method > 0 and #method <= 127 and not method:find('[%.%z]'), 'invalid entity method')
                 runtime.rpc(kind .. '.' .. method, handler, kind)
@@ -339,7 +404,8 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
             runtime.entity = function(kind, definition)
                 assert(type(definition) == 'table' and type(definition.methods) == 'table', 'entity definition required')
                 assert(not (definition.attrs and definition.initial), 'attribute entities cannot declare opaque initial state')
-                local initial = definition.attrs and runtime._attributes_define(kind, definition.attrs) or definition.initial or ''
+                assert(definition.owner == nil or (definition.attrs and definition.owner == 'id'), 'unsupported entity owner declaration')
+                local initial = definition.attrs and runtime._attributes_define(kind, definition.attrs, definition.owner) or definition.initial or ''
                 local register = function(method, handler)
                     local policy
                     assert(not definition.attrs or type(handler) == 'table', 'attribute entity methods require explicit callers')
@@ -373,6 +439,15 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
                 for method, handler in pairs(definition.methods) do
                     assert(method:sub(1, 1) ~= '$', 'reserved entity method')
                     register(method, handler)
+                end
+                if definition.attrs then
+                    assert(definition.validate_write == nil or type(definition.validate_write) == 'function', 'invalid property validator')
+                    register('$write', {callers={'client'}, access='owner', handler=function(self, ctx, payload)
+                        local proposal = runtime._attributes_proposal(self, payload)
+                        if definition.validate_write and definition.validate_write(self, ctx, proposal) ~= true then runtime.reject() end
+                        runtime._attributes_apply(self, payload)
+                        return ''
+                    end})
                 end
                 if definition.tick then register('$tick', definition.attrs and {callers={'server'}, handler=definition.tick} or definition.tick) end
             end
@@ -464,6 +539,7 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
         auto& task = it->second;
         int results = 0;
         int status = resume(task, arguments, results);
+        if (task.rejected) { error = "script rejected RPC"; return finish(id, {Status::rejected, {}}); }
         if (exhausted) { error = "Lua instruction budget exceeded"; return finish(id, {Status::overloaded, {}}); }
         if (status == LUA_OK) {
             if (results != 1 || lua_type(task.thread, -1) != LUA_TSTRING) {

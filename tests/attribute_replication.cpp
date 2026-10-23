@@ -22,9 +22,16 @@ int main() {
                 gold={type='int64',default=7,sync='owner'},
                 secret={type='string',default='secret',client='none',sync='none'},
                 temporary={type='int32',default=0,persist=false},
-            }, methods={damage={callers={'server'},handler=function(self,ctx,data)
+                input={type='string',default='',client='rw',sync='owner'},
+            }, validate_write=function(self,ctx,proposal)
+                if proposal.input=='forbidden' then pcall(runtime.reject) end
+                return true
+            end, methods={damage={callers={'server'},handler=function(self,ctx,data)
                 self.hp=self.hp-tonumber(data); self.gold=self.gold+1; self.temporary=self.temporary+1; return ''
-            end}}})
+            end}, hidden={callers={'server'},handler=function(self) self.secret='changed'; return '' end}}})
+            runtime.entity('self_owned', {owner='id', attrs={value={type='int32',default=1}}, methods={
+                read={callers={'client'},access='owner',handler=function(self) return tostring(self.value) end},
+            }})
         )");
         auto port=server.listen("127.0.0.1",0);
         std::unordered_map<std::uint64_t,fsnet::CallIdentity> identities;
@@ -47,7 +54,7 @@ int main() {
         auto [stranger_peer,stranger_in]=connect(stranger,{fsnet::Caller::client,"stranger"}); (void)stranger_in;
         bool visible=true;
         fsnet::ReplicationLimits limits; limits.per_peer=2; limits.lease=3s;
-        fsnet::AttributeReplication replication(server,entities,[&](const fsnet::CallIdentity& who,const std::string&,const std::string&) { return visible && who.subject=="bob"; },limits);
+        fsnet::AttributeReplication replication(server,entities,[&](const fsnet::CallIdentity& who,const std::string& type,const std::string&) { return visible && who.subject=="bob" && type=="player"; },limits);
         bool callbacks_valid=true;
         std::size_t alice_changes=0,bob_changes=0; fsnet::Status bob_last=fsnet::Status::ok;
         fsnet::AttributeClient ac(alice,alice_peer,[&](std::uint64_t,fsnet::Status status,const fsnet::AttributeReplica* view) {
@@ -68,9 +75,15 @@ int main() {
             until([&] { return result.has_value(); }); return *result;
         };
         auto [as,aid]=watch(ac); auto [bs,bid]=watch(bc); CHECK(as==fsnet::Status::ok && bs==fsnet::Status::ok);
-        CHECK(ac.get(aid)->values().size()==3 && bc.get(bid)->values().size()==1);
+        CHECK(ac.get(aid)->values().size()==4 && bc.get(bid)->values().size()==1);
         CHECK(watch(sc,"unseen").first==fsnet::Status::rejected && !entities->handle("player","unseen"));
         CHECK(watch(lc).first==fsnet::Status::rejected); // server role cannot impersonate a client watch
+        std::optional<std::pair<fsnet::Status,std::uint64_t>> declared;
+        ac.watch("self_owned","alice",[&](fsnet::Status status,std::uint64_t id) { declared=std::pair(status,id); });
+        until([&] { return declared.has_value(); }); CHECK(declared->first==fsnet::Status::ok);
+        ac.unwatch(declared->second); declared.reset();
+        bc.watch("self_owned","alice",[&](fsnet::Status status,std::uint64_t id) { declared=std::pair(status,id); });
+        until([&] { return declared.has_value(); }); CHECK(declared->first==fsnet::Status::rejected);
         auto [extra_status,extra]=watch(ac); CHECK(extra_status==fsnet::Status::ok);
         CHECK(watch(ac).first==fsnet::Status::overloaded); ac.unwatch(extra);
         for(int i=0;i<10;++i) { pump(); std::this_thread::sleep_for(1ms); }
@@ -86,6 +99,38 @@ int main() {
         auto a_count=alice_changes,b_count=bob_changes;
         CHECK(damage(logic,logic_peer,"damage-1")==fsnet::Status::ok);
         for(int i=0;i<10;++i) pump(); CHECK(alice_changes==a_count && bob_changes==b_count);
+        auto write=[&](fsnet::AttributeClient& client,std::uint64_t id,fsnet::EntityAttributes::Values values,fsnet::AttributeWriteOptions options=fsnet::AttributeWriteOptions{}) {
+            std::optional<fsnet::Status> result;
+            client.write(id,std::move(values),[&](fsnet::Status status) { result=status; },std::move(options));
+            until([&] { return result.has_value(); }); return *result;
+        };
+        auto before_hidden=ac.get(aid)->revision();
+        bool hidden_done=false;
+        logic.call(logic_peer,"player.hidden",fsnet::entity_message("42",""),1s,[&](fsnet::Result result) { CHECK(result.status==fsnet::Status::ok); hidden_done=true; });
+        until([&] { return hidden_done && ac.get(aid)->revision()>before_hidden; });
+        CHECK(bob_changes==b_count && !ac.get(aid)->values().contains("secret"));
+        CHECK(write(ac,aid,{{"input",std::string("hello")}})==fsnet::Status::ok);
+        until([&] { return std::get<std::string>(ac.get(aid)->values().at("input"))=="hello"; });
+        CHECK(bob_changes==b_count); // owner-only changes need no observer packet
+        CHECK(write(ac,aid,{{"hp",std::int64_t(999)}})==fsnet::Status::rejected);
+        CHECK(write(ac,aid,{{"secret",std::string("overwrite")}})==fsnet::Status::rejected);
+        CHECK(write(ac,aid,{{"unknown",std::string("bad")}})==fsnet::Status::rejected);
+        CHECK(write(ac,aid,{{"input",std::int64_t(1)}})==fsnet::Status::rejected);
+        CHECK(write(bc,bid,{{"input",std::string("steal")}})==fsnet::Status::rejected);
+        CHECK(write(ac,aid,{{"input",std::string("forbidden")}})==fsnet::Status::rejected);
+        CHECK(std::get<std::string>(ac.get(aid)->values().at("input"))=="hello");
+        auto revision=ac.get(aid)->revision();
+        CHECK(write(ac,aid,{{"input",std::string("stale")}}, {revision-1,"stale-write"})==fsnet::Status::rejected);
+        std::optional<fsnet::Status> first,second;
+        ac.write(aid,{{"input",std::string("a")}},[&](fsnet::Status status) { first=status; },{revision,"write-a"});
+        ac.write(aid,{{"input",std::string("b")}},[&](fsnet::Status status) { second=status; },{revision,"write-b"});
+        until([&] { return first && second; }); CHECK(*first==fsnet::Status::ok && *second==fsnet::Status::rejected);
+        CHECK(std::get<std::string>(ac.get(aid)->values().at("input"))=="a");
+        auto before_retry=alice_changes;
+        CHECK(write(ac,aid,{{"input",std::string("a")}}, {revision,"write-a"})==fsnet::Status::ok);
+        for(int i=0;i<10;++i) pump(); CHECK(alice_changes==before_retry);
+        CHECK(damage(logic,logic_peer,"damage-2")==fsnet::Status::ok);
+        until([&] { return std::get<std::int64_t>(bc.get(bid)->values().at("hp"))==80; }); // skips invisible private revisions
         // Another authenticated connection cannot inject a packet into this SDK's server stream.
         fsnet::Node attacker("test"); auto attack_peer=attacker.connect("127.0.0.1",alice.listen("127.0.0.1",0));
         bool attack_ready=false; attacker.call(attack_peer,"system.health","",1s,[&](fsnet::Result r) { CHECK(r.status==fsnet::Status::ok); attack_ready=true; });
@@ -103,7 +148,7 @@ int main() {
         while(ac.get(aid) && std::chrono::steady_clock::now()<expiry) { pump(false); std::this_thread::sleep_for(1ms); }
         CHECK(!ac.get(aid));
         auto fresh=watch(ac); CHECK(fresh.first==fsnet::Status::ok); aid=fresh.second;
-        CHECK(std::get<std::int64_t>(ac.get(aid)->values().at("hp"))==90);
+        CHECK(std::get<std::int64_t>(ac.get(aid)->values().at("hp"))==80);
         auto handle=entities->handle("player","42"); CHECK(handle);
         bool released=false; entities->deactivate(*handle,[&](fsnet::Result r) { CHECK(r.status==fsnet::Status::ok); released=true; });
         until([&] { return released && !ac.get(aid); });
@@ -112,6 +157,6 @@ int main() {
         owner="bob"; until([&] { return !ac.get(reactivated.second); });
         CHECK(callbacks_valid);
         (void)alice_in;
-        std::cout << "PASS property replication: snapshots/deltas, ACLs, receipts, spoof rejection, quotas, leases, identity/AOI revocation and transient reactivation\n";
+        std::cout << "PASS property replication: snapshots/deltas, ACLs, receipts, spoof rejection, quotas, leases, identity/AOI revocation, transient reactivation and validated client proposals\n";
     } catch(const std::exception& e) { std::cerr<<e.what()<<'\n'; return 1; }
 }

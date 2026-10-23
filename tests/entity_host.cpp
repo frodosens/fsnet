@@ -11,9 +11,11 @@ using namespace std::chrono_literals;
 #define CHECK(c) do { if (!(c)) throw std::runtime_error(std::string(__FILE__) + ":" + std::to_string(__LINE__) + " " #c); } while (false)
 struct Host final : fsnet::ScriptHost {
     std::unordered_map<std::string, fsnet::Handler> handlers;
-    bool has_route(const std::string& r) const override { return handlers.contains(r); }
+    std::unordered_map<std::string, fsnet::ContextHandler> contexts;
+    void bind_context(std::string r, fsnet::RpcPolicy, fsnet::ContextHandler h) override { CHECK(contexts.emplace(std::move(r),std::move(h)).second); }
+    bool has_route(const std::string& r) const override { return handlers.contains(r) || contexts.contains(r); }
     void bind(std::string r, fsnet::Handler h) override { CHECK(handlers.emplace(r, std::move(h)).second); }
-    void unbind(const std::string& r) override { handlers.erase(r); }
+    void unbind(const std::string& r) override { handlers.erase(r); contexts.erase(r); }
     std::uint64_t connect(const std::string&, std::uint16_t) override { return 1; }
     void call(std::uint64_t, std::string, std::string, std::chrono::milliseconds, fsnet::Reply) override { throw std::logic_error("unused"); }
 };
@@ -136,7 +138,41 @@ void ticks_and_limits() {
     runtime.stop(); CHECK(parent->handlers.empty() && runtime.stats().pending == 0);
     std::cout << "PASS entity ticks: bounded admission, serialized ticks and draining shutdown\n";
 }
+void owner_recheck() {
+    auto storage=std::make_shared<NoTransactions>(); auto parent=std::make_shared<Host>();
+    fsnet::EntityScriptHost runtime(parent,storage,"context/boot"); std::string owner="alice";
+    runtime.ownership([&](const std::string&,const std::string&) { return owner; });
+    fsnet::Reply suspended;
+    runtime.bind_stateful_context("counter.wait","counter","initial",{true,false,true},
+        [&](const fsnet::CallIdentity&,std::string,fsnet::Reply reply) { suspended=std::move(reply); });
+    runtime.bind_stateful_context("counter.read","counter","initial",{true,false,true},
+        [](const fsnet::CallIdentity&,std::string,fsnet::Reply reply) { reply({fsnet::Status::ok,fsnet::state_message("initial","private")}); });
+    std::optional<fsnet::Result> result;
+    auto done=[&](fsnet::Result value) { result=std::move(value); };
+    parent->contexts.at("counter.wait")({fsnet::Caller::client,"alice",1},fsnet::entity_message("42",""),done);
+    until(runtime,[&] { return bool(suspended); }); owner="bob";
+    suspended({fsnet::Status::ok,fsnet::state_message("bad","private")});
+    until(runtime,[&] { return result.has_value(); }); CHECK(result->status==fsnet::Status::rejected && result->data.empty());
+    CHECK(fsnet::decode_entity_record(storage->get(fsnet::entity_record_key("counter","42"))->value).snapshot.state=="initial");
+    owner="alice"; result.reset();
+    auto request=fsnet::entity_message("42","","private-id");
+    parent->contexts.at("counter.read")({fsnet::Caller::client,"alice",1},request,done);
+    until(runtime,[&] { return result.has_value(); }); CHECK(result->data=="private");
+    result.reset(); parent->contexts.at("counter.read")({fsnet::Caller::client,"alice",1},request,done);
+    owner="bob"; until(runtime,[&] { return result.has_value(); });
+    CHECK(result->status==fsnet::Status::rejected && result->data.empty());
+    runtime.bind_stateful_context("counter.identity","counter","initial",{true,false,false},
+        [](const fsnet::CallIdentity& who,std::string,fsnet::Reply reply) {
+            reply({fsnet::Status::ok,fsnet::state_message("initial",who.subject.empty()?"anonymous":"authenticated")});
+        });
+    auto collision=fsnet::entity_message("42","","same-request"); result.reset();
+    parent->contexts.at("counter.identity")({fsnet::Caller::client,"",7},collision,done);
+    until(runtime,[&] { return result.has_value(); }); CHECK(result->data=="anonymous"); result.reset();
+    parent->contexts.at("counter.identity")({fsnet::Caller::client,"anonymous:context/boot:7",8},collision,done);
+    until(runtime,[&] { return result.has_value(); }); CHECK(result->data=="authenticated");
+    std::cout << "PASS ownership rechecks: suspended commit and queued private receipt replay reject revoked owners\n";
+}
 int main() {
-    try { ownership(); fencing(); receipts(); ticks_and_limits(); }
+    try { ownership(); fencing(); receipts(); ticks_and_limits(); owner_recheck(); }
     catch (const std::exception& error) { std::cerr << error.what() << '\n'; return 1; }
 }

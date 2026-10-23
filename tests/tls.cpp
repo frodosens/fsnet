@@ -13,9 +13,9 @@ int main(int argc, char** argv) {
         auto config = [&](const char* name) { return fsnet::TlsConfig{root + "/ca.pem", root + '/' + name + ".pem", root + '/' + name + ".key", "server.fsnet"}; };
         fsnet::Node server("token", {}, config("server")), client("token", {}, config("client"));
         auto port = server.listen("127.0.0.1", 0); auto peer = client.connect("127.0.0.1", port);
-        std::string authenticated;
-        server.authorize([&](std::uint64_t, const std::string& identity, const std::string& route) {
-            CHECK(identity.starts_with("sha256:") && identity.size() == 71); authenticated = identity;
+        std::string authenticated; std::uint64_t incoming_peer=0;
+        server.authorize([&](std::uint64_t incoming, const std::string& identity, const std::string& route) {
+            CHECK(identity.starts_with("sha256:") && identity.size() == 71); authenticated = identity; incoming_peer=incoming;
             return route == "echo";
         });
         server.bind("echo", [](std::string data, fsnet::Reply reply) { reply({fsnet::Status::ok, std::move(data)}); });
@@ -29,6 +29,16 @@ int main(int argc, char** argv) {
         auto result = invoke(client, peer, "echo"); CHECK(result.status == fsnet::Status::ok && result.data == std::string("binary\0data", 11));
         CHECK(!authenticated.empty() && client.peer_identity(peer).size() == 71);
         CHECK(invoke(client, peer, "private").status == fsnet::Status::rejected);
+        bool notified=false;
+        client.on_notification("properties",[&](std::uint64_t from,const std::string& fingerprint,std::string data) {
+            CHECK(from==peer && fingerprint.starts_with("sha256:") && data==std::string("binary\0data",11)); notified=true;
+        });
+        CHECK(server.notify(incoming_peer,"properties",std::string("binary\0data",11)));
+        auto notification_deadline=std::chrono::steady_clock::now()+1s;
+        while(!notified) { server.poll(); client.poll(); CHECK(std::chrono::steady_clock::now()<notification_deadline); std::this_thread::sleep_for(1ms); }
+        CHECK(!server.notify(incoming_peer,"properties",std::string(1024*1024,'x')));
+        client.off_notification("properties");
+
         server.authorize({});
         server.bind_rpc("client_only", {true, false, false}, [](const fsnet::CallIdentity& who, std::string, fsnet::Reply reply) {
             CHECK(who.caller == fsnet::Caller::client && who.subject.starts_with("sha256:"));

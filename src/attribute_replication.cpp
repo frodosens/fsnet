@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <deque>
 #include <limits>
+#include <random>
 #include <unordered_map>
 #include <unordered_set>
 #include <utility>
@@ -139,6 +140,26 @@ struct AttributeReplication::Impl : std::enable_shared_from_this<Impl> {
         } else remove(id,Status::disconnected,false);
         reply({Status::ok,{}});
     }
+    void write(const CallIdentity& who, std::string input, Reply reply) {
+        std::uint64_t id; std::string request, proposal;
+        try {
+            std::string_view in(input); id=get(in,8); auto length=get(in,2);
+            if(!length || length>128 || length>in.size()) throw std::invalid_argument("invalid write request ID");
+            request=std::string(in.substr(0,length)); in.remove_prefix(length);
+            auto update=decode_attributes(in);
+            if(update.snapshot || update.base!=update.revision) throw std::invalid_argument("invalid write proposal");
+            proposal=std::string(in);
+        } catch(...) { return reply({Status::rejected,{}}); }
+        auto it=subscriptions.find(id); if(it==subscriptions.end()) return reply({Status::not_found,{}});
+        auto sub=it->second;
+        if(sub->pending) return reply({Status::overloaded,{}});
+        if(sub->identity.peer!=who.peer || sub->identity.subject!=who.subject) return reply({Status::rejected,{}});
+        if(sub->expires<=Clock::now()) return reply({Status::timeout,{}});
+        try { auto view=permission(*sub); if(view.owner!=who.subject) return reply({Status::rejected,{}}); }
+        catch(...) { return reply({Status::rejected,{}}); }
+        if(stopped || !subscriptions.contains(id)) return reply({Status::disconnected,{}});
+        host->write_attributes(sub->type,sub->entity,who,std::move(proposal),std::move(reply),std::move(request));
+    }
     void committed(const EntityScriptHost::AttributeCommit& event) {
         std::vector<std::uint64_t> ids;
         auto interested=by_entity.find(entity_key(event.type,event.id));
@@ -160,7 +181,9 @@ struct AttributeReplication::Impl : std::enable_shared_from_this<Impl> {
                 for(const auto& [name,value]:sub->last.values) { (void)value; if(!next.values.contains(name)) replace=true; }
                 for(const auto& [name,value]:next.values) if(!sub->last.values.contains(name) || sub->last.values.at(name)!=value) update.values.emplace(name,value);
                 if(replace) update=next;
-                else if(update.values.empty()) continue;
+                else if(update.values.empty() && (next.revision==sub->last.revision || sub->identity.subject!=host->owner_subject(sub->type,sub->entity))) continue;
+                // Owners need even an empty delta to advance their optimistic-write
+                // revision after server-private changes. Observers may skip it.
                 auto count=encode_attributes(next).size();
                 if(count>limits.image_bytes-bytes+sub->bytes) { remove(id,Status::overloaded); continue; }
                 if(!node.notify(sub->identity.peer,channel,packet(id,sub->type,sub->entity,Status::ok,&update))) { node.close(sub->identity.peer); remove(id,Status::disconnected,false); continue; }
@@ -185,11 +208,12 @@ AttributeReplication::AttributeReplication(Node& node,std::shared_ptr<EntityScri
     try {
         auto bind=[&](std::string route,ContextHandler h) { impl_->bound.push_back(route); node.bind_rpc(std::move(route),{true,false,false},std::move(h)); };
         // Reserve names first so failure cannot unbind a pre-existing application route.
-        for(auto route:{"system.attributes.watch","system.attributes.unwatch","system.attributes.renew"})
+        for(auto route:{"system.attributes.watch","system.attributes.unwatch","system.attributes.renew","system.attributes.write"})
             if(node.has_route(route)) throw std::logic_error("replication route already registered");
         bind("system.attributes.watch",[weak=std::weak_ptr(impl_)](const CallIdentity& who,std::string data,Reply reply) { if(auto self=weak.lock()) self->watch(who,std::move(data),std::move(reply)); else reply({Status::disconnected,{}}); });
         bind("system.attributes.unwatch",[weak=std::weak_ptr(impl_)](const CallIdentity& who,std::string data,Reply reply) { if(auto self=weak.lock()) self->control(who,std::move(data),std::move(reply),false); else reply({Status::disconnected,{}}); });
         bind("system.attributes.renew",[weak=std::weak_ptr(impl_)](const CallIdentity& who,std::string data,Reply reply) { if(auto self=weak.lock()) self->control(who,std::move(data),std::move(reply),true); else reply({Status::disconnected,{}}); });
+        bind("system.attributes.write",[weak=std::weak_ptr(impl_)](const CallIdentity& who,std::string data,Reply reply) { if(auto self=weak.lock()) self->write(who,std::move(data),std::move(reply)); else reply({Status::disconnected,{}}); });
         impl_->host->on_attributes([weak=std::weak_ptr(impl_)](const auto& event) { if(auto self=weak.lock()) self->committed(event); });
         impl_->listener_owned=true;
     } catch(...) { impl_->stop(); throw; }
@@ -224,7 +248,13 @@ struct AttributeClient::Impl : std::enable_shared_from_this<Impl> {
     std::uint64_t serial=0; std::size_t bytes=0;
     std::unordered_map<std::uint64_t,std::shared_ptr<Projection>> projections;
     std::unordered_map<std::uint64_t,Pending> pending;
-    Impl(Node& n,std::uint64_t p,Changed c):node(n),peer(p),changed(std::move(c)) { if(!peer) throw std::invalid_argument("server connection required"); }
+    std::unordered_map<std::uint64_t,Written> writes;
+    std::string request_prefix;
+    Impl(Node& n,std::uint64_t p,Changed c):node(n),peer(p),changed(std::move(c)) {
+        if(!peer) throw std::invalid_argument("server connection required");
+        std::random_device entropy; request_prefix="property-";
+        for(int i=0;i<4;++i) request_prefix+=std::to_string(entropy())+'-';
+    }
     static void ready_callback(Ready& callback, Status status, std::uint64_t id) {
         try { callback(status,id); } catch(...) {}
     }
@@ -290,12 +320,34 @@ struct AttributeClient::Impl : std::enable_shared_from_this<Impl> {
             }
         });
     }
+    static void written_callback(Written& callback, Status status) { try { callback(status); } catch(...) {} }
+    void write(std::uint64_t subscription, EntityAttributes::Values values, Written callback, AttributeWriteOptions options, std::chrono::milliseconds timeout) {
+        if(!callback) throw std::invalid_argument("property write callback required");
+        if(stopped) return written_callback(callback,Status::disconnected);
+        auto it=projections.find(subscription); if(it==projections.end()) return written_callback(callback,Status::not_found);
+        if(writes.size()>=256 || serial==UINT64_MAX) return written_callback(callback,Status::overloaded);
+        auto request=++serial; std::string input;
+        try {
+            if(options.request_id.empty()) options.request_id=request_prefix+std::to_string(request);
+            if(options.request_id.size()>128) throw std::invalid_argument("property request ID limit");
+            auto expected=options.expected_revision.value_or(it->second->replica.revision());
+            input=token(subscription); put(input,options.request_id.size(),2); input+=options.request_id;
+            input+=encode_attributes({expected,expected,false,std::move(values)});
+        } catch(...) { return written_callback(callback,Status::rejected); }
+        writes.emplace(request,std::move(callback));
+        node.call(peer,"system.attributes.write",std::move(input),timeout,[self=shared_from_this(),request](Result result) {
+            auto it=self->writes.find(request); if(it==self->writes.end()) return;
+            auto callback=std::move(it->second); self->writes.erase(it); written_callback(callback,result.status);
+        });
+    }
     void stop() {
         if(std::exchange(stopped,true)) return;
         node.off_notification(channel);
         auto requests=std::move(pending); pending.clear();
+        auto operations=std::move(writes); writes.clear();
         auto previous=std::move(projections); projections.clear(); bytes=0;
         for(auto& [id,sub]:previous) { remote_unwatch(id); change(id,Status::disconnected,nullptr); }
+        for(auto& [id,operation]:operations) { (void)id; written_callback(operation,Status::disconnected); }
         for(auto& [id,request]:requests) { (void)id; try { request.ready(Status::disconnected,0); } catch(...) {} }
     }
 };
@@ -307,6 +359,9 @@ AttributeClient::AttributeClient(Node& node,std::uint64_t peer,Changed changed)
 }
 AttributeClient::~AttributeClient() { stop(); }
 void AttributeClient::watch(std::string type,std::string id,Ready ready,std::chrono::milliseconds timeout) { impl_->watch(std::move(type),std::move(id),std::move(ready),timeout); }
+void AttributeClient::write(std::uint64_t id, EntityAttributes::Values values, Written callback, AttributeWriteOptions options, std::chrono::milliseconds timeout) {
+    auto self=impl_; self->write(id,std::move(values),std::move(callback),std::move(options),timeout);
+}
 void AttributeClient::unwatch(std::uint64_t id) { auto self=impl_; self->remove(id,Status::disconnected,true); }
 const AttributeReplica* AttributeClient::get(std::uint64_t id) const { auto it=impl_->projections.find(id); return it==impl_->projections.end()?nullptr:&it->second->replica; }
 void AttributeClient::stop() { impl_->stop(); }

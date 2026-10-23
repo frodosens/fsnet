@@ -280,10 +280,10 @@ void tcp() {
 void context_suspension() {
     auto host = std::make_shared<Host>(); fsnet::LuaEngine engine(host);
     engine.load(R"(
-        runtime.rpc('identity', function(data, ctx)
+        runtime.rpc('identity', {callers={'client'}, handler=function(ctx, data)
             if data == 'wait' then runtime.request(42, 'hang', data) end
             return ctx.subject
-        end, nil, nil, {client=true})
+        end})
     )");
     std::optional<fsnet::Result> first, second;
     fsnet::CallIdentity who{fsnet::Caller::client, "alice", 1};

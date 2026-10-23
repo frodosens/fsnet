@@ -81,6 +81,11 @@ struct EntityScriptHost::Impl : std::enable_shared_from_this<Impl> {
             limits.lease > std::chrono::hours(24) || limits.tick_interval.count() <= 0 || limits.idle_timeout.count() <= 0)
             throw std::invalid_argument("invalid entity runtime settings");
     }
+    std::string account(const std::string& type, const std::string& id) const {
+        auto definition=schemas.find(type);
+        if (definition!=schemas.end() && definition->second->owner_from_id) return id;
+        auto resolve=owner_resolver; return resolve ? resolve(type,id) : std::string{};
+    }
     void complete(const std::shared_ptr<Job>& job, Result result) {
         if (std::exchange(job->responded, true)) return;
         active.erase(job->entity);
@@ -111,23 +116,22 @@ struct EntityScriptHost::Impl : std::enable_shared_from_this<Impl> {
         if (stopped) return reply({Status::disconnected, {}});
         auto method = methods.find(route);
         if (method == methods.end()) return reply({Status::not_found, {}});
+        auto selected = method->second;
         if (counters.pending >= limits.requests || data.size() > limits.queued_bytes - counters.queued_bytes)
             return reply({Status::overloaded, {}});
         auto message = parse_entity_message(data);
         if (!message) return reply({Status::rejected, {}});
         if (!message->request_id.empty() && message->payload.size() + route.size() + message->request_id.size() + 16 > limits.receipt_bytes)
             return reply({Status::overloaded, {}});
-        if (method->second->policy) {
+        if (selected->policy) {
             try {
-                auto policy = *method->second->policy;
+                auto policy = *selected->policy;
                 std::string account;
-                if (policy.owner_only && owner_resolver) {
-                    auto resolve = owner_resolver;
-                    account = resolve(method->second->type, message->id);
-                }
+                if (policy.owner_only) account = this->account(selected->type, message->id);
                 if (!policy.allows(identity, account)) return reply({Status::rejected, {}});
             } catch (...) { return reply({Status::rejected, {}}); }
             if (stopped) return reply({Status::disconnected, {}});
+            if (!methods.contains(route) || methods.at(route) != selected) return reply({Status::rejected, {}});
             // Receipts must not disclose another principal's response, even if
             // two callers choose the same request ID and payload.
             if (!message->request_id.empty()) {
@@ -135,6 +139,7 @@ struct EntityScriptHost::Impl : std::enable_shared_from_this<Impl> {
                 if (subject.empty()) subject = "anonymous:" + owner + ':' + std::to_string(identity.peer);
                 auto scope = std::string(identity.caller == Caller::server ? "server:" : "client:") +
                     std::to_string(subject.size()) + ':' + subject + message->request_id;
+                if (identity.subject.empty()) scope.insert(0, "anonymous:");
                 unsigned char digest[SHA256_DIGEST_LENGTH];
                 SHA256(reinterpret_cast<const unsigned char*>(scope.data()), scope.size(), digest);
                 constexpr char hex[] = "0123456789abcdef";
@@ -142,18 +147,18 @@ struct EntityScriptHost::Impl : std::enable_shared_from_this<Impl> {
                 for (auto byte : digest) { message->request_id += hex[byte >> 4]; message->request_id += hex[byte & 15]; }
             }
         }
-        auto entity = key(method->second->type, message->id);
+        auto entity = key(selected->type, message->id);
         auto it = slots.find(entity);
         if (it == slots.end()) {
             if (slots.size() >= limits.entities) return reply({Status::overloaded, {}});
             auto time = Clock::now();
-            it = slots.emplace(entity, Slot{{method->second->type, message->id, owner, ++generation}, {}, false, false, false,
+            it = slots.emplace(entity, Slot{{selected->type, message->id, owner, ++generation}, {}, false, false, false,
                 time + limits.tick_interval, time, {}, 0, 0}).first;
             schedule.push_back(entity);
         }
         if (it->second.releasing) return reply({Status::rejected, {}});
         auto bytes = data.size();
-        it->second.queue.push_back({method->second, std::move(message->payload), route, std::move(message->request_id), std::move(reply),
+        it->second.queue.push_back({selected, std::move(message->payload), route, std::move(message->request_id), std::move(reply),
             Clock::now() + limits.request_timeout, bytes, tick, std::move(identity)});
         ++counters.pending; counters.queued_bytes += bytes;
     }
@@ -206,6 +211,17 @@ struct EntityScriptHost::Impl : std::enable_shared_from_this<Impl> {
                 if (error) return self->complete(job, {Status::internal, {}});
                 if (job->status != Status::ok) return self->complete(job, {job->status, {}});
                 if (job->request.deadline <= Clock::now()) return self->complete(job, {Status::timeout, {}});
+                // A queued or suspended call may have lost account ownership.
+                // Recheck before business execution; ownership mapping changes must
+                // themselves be serialized with the entity lifecycle.
+                if (job->request.method->policy && job->request.method->policy->owner_only) {
+                    try {
+                        auto current_slot = self->slots.find(job->entity);
+                        if (current_slot == self->slots.end()) return self->complete(job, {Status::disconnected, {}});
+                        auto account = self->account(current_slot->second.handle.type, current_slot->second.handle.id);
+                        if (!job->request.method->policy->allows(job->request.identity, account)) return self->complete(job, {Status::rejected, {}});
+                    } catch (...) { return self->complete(job, {Status::rejected, {}}); }
+                }
                 if (job->replay) { ++self->counters.replayed; return self->complete(job, {Status::ok, std::move(job->output)}); }
                 std::size_t retained = job->state.size();
                 for (const auto& receipt : job->receipts) retained += receipt.bytes();
@@ -231,18 +247,38 @@ struct EntityScriptHost::Impl : std::enable_shared_from_this<Impl> {
                             return self->complete(job, {Status::overloaded, {}});
                         self->counters.state_bytes = self->counters.state_bytes - job->resident + retained;
                         job->resident = retained; job->state = std::move(bytes);
-                        std::string account;
-                        if (self->owner_resolver) { auto resolve = self->owner_resolver; account = resolve(slot->second.handle.type, slot->second.handle.id); }
-                        job->attributes = AttributeCommit{slot->second.handle.type, slot->second.handle.id, account, job->request.method->schema, full, {}};
+                        auto entity_handle = slot->second.handle;
+                        auto account = self->account(entity_handle.type, entity_handle.id);
+                        if (self->stopped || job->responded) return;
+                        job->attributes = AttributeCommit{entity_handle.type, entity_handle.id, account, job->request.method->schema, full, {}};
                     } catch (...) { return self->complete(job, {Status::internal, {}}); }
                 }
-                auto input = entity_message(slot->second.handle.id, state_message(job->state, job->request.payload));
+                if (job->attributes && job->request.route == job->attributes->type + ".$write") {
+                    try {
+                        auto proposal = decode_attributes(job->request.payload);
+                        if (proposal.snapshot || proposal.base != job->attributes->previous.revision || proposal.revision != proposal.base)
+                            throw std::invalid_argument("stale property write proposal");
+                        EntityAttributes model(*job->attributes->schema, job->attributes->owner);
+                        model.restore_full(job->attributes->previous.values, job->attributes->previous.revision);
+                        (void)model.stage(proposal.values, job->request.identity);
+                    } catch (...) { return self->complete(job, {Status::rejected, {}}); }
+                }
+                auto current_slot = self->slots.find(job->entity);
+                if (self->stopped || job->responded || current_slot == self->slots.end()) return;
+                auto input = entity_message(current_slot->second.handle.id, state_message(job->state, job->request.payload));
                 auto done = [weak, job](Result result) {
                     auto owner = weak.lock();
                     if (!owner || owner->stopped || job->responded || job->committing) return;
                     job->committing = true;
                     if (result.status != Status::ok) return owner->complete(job, std::move(result));
                     if (job->request.deadline <= Clock::now()) return owner->complete(job, {Status::timeout, {}});
+                    if (job->request.method->policy && job->request.method->policy->owner_only) {
+                        try {
+                            auto slot = owner->slots.find(job->entity);
+                            auto account = slot != owner->slots.end() ? owner->account(slot->second.handle.type, slot->second.handle.id) : std::string{};
+                            if (!job->request.method->policy->allows(job->request.identity, account)) return owner->complete(job, {Status::rejected, {}});
+                        } catch (...) { return owner->complete(job, {Status::rejected, {}}); }
+                    }
                     auto next = parse_state_message(result.data);
                     if (!next) return owner->complete(job, {Status::internal, {}});
                     if (next->state.size() > owner->limits.state_bytes || next->payload.size() > owner->limits.queued_bytes)
@@ -361,13 +397,19 @@ std::shared_ptr<const EntitySchema> EntityScriptHost::schema(const std::string& 
     auto it = impl_->schemas.find(type); return it == impl_->schemas.end() ? nullptr : it->second;
 }
 std::string EntityScriptHost::owner_subject(const std::string& type, const std::string& id) const {
-    auto resolve = impl_->owner_resolver; return resolve ? resolve(type, id) : std::string{};
+    return impl_->account(type,id);
 }
 void EntityScriptHost::read_attributes(std::string type, std::string id, Reply reply) {
     if (!reply) throw std::invalid_argument("missing snapshot callback");
     std::string message;
     try { message = entity_message(id, ""); } catch (...) { return reply({Status::rejected, {}}); }
     impl_->enqueue(type + ".$snapshot", std::move(message), std::move(reply), false, {Caller::server, "framework:snapshot"});
+}
+void EntityScriptHost::write_attributes(std::string type, std::string id, CallIdentity who, std::string proposal, Reply reply, std::string request_id) {
+    if (!reply) throw std::invalid_argument("missing write callback");
+    std::string message;
+    try { message = entity_message(id, proposal, request_id); } catch (...) { return reply({Status::rejected, {}}); }
+    impl_->enqueue(type + ".$write", std::move(message), std::move(reply), false, std::move(who));
 }
 void EntityScriptHost::on_attributes(AttributeListener listener) { impl_->attribute_listener = std::move(listener); }
 void EntityScriptHost::ownership(OwnerResolver resolve) { impl_->owner_resolver = std::move(resolve); }

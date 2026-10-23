@@ -20,15 +20,22 @@ private:
     struct Impl;
     std::shared_ptr<Impl> impl_;
 };
+struct AttributeWriteOptions {
+    std::optional<std::uint64_t> expected_revision;
+    std::string request_id;
+};
 // One client projection manager per Node. The expected server peer must be an
 // authenticated connection (TLS outside loopback). Poll renews bounded leases.
 class AttributeClient {
 public:
     using Ready = std::function<void(Status, std::uint64_t subscription)>;
+    using Written = std::function<void(Status)>;
     using Changed = std::function<void(std::uint64_t subscription, Status, const AttributeReplica*)>;
     AttributeClient(Node&, std::uint64_t server_peer, Changed = {});
     ~AttributeClient();
     void watch(std::string type, std::string id, Ready, std::chrono::milliseconds timeout = std::chrono::seconds(3));
+    void write(std::uint64_t subscription, EntityAttributes::Values, Written,
+               AttributeWriteOptions = {}, std::chrono::milliseconds timeout = std::chrono::seconds(3));
     void unwatch(std::uint64_t subscription);
     const AttributeReplica* get(std::uint64_t subscription) const;
     void poll();

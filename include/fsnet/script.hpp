@@ -21,6 +21,7 @@ public:
         throw std::logic_error("entity schemas require an entity host");
     }
     virtual void forget_schema(const std::string&) {}
+    virtual std::string entity_owner(const std::string&, const std::string&) const { return {}; }
     virtual void bind_context(std::string, RpcPolicy, ContextHandler) {
         throw std::logic_error("script host does not support caller context");
     }

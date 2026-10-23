@@ -22,6 +22,15 @@ set this identity. A gateway must preserve the original client identity when for
 forwarding through a server connection is not sufficient authorization for a client
 operation. Distributed identity delegation is not implemented in this stage.
 
+Stateless RPCs can use a declaration with `handler(ctx, payload)`:
+
+```lua
+runtime.rpc('ping', {
+    callers = {'client'},
+    handler = function(ctx, payload) return payload end,
+})
+```
+
 Lua persistent methods can declare caller roles:
 
 ```lua
@@ -47,10 +56,13 @@ These policies reach Node through both persistent and routed script-host decorat
 Hosts without policy support reject registration. Empty or unknown caller lists fail
 script loading. The original function-only methods and `runtime.rpc` are legacy
 registrations, not protected client entry points. Migration to mandatory declarations
-is pending. Persistent methods now support `access='owner'`. Configure
+is pending. Persistent methods now support `access='owner'`. For attribute entities, declare `owner='id'` to use the authenticated account
+subject as the entity ID entirely from Lua. Otherwise configure
 `EntityScriptHost::ownership` with a trusted `(type, id) -> account subject` mapping;
 an absent, empty, or throwing mapping denies access. Entity IDs are not implicitly
-account IDs. The owner check executes before state acquisition and before receipt
+account IDs without that declaration. External ownership mappings must remain stable
+during an operation; serialize mapping changes with entity deactivation/lifecycle.
+They are not a second transactional ownership record. The owner check executes before state acquisition and before receipt
 lookup. `ctx` is passed as a fourth argument to persistent handlers:
 `handler(state, id, payload, ctx)`, containing `caller`, `subject`, and transport-local
 `peer`. Each queued task owns its context across awaits; modifying a Lua context table
@@ -62,6 +74,8 @@ subject. Anonymous calls additionally use the connection and process incarnation
 their receipts intentionally do not survive reconnects. Two different principals
 cannot reuse a request ID to replay one another's response. Identical subject values
 must represent the same security principal within the application's identity domain.
+Anonymous receipt keys have a separate domain, so an authenticated subject whose name
+resembles an anonymous connection identifier cannot collide with its receipt.
 
 
 ## Native attribute carrier
@@ -184,9 +198,45 @@ pending watches and 16 MiB of projection data. Replica updates cannot accumulate
 than 256 named properties or exceed the FSA1 record limit. Subscriber lookup is indexed
 by entity, so a commit visits only interested subscribers.
 
+## Client property proposals
+
+Declare `client='rw'` only for properties a client is allowed to propose changing.
+`AttributeClient::write(subscription, values, written_callback, options)` submits
+those values through an explicitly client-only control RPC. The server verifies the
+subscription and current subject, requires logical ownership (observation is not
+write permission), then queues the operation in the same entity mailbox. Before
+calling Lua it validates names, types, ranges, write permissions and the expected
+revision. Server-authoritative properties such as `hp` cannot be overwritten by a
+client. After acceptance, normal single-record CAS and filtered notifications apply.
+There is no client-side optimistic mutation before acceptance.
+
+An optional Lua `validate_write(self, ctx, proposal)` hook can apply business rules;
+it must return true to accept. Treat it as a read-only validator. The framework
+checks permissions again when applying the original proposal, so changing its Lua
+copy does not widen the accepted write. `runtime.reject()` aborts an RPC with
+`Status::rejected`; rejection remains effective even if caught with `pcall`. Failed
+validation, scripts or CAS publish no changes. External effects performed by a
+validator are not rolled back, so validators should avoid them.
+
+Every proposal contains an expected property revision. Concurrent proposals based
+on the same revision cannot silently overwrite one another: after one changes state,
+the next is rejected. Owners receive empty revision deltas even when only a
+server-private property changes, allowing their next proposal to use the current
+revision without exposing private values. Observers may skip invisible revisions.
+
+The SDK generates a request ID when none is supplied. To retry an ambiguous result,
+supply the **same** `AttributeWriteOptions.expected_revision`, `request_id` and values.
+Successful receipt replay returns without another property event. Receipt retention
+remains bounded; this is not unlimited exactly-once delivery. The native client
+bounds pending write callbacks to 256 and reports disconnection during shutdown.
+
+A complete script example is [attributes.lua](../examples/lua/attributes.lua).
+The generic `fsnet-script` binary remains a basic host: an embedding application
+must install authentication and AttributeReplication as described above.
+
 ## Remaining integration
 
-Client write proposals, gateway identity delegation, mandatory migration of legacy RPC
+Gateway identity delegation, mandatory migration of legacy RPC
 registrations, automatic scene/AOI subscription discovery, and subscription migration
 between owner nodes remain pending. The current native client connects directly to the
 entity owner endpoint; a gateway does not yet proxy these streams. Reconnect requires

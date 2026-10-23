@@ -40,6 +40,7 @@ public:
     }
     void define_schema(std::string t, EntitySchema s) override { parent_->define_schema(std::move(t), std::move(s)); }
     void forget_schema(const std::string& t) override { parent_->forget_schema(t); }
+    std::string entity_owner(const std::string& t, const std::string& id) const override { return parent_->entity_owner(t,id); }
     void bind_context(std::string r, RpcPolicy p, ContextHandler h) override { parent_->bind_context(std::move(r), p, std::move(h)); }
     void bind_stateful_context(std::string r, std::string t, std::string s, RpcPolicy p, ContextHandler h) override {
         parent_->bind_stateful_context(std::move(r), std::move(t), std::move(s), p, std::move(h));

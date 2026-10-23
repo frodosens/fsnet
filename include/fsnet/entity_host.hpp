@@ -49,6 +49,8 @@ public:
     void on_attributes(AttributeListener);
     std::shared_ptr<const EntitySchema> schema(const std::string& type) const;
     std::string owner_subject(const std::string& type, const std::string& id) const;
+    std::string entity_owner(const std::string& type, const std::string& id) const override { return owner_subject(type,id); }
+    void write_attributes(std::string type, std::string id, CallIdentity, std::string proposal, Reply, std::string request_id = {});
     // Trusted framework API, not a public RPC: serialized with entity operations,
     // returns the full image for subsequent recipient-specific filtering.
     void read_attributes(std::string type, std::string id, Reply);
