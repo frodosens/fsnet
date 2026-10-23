@@ -27,7 +27,8 @@ with tempfile.TemporaryDirectory(prefix='fsnet-structured-') as directory:
                                 env=environment, capture_output=True, text=True, timeout=12)
         assert client.returncode == 0, client.stderr
         assert client.stdout.splitlines() == [
-            'position\t10.0\t2.0\t3.0', 'matrix\t20.0', 'pose\t5.0', 'rejected\t10.0'
+            'position\t10.0\t2.0\t3.0', 'matrix\t20.0', 'pose\t5.0', 'rejected\t10.0',
+            'batch\t11.0\t4.0\t21.0\t6.0'
         ], client.stdout
         print('PASS shipped structured attributes: whole values, nested fields/arrays and server rejection')
     finally:

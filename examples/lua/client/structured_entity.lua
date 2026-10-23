@@ -18,5 +18,14 @@ runtime.start(function()
     local ok=pcall(function() entity.position.x=101 end)
     assert(not ok and entity.position.x==10) -- rejected by server validation
     print('rejected',entity.position.x)
+    -- Four setters, one proposal/validation/commit. Confirmed values stay
+    -- unchanged until the batch callback finishes and the server accepts it.
+    entity:batch(function(draft)
+        draft.position.x=11
+        draft.position.y=4
+        draft.matrix[1][4]=21
+        draft.pose.position.y=6
+    end)
+    print('batch',entity.position.x,entity.position.y,entity.matrix[1][4],entity.pose.position.y)
     entity:close()
 end)

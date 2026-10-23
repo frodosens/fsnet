@@ -113,4 +113,4 @@ C++ 的 `ClusterClient` 支持静态成员健康探测、指数退避重连、�
 [实体存在性与表现](docs/ENTITY_PRESENCE.md)，可运行示例见 [场景客户端](examples/lua/client/player_scene.lua)。
 
 类型化 struct、vec3/mat4x4、固定数组，以及整值/字段赋值自动提交和同步见
-[结构属性](docs/STRUCTURED_ATTRIBUTES.md) 与 [变长容器](docs/CONTAINER_ATTRIBUTES.md)。
+[结构属性](docs/STRUCTURED_ATTRIBUTES.md) 与 [变长容器](docs/CONTAINER_ATTRIBUTES.md)，支持 [显式合批与下行容器增量](docs/ATTRIBUTE_BATCHING.md)。

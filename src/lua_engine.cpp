@@ -80,7 +80,7 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
         if (next) owner.used = retained + new_size;
         return next;
     }
-    enum class ObjectMode { request, local, replica, prediction };
+    enum class ObjectMode { request, local, replica, prediction, batch };
     struct AttributeObject {
         Impl* engine; std::size_t charge; EntityAttributes model; std::uint64_t task = 0;
         ObjectMode mode = ObjectMode::request;
@@ -396,7 +396,7 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
                 lua_pop(L,1); throw std::logic_error("entity object is outside its request scope");
             }
         }
-        if (object.mode==ObjectMode::prediction) {
+        if (object.mode==ObjectMode::prediction || object.mode==ObjectMode::batch) {
             lua_getfield(L,-1,"confirmed");
             object_check(L,-1,true);
             lua_pop(L,1);
@@ -481,7 +481,7 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
             auto& object=attribute_object(L,1);
             auto key=std::string(name,n);
             if(key=="revision") { lua_pushinteger(L,static_cast<lua_Integer>(object.model.revision())); return 1; }
-            if(key=="mode") { lua_pushstring(L,object.mode==ObjectMode::request?"server":object.mode==ObjectMode::local?"local":object.mode==ObjectMode::prediction?"prediction":"replica"); return 1; }
+            if(key=="mode") { lua_pushstring(L,object.mode==ObjectMode::request?"server":object.mode==ObjectMode::local?"local":object.mode==ObjectMode::prediction?"prediction":object.mode==ObjectMode::batch?"batch":"replica"); return 1; }
             lua_getiuservalue(L,1,1);
             if (lua_istable(L,-1)) {
                 auto key=std::string_view(name,n);
@@ -500,7 +500,7 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
     struct FieldProxy { Impl* engine; std::vector<FieldPart> path; std::size_t charge=4096; };
     static const AttributeValue& read_property(lua_State* L,int index,const std::string& key) {
         object_check(L,index); auto& object=attribute_object(L,index);
-        if(object.mode==ObjectMode::replica || object.mode==ObjectMode::prediction) {
+        if(object.mode==ObjectMode::replica || object.mode==ObjectMode::prediction || object.mode==ObjectMode::batch) {
             if(!object.present.contains(key)) throw std::logic_error("property is absent from this projection");
             auto access=object.model.schema().attributes.at(key).client;
             if(access!=Access::read && access!=Access::read_write) throw std::logic_error("property read denied");
@@ -618,6 +618,10 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
         if(object.mode==ObjectMode::prediction && engine.predicting!=&object) throw std::logic_error("prediction state is writable only during input execution");
         if(object.mode==ObjectMode::prediction && !object.present.contains(key)) throw std::logic_error("property is absent from this projection");
         const auto& d=object.model.schema().attributes.at(key);
+        if(object.mode==ObjectMode::batch) {
+            if(engine.predicting!=&object) throw std::logic_error("batch draft is writable only inside its callback");
+            if(!object.present.contains(key) || (d.client!=Access::write && d.client!=Access::read_write)) throw std::logic_error("batch property write denied");
+        }
         if(object.mode==ObjectMode::replica) {
             prediction_external(L);
             if(!engine.threads.contains(L) || !object.subscription) throw std::logic_error("client assignment requires an async task and live subscription");
@@ -726,7 +730,7 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
         try {
             auto& engine = self(L); auto& object = attribute_object(L, 1);
             auto proposal = decode_attributes(std::string_view(input,size));
-            if (!engine.threads.contains(L) || proposal.snapshot || proposal.base != object.model.revision() || proposal.revision != proposal.base)
+            if (!engine.threads.contains(L) || proposal.snapshot || !proposal.patches.empty() || proposal.base != object.model.revision() || proposal.revision != proposal.base)
                 throw std::invalid_argument("invalid or stale client proposal");
             auto mutation = object.model.stage(proposal.values, engine.tasks.at(engine.threads.at(L)).identity);
             lua_createtable(L, 0, static_cast<int>(mutation.values.size()));
@@ -742,7 +746,7 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
         try {
             auto& engine = self(L); auto& object = attribute_object(L, 1);
             auto proposal = decode_attributes(std::string_view(input,size));
-            if (!engine.threads.contains(L) || proposal.snapshot || proposal.base != object.model.revision() || proposal.revision != proposal.base)
+            if (!engine.threads.contains(L) || proposal.snapshot || !proposal.patches.empty() || proposal.base != object.model.revision() || proposal.revision != proposal.base)
                 throw std::invalid_argument("invalid or stale client proposal");
             auto mutation = object.model.stage(proposal.values, engine.tasks.at(engine.threads.at(L)).identity);
             auto projected = object.model.all_values();
@@ -819,16 +823,20 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
         try {
             object_check(L,1,true);
             auto& source=attribute_object(L,1);
+            bool batch=lua_toboolean(L,2);
+            if(batch && source.mode!=ObjectMode::replica) throw std::logic_error("batch requires confirmed replica");
             if(source.mode!=ObjectMode::replica && source.mode!=ObjectMode::prediction)
                 throw std::logic_error("prediction requires a confirmed replica");
             EntityAttributes model(source.model.schema(),"");
             model.restore_full(source.model.all_values(),source.model.revision());
             auto charge=carrier_charge(model);
             auto& engine=self(L);
+            if(batch && charge>engine.limits.memory_bytes-engine.used) lua_gc(L,LUA_GCCOLLECT);
             if(charge>engine.limits.memory_bytes-engine.used) throw std::length_error("prediction memory budget");
             void* memory=lua_newuserdatauv(L,sizeof(AttributeObject),1);
+            if(batch && charge>engine.limits.memory_bytes-engine.used) lua_gc(L,LUA_GCCOLLECT);
             if(charge>engine.limits.memory_bytes-engine.used) throw std::length_error("prediction memory budget");
-            auto* object=new(memory) AttributeObject{&engine,charge,std::move(model),0,ObjectMode::prediction,0,source.present,source.kind,{}};
+            auto* object=new(memory) AttributeObject{&engine,charge,std::move(model),0,batch?ObjectMode::batch:ObjectMode::prediction,0,source.present,source.kind,batch?source.projection:nullptr};
             object->fixed_charge=charge-4*attribute_image_bytes(object->model.all_values());
             engine.used+=charge; luaL_setmetatable(L,"fsnet.attributes");
             lua_getiuservalue(L,1,1);
@@ -850,7 +858,7 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
         try {
             object_check(L,1,true);
             auto& object=attribute_object(L,1);
-            if(object.mode!=ObjectMode::prediction) throw std::logic_error("expected prediction state");
+            if(object.mode!=ObjectMode::prediction && object.mode!=ObjectMode::batch) throw std::logic_error("expected prediction or batch state");
             auto& engine=self(L);
             struct Scope {
                 Impl& engine;
@@ -870,10 +878,32 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
             if(engine.prediction_violation) return luaL_error(L,"prediction attempted a forbidden effect");
             if(engine.exhausted || status==LUA_YIELD) return luaL_error(L,"prediction instruction budget exceeded");
             if(status!=LUA_OK) { lua_xmove(thread,L,1); return lua_error(L); }
+            if(object.mode==ObjectMode::batch) return 0;
             if(results>1) return luaL_error(L,"prediction method must return bytes or nil");
             if(results==0) lua_pushnil(L); else lua_xmove(thread,L,1);
             if(!lua_isnil(L,-1) && lua_type(L,-1)!=LUA_TSTRING) return luaL_error(L,"prediction method must return bytes or nil");
             return 1;
+        } catch(const std::exception& e) { return luaL_error(L,"%s",e.what()); }
+    }
+    static int batch_values(lua_State* L) {
+        prediction_external(L);
+        try {
+            object_check(L,1,true); object_check(L,2,true);
+            auto& source=attribute_object(L,1); auto& draft=attribute_object(L,2);
+            if(source.mode!=ObjectMode::replica || draft.mode!=ObjectMode::batch || source.kind!=draft.kind)
+                throw std::logic_error("invalid batch source/draft");
+            lua_getiuservalue(L,2,1); lua_getfield(L,-1,"confirmed");
+            bool same=lua_rawequal(L,1,-1); lua_pop(L,2);
+            if(!same) throw std::logic_error("batch source mismatch");
+            (void)attribute_wire_size(draft.model.all_values());
+            lua_newtable(L);
+            for(const auto& key:draft.present) {
+                const auto& value=draft.model.all_values().at(key);
+                if(value!=draft.projection->values.at(key)) {
+                    push_attribute(L,value); lua_setfield(L,-2,key.c_str());
+                }
+            }
+            lua_pushinteger(L,static_cast<lua_Integer>(draft.projection->revision)); return 2;
         } catch(const std::exception& e) { return luaL_error(L,"%s",e.what()); }
     }
     static int object_dispose(lua_State* L) {
@@ -1115,6 +1145,7 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
         lua_pushcfunction(L,prediction_guard); lua_setfield(L,-2,"_prediction_guard");
         lua_pushcfunction(L,prediction_clone); lua_setfield(L,-2,"_prediction_clone");
         lua_pushcfunction(L,prediction_run); lua_setfield(L,-2,"_prediction_run");
+        lua_pushcfunction(L,batch_values); lua_setfield(L,-2,"_batch_values");
         lua_pushcfunction(L,object_create); lua_setfield(L,-2,"_object_create");
         lua_pushcfunction(L,object_dispose); lua_setfield(L,-2,"_object_dispose");
         lua_pushcfunction(L, object_registration); lua_setfield(L,-2,"_object_registration");

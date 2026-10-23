@@ -1,6 +1,7 @@
 #pragma once
 #include <cstdint>
 #include <map>
+#include <optional>
 #include <memory>
 #include <limits>
 #include <set>
@@ -59,10 +60,21 @@ struct AttributeView {
     std::string subject;
     bool observer = false;
 };
+// One bounded edit of a top-level container. Map edits replace/erase one key;
+// sequence edits splice a range (also used for fixed arrays/sets on the wire).
+struct AttributePatch {
+    std::string property;
+    bool map = false;
+    std::string key;
+    std::optional<AttributeValue> value; // map replacement; absent means erase
+    std::size_t index = 0, remove = 0;
+    AttributeArray insert;
+};
 struct AttributeUpdate {
     std::uint64_t base = 0, revision = 0;
     bool snapshot = false;
     std::map<std::string, AttributeValue> values;
+    std::vector<AttributePatch> patches{};
 };
 // Owner-thread carrier. A mutation is staged separately; only publish after the
 // enclosing entity CAS succeeds. No callbacks, transport or storage under this API.

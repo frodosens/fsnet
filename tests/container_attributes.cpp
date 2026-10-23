@@ -140,6 +140,32 @@ int main() {
                 replica.tasks['client.task']=nil
                 replica.tags:add('client'); replica.tags:remove('client')
                 assert(not pcall(function() replica.items[1].count=11 end)); assert(replica.items[1].count==6)
+                local before=replica.revision
+                local escaped
+                replica:batch(function(draft)
+                    escaped=draft.items
+                    draft.items[1].count=7
+                    draft.items[1].count=8
+                    draft.tasks['batched']={progress=1,done=false}
+                    draft.tasks['batched'].done=true
+                    draft.tags:add('batch'); draft.tags:remove('batch')
+                    assert(replica.items[1].count==6) -- confirmed state is separate
+                end)
+                assert(replica.revision==before+1) -- one combined server mutation
+                assert(replica.items[1].count==8 and replica.tasks.batched.done)
+                assert(not pcall(function() return #escaped end))
+                before=replica.revision
+                replica:batch(function(draft) draft.items[1].count=8 end)
+                assert(replica.revision==before) -- no request for a no-op
+                assert(not pcall(function() replica:batch(function(draft) draft.items[1].count=9; error('abort') end) end))
+                assert(replica.items[1].count==8 and replica.revision==before)
+                assert(not pcall(function() replica:batch(function(draft) draft.items[1].count=9; pcall(runtime.sleep,1) end) end))
+                assert(replica.items[1].count==8)
+                assert(not pcall(function() replica:batch(function(draft) draft.items[1].count=11 end) end))
+                assert(replica.items[1].count==8) -- server validator rejected batch
+                assert(not pcall(function() replica:batch(function(draft) replica.items[1].count=9 end) end))
+                for i=1,70 do replica:batch(function(draft) draft.items[1].count=8 end) end -- collect dead drafts
+                replica:batch(function(draft) draft.tasks.batched=nil; draft.items[1].count=6 end)
                 local prediction=replica:prediction(); prediction:push(1,'predict_add','')
                 assert(#prediction.state.items==3 and #replica.items==2)
                 prediction:reconcile(0,replica.revision); assert(#prediction.state.items==3)
@@ -159,6 +185,7 @@ int main() {
                 local replica=E:watch('alice')
                 assert(not pcall(function() return #replica.private_tasks end))
                 assert(not pcall(function() replica.items:add({id='denied',count=1}) end))
+                assert(not pcall(function() replica:batch(function(draft) draft.items:add({id='denied',count=1}) end) end))
                 runtime.request(peer,'report','ready')
                 while replica.phase~=1 do runtime.sleep(1) end
                 assert(#replica.items==2 and replica.items[1].id=='sword' and replica.tasks['daily.1'].progress==0)

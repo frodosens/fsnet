@@ -7,7 +7,7 @@ local register_entity=runtime.entity
 local reserved = {id=true, type=true, context=true, reject=true, attr=true, rpc=true,
                   private=true, extend=true, register=true, ref=true, reference=true,
                   define=true, spawn_local=true, watch=true, write=true, close=true,
-                  revision=true, mode=true, method=true, prediction=true, spawn_or_restore=true,
+                  revision=true, mode=true, method=true, batch=true, prediction=true, spawn_or_restore=true,
                   show_to=true, hide_from=true, possess=true, unpossess=true}
 local unsupported_hooks = {new=true, init=true, on_create=true, on_activate=true, on_deactivate=true}
 local function name(value)
@@ -145,6 +145,19 @@ local function define(class)
         for key in pairs(opts) do assert(key=='expected_revision' or key=='request_id' or key=='timeout_ms','unknown write option') end
         local _,status=runtime._write(object,values,opts.expected_revision,opts.request_id,opts.timeout_ms)
         assert(status==runtime.status.ok,'property write failed: '..tostring(status))
+    end
+    members.batch=function(object,fn,opts)
+        assert(type(fn)=='function','batch callback required')
+        opts=copy(opts or {})
+        local draft=runtime._prediction_clone(object,true)
+        local ok,err=pcall(runtime._prediction_run,draft,fn)
+        if not ok then draft:close(); error(err,0) end
+        local collected,values,revision=pcall(runtime._batch_values,object,draft)
+        draft:close()
+        if not collected then error(values,0) end
+        assert(opts.expected_revision==nil or opts.expected_revision==revision,'batch revision override mismatch')
+        opts.expected_revision=revision
+        if next(values)~=nil then object:write(values,opts) end
     end
     for _,base in ipairs(chain) do record(base).sealed=true end
     data.flat=flat; data.members=members

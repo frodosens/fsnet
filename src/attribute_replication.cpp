@@ -223,7 +223,7 @@ struct AttributeReplication::Impl : std::enable_shared_from_this<Impl> {
             if(!length || length>128 || length>in.size()) throw std::invalid_argument("invalid write request ID");
             request=std::string(in.substr(0,length)); in.remove_prefix(length);
             auto update=decode_attributes(in);
-            if(update.snapshot || update.base!=update.revision) throw std::invalid_argument("invalid write proposal");
+            if(update.snapshot || !update.patches.empty() || update.base!=update.revision) throw std::invalid_argument("invalid write proposal");
             proposal=std::string(in);
         } catch(...) { return reply({Status::rejected,{}}); }
         auto it=subscriptions.find(id); if(it==subscriptions.end()) return reply({Status::not_found,{}});
@@ -253,12 +253,9 @@ struct AttributeReplication::Impl : std::enable_shared_from_this<Impl> {
                 auto next=filtered(*sub,*event.schema,event.current,&permission);
                 if(stopped || !subscriptions.contains(id)) continue;
                 if(permission!=sub->permission) { remove(id,Status::rejected); continue; }
-                AttributeUpdate update{sub->last.revision,next.revision,false,{}};
-                bool replace=next.revision<sub->last.revision;
-                for(const auto& [name,value]:sub->last.values) { (void)value; if(!next.values.contains(name)) replace=true; }
-                for(const auto& [name,value]:next.values) if(!sub->last.values.contains(name) || sub->last.values.at(name)!=value) update.values.emplace(name,value);
-                if(replace) update=next;
-                else if(update.values.empty() && (next.revision==sub->last.revision || sub->identity.subject!=host->owner_subject(sub->type,sub->entity))) continue;
+                auto update=attribute_delta(sub->last,next);
+                if(!update.snapshot && update.values.empty() && update.patches.empty() &&
+                   (next.revision==sub->last.revision || sub->identity.subject!=host->owner_subject(sub->type,sub->entity))) continue;
                 // Owners need even an empty delta to advance their optimistic-write
                 // revision after server-private changes. Observers may skip it.
                 auto count=attribute_wire_size(next)+attribute_image_bytes(next.values);

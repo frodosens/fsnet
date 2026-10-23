@@ -1,0 +1,179 @@
+{
+  "timestamp_utc": "2026-10-23T18:17:36.997796+00:00",
+  "platform": "Linux-6.18.55-x86_64-with-glibc2.41",
+  "cpu_model": "INTEL(R) XEON(R) PLATINUM 8573C",
+  "affinity": [
+    0,
+    1,
+    2
+  ],
+  "runs": 7,
+  "rounds": 100,
+  "binary": "/workspace/fsnet-env/perf-build/fsnet-container-benchmark",
+  "binary_sha256": "c9c6f0fae749158bf22c12c5f607ed7dd30cee2ea94a13a29ad9cd94625c737a",
+  "libfsnet_sha256": "aeed2a5d723eab54d1ee06e9a364136e925d179c060df983accd737b33dcc692",
+  "comparison": "same Release build, sequential16 versus batch16; post-patch protocol for both",
+  "summary": {
+    "sequential": {
+      "median_us_per_round": 26686.91722,
+      "min_us": 23813.61455,
+      "max_us": 31144.62308,
+      "writes_per_round": 16.0,
+      "commits_per_round": 16.0,
+      "proposal_fsa_bytes_per_round": 66368.0
+    },
+    "batch": {
+      "median_us_per_round": 2779.42656,
+      "min_us": 2559.12713,
+      "max_us": 4505.81939,
+      "writes_per_round": 1.0,
+      "commits_per_round": 1.0,
+      "proposal_fsa_bytes_per_round": 4148.0
+    },
+    "speedup": 9.601591063445836
+  },
+  "wire": [
+    {
+      "scenario": "list_replace",
+      "full_fsa_bytes": 4146,
+      "patch_fsa_bytes": 70,
+      "patches": 1
+    },
+    {
+      "scenario": "list_append16",
+      "full_fsa_bytes": 4664,
+      "patch_fsa_bytes": 556,
+      "patches": 1
+    },
+    {
+      "scenario": "map_add16",
+      "full_fsa_bytes": 5200,
+      "patch_fsa_bytes": 805,
+      "patches": 16
+    },
+    {
+      "scenario": "map_erase16",
+      "full_fsa_bytes": 4008,
+      "patch_fsa_bytes": 191,
+      "patches": 16
+    }
+  ],
+  "samples": {
+    "sequential": [
+      {
+        "scenario": "sequential16",
+        "rounds": 100,
+        "us_per_round": 26014.89117,
+        "writes": 1600,
+        "commits": 1600,
+        "proposal_fsa_bytes": 6636800
+      },
+      {
+        "scenario": "sequential16",
+        "rounds": 100,
+        "us_per_round": 23813.61455,
+        "writes": 1600,
+        "commits": 1600,
+        "proposal_fsa_bytes": 6636800
+      },
+      {
+        "scenario": "sequential16",
+        "rounds": 100,
+        "us_per_round": 26686.91722,
+        "writes": 1600,
+        "commits": 1600,
+        "proposal_fsa_bytes": 6636800
+      },
+      {
+        "scenario": "sequential16",
+        "rounds": 100,
+        "us_per_round": 27810.3692,
+        "writes": 1600,
+        "commits": 1600,
+        "proposal_fsa_bytes": 6636800
+      },
+      {
+        "scenario": "sequential16",
+        "rounds": 100,
+        "us_per_round": 31144.62308,
+        "writes": 1600,
+        "commits": 1600,
+        "proposal_fsa_bytes": 6636800
+      },
+      {
+        "scenario": "sequential16",
+        "rounds": 100,
+        "us_per_round": 29181.67469,
+        "writes": 1600,
+        "commits": 1600,
+        "proposal_fsa_bytes": 6636800
+      },
+      {
+        "scenario": "sequential16",
+        "rounds": 100,
+        "us_per_round": 24326.05601,
+        "writes": 1600,
+        "commits": 1600,
+        "proposal_fsa_bytes": 6636800
+      }
+    ],
+    "batch": [
+      {
+        "scenario": "batch16",
+        "rounds": 100,
+        "us_per_round": 2601.44963,
+        "writes": 100,
+        "commits": 100,
+        "proposal_fsa_bytes": 414800
+      },
+      {
+        "scenario": "batch16",
+        "rounds": 100,
+        "us_per_round": 2713.9939,
+        "writes": 100,
+        "commits": 100,
+        "proposal_fsa_bytes": 414800
+      },
+      {
+        "scenario": "batch16",
+        "rounds": 100,
+        "us_per_round": 2559.12713,
+        "writes": 100,
+        "commits": 100,
+        "proposal_fsa_bytes": 414800
+      },
+      {
+        "scenario": "batch16",
+        "rounds": 100,
+        "us_per_round": 3107.58839,
+        "writes": 100,
+        "commits": 100,
+        "proposal_fsa_bytes": 414800
+      },
+      {
+        "scenario": "batch16",
+        "rounds": 100,
+        "us_per_round": 4131.44359,
+        "writes": 100,
+        "commits": 100,
+        "proposal_fsa_bytes": 414800
+      },
+      {
+        "scenario": "batch16",
+        "rounds": 100,
+        "us_per_round": 4505.81939,
+        "writes": 100,
+        "commits": 100,
+        "proposal_fsa_bytes": 414800
+      },
+      {
+        "scenario": "batch16",
+        "rounds": 100,
+        "us_per_round": 2779.42656,
+        "writes": 100,
+        "commits": 100,
+        "proposal_fsa_bytes": 414800
+      }
+    ]
+  }
+}
