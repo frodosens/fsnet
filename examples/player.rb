@@ -1,3 +1,6 @@
+# Runnable low-level Ruby example, not the proposed OO entity API.
+# No entity mailbox, attribute ACL or automatic replication; local/trusted demo only.
+# See README.md and design/magic_circle.rb.proposed for the API distinction.
 require_relative '../ruby/lib/fsnet'
 
 database = FSNet::Database.new(path: ENV.fetch('FSNET_DATABASE', 'players.db'))

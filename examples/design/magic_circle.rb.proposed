@@ -1,0 +1,24 @@
+# DESIGN ONLY. FSNet::Entity/attribute/rpc below are not implemented in Ruby.
+# Do not run this with the current Ruby adapter. See ../player.rb for runnable API.
+class MagicCircle < FSNet::Entity
+  attribute :radius, type: :float64, default: 0.0,
+            authority: :driver, client: :read, sync: :observers, persist: false
+  attribute :duration, type: :float64, default: 5.0,
+            authority: :driver, client: :read, sync: :observers, persist: false
+
+  def advance(dt)
+    raise ArgumentError, 'invalid dt' unless dt.finite? && dt >= 0
+    elapsed = [dt, duration].min
+    self.radius = [radius + elapsed * 2, 10.0].min
+    self.duration = [duration - elapsed, 0.0].max
+  end
+
+  def contains?(x, y)
+    duration > 0 && x * x + y * y <= radius * radius
+  end
+
+  rpc :cancel, callers: [:client], access: :owner
+  def cancel
+    self.duration = 0.0
+  end
+end
