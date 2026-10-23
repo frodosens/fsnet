@@ -7,6 +7,8 @@ module FSNet
     dlload ENV.fetch('FSNET_LIBRARY', File.expand_path('../../../build/libfsnet.so', __FILE__))
     extern 'const char* fsnet_last_error()'
     extern 'void* fsnet_create(const char*)'
+    extern 'void* fsnet_create_tls(const char*, const char*, const char*, const char*, const char*)'
+    extern 'int fsnet_authorize(void*, void*)'
     extern 'void fsnet_destroy(void*)'
     extern 'int fsnet_listen(void*, const char*, int)'
     extern 'long long fsnet_connect(void*, const char*, int)'
@@ -113,8 +115,19 @@ module FSNet
   end
 
   class Node
-    def initialize(token:)
-      @handle = Native.check(Native.fsnet_create(token))
+    def initialize(token:, tls: nil, authorize: nil)
+      @handle = Native.check(tls ? Native.fsnet_create_tls(token, tls.fetch(:ca), tls.fetch(:certificate), tls.fetch(:key), tls.fetch(:peer_name, '')) : Native.fsnet_create(token))
+      if authorize
+        @authorizer = Fiddle::Closure::BlockCaller.new(Fiddle::TYPE_INT,
+          [Fiddle::TYPE_LONG_LONG, Fiddle::TYPE_VOIDP, Fiddle::TYPE_VOIDP]) do |peer, identity, route|
+          begin
+            authorize.call(peer, Fiddle::Pointer.new(identity).to_s, Fiddle::Pointer.new(route).to_s) ? 1 : 0
+          rescue StandardError
+            0
+          end
+        end
+        Native.check(Native.fsnet_authorize(@handle, @authorizer))
+      end
       @handlers = []
       @fibers = {}
       @pending = {}

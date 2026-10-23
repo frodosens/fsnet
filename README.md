@@ -117,7 +117,7 @@ C++ 的 `ClusterClient` 支持静态成员健康探测、指数退避重连、�
 ./build/fsnet-relay 127.0.0.1
 ```
 
-公网部署需设置实际 bind/external address、UDP 3478 和 UDP 49160–49200 的端口规则。默认 TCP 节点仅在可信网络中使用，当前不含 TLS；ICE UDP 数据不含 DTLS。客户端身份授权、加密、认证信令和 TURN/TCP/TLS 后备仍是上线前必须完成的工作。
+公网部署需设置实际 bind/external address、UDP 3478 和 UDP 49160–49200 的端口规则。TCP 已提供 TLS 1.3 双向证书验证、目标名称验证与路由授权，未加密连接仅允许 loopback。原始 ICE UDP 仍需安全会话层；认证信令与 UDP 禁用时的后备尚待完成。详见 [安全配置](docs/SECURITY.md)。
 
 ## 性能测量
 

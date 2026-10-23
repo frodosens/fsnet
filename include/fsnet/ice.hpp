@@ -14,6 +14,7 @@ struct IceConfig {
 };
 // ICE signaling (descriptions/candidates) travels through the authenticated game
 // service. UDP payloads are unordered/unreliable and must be encrypted by the app.
+struct IceGathering { std::vector<std::string> candidates; bool done = false; };
 class IcePeer {
 public:
     explicit IcePeer(const IceConfig& config = {});
@@ -25,6 +26,7 @@ public:
     void add_candidate(const std::string& candidate);
     void remote_gathering_done();
     void gather();
+    IceGathering gathering(); // atomically drain candidates with their end-of-gathering flag
     std::vector<std::string> candidates();
     std::vector<std::string> receive();
     bool gathering_done() const;

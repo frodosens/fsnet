@@ -203,10 +203,11 @@ void ice_test(bool relayed) {
     a.gather(); b.gather();
     bool end_a = false, end_b = false;
     auto signal = [&] {
-        for (auto& candidate : a.candidates()) if (!relayed || candidate.find(" typ relay ") != std::string::npos) b.add_candidate(candidate);
-        for (auto& candidate : b.candidates()) if (!relayed || candidate.find(" typ relay ") != std::string::npos) a.add_candidate(candidate);
-        if (a.gathering_done() && !end_a) { b.remote_gathering_done(); end_a = true; }
-        if (b.gathering_done() && !end_b) { a.remote_gathering_done(); end_b = true; }
+        auto batch_a = a.gathering(), batch_b = b.gathering();
+        for (auto& candidate : batch_a.candidates) if (!relayed || candidate.find(" typ relay ") != std::string::npos) b.add_candidate(candidate);
+        for (auto& candidate : batch_b.candidates) if (!relayed || candidate.find(" typ relay ") != std::string::npos) a.add_candidate(candidate);
+        if (batch_a.done && !end_a) { b.remote_gathering_done(); end_a = true; }
+        if (batch_b.done && !end_b) { a.remote_gathering_done(); end_b = true; }
     };
     until(signal, [&] { return a.connected() && b.connected(); }, 15s);
     if (relayed) {

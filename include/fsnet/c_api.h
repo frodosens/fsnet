@@ -8,6 +8,9 @@ typedef void (*fsnet_handler)(uint64_t request, const char* bytes, size_t length
 typedef void (*fsnet_completion)(int status, const char* bytes, size_t length);
 const char* fsnet_last_error(void);
 void* fsnet_create(const char* token);
+void* fsnet_create_tls(const char* token, const char* ca, const char* certificate, const char* key, const char* peer_name);
+typedef int (*fsnet_authorizer)(uint64_t peer, const char* identity, const char* route);
+int fsnet_authorize(void* node, fsnet_authorizer callback);
 void fsnet_destroy(void* node);
 int fsnet_listen(void* node, const char* address, int port);
 int64_t fsnet_connect(void* node, const char* address, int port);

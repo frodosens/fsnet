@@ -15,7 +15,7 @@ struct Runtime {
     std::uint64_t serial = 0;
     std::unordered_map<std::uint64_t, Incoming> incoming;
     bool polling = false, close_requested = false, destroying = false;
-    explicit Runtime(const char* token) : node(token) {}
+    explicit Runtime(const char* token, fsnet::TlsConfig tls = {}) : node(token, {}, std::move(tls)) {}
     ~Runtime() { destroying = true; node.stop(); }
 };
 template<class F> int guard(F function) {
@@ -45,6 +45,18 @@ extern "C" {
 const char* fsnet_last_error() { return error.c_str(); }
 void* fsnet_create(const char* token) {
     Runtime* result = nullptr; guard([&] { result = new Runtime(text(token)); return 0; }); return result;
+}
+void* fsnet_create_tls(const char* token, const char* ca, const char* certificate, const char* key, const char* peer_name) {
+    Runtime* result = nullptr;
+    guard([&] { result = new Runtime(text(token), {text(ca), text(certificate), text(key), peer_name ? peer_name : ""}); return 0; });
+    return result;
+}
+int fsnet_authorize(void* node, fsnet_authorizer callback) {
+    return guard([&] {
+        runtime(node).node.authorize(callback ? fsnet::Node::Authorizer([callback](std::uint64_t peer, const std::string& identity, const std::string& route) {
+            return callback(peer, identity.c_str(), route.c_str()) == 1;
+        }) : fsnet::Node::Authorizer{}); return 0;
+    });
 }
 void fsnet_destroy(void* node) {
     guard([&] {

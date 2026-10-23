@@ -13,7 +13,7 @@ struct IcePeer::Impl {
     juice_agent_t* agent = nullptr;
     mutable std::mutex mutex;
     std::vector<std::string> candidates, messages;
-    std::atomic<bool> done{false};
+    bool done = false;
 };
 IcePeer::IcePeer(const IceConfig& options) : impl_(std::make_unique<Impl>()) {
     juice_config_t config{};
@@ -39,7 +39,7 @@ IcePeer::IcePeer(const IceConfig& options) : impl_(std::make_unique<Impl>()) {
         std::lock_guard lock(self.mutex);
         if (size <= 1200 && self.messages.size() < 256) self.messages.emplace_back(bytes, size);
     };
-    config.cb_gathering_done = [](juice_agent_t*, void* data) { static_cast<Impl*>(data)->done = true; };
+    config.cb_gathering_done = [](juice_agent_t*, void* data) { auto& self = *static_cast<Impl*>(data); std::lock_guard lock(self.mutex); self.done = true; };
     impl_->agent = juice_create(&config);
     if (!impl_->agent) throw std::runtime_error("ICE initialization failed");
 }
@@ -58,13 +58,16 @@ void IcePeer::add_candidate(const std::string& candidate) {
 }
 void IcePeer::remote_gathering_done() { check(juice_set_remote_gathering_done(impl_->agent)); }
 void IcePeer::gather() { check(juice_gather_candidates(impl_->agent)); }
+IceGathering IcePeer::gathering() {
+    std::lock_guard lock(impl_->mutex); return {std::exchange(impl_->candidates, {}), impl_->done};
+}
 std::vector<std::string> IcePeer::candidates() {
     std::lock_guard lock(impl_->mutex); return std::exchange(impl_->candidates, {});
 }
 std::vector<std::string> IcePeer::receive() {
     std::lock_guard lock(impl_->mutex); return std::exchange(impl_->messages, {});
 }
-bool IcePeer::gathering_done() const { return impl_->done; }
+bool IcePeer::gathering_done() const { std::lock_guard lock(impl_->mutex); return impl_->done && impl_->candidates.empty(); }
 bool IcePeer::connected() const {
     auto state = juice_get_state(impl_->agent); return state == JUICE_STATE_CONNECTED || state == JUICE_STATE_COMPLETED;
 }

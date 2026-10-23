@@ -1,3 +1,4 @@
+#include "config.hpp"
 #include "fsnet/lua_engine.hpp"
 #include "fsnet/entity_host.hpp"
 #include <random>
@@ -20,7 +21,7 @@ int main(int argc, char** argv) {
         if (!file || file.tellg() < 0 || file.tellg() > 1024 * 1024) throw std::runtime_error("script missing or exceeds 1 MiB");
         std::string source(static_cast<std::size_t>(file.tellg()), '\0'); file.seekg(0);
         if (!file.read(source.data(), static_cast<std::streamsize>(source.size()))) throw std::runtime_error("cannot read script");
-        fsnet::Node node(token);
+        fsnet::Node node(token, {}, tls_from_environment());
         auto transport = std::make_shared<fsnet::NodeScriptHost>(node);
         const char* path = std::getenv("FSNET_DATABASE_PATH");
         auto database = path ? fsnet::sqlite_database(path) : fsnet::memory_database();
@@ -41,7 +42,7 @@ int main(int argc, char** argv) {
         auto host = std::make_shared<fsnet::EntityScriptHost>(transport, database, instance, entity_limits);
         fsnet::LuaEngine engine(host); engine.load(source, argv[1]);
         std::signal(SIGINT, stop); std::signal(SIGTERM, stop);
-        std::cout << "listening " << node.listen("127.0.0.1", static_cast<std::uint16_t>(port)) << std::endl;
+        std::cout << "listening " << node.listen(bind_from_environment(), static_cast<std::uint16_t>(port)) << std::endl;
         while (running) {
             node.poll(); host->poll(); engine.poll(); std::this_thread::sleep_for(std::chrono::milliseconds(1));
         }

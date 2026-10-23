@@ -10,6 +10,10 @@ enum class Status : std::uint8_t { ok, not_found, overloaded, timeout, disconnec
 struct Result { Status status; std::string data; };
 using Reply = std::function<void(Result)>;
 using Handler = std::function<void(std::string, Reply)>;
+struct TlsConfig {
+    std::string ca_file, certificate_file, private_key_file;
+    std::string peer_name; // outbound certificate name; default is the target IP
+};
 struct Limits {
     std::size_t frame_bytes = 1024 * 1024;
     std::size_t queued_bytes = 4 * 1024 * 1024;
@@ -22,12 +26,17 @@ struct Limits {
 // separate threads/processes. No user code runs on a networking worker thread.
 class Node {
 public:
-    explicit Node(std::string token, Limits limits = {});
+    explicit Node(std::string token, Limits limits = {}, TlsConfig tls = {});
     ~Node();
     Node(const Node&) = delete;
     Node& operator=(const Node&) = delete;
     std::uint16_t listen(const std::string& address, std::uint16_t port);
-    std::uint64_t connect(const std::string& address, std::uint16_t port);
+    std::uint64_t connect(const std::string& address, std::uint16_t port, const std::string& peer_name = {});
+    using Authorizer = std::function<bool(std::uint64_t, const std::string&, const std::string&)>;
+    // Called after transport + token authentication, before dispatch. Identity is
+    // the verified certificate SHA-256 fingerprint, or empty on loopback plaintext.
+    void authorize(Authorizer);
+    std::string peer_identity(std::uint64_t peer) const;
     void bind(std::string route, Handler handler);
     bool has_route(const std::string& route) const;
     bool unbind(const std::string& route);

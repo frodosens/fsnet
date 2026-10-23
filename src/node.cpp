@@ -1,5 +1,8 @@
 #include "fsnet/node.hpp"
 #include <asio.hpp>
+#include <asio/ssl.hpp>
+#include <openssl/ssl.h>
+#include <openssl/x509.h>
 #include <array>
 #include <deque>
 #include <limits>
@@ -46,16 +49,32 @@ struct Node::Impl : std::enable_shared_from_this<Node::Impl> {
     Tcp::acceptor acceptor{io};
     std::string token;
     Limits limits;
+    TlsConfig tls_config;
+    std::unique_ptr<asio::ssl::context> tls;
+    Authorizer authorizer;
     bool stopped = false;
     std::uint64_t peer_serial = 0, call_serial = 0;
     std::unordered_map<std::uint64_t, std::shared_ptr<Session>> sessions;
     std::unordered_map<std::uint64_t, Pending> calls;
     std::unordered_map<std::string, Handler> handlers;
-    Impl(std::string auth, Limits settings) : token(std::move(auth)), limits(settings) {
-        if (token.empty() || token.size() > 4096 || limits.frame_bytes < token.size() + 14 ||
+    Impl(std::string auth, Limits settings, TlsConfig security) : token(std::move(auth)), limits(settings), tls_config(std::move(security)) {
+        if ((token.empty() && tls_config.ca_file.empty()) || token.size() > 4096 || limits.frame_bytes < token.size() + 14 ||
             limits.frame_bytes > 16 * 1024 * 1024 || limits.queued_bytes < limits.frame_bytes + 4 ||
             !limits.connections || !limits.pending_calls || !limits.inflight_requests || limits.idle_timeout.count() <= 0)
             throw std::invalid_argument("invalid token or node limits");
+        if (!tls_config.ca_file.empty() || !tls_config.certificate_file.empty() || !tls_config.private_key_file.empty()) {
+            if (tls_config.ca_file.empty() || tls_config.certificate_file.empty() || tls_config.private_key_file.empty())
+                throw std::invalid_argument("TLS requires CA, certificate and private key");
+            tls = std::make_unique<asio::ssl::context>(asio::ssl::context::tls);
+            tls->load_verify_file(tls_config.ca_file);
+            tls->use_certificate_chain_file(tls_config.certificate_file);
+            tls->use_private_key_file(tls_config.private_key_file, asio::ssl::context::pem);
+            if (!SSL_CTX_check_private_key(tls->native_handle()) || !SSL_CTX_set_min_proto_version(tls->native_handle(), TLS1_3_VERSION))
+                throw std::runtime_error("TLS configuration failed");
+            tls->set_verify_mode(asio::ssl::verify_peer | asio::ssl::verify_fail_if_no_peer_cert);
+            SSL_CTX_set_max_early_data(tls->native_handle(), 0);
+            SSL_CTX_set_options(tls->native_handle(), SSL_OP_NO_COMPRESSION);
+        } else if (!tls_config.peer_name.empty()) throw std::invalid_argument("peer name requires TLS");
     }
     void accept();
     void finish(std::uint64_t id, Result result) {
@@ -76,6 +95,8 @@ struct Node::Impl : std::enable_shared_from_this<Node::Impl> {
 struct Node::Impl::Session : std::enable_shared_from_this<Session> {
     std::weak_ptr<Impl> owner;
     Tcp::socket socket;
+    std::unique_ptr<asio::ssl::stream<Tcp::socket&>> tls;
+    std::string identity;
     asio::steady_timer idle;
     std::uint64_t id;
     bool closed = false, active = false, authenticated = false;
@@ -85,6 +106,7 @@ struct Node::Impl::Session : std::enable_shared_from_this<Session> {
     std::deque<std::shared_ptr<std::string>> output;
     Session(std::shared_ptr<Impl> node, std::uint64_t serial)
       : owner(node), socket(node->io), idle(node->io), id(serial) {
+        if (node->tls) tls = std::make_unique<asio::ssl::stream<Tcp::socket&>>(socket, *node->tls);
         enqueue(frame(0, Status::ok, 0, {}, node->token));
     }
     void close() {
@@ -109,16 +131,41 @@ struct Node::Impl::Session : std::enable_shared_from_this<Session> {
         if (!writing && active) write();
         return true;
     }
-    void start() {
+    template<class Buffer, class Callback> void read(Buffer buffer, Callback callback) {
+        if (tls) asio::async_read(*tls, buffer, std::move(callback));
+        else asio::async_read(socket, buffer, std::move(callback));
+    }
+    template<class Buffer, class Callback> void send(Buffer buffer, Callback callback) {
+        if (tls) asio::async_write(*tls, buffer, std::move(callback));
+        else asio::async_write(socket, buffer, std::move(callback));
+    }
+    void ready() {
+        if (closed) return;
+        if (tls) {
+            if (SSL_get_verify_result(tls->native_handle()) != X509_V_OK) return close();
+            auto* certificate = SSL_get0_peer_certificate(tls->native_handle());
+            if (!certificate) return close();
+            unsigned char digest[EVP_MAX_MD_SIZE]; unsigned length = 0;
+            if (!X509_digest(certificate, EVP_sha256(), digest, &length)) return close();
+            identity = "sha256:";
+            constexpr char hex[] = "0123456789abcdef";
+            for (unsigned i = 0; i < length; ++i) { identity += hex[digest[i] >> 4]; identity += hex[digest[i] & 15]; }
+        }
+        active = true; deadline(); if (!output.empty()) write(); read_header();
+    }
+    void start(bool server = false) {
         asio::error_code error;
         socket.set_option(Tcp::no_delay(true), error);
         if (error) return close();
-        active = true; deadline(); if (!output.empty()) write(); read_header();
+        deadline();
+        if (tls) tls->async_handshake(server ? asio::ssl::stream_base::server : asio::ssl::stream_base::client,
+            [self = shared_from_this()](asio::error_code error) { if (error) self->close(); else self->ready(); });
+        else ready();
     }
     void write() {
         if (closed || output.empty()) return;
         auto message = output.front();
-        asio::async_write(socket, asio::buffer(*message),
+        send(asio::buffer(*message),
           [self = shared_from_this(), message](asio::error_code error, std::size_t) {
             if (self->closed) return;
             if (error) return self->close();
@@ -126,14 +173,14 @@ struct Node::Impl::Session : std::enable_shared_from_this<Session> {
           });
     }
     void read_header() {
-        asio::async_read(socket, asio::buffer(header),
+        read(asio::buffer(header),
           [self = shared_from_this()](asio::error_code error, std::size_t) {
             if (self->closed) return;
             auto node = self->owner.lock();
             auto size = get(self->header.data(), 4);
             if (error || !node || size < 14 || size > node->limits.frame_bytes) return self->close();
             self->body.resize(size);
-            asio::async_read(self->socket, asio::buffer(self->body),
+            self->read(asio::buffer(self->body),
               [self](asio::error_code read_error, std::size_t) {
                 if (self->closed) return;
                 if (read_error) return self->close();
@@ -161,10 +208,17 @@ struct Node::Impl::Session : std::enable_shared_from_this<Session> {
                 node->finish(call, {static_cast<Status>(code), std::move(data)});
             return;
         }
-        if (kind != 1 || !call || route.empty() || code) return close();
+        if (kind != 1 || !call || route.empty() || route.find('\0') != std::string::npos || code) return close();
         if (inflight >= node->limits.inflight_requests) {
             if (!enqueue(frame(2, Status::overloaded, call, {}, {}))) close();
             return;
+        }
+        if (node->authorizer) {
+            bool allowed = false;
+            auto authorize = node->authorizer;
+            try { allowed = authorize(id, identity, route); } catch (...) {}
+            if (!allowed) { if (!enqueue(frame(2, Status::rejected, call, {}, {}))) close(); return; }
+            if (closed || node->stopped) return;
         }
         auto it = node->handlers.find(route);
         if (it == node->handlers.end()) {
@@ -195,27 +249,35 @@ void Node::Impl::accept() {
     acceptor.async_accept(session->socket, [self = shared_from_this(), session](asio::error_code error) {
         if (self->stopped) return;
         if (!error && self->sessions.size() < self->limits.connections) {
-            self->sessions.emplace(session->id, session); session->start();
+            self->sessions.emplace(session->id, session); session->start(true);
         }
         self->accept();
     });
 }
-Node::Node(std::string token, Limits limits) : impl_(std::make_shared<Impl>(std::move(token), limits)) {
+Node::Node(std::string token, Limits limits, TlsConfig tls) : impl_(std::make_shared<Impl>(std::move(token), limits, std::move(tls))) {
     bind("system.health", [](std::string, Reply reply) { reply({Status::ok, "ready"}); });
 }
 Node::~Node() { stop(); }
 std::uint16_t Node::listen(const std::string& address, std::uint16_t port) {
     if (impl_->stopped || impl_->acceptor.is_open()) throw std::logic_error("node already listening or stopped");
     Tcp::endpoint endpoint(asio::ip::make_address(address), port);
+    if (!impl_->tls && !endpoint.address().is_loopback()) throw std::invalid_argument("public listeners require TLS");
     impl_->acceptor.open(endpoint.protocol());
     impl_->acceptor.set_option(Tcp::acceptor::reuse_address(true));
     impl_->acceptor.bind(endpoint); impl_->acceptor.listen(); impl_->accept();
     return impl_->acceptor.local_endpoint().port();
 }
-std::uint64_t Node::connect(const std::string& address, std::uint16_t port) {
+std::uint64_t Node::connect(const std::string& address, std::uint16_t port, const std::string& peer_name) {
     if (impl_->stopped || impl_->sessions.size() >= impl_->limits.connections) throw std::runtime_error("connection limit");
     Tcp::endpoint endpoint(asio::ip::make_address(address), port);
+    if (!impl_->tls && !endpoint.address().is_loopback()) throw std::invalid_argument("public connections require TLS");
     auto session = std::make_shared<Impl::Session>(impl_, ++impl_->peer_serial);
+    if (session->tls) {
+        auto expected = !peer_name.empty() ? peer_name : !impl_->tls_config.peer_name.empty() ? impl_->tls_config.peer_name : address;
+        if (expected.find('\0') != std::string::npos) throw std::invalid_argument("invalid TLS peer name");
+        session->tls->set_verify_callback(asio::ssl::host_name_verification(expected));
+        if (!SSL_set_tlsext_host_name(session->tls->native_handle(), expected.c_str())) throw std::runtime_error("TLS server name failed");
+    } else if (!peer_name.empty()) throw std::invalid_argument("peer name requires TLS");
     impl_->sessions.emplace(session->id, session);
     session->deadline();
     session->socket.async_connect(endpoint, [session](asio::error_code error) {
@@ -224,13 +286,18 @@ std::uint64_t Node::connect(const std::string& address, std::uint16_t port) {
     });
     return session->id;
 }
+void Node::authorize(Authorizer authorize) { impl_->authorizer = std::move(authorize); }
+std::string Node::peer_identity(std::uint64_t peer) const {
+    auto it = impl_->sessions.find(peer);
+    return it == impl_->sessions.end() || !it->second->authenticated ? std::string{} : it->second->identity;
+}
 void Node::bind(std::string route, Handler handler) {
-    if (route.empty() || route.size() > 256 || !handler) throw std::invalid_argument("invalid RPC route");
+    if (route.empty() || route.size() > 256 || route.find('\0') != std::string::npos || !handler) throw std::invalid_argument("invalid RPC route");
     if (!impl_->handlers.emplace(std::move(route), std::move(handler)).second) throw std::logic_error("duplicate RPC route");
 }
 void Node::call(std::uint64_t peer, std::string route, std::string data, std::chrono::milliseconds timeout, Reply reply) {
     if (!reply) throw std::invalid_argument("missing reply callback");
-    if (route.empty() || route.size() > 256 || route.size() + data.size() > impl_->limits.frame_bytes - 14 || timeout.count() <= 0 || timeout > std::chrono::seconds(30))
+    if (route.empty() || route.size() > 256 || route.find('\0') != std::string::npos || route.size() + data.size() > impl_->limits.frame_bytes - 14 || timeout.count() <= 0 || timeout > std::chrono::seconds(30))
         return reply({Status::rejected, {}});
     auto it = impl_->sessions.find(peer);
     if (impl_->stopped || it == impl_->sessions.end()) return reply({Status::disconnected, {}});
