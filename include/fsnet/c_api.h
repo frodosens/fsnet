@@ -20,6 +20,7 @@ int fsnet_call(void* node, uint64_t peer, const char* route, const char* bytes, 
                int timeout_ms, fsnet_completion callback);
 int fsnet_poll(void* node);
 void* fsnet_db_open(const char* filename); /* empty filename => memory */
+void* fsnet_store_open(const char* uri); /* memory:, file:/directory, sqlite:/file */
 void fsnet_db_close(void* database);
 char* fsnet_db_get(void* database, const char* key, size_t key_length, size_t* length, uint64_t* version);
 int fsnet_db_cas(void* database, const char* key, size_t key_length, uint64_t version, const char* bytes, size_t length);

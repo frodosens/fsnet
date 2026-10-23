@@ -102,9 +102,9 @@ FSNET_LIBRARY="$PWD/build/libfsnet.so" ruby examples/player.rb
 
 `fsnet::Database` 定义读取、带版本的 compare_exchange、条件删除、多记录原子事务。Memory 与 SQLite 运行同一合同测试，可通过实现接口替换后端。SQLite 重开恢复已提交数据；版本不在删除后复用。业务必须使用读出的版本，不要假设版本固定递增 1。
 
-Ruby 的 `database.save(key, value, version: observed_version)` 在版本冲突时返回 false。默认 version=0 仅表示创建。示例覆盖玩家读取和写入。新生产后端必须满足原子 CAS/事务语义；仅替换驱动名字不保证高可用。当前尚无 PostgreSQL 适配器。
+Ruby 的 `database.save(key, value, version: observed_version)` 在版本冲突时返回 false。默认 version=0 仅表示创建。示例覆盖玩家读取和写入。存储最低要求是单记录原子 CAS，不要求数据库事务；可以使用 file:/目录 的 POSIX 文件后端。PostgreSQL 驱动仍在接入中。详见 [存储合同](docs/STORAGE.md)。
 
-`EntityStore` 在 C++ 和 Ruby 中提供 owner 转移与 fenced save：将 owner 的版本检查和实体写入放在同一数据库事务，接管后旧 owner 的写入返回失败。接管时机由控制平面决定；此接口不把单机 SQLite 变成跨机器数据库集群。
+`EntityStore` 在 C++ 和 Ruby 中提供 owner 转移与 fenced save：将 owner、fencing 和实体状态保存在同一记录，通过单记录 CAS 提交，接管后旧 owner 的写入返回失败，不依赖数据库事务。接管时机由控制平面决定；此接口不把单机 SQLite 变成跨机器数据库集群。
 
 ## 服务容错与 P2P
 

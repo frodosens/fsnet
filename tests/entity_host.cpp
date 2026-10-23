@@ -1,5 +1,6 @@
 #include "fsnet/entity_host.hpp"
 #include "fsnet/entity_message.hpp"
+#include "fsnet/entity_record.hpp"
 #include <atomic>
 #include <chrono>
 #include <iostream>
@@ -20,6 +21,14 @@ template<class Predicate> void until(fsnet::EntityScriptHost& runtime, Predicate
     auto deadline = std::chrono::steady_clock::now() + 3s;
     while (!done()) { runtime.poll(); CHECK(std::chrono::steady_clock::now() < deadline); std::this_thread::sleep_for(1ms); }
 }
+class NoTransactions final : public fsnet::Storage {
+    std::shared_ptr<fsnet::Storage> parent = fsnet::memory_database();
+public:
+    std::optional<fsnet::Record> get(std::string_view key) override { return parent->get(key); }
+    bool compare_exchange(std::string_view key, std::uint64_t expected, std::string_view value) override { return parent->compare_exchange(key, expected, value); }
+    bool erase(std::string_view key, std::uint64_t expected) override { return parent->erase(key, expected); }
+    // No transact implementation: every accidental use throws.
+};
 fsnet::Result invoke(fsnet::EntityScriptHost& runtime, Host& host, const std::string& method, const std::string& id, const std::string& data = "") {
     std::optional<fsnet::Result> result;
     host.handlers.at(method)(fsnet::entity_message(id, data), [&](fsnet::Result value) { result = std::move(value); });
@@ -35,7 +44,7 @@ void bind(fsnet::EntityScriptHost& runtime) {
     runtime.bind_stateful("counter.fail", "counter", "initial", [](std::string, fsnet::Reply done) { done({fsnet::Status::internal, {}}); });
 }
 void ownership() {
-    auto db = fsnet::memory_database();
+    auto db = std::make_shared<NoTransactions>();
     auto parent_a = std::make_shared<Host>(), parent_b = std::make_shared<Host>();
     std::atomic<std::int64_t> now{100000}; auto clock = [&] { return now.load(); };
     fsnet::EntityScriptHost a(parent_a, db, "node-a/boot-1", {}, {}, clock), b(parent_b, db, "node-b/boot-1", {}, {}, clock);
@@ -65,23 +74,25 @@ void ownership() {
     std::cout << "PASS persistent entities: restore, lease contention, takeover, stale commit rejection, handoff and stale handles\n";
 }
 void fencing() {
-    auto db = fsnet::memory_database(); auto parent = std::make_shared<Host>();
+    auto db = std::make_shared<NoTransactions>(); auto parent = std::make_shared<Host>();
     fsnet::EntityScriptHost runtime(parent, db, "owner");
     fsnet::Reply finish;
     runtime.bind_stateful("counter.wait", "counter", "initial", [&](std::string, fsnet::Reply done) { finish = std::move(done); });
     std::optional<fsnet::Result> result;
     parent->handlers.at("counter.wait")(fsnet::entity_message("42", ""), [&](fsnet::Result value) { result = std::move(value); });
     until(runtime, [&] { return bool(finish); });
-    const auto key = (std::string("fsnet/actor/owner/counter") + '\0') + "42";
+    const auto key = fsnet::entity_record_key("counter", "42");
     auto record = db->get(key); CHECK(record);
-    CHECK(db->compare_exchange(key, record->version, "9999999999999:other-owner")); // explicit administrative transfer before expiry
+    auto moved = fsnet::decode_entity_record(record->value); moved.owner = "other-owner"; ++moved.fence;
+    CHECK(db->compare_exchange(key, record->version, fsnet::encode_entity_record(moved)));
     finish({fsnet::Status::ok, fsnet::state_message("stale", "wrong")});
     until(runtime, [&] { return result.has_value(); }); CHECK(result->status == fsnet::Status::rejected);
-    CHECK(!db->get((std::string("fsnet/actor/state/counter") + '\0') + "42"));
-    std::cout << "PASS entity fencing: ownership version is checked atomically with state writes\n";
+    auto stored = fsnet::decode_entity_record(db->get(key)->value);
+    CHECK(stored.owner == "other-owner" && stored.snapshot.state == "initial");
+    std::cout << "PASS entity fencing: ownership and state are replaced with single-record CAS; transactions are unsupported\n";
 }
 void receipts() {
-    auto db = fsnet::memory_database(); auto parent = std::make_shared<Host>();
+    auto db = std::make_shared<NoTransactions>(); auto parent = std::make_shared<Host>();
     fsnet::EntityRuntimeLimits limits; limits.receipts = 2;
     fsnet::EntityScriptHost runtime(parent, db, "owner", limits); bind(runtime);
     auto call = [&](const std::string& token, const std::string& data) {

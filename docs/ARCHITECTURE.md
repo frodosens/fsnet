@@ -1,60 +1,71 @@
-# 分布式游戏框架：边界与验收
+# 当前架构
 
-## 已确定的职责边界
-
-C++ 提供网络、分布式运行时、场景/实体载体、调度、存储机制与脚本宿主，不实现玩家、战斗、技能、任务和经济等游戏业务。业务全部在脚本中实现。优先支持 Lua，Ruby 作为可选适配器；统一的是宿主能力与消息边界，不是语言内部对象模型。Lua RPC 脚本宿主已实现，见 SCRIPTING.md；Lua 持久化实体宿主提供 mailbox、固定步长 tick、句柄代数、快照恢复与卸载交接；完整跨节点路由与迁移编排尚待实现。
-
-## 当前实现
+C++ 只负责网络、调度、实体/场景载体、存储机制和脚本宿主；业务状态结构、规则和跨实体流程由脚本定义。Lua 为首选，Ruby 为可选适配器。
 
 ```mermaid
-flowchart LR
-    Game[游戏客户端] <-->|ICE UDP 直连| Peer[其他游戏客户端]
-    Game <-->|认证 TURN 中继| Relay[TURN 服务]
-    Peer <-->|认证 TURN 中继| Relay
-    Gate[网关 / 服务调用方] <-->|有界 TCP RPC| LogicA[脚本逻辑实例 A / C++ 宿主]
-    Gate <-->|有界 TCP RPC| LogicB[脚本逻辑实例 B / C++ 宿主]
-    LogicA --> Store[Database 抽象]
-    LogicB --> Store
-    Store --> Memory[Memory：开发测试]
-    Store --> SQLite[SQLite：单机持久化]
+flowchart TB
+    Client[客户端 / 服务节点] --> Node[Node: TLS 1.3 / 身份授权 / RPC / 背压]
+    Node --> Router[EntityRouter: owner 查询 / 连接复用 / 有界重试]
+    Router --> Host[EntityScriptHost: 每实体 mailbox / tick / 生命周期]
+    Host --> Lua[LuaEngine: 业务协程 / 指令与内存预算]
+    Lua -->|新状态与响应| Host
+    Host --> Worker[AsyncDatabase: 有界后台存储执行器]
+    Router --> Worker
+    Worker --> Storage[Storage: get / 单记录 CAS / erase]
+    Storage --> Files[POSIX 文件存储]
+    Storage --> SQLite[SQLite]
+    Storage --> Memory[Memory: 开发与测试]
+    Storage -.-> PG[PostgreSQL: 正在接入]
 ```
 
-这张图展示模块关系，不表示已实现公网客户端网关或共享数据库集群。
+## 存储合同不依赖数据库事务
 
-- C++20 `Node` 是对称节点：同一连接两端均可注册服务并发起 RPC，支持服务器 P2P 网状直连。包使用网络字节序、版本、request ID、状态码和显式路由；payload 为二进制。Ruby 适配层使用 JSON。
-- 单个 Node 由一个线程拥有。连接、异步收发、RPC deadline、关闭都在所属线程推进；异步回复也必须回到该线程。多实例/多进程扩展，而不是让不安全的 Ruby 对象跨线程使用。慢数据库操作/CPU 密集任务不能直接阻塞事件循环；当前 SQLite 示例是同步教学路径。
-- 默认最大帧 1 MiB、每连接排队 4 MiB、1024 连接、4096 个出站调用、每连接 128 个执行中请求、30 秒空闲超时。RPC deadline 不能超过 30 秒；超时只是停止等待，不撤销已经开始的业务写入。
-- `ClusterClient` 对静态成员做健康探测、过期租约和指数退避重连；rendezvous hashing 按实体稳定选择服务副本。节点停止后可将后续调用导向存活副本。仅显式标记幂等的调用，才能在原 deadline 内做一次替代节点重试。应用需要持续调用 `tick()` 和 Node 的 `poll()`。
-- `Database` 以值/版本与原子多记录条件事务表达业务需求，不暴露 SQLite 连接。Memory 和 SQLite 执行同一合同；版本号在删除/重建后不复用，避免 ABA。SQLite 用 WAL、FULL synchronous 和 IMMEDIATE 事务；同一个句柄有 mutex，并发连接由数据库串行化写事务。Memory 是 copy-on-commit 的测试后端，不用于海量数据。
-- Lua 5.4.7 提供受控宿主、请求协程、指令/内存/任务预算和停止清理。Lua 与 Ruby 运行同一组二进制宿主合同；两者都可独立关闭。
-- Ruby 3.2+ 接口有显式 `rpc`、`Service`、GC 保根和 Fiber 内 `request`。请求等待时让出 Fiber，事件循环继续推进。用例见 `examples/player.rb` 和 `tests/ruby_test.rb`。
-- 客户端 P2P 使用 libjuice 的 ICE/STUN/TURN，交换 SDP、trickle candidates 与 gathering-done。优先直连；不能建立直连时使用带凭据的 TURN。中继有 allocation/peer 配额、凭据有效期和可配置端口范围。ICE 收包队列最多 256 个 1200 字节数据报；它是无序、不保证可靠的传输，不可替代服务端权威状态。
+最低要求是读取带版本的记录、按预期版本原子替换、按版本删除。版本在删除/重建后不能复用。Storage 不要求 SQL、多记录事务或数据库服务。Database 是旧接口名称的兼容别名。
 
-## 生产设计约束
+Memory/SQLite 可以提供可选的 transact 扩展，但实体宿主、目录路由、所有权和 EntityStore 不调用它。多实体变更不伪装成原子事务，由脚本使用消息、幂等、Saga 或 outbox 协议组织；自动 outbox 调度仍待补齐。
 
-1. 网关与逻辑分离权限。客户端身份认证、路由授权、消息 schema、速率配额都在网关执行；共享的 cluster token 只适用于可信网络内部，不能分发给不可信游戏客户端。TCP 已提供 TLS 1.3/mTLS、目标名称验证和按已验证证书指纹的路由授权；配置 TLS 时可使用空 token，仅凭证书认证。无 TLS 仅允许 loopback。ICE 原始数据报仍无加密，需使用后续安全会话层。
-2. 实体使用单写者/actor mailbox。目录租约只说明“最近健康”，不授予独占写权。`EntityStore` 已实现基于数据库 CAS 的 owner 转移、递增 fencing token，以及把 token 检查与状态写入放在同一事务中；测试确认旧 owner 无法在接管后覆盖状态。该保证依赖共享的线性一致存储，不能将两份独立 SQLite 当成一个存储。Lua 已提供本地每实体 mailbox；何时接管、自动编排与跨机存储仍未实现。
-3. 钱包、库存、交易等写入使用事务和 idempotency key；事务写入与消息 outbox 原子提交。断线时，成功与未执行之间有不确定窗口，不承诺 exactly-once 网络投递。
-4. 小型游戏可以单机多个服务加 SQLite；大型游戏需要生产数据库适配器（例如 PostgreSQL）、数据库 HA、分片/迁移和区域隔离。Memory/SQLite 不提供跨机器副本一致性，也不能当作 MMO 的共享 HA 数据库。
-5. 公开 TURN 的 bind/external address、UDP 3478、relay UDP 范围、防火墙及短期凭据由部署配置管理。不能保证所有 NAT 都能打洞；对称 NAT 等情况需要中继，禁止 UDP 的网络还需要 TURN/TCP/TLS 后备（当前 libjuice 路径只有 UDP）。SDP/candidates 通过认证信令交换，不直接信任任意对等方。
-6. 通用框架提供传输、服务生命周期、持久化和故障语义；不把 AOI、匹配、战斗帧同步、预测回滚、反作弊塞入网络核心。P2P 仅适合允许非权威状态互联的玩法。
+每个托管实体使用一个 FER1 记录：
 
-## 验收状态
+```text
+entity-key = 类型 + 实体 ID
+record = owner incarnation + lease expiry + fencing counter
+       + opaque script state + bounded request receipts
+```
 
-| 能力 | 当前证据 | 尚需完成 |
-| --- | --- | --- |
-| 可复现构建 | CMake 获取固定 SHA256 源码，构建 SQLite、Asio、libjuice；应用不链接机器预装的这些库 | 发布包、平台矩阵、供应链更新流程 |
-| 安全边界与资源限制 | 非注册路由、错误 token、超大声明、挂起调用额度、超时/断线测试 | 应用身份策略、模糊测试与长期恶意流量测试 |
-| 可替换存储 | 两后端合同、冲突、并发 CAS、多键原子失败/成功、删除重建、SQLite 重开持久化 | PostgreSQL 等分布式生产适配器、迁移、备份恢复演练 |
-| Ruby 逻辑 | Ruby 3.3 实际调用、GC.start、Fiber 间接 RPC、JSON/数据库往返 | 每实体 mailbox、阻塞 I/O executor、业务 schema 生成 |
-| 服务级容错 | 健康探测、节点停止后的幂等 RPC 切换、条件事务 fencing 拒绝旧 owner | 自动状态接管编排、共享数据库 HA、实际网络分区演练 |
-| P2P/NAT/中继 | 本机 ICE 直连；仅交换 relay candidates 的 TURN 分配与游戏数据报传输 | 实际跨 NAT/跨运营商验证、加密、TURN/TCP/TLS、认证信令和会话权限 |
-| 性能 | 可重跑 loopback benchmark，区分编译类型/并发/载荷/分位延迟 | DB/Ruby/公网/真实游戏负载压测及性能预算 |
+owner、租约、状态和去重结果共同受一次单记录 CAS 保护。接管会替换同一个记录，导致旧 owner 的预期版本失效；提交无需同时修改两个 key。
 
-因此当前是可运行的框架基础与迁移起点，不能宣称已经达到“任意规模通用游戏的生产级高可用”。剩余项目需要对应的实现和故障证据，而不是修改配置名称。
+文件后端用 SHA-256 派生文件名，记录中仍保留原 key 并校验；跨进程 flock 保护 CAS，临时文件写入后 fsync，再同目录 rename 并 fsync 目录。删除写 tombstone，保留版本历史；损坏的记录拒绝读取，不自动初始化为空。具体保证与限制见 STORAGE.md。
 
-## 异步存储
+## 执行与响应顺序
 
-`AsyncDatabase` 将 Database 操作放到独立的单工作线程，网络/VM 线程只提交任务并 poll 完成回调。排队、执行中、已完成未消费的任务共同占用请求数/声明字节预算，避免完成队列绕过背压。异常通过 exception_ptr 回到提交线程；数据库操作不得触碰 Node/VM。stop 拒绝新任务、排空已接收操作并 join；随后仍可 poll 完成回调。退出时必须先停止业务入口，再排空存储，最后销毁数据库。已经接受的写入不能用 RPC 超时撤销。
+1. 入站请求进入类型 + ID 对应的 FIFO mailbox。
+2. 后台读取实体记录，必要时用 CAS 获取/续租；租约有效且足够长时复用。
+3. Lua 收到状态字节、实体 ID 和参数，执行业务；可以 await 外部 RPC。
+4. Lua 返回新状态和响应。宿主用此前的记录版本 CAS 替换完整实体记录。
+5. 提交成功后才返回业务成功响应，并释放 mailbox。
 
-`EntityScriptHost` 的状态型路径是 restore → fenced lease → script → atomic checkpoint → reply，区别于非持久化 entity_rpc。每次进程 incarnation 使用唯一 owner；接管只在租约过期或显式释放后发生。旧 owner 的状态写入被原子 fencing 条件拒绝。该阶段不提供外部 RPC 副作用的 exactly-once。详见 SCRIPTING.md。
+同一实体的不同方法和 tick 共享 mailbox，await 期间不释放。其他实体可以继续推进。Lua/Node/宿主均在所属线程调度，数据库或文件操作在独立存储线程执行。CPU 扩容使用多个分片/节点/进程，不把一个 Lua VM 放到多个线程并发执行。
+
+脚本失败不发布返回的新状态；下一次请求恢复已提交状态。已经发送的外部 RPC 副作用不受本地 CAS 回滚，必须另行幂等。状态聚合可表示玩家、房间或场景，C++ 不内置玩法规则。
+
+## 所有权、接管和重试
+
+进程 owner 格式为稳定节点 ID/唯一启动 incarnation。路由器优先查找有效 owner；无 owner 或租约过期时按稳定节点 ID 做 rendezvous 选择，最终由存储 CAS 决定谁取得所有权。健康视图不授予独占写权。
+
+过期/显式释放后，另一个宿主可恢复同一记录。旧 owner 即使仍在计算，也不能越过 CAS 发布旧状态。该保证是权威状态提交排他，不承诺网络分区时所有机器上都绝无残留计算；外部副作用仍必须携带业务幂等/隔离协议。租约接管需要同步时钟和保守的超时配置。
+
+带请求 ID 的操作把请求与响应和新状态一起保存。重试回放已提交结果；同 ID 不同输入拒绝。默认保留最近 64 条、最多 4 MiB，淘汰后的重试可能再次执行，不能宣称无限期 exactly-once。
+
+## 安全和 P2P
+
+TCP 已实现 TLS 1.3 双向证书验证、目标名称校验和证书指纹路由授权。公开客户端可以只使用独立证书与空 token；内部 cluster token 不应分发给客户端。明文连接仅允许 loopback。详见 SECURITY.md。
+
+ICE/STUN/TURN 直连与中继原语已实现并做本机验证；原始 IcePeer 不加密业务数据。认证信令、会话权限、加密数据报、UDP 禁用时的 TLS 中继后备仍在后续阶段，不能把本机 TURN 测试当成真实跨 NAT 验收。
+
+## 当前边界
+
+- 文件后端支持本机多进程、持久化与崩溃恢复，不会把每台机器自己的目录自动复制成一致存储。跨机器 HA 需要具备相同 CAS/持久化语义的共享或复制后端，不能靠文件复制或健康检查假定一致性。
+- PostgreSQL 驱动正在实现，数据库 HA、主备配置和故障恢复仍需单独验收；数据库不是实体运行时的必需条件。
+- Ruby 支持外部 RPC/Fiber 与 TLS，但尚未接入托管实体 mailbox/快照运行时。Lua 和 Ruby 的语言内部对象模型不统一。
+- 固定步长 tick、句柄代数、快照恢复和空闲卸载已实现。完整客户端 SDK、自动 outbox、部署/观测与长期容量验证仍待完成。
+- 整体仍在分阶段交付，尚未标为任意规模通用游戏的生产验收版本。当前测试证据见 VALIDATION.md。

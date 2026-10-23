@@ -24,7 +24,8 @@ int main(int argc, char** argv) {
         fsnet::Node node(token, {}, tls_from_environment());
         auto transport = std::make_shared<fsnet::NodeScriptHost>(node);
         const char* path = std::getenv("FSNET_DATABASE_PATH");
-        auto database = path ? fsnet::sqlite_database(path) : fsnet::memory_database();
+        const char* storage_uri = std::getenv("FSNET_STORAGE_URI");
+        auto database = storage_uri ? fsnet::open_storage(storage_uri) : path ? fsnet::sqlite_database(path) : fsnet::memory_database();
         const char* node_id = std::getenv("FSNET_NODE_ID");
         std::string instance = node_id ? node_id : "local";
         if (instance.empty() || instance.size() > 127 || instance.find_first_of("/\0", 0, 2) != std::string::npos)

@@ -17,6 +17,7 @@ module FSNet
     extern 'int fsnet_call(void*, unsigned long long, const char*, const char*, size_t, int, void*)'
     extern 'int fsnet_poll(void*)'
     extern 'void* fsnet_db_open(const char*)'
+    extern 'void* fsnet_store_open(const char*)'
     extern 'void fsnet_db_close(void*)'
     extern 'void* fsnet_db_get(void*, const char*, size_t, void*, void*)'
     extern 'int fsnet_db_cas(void*, const char*, size_t, unsigned long long, const char*, size_t)'
@@ -40,8 +41,8 @@ module FSNet
 
   class Database
     Record = Struct.new(:value, :version, keyword_init: true)
-    def initialize(path: '')
-      @handle = Native.check(Native.fsnet_db_open(path))
+    def initialize(path: '', storage: nil)
+      @handle = Native.check(storage ? Native.fsnet_store_open(storage) : Native.fsnet_db_open(path))
     end
     def close
       Native.fsnet_db_close(@handle) if @handle
@@ -94,23 +95,40 @@ module FSNet
     end
   end
 
+  # One JSON record per entity. This helper uses only single-record CAS.
   class EntityStore
-    def initialize(database)
-      @database = database
+    def initialize(storage)
+      @storage = storage
     end
     def owner(id)
-      @database.get("fsnet/owner/#{id}")
+      record = @storage.get(key(id))
+      record && Database::Record.new(value: record.value.fetch('owner'), version: record.value.fetch('fence'))
     end
     def transfer(id, owner, expected_fence: 0)
       raise ArgumentError, 'entity and owner required' if id.to_s.empty? || owner.to_s.empty?
-      @database.save("fsnet/owner/#{id}", owner, version: expected_fence)
+      8.times do
+        record = @storage.get(key(id))
+        value = record ? record.value : {'fence' => 0, 'revision' => 0}
+        return false unless value.fetch('fence') == expected_fence
+        value = value.merge('owner' => owner, 'fence' => expected_fence + 1)
+        return true if @storage.save(key(id), value, version: record ? record.version : 0)
+      end
+      false
     end
     def load(id)
-      @database.get("fsnet/state/#{id}")
+      record = @storage.get(key(id))
+      return nil unless record && record.value.fetch('revision').positive?
+      Database::Record.new(value: record.value['state'], version: record.value.fetch('revision'))
     end
     def save(id, value, fence:, version: 0)
-      @database.save_fenced("fsnet/state/#{id}", value, version: version,
-                           guard_key: "fsnet/owner/#{id}", fence: fence)
+      record = @storage.get(key(id))
+      return false unless record && record.value.fetch('fence') == fence && record.value.fetch('revision') == version
+      next_value = record.value.merge('state' => value, 'revision' => version + 1)
+      @storage.save(key(id), next_value, version: record.version)
+    end
+    private
+    def key(id)
+      "fsnet/ruby/owned/#{id}"
     end
   end
 

@@ -9,7 +9,7 @@ import sys
 import tempfile
 import time
 
-library, lua_executable, script = sys.argv[1:]
+library, lua_executable, script, *backend = sys.argv[1:]
 native = ctypes.CDLL(library)
 reply_type = ctypes.CFUNCTYPE(None, ctypes.c_int, ctypes.c_void_p, ctypes.c_size_t)
 handler_type = ctypes.CFUNCTYPE(None, ctypes.c_uint64, ctypes.c_void_p, ctypes.c_size_t)
@@ -65,7 +65,7 @@ def message(payload):
 
 try:
     with tempfile.TemporaryDirectory(prefix='fsnet-entity-') as directory:
-        environment['FSNET_DATABASE_PATH'] = str(Path(directory) / 'state.sqlite')
+        environment['FSNET_STORAGE_URI'] = ('file:' + str(Path(directory) / 'records')) if backend == ['file'] else ('sqlite:' + str(Path(directory) / 'state.sqlite'))
         environment['FSNET_ENTITY_LEASE_MS'] = '400'
         first, a = start()
         assert invoke(a, b'counter.add', message(b'7')) == (0, b'7')

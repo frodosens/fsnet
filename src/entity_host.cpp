@@ -1,6 +1,7 @@
 #include "fsnet/entity_host.hpp"
 #include "fsnet/entity_message.hpp"
 #include "fsnet/entity_snapshot.hpp"
+#include "fsnet/entity_record.hpp"
 #include <algorithm>
 #include <deque>
 #include <limits>
@@ -11,23 +12,11 @@ namespace fsnet {
 namespace {
 using Clock = std::chrono::steady_clock;
 std::string key(const std::string& type, const std::string& id) { return type + '\0' + id; }
-std::string owner_key(const std::string& entity) { return "fsnet/actor/owner/" + entity; }
-std::string state_key(const std::string& entity) { return "fsnet/actor/state/" + entity; }
+std::string record_key(const std::string& entity) { return "fsnet/entity/" + entity; }
 std::int64_t wall_time() {
     return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
 }
-std::string lease_value(const std::string& owner, std::int64_t expires) {
-    return std::to_string(expires) + ':' + owner;
-}
-struct Lease { std::string owner; std::int64_t expires; };
-Lease parse_lease(const std::string& value) {
-    auto split = value.find(':');
-    if (split == std::string::npos || !split) throw std::runtime_error("corrupt entity lease");
-    std::size_t end = 0;
-    auto expires = std::stoll(value.substr(0, split), &end);
-    if (end != split || expires < 0) throw std::runtime_error("corrupt entity lease");
-    return {value.substr(split + 1), expires};
-}
+
 }
 struct EntityScriptHost::Impl : std::enable_shared_from_this<Impl> {
     struct Method { std::string type, initial; Handler logic; };
@@ -76,7 +65,7 @@ struct EntityScriptHost::Impl : std::enable_shared_from_this<Impl> {
         now(time ? std::move(time) : WallClock(wall_time)) {
         if (!parent || owner.empty() || owner.size() > 256 || !limits.entities || !limits.requests ||
             !limits.queued_bytes || !limits.state_bytes || limits.state_bytes > 8 * 1024 * 1024 ||
-            !limits.resident_bytes || !limits.receipts || limits.receipts > 1024 || !limits.receipt_bytes || limits.receipt_bytes > 8 * 1024 * 1024 || limits.state_bytes + limits.receipt_bytes > 16 * 1024 * 1024 - 12 ||
+            !limits.resident_bytes || !limits.receipts || limits.receipts > 1024 || !limits.receipt_bytes || limits.receipt_bytes > 8 * 1024 * 1024 || limits.state_bytes + limits.receipt_bytes > 16 * 1024 * 1024 - 300 ||
             limits.request_timeout.count() <= 0 || limits.lease <= limits.request_timeout ||
             limits.lease > std::chrono::hours(24) || limits.tick_interval.count() <= 0 || limits.idle_timeout.count() <= 0)
             throw std::invalid_argument("invalid entity runtime settings");
@@ -129,32 +118,38 @@ struct EntityScriptHost::Impl : std::enable_shared_from_this<Impl> {
         auto accepted = storage.submit(job->request.bytes + limits.state_bytes + limits.receipt_bytes,
             [job, owner_id, clock, settings](Database& db) {
                 for (int attempt = 0; attempt < 4; ++attempt) {
-                    auto owner_record = db.get(owner_key(job->entity));
+                    auto record = db.get(record_key(job->entity));
+                    EntityRecord current;
+                    if (record) current = decode_entity_record(record->value);
+                    else {
+                        // Never silently reset a record created by the earlier two-key protocol.
+                        if (db.get("fsnet/actor/owner/" + job->entity) || db.get("fsnet/actor/state/" + job->entity))
+                            throw std::runtime_error("legacy entity needs offline migration");
+                        current.snapshot.state = job->request.method->initial;
+                    }
                     auto time = clock();
                     if (time < 0 || time > std::numeric_limits<std::int64_t>::max() - settings.lease.count())
                         throw std::runtime_error("invalid lease clock");
-                    if (owner_record) {
-                        auto lease = parse_lease(owner_record->value);
-                        if (lease.owner != owner_id && lease.expires > time) { job->status = Status::rejected; return; }
-                    }
-                    auto state = db.get(state_key(job->entity));
-                    auto snapshot = !state ? EntitySnapshot{job->request.method->initial, {}} :
-                        state->value.starts_with("FSP1") ? decode_snapshot(state->value) : EntitySnapshot{state->value, {}};
-                    job->state = std::move(snapshot.state); job->receipts = std::move(snapshot.receipts);
+                    if (current.owner != owner_id && current.expires_ms > time) { job->status = Status::rejected; return; }
+                    job->state = current.snapshot.state; job->receipts = current.snapshot.receipts;
                     if (!job->request.request_id.empty()) for (const auto& receipt : job->receipts) {
                         if (receipt.id != job->request.request_id) continue;
                         if (receipt.route != job->request.route || receipt.request != job->request.payload) { job->status = Status::rejected; return; }
                         job->replay = true; job->output = receipt.response; break;
                     }
                     if (job->state.size() > settings.state_bytes) { job->status = Status::overloaded; return; }
-                    job->version = state ? state->version : 0;
-                    job->expires = time + settings.lease.count();
-                    auto value = lease_value(owner_id, job->expires);
-                    if (!db.transact({{owner_key(job->entity), owner_record ? owner_record->version : 0, value},
-                                      {state_key(job->entity), job->version, std::nullopt, true}})) continue;
-                    auto granted = db.get(owner_key(job->entity));
+                    // Reuse a sufficiently long owned lease. The final single-record
+                    // CAS still detects takeover or administrative replacement.
+                    if (record && current.owner == owner_id && current.expires_ms - time > settings.request_timeout.count()) {
+                        job->version = record->version; job->fence = current.fence; job->expires = current.expires_ms; return;
+                    }
+                    if (current.fence >= static_cast<std::uint64_t>(INT64_MAX) - 1) throw std::overflow_error("entity fence exhausted");
+                    current.owner = owner_id; current.expires_ms = time + settings.lease.count(); ++current.fence;
+                    auto value = encode_entity_record(current);
+                    if (!db.compare_exchange(record_key(job->entity), record ? record->version : 0, value)) continue;
+                    auto granted = db.get(record_key(job->entity));
                     if (!granted || granted->value != value) { job->status = Status::rejected; return; }
-                    job->fence = granted->version; return;
+                    job->version = granted->version; job->fence = current.fence; job->expires = current.expires_ms; return;
                 }
                 job->status = Status::rejected;
             }, [weak = weak_from_this(), job](std::exception_ptr error) {
@@ -198,13 +193,13 @@ struct EntityScriptHost::Impl : std::enable_shared_from_this<Impl> {
                         return owner->complete(job, {Status::overloaded, {}});
                     owner->counters.state_bytes = owner->counters.state_bytes - job->resident + retained;
                     job->resident = retained;
-                    job->persisted = encode_snapshot({std::move(job->state), std::move(job->receipts)});
+                    job->persisted = encode_entity_record({owner->owner, job->expires, job->fence,
+                        {std::move(job->state), std::move(job->receipts)}});
                     auto clock = owner->now;
                     bool accepted = owner->storage.submit(job->persisted.size() + job->output.size(),
                         [job, clock](Database& db) {
                             if (clock() >= job->expires) { job->status = Status::rejected; return; }
-                            if (!db.transact({{owner_key(job->entity), job->fence, std::nullopt, true},
-                                              {state_key(job->entity), job->version, job->persisted}})) job->status = Status::rejected;
+                            if (!db.compare_exchange(record_key(job->entity), job->version, job->persisted)) job->status = Status::rejected;
                         }, [weak, job](std::exception_ptr error) {
                             auto owner = weak.lock();
                             if (!owner || owner->stopped || job->responded) return;
@@ -310,9 +305,12 @@ void EntityScriptHost::deactivate(const EntityHandle& handle, Reply reply) {
         release->reply({error ? Status::internal : *status, {}});
     };
     if (!self.storage.submit(entity.size() + id.size(), [entity, id, status](Database& db) {
-        auto record = db.get(owner_key(entity));
-        if (record && parse_lease(record->value).owner == id &&
-            db.compare_exchange(owner_key(entity), record->version, lease_value("", 0))) *status = Status::ok;
+        auto record = db.get(record_key(entity));
+        if (!record) return;
+        auto value = decode_entity_record(record->value);
+        if (value.owner != id) return;
+        value.owner.clear(); value.expires_ms = 0;
+        if (db.compare_exchange(record_key(entity), record->version, encode_entity_record(value))) *status = Status::ok;
     }, done)) { it->second.busy = false; done(std::make_exception_ptr(std::runtime_error("storage overloaded"))); }
 }
 EntityRuntimeStats EntityScriptHost::stats() const { auto result = impl_->counters; result.entities = impl_->slots.size(); return result; }

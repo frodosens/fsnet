@@ -26,7 +26,7 @@ struct EntityRuntimeStats {
     std::uint64_t committed = 0, replayed = 0, rejected = 0, failed = 0, tick_failures = 0;
 };
 // Stateful script-host decorator. Each operation restores opaque state, invokes
-// script logic, atomically fences + saves the next state, then publishes its reply.
+// script logic, CAS-replaces its single ownership + state record, then publishes its reply.
 // All public methods and callbacks run on the owner thread. The parent outlives
 // this host. owner_id must be globally unique per process incarnation.
 class EntityScriptHost final : public ScriptHost {

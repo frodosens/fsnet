@@ -29,6 +29,13 @@ public:
         auto it = records_.find(std::string(key));
         return it == records_.end() ? std::nullopt : std::optional(it->second);
     }
+    bool supports_transactions() const override { return true; }
+    bool compare_exchange(std::string_view key, std::uint64_t expected, std::string_view value) override {
+        return transact({{std::string(key), expected, std::string(value)}});
+    }
+    bool erase(std::string_view key, std::uint64_t expected) override {
+        return transact({{std::string(key), expected, std::nullopt}});
+    }
     bool transact(const std::vector<Mutation>& mutations) override {
         validate(mutations);
         std::lock_guard lock(mutex_);
@@ -73,6 +80,13 @@ public:
     }
     std::optional<Record> get(std::string_view key) override {
         std::lock_guard lock(mutex_); return read(key);
+    }
+    bool supports_transactions() const override { return true; }
+    bool compare_exchange(std::string_view key, std::uint64_t expected, std::string_view value) override {
+        return transact({{std::string(key), expected, std::string(value)}});
+    }
+    bool erase(std::string_view key, std::uint64_t expected) override {
+        return transact({{std::string(key), expected, std::nullopt}});
     }
     bool transact(const std::vector<Mutation>& mutations) override {
         validate(mutations);
