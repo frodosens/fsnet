@@ -51,6 +51,8 @@ void codec() {
     auto next=a.stage({{"position",fsnet::AttributeStruct{{"x",1.0},{"y",2.0},{"z",3.0}}}},{fsnet::Caller::server,{}});
     CHECK(a.publish(next)); auto encoded=fsnet::encode_attributes(a.snapshot({"alice",true}));
     auto decoded=fsnet::decode_attributes(encoded); CHECK(decoded.values==a.all_values());
+    CHECK(fsnet::attribute_wire_size(decoded)==encoded.size());
+    CHECK(fsnet::attribute_wire_size(decoded.values)==encoded.size());
     fsnet::EntityAttributes restored(schema,"alice"); restored.restore(decoded.values,decoded.revision);
     CHECK(restored.all_values()==a.all_values());
     auto malformed=encoded; auto duplicate=malformed.find(std::string("\1z\1",3));

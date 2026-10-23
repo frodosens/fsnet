@@ -88,6 +88,7 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
         std::unordered_set<std::string> present;
         std::string kind;
         std::shared_ptr<const AttributeUpdate> projection;
+        std::size_t fixed_charge = 0;
     };
     AttributeObject* predicting = nullptr;
     bool prediction_violation = false;
@@ -120,7 +121,7 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
         if(auto items=std::get_if<AttributeArray>(&value)) for(const auto& v:*items) n+=value_nodes(v);
         return n;
     }
-    static std::size_t carrier_charge(const EntityAttributes& model,const EntityAttributes::Values* replacement=nullptr) {
+    static std::size_t carrier_charge(const EntityAttributes& model) {
         auto schema_bytes=[&](auto&& recurse,const AttributeDefinition& d)->std::size_t {
             std::size_t n=512;
             AttributeStruct initial{{"value",d.initial}}; n+=attribute_image_bytes(initial);
@@ -128,7 +129,7 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
             if(d.element) n+=recurse(recurse,*d.element);
             return n;
         };
-        std::size_t charge=65536+4*attribute_image_bytes(replacement?*replacement:model.all_values());
+        std::size_t charge=65536+4*attribute_image_bytes(model.all_values());
         for(const auto& [key,d]:model.schema().attributes) charge+=key.size()+2*schema_bytes(schema_bytes,d);
         return charge;
     }
@@ -320,7 +321,8 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
             if (charge > engine.limits.memory_bytes - engine.used) throw std::length_error("attribute object memory limit");
             void* memory = lua_newuserdatauv(L, sizeof(AttributeObject), 1);
             if (charge > engine.limits.memory_bytes - engine.used) throw std::length_error("attribute object memory limit");
-            new(memory) AttributeObject{&engine, charge, std::move(model), engine.threads.contains(L) ? engine.threads.at(L) : 0,ObjectMode::request,0,{},std::string(kind,n),{}};
+            auto* object=new(memory) AttributeObject{&engine, charge, std::move(model), engine.threads.contains(L) ? engine.threads.at(L) : 0,ObjectMode::request,0,{},std::string(kind,n),{}};
+            object->fixed_charge=charge-4*attribute_image_bytes(object->model.all_values());
             engine.used += charge; luaL_setmetatable(L, "fsnet.attributes"); return 1;
         } catch (const std::exception& e) { return luaL_error(L, "%s", e.what()); }
     }
@@ -335,8 +337,8 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
         if(!image) throw std::logic_error("attribute subscription was revoked");
         if(image==object.projection) return;
         EntityAttributes next(object.model.schema(),""); next.restore_full(image->values,image->revision);
-        auto encoded=encode_attributes(*image);
-        auto charge=carrier_charge(next);
+        (void)attribute_wire_size(*image);
+        auto charge=object.fixed_charge+4*attribute_image_bytes(next.all_values());
         if(charge>object.charge && charge-object.charge>object.engine->limits.memory_bytes-object.engine->used) throw std::length_error("replica memory budget");
         std::unordered_set<std::string> present;
         for(const auto& [key,value]:image->values) { (void)value; present.insert(key); }
@@ -580,8 +582,8 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
         auto mutation=object.mode==ObjectMode::request?object.model.stage({{key,std::move(value)}},{Caller::server,{}})
             :EntityAttributes::Mutation{object.model.revision(),{{key,std::move(value)}}};
         auto projected=object.model.all_values(); projected.at(key)=mutation.values.at(key);
-        auto encoded=encode_attributes({0,object.model.revision(),true,projected});
-        auto charge=carrier_charge(object.model,&projected);
+        (void)attribute_wire_size(projected);
+        auto charge=object.fixed_charge+4*attribute_image_bytes(projected);
         if(charge>object.charge && charge-object.charge>engine.limits.memory_bytes-engine.used) throw std::length_error("attribute object memory limit");
         if(!object.model.publish(mutation)) throw std::logic_error("stale attribute object");
         engine.used=engine.used-object.charge+charge; object.charge=charge; return false;
@@ -654,8 +656,8 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
             auto mutation = object.model.stage(proposal.values, engine.tasks.at(engine.threads.at(L)).identity);
             auto projected = object.model.all_values();
             for (const auto& [name,value] : mutation.values) projected.at(name) = value;
-            auto encoded = encode_attributes({0,object.model.revision(),true,projected});
-            auto charge = carrier_charge(object.model,&projected);
+            (void)attribute_wire_size(projected);
+            auto charge = object.fixed_charge+4*attribute_image_bytes(projected);
             if (charge > object.charge && charge - object.charge > engine.limits.memory_bytes - engine.used)
                 throw std::length_error("attribute object memory limit");
             if (!object.model.publish(mutation)) throw std::runtime_error("stale client mutation");
@@ -715,7 +717,8 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
             if(charge>engine.limits.memory_bytes-engine.used) throw std::length_error("object memory budget");
             void* memory=lua_newuserdatauv(L,sizeof(AttributeObject),1);
             if(charge>engine.limits.memory_bytes-engine.used) throw std::length_error("object memory budget");
-            new(memory) AttributeObject{&engine,charge,std::move(model),0,replica?ObjectMode::replica:ObjectMode::local,static_cast<std::uint64_t>(subscription),std::move(present),std::move(type),std::move(projection)};
+            auto* object=new(memory) AttributeObject{&engine,charge,std::move(model),0,replica?ObjectMode::replica:ObjectMode::local,static_cast<std::uint64_t>(subscription),std::move(present),std::move(type),std::move(projection)};
+            object->fixed_charge=charge-4*attribute_image_bytes(object->model.all_values());
             engine.used+=charge; luaL_setmetatable(L,"fsnet.attributes"); return 1;
         } catch(const std::exception& e) { return luaL_error(L,"%s",e.what()); }
     }
@@ -734,7 +737,8 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
             if(charge>engine.limits.memory_bytes-engine.used) throw std::length_error("prediction memory budget");
             void* memory=lua_newuserdatauv(L,sizeof(AttributeObject),1);
             if(charge>engine.limits.memory_bytes-engine.used) throw std::length_error("prediction memory budget");
-            new(memory) AttributeObject{&engine,charge,std::move(model),0,ObjectMode::prediction,0,source.present,source.kind,{}};
+            auto* object=new(memory) AttributeObject{&engine,charge,std::move(model),0,ObjectMode::prediction,0,source.present,source.kind,{}};
+            object->fixed_charge=charge-4*attribute_image_bytes(object->model.all_values());
             engine.used+=charge; luaL_setmetatable(L,"fsnet.attributes");
             lua_getiuservalue(L,1,1);
             lua_newtable(L);

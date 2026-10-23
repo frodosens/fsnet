@@ -1,6 +1,7 @@
 #include "fsnet/entity_schema.hpp"
 #include <cmath>
 #include <limits>
+#include <type_traits>
 
 namespace fsnet {
 namespace {
@@ -102,12 +103,18 @@ bool EntityAttributes::publish(const Mutation& mutation) {
     if (revision_ == std::numeric_limits<std::uint64_t>::max()) throw std::overflow_error("attribute revision exhausted");
     for (const auto& [name, value] : mutation.values)
         if (!valid(schema_.attributes.at(name), value)) throw std::invalid_argument("invalid committed attribute");
-    // Prepare all allocating work before swapping the committed image.
-    auto next = values_; auto modified = modified_; bool changed = false;
-    for (const auto& [name, value] : mutation.values) if (next.at(name) != value) {
-        next.at(name) = value; modified.at(name) = revision_ + 1; changed = true;
+    // Copy only changed properties. Complete validation/allocation before the
+    // first commit; variant swaps and revision assignments cannot throw.
+    static_assert(std::is_nothrow_swappable_v<AttributeValue>);
+    Values prepared;
+    for (const auto& [name, value] : mutation.values)
+        if (values_.at(name) != value) prepared.emplace(name, value);
+    if (!prepared.empty()) {
+        for (auto& [name, value] : prepared) {
+            values_.at(name).swap(value); modified_.at(name) = revision_ + 1;
+        }
+        ++revision_;
     }
-    if (changed) { values_.swap(next); modified_.swap(modified); ++revision_; }
     return true;
 }
 bool EntityAttributes::visible(const AttributeDefinition& d, const AttributeView& view) const {

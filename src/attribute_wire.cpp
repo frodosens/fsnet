@@ -2,11 +2,18 @@
 #include <bit>
 #include <cmath>
 #include <limits>
+#include <type_traits>
 
 namespace fsnet {
 namespace {
 constexpr std::size_t limit = 1024 * 1024;
-void put(std::string& out, std::uint64_t n, unsigned count) {
+struct SizeOnly {
+    std::size_t bytes = 0;
+    void operator+=(char) { ++bytes; }
+    void operator+=(const std::string& value) { bytes += value.size(); }
+    std::size_t size() const { return bytes; }
+};
+template<class Output> void put(Output& out, std::uint64_t n, unsigned count) {
     for (unsigned i = count; i; --i) out += static_cast<char>(n >> ((i - 1) * 8));
 }
 std::uint64_t get(std::string_view& in, unsigned count) {
@@ -19,7 +26,7 @@ void check_name(const std::string& name) {
     if (name.empty() || name.size() > 127 || name.front() == '$' || name.find_first_of(".\0", 0, 2) != std::string::npos)
         throw std::invalid_argument("invalid property name");
 }
-void encode_value(std::string& out,const AttributeValue& value,unsigned depth,std::size_t& remaining) {
+template<class Output> void encode_value(Output& out,const AttributeValue& value,unsigned depth,std::size_t& remaining) {
     if(depth>8 || !remaining) throw std::length_error("attribute value depth/node limit");
     --remaining; put(out,value.index(),1);
     if(auto n=std::get_if<std::int64_t>(&value)) put(out,std::bit_cast<std::uint64_t>(*n),8);
@@ -80,18 +87,49 @@ AttributeValue decode_value(std::string_view& in,unsigned depth,std::size_t& rem
     throw std::invalid_argument("invalid property type");
 }
 }
-std::string encode_attributes(const AttributeUpdate& update) {
-    if (update.values.size() > 256 || update.base > update.revision || (update.snapshot && update.base))
+namespace {
+template<class Output> void encode_image(Output& out, const AttributeStruct& values,
+                                        std::uint64_t base, std::uint64_t revision, bool snapshot) {
+    if (values.size() > 256 || base > revision || (snapshot && base))
         throw std::invalid_argument("invalid attribute revision or count");
-    std::string out = "FSA1"; put(out, update.snapshot, 1); put(out, update.base, 8); put(out, update.revision, 8);
-    put(out, update.values.size(), 2);
+    out += std::string("FSA1"); put(out, snapshot, 1); put(out, base, 8); put(out, revision, 8);
+    put(out, values.size(), 2);
     std::size_t remaining=4096;
-    for (const auto& [name, value] : update.values) {
+    for (const auto& [name, value] : values) {
         check_name(name); put(out,name.size(),1); out+=name;
         encode_value(out,value,0,remaining);
         if (out.size() > limit) throw std::length_error("attribute image too large");
     }
+}
+// Validate the merged image without copying unchanged values. Limits apply to
+// the accumulated replica too, not just to each individual incoming delta.
+void validate_overlay(const AttributeStruct& current, const AttributeStruct& delta) {
+    SizeOnly out; out.bytes=23;
+    std::size_t remaining=4096, count=0;
+    auto old=current.begin(), changed=delta.begin();
+    while (old!=current.end() || changed!=delta.end()) {
+        const AttributeStruct::value_type* field;
+        if (changed==delta.end() || (old!=current.end() && old->first<changed->first)) field=&*old++;
+        else {
+            if (old!=current.end() && old->first==changed->first) ++old;
+            field=&*changed++;
+        }
+        if (++count>256) throw std::invalid_argument("invalid attribute revision or count");
+        check_name(field->first); put(out,field->first.size(),1); out+=field->first;
+        encode_value(out,field->second,0,remaining);
+    }
+}
+}
+std::string encode_attributes(const AttributeUpdate& update) {
+    std::string out;
+    encode_image(out,update.values,update.base,update.revision,update.snapshot);
     return out;
+}
+std::size_t attribute_wire_size(const AttributeUpdate& update) {
+    SizeOnly out; encode_image(out,update.values,update.base,update.revision,update.snapshot); return out.size();
+}
+std::size_t attribute_wire_size(const AttributeStruct& values) {
+    SizeOnly out; encode_image(out,values,0,0,true); return out.size();
 }
 AttributeUpdate decode_attributes(std::string_view in) {
     if (in.size() > limit || !in.starts_with("FSA1")) throw std::invalid_argument("invalid attribute record");
@@ -113,12 +151,22 @@ AttributeUpdate decode_attributes(std::string_view in) {
 }
 bool AttributeReplica::apply(const AttributeUpdate& update) {
     // Validate programmatic updates too; never apply partially on validation or allocation failure.
-    (void)encode_attributes(update);
+    (void)attribute_wire_size(update);
     if (!update.snapshot && (!initialized_ || update.base != revision_)) return false;
     if (initialized_ && update.revision < revision_) return false;
-    auto next = update.snapshot ? std::map<std::string, AttributeValue>{} : values_;
-    for (const auto& [name, value] : update.values) next.insert_or_assign(name, value);
-    (void)encode_attributes({0, update.revision, true, next});
-    values_.swap(next); revision_ = update.revision; initialized_ = true; return true;
+    if (update.snapshot) {
+        auto next=update.values; values_.swap(next);
+    } else {
+        validate_overlay(values_,update.values);
+        // Allocate before mutation; transfer new map nodes without allocation.
+        static_assert(std::is_nothrow_swappable_v<AttributeValue>);
+        auto prepared=update.values;
+        while (!prepared.empty()) {
+            auto field=prepared.begin(); auto existing=values_.find(field->first);
+            if (existing==values_.end()) values_.insert(prepared.extract(field));
+            else { existing->second.swap(field->second); prepared.erase(field); }
+        }
+    }
+    revision_ = update.revision; initialized_ = true; return true;
 }
 }

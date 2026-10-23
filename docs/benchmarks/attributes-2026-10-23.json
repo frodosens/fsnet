@@ -1,0 +1,1558 @@
+{
+  "timestamp_utc": "2026-10-23T17:36:56.125501+00:00",
+  "platform": "Linux-6.18.55-x86_64-with-glibc2.41",
+  "cpu_model": "INTEL(R) XEON(R) PLATINUM 8573C",
+  "cpu_affinity": [
+    0,
+    1,
+    2
+  ],
+  "runs_per_binary": 7,
+  "iterations_argument": 20000,
+  "before_revision": "475b6f8",
+  "after_revision": "475b6f8 + attribute optimization in this report commit",
+  "binaries": {
+    "before": {
+      "path": "/workspace/fsnet-env/perf-baseline/fsnet-attribute-benchmark",
+      "sha256": "c8a9d4157bd0cf3ecd906862406f468a532f09771c581c1829aa2df4252f9e09",
+      "libfsnet_sha256": "cfcaad48efe0ea382acd1d5ca1dfa97982025ed69c698b987a12bd7f072f7052"
+    },
+    "after": {
+      "path": "/workspace/fsnet-env/perf-build/fsnet-attribute-benchmark",
+      "sha256": "9c07fe0584f0cef66ebd21335d5343d068995731808d798c110be224f2736f2a",
+      "libfsnet_sha256": "d8f180f574948b3a61dfbebedeb8959ff753da08be0d3875773ab93de2455c54"
+    }
+  },
+  "summary": {
+    "publish_scalar_32": {
+      "before": {
+        "median_ns": 1588.8059,
+        "min_ns": 1544.16485,
+        "max_ns": 1728.64495
+      },
+      "after": {
+        "median_ns": 190.58205,
+        "min_ns": 184.27705,
+        "max_ns": 197.01505
+      },
+      "speedup": 8.336597806561532,
+      "time_reduction_percent": 88.00469900067718
+    },
+    "publish_vec3_32": {
+      "before": {
+        "median_ns": 2018.3711,
+        "min_ns": 1968.2581,
+        "max_ns": 2203.4202
+      },
+      "after": {
+        "median_ns": 625.62815,
+        "min_ns": 604.82775,
+        "max_ns": 627.64985
+      },
+      "speedup": 3.2261513488483535,
+      "time_reduction_percent": 69.0033141080944
+    },
+    "replica_delta_32": {
+      "before": {
+        "median_ns": 3395.18395,
+        "min_ns": 3311.578,
+        "max_ns": 3704.44525
+      },
+      "after": {
+        "median_ns": 737.9172,
+        "min_ns": 727.5041,
+        "max_ns": 758.4898
+      },
+      "speedup": 4.601036471300574,
+      "time_reduction_percent": 78.26576671935553
+    },
+    "codec_roundtrip_32": {
+      "before": {
+        "median_ns": 3467.3186,
+        "min_ns": 3333.2166,
+        "max_ns": 3650.8934
+      },
+      "after": {
+        "median_ns": 3582.6334,
+        "min_ns": 3447.8548,
+        "max_ns": 3808.2256
+      },
+      "speedup": 0.9678128384556455,
+      "time_reduction_percent": -3.3257630262185867
+    },
+    "lua_nested_read_32": {
+      "before": {
+        "median_ns": 640.2351,
+        "min_ns": 587.32095,
+        "max_ns": 738.0152
+      },
+      "after": {
+        "median_ns": 599.9379,
+        "min_ns": 593.2228,
+        "max_ns": 760.47885
+      },
+      "speedup": 1.0671689519865306,
+      "time_reduction_percent": 6.294125392375394
+    },
+    "lua_whole_write_32": {
+      "before": {
+        "median_ns": 9378.21475,
+        "min_ns": 9137.74625,
+        "max_ns": 10512.2123
+      },
+      "after": {
+        "median_ns": 2794.00775,
+        "min_ns": 2684.03555,
+        "max_ns": 2888.9279
+      },
+      "speedup": 3.356545718242907,
+      "time_reduction_percent": 70.20746672494357
+    },
+    "lua_nested_write_32": {
+      "before": {
+        "median_ns": 9866.42065,
+        "min_ns": 9670.4532,
+        "max_ns": 10371.2439
+      },
+      "after": {
+        "median_ns": 2957.57475,
+        "min_ns": 2836.6155,
+        "max_ns": 2997.22215
+      },
+      "speedup": 3.3359835283960275,
+      "time_reduction_percent": 70.02383280708796
+    },
+    "fanout_1": {
+      "before": {
+        "median_ns": 207173.535,
+        "min_ns": 200499.051,
+        "max_ns": 271058.167,
+        "p50_us": 182.667,
+        "p99_us": 501.051
+      },
+      "after": {
+        "median_ns": 167577.639,
+        "min_ns": 159875.029,
+        "max_ns": 180472.461,
+        "p50_us": 146.639,
+        "p99_us": 434.193
+      },
+      "speedup": 1.2362838874940827,
+      "time_reduction_percent": 19.11242958710919
+    },
+    "fanout_8": {
+      "before": {
+        "median_ns": 516433.673,
+        "min_ns": 472958.928,
+        "max_ns": 569867.171,
+        "p50_us": 455.856,
+        "p99_us": 864.956
+      },
+      "after": {
+        "median_ns": 372315.776,
+        "min_ns": 260738.188,
+        "max_ns": 416800.434,
+        "p50_us": 350.146,
+        "p99_us": 657.612
+      },
+      "speedup": 1.3870851204543102,
+      "time_reduction_percent": 27.906371047187694
+    },
+    "fanout_32": {
+      "before": {
+        "median_ns": 1359700.95,
+        "min_ns": 1309832.598,
+        "max_ns": 1460077.828,
+        "p50_us": 1293.003,
+        "p99_us": 1828.505
+      },
+      "after": {
+        "median_ns": 667485.67,
+        "min_ns": 624898.26,
+        "max_ns": 773339.311,
+        "p50_us": 624.692,
+        "p99_us": 1094.523
+      },
+      "speedup": 2.0370489002408094,
+      "time_reduction_percent": 50.90937680083256
+    }
+  },
+  "samples": {
+    "before": [
+      {
+        "build": {
+          "scenario": "build",
+          "mode": "Release(NDEBUG)",
+          "compiler": "14.2.0"
+        },
+        "publish_scalar_32": {
+          "scenario": "publish_scalar_32",
+          "iterations": 20000,
+          "seconds": 0.031909872,
+          "ns_per_op": 1595.4936,
+          "wire_bytes": 0,
+          "recipients": 0
+        },
+        "publish_vec3_32": {
+          "scenario": "publish_vec3_32",
+          "iterations": 20000,
+          "seconds": 0.04002041,
+          "ns_per_op": 2001.0205,
+          "wire_bytes": 0,
+          "recipients": 0
+        },
+        "replica_delta_32": {
+          "scenario": "replica_delta_32",
+          "iterations": 20000,
+          "seconds": 0.067259374,
+          "ns_per_op": 3362.9687,
+          "wire_bytes": 0,
+          "recipients": 0
+        },
+        "codec_roundtrip_32": {
+          "scenario": "codec_roundtrip_32",
+          "iterations": 5000,
+          "seconds": 0.016666083,
+          "ns_per_op": 3333.2166,
+          "wire_bytes": 613,
+          "recipients": 0
+        },
+        "payload_sizes": {
+          "scenario": "payload_sizes",
+          "full_bytes": 613,
+          "vec3_delta_bytes": 67
+        },
+        "lua_nested_read_32": {
+          "scenario": "lua_nested_read_32",
+          "iterations": 20000,
+          "seconds": 0.011747559,
+          "ns_per_op": 587.37795,
+          "wire_bytes": 0,
+          "recipients": 0
+        },
+        "lua_whole_write_32": {
+          "scenario": "lua_whole_write_32",
+          "iterations": 20000,
+          "seconds": 0.182754925,
+          "ns_per_op": 9137.74625,
+          "wire_bytes": 0,
+          "recipients": 0
+        },
+        "lua_nested_write_32": {
+          "scenario": "lua_nested_write_32",
+          "iterations": 20000,
+          "seconds": 0.195742537,
+          "ns_per_op": 9787.12685,
+          "wire_bytes": 0,
+          "recipients": 0
+        },
+        "fanout_1": {
+          "scenario": "fanout_1",
+          "iterations": 1000,
+          "seconds": 0.218275881,
+          "ns_per_op": 218275.881,
+          "wire_bytes": 96,
+          "recipients": 1,
+          "p50_us": 185.267,
+          "p99_us": 541.501
+        },
+        "fanout_8": {
+          "scenario": "fanout_8",
+          "iterations": 1000,
+          "seconds": 0.516433673,
+          "ns_per_op": 516433.673,
+          "wire_bytes": 96,
+          "recipients": 8,
+          "p50_us": 455.856,
+          "p99_us": 1459.905
+        },
+        "fanout_32": {
+          "scenario": "fanout_32",
+          "iterations": 1000,
+          "seconds": 1.380804696,
+          "ns_per_op": 1380804.696,
+          "wire_bytes": 96,
+          "recipients": 32,
+          "p50_us": 1282.067,
+          "p99_us": 3736.814
+        }
+      },
+      {
+        "build": {
+          "scenario": "build",
+          "mode": "Release(NDEBUG)",
+          "compiler": "14.2.0"
+        },
+        "publish_scalar_32": {
+          "scenario": "publish_scalar_32",
+          "iterations": 20000,
+          "seconds": 0.034572899,
+          "ns_per_op": 1728.64495,
+          "wire_bytes": 0,
+          "recipients": 0
+        },
+        "publish_vec3_32": {
+          "scenario": "publish_vec3_32",
+          "iterations": 20000,
+          "seconds": 0.044068404,
+          "ns_per_op": 2203.4202,
+          "wire_bytes": 0,
+          "recipients": 0
+        },
+        "replica_delta_32": {
+          "scenario": "replica_delta_32",
+          "iterations": 20000,
+          "seconds": 0.074088905,
+          "ns_per_op": 3704.44525,
+          "wire_bytes": 0,
+          "recipients": 0
+        },
+        "codec_roundtrip_32": {
+          "scenario": "codec_roundtrip_32",
+          "iterations": 5000,
+          "seconds": 0.018254467,
+          "ns_per_op": 3650.8934,
+          "wire_bytes": 613,
+          "recipients": 0
+        },
+        "payload_sizes": {
+          "scenario": "payload_sizes",
+          "full_bytes": 613,
+          "vec3_delta_bytes": 67
+        },
+        "lua_nested_read_32": {
+          "scenario": "lua_nested_read_32",
+          "iterations": 20000,
+          "seconds": 0.014760304,
+          "ns_per_op": 738.0152,
+          "wire_bytes": 0,
+          "recipients": 0
+        },
+        "lua_whole_write_32": {
+          "scenario": "lua_whole_write_32",
+          "iterations": 20000,
+          "seconds": 0.210244246,
+          "ns_per_op": 10512.2123,
+          "wire_bytes": 0,
+          "recipients": 0
+        },
+        "lua_nested_write_32": {
+          "scenario": "lua_nested_write_32",
+          "iterations": 20000,
+          "seconds": 0.207424878,
+          "ns_per_op": 10371.2439,
+          "wire_bytes": 0,
+          "recipients": 0
+        },
+        "fanout_1": {
+          "scenario": "fanout_1",
+          "iterations": 1000,
+          "seconds": 0.209935993,
+          "ns_per_op": 209935.993,
+          "wire_bytes": 96,
+          "recipients": 1,
+          "p50_us": 181.935,
+          "p99_us": 551.9
+        },
+        "fanout_8": {
+          "scenario": "fanout_8",
+          "iterations": 1000,
+          "seconds": 0.569867171,
+          "ns_per_op": 569867.171,
+          "wire_bytes": 96,
+          "recipients": 8,
+          "p50_us": 464.942,
+          "p99_us": 2855.509
+        },
+        "fanout_32": {
+          "scenario": "fanout_32",
+          "iterations": 1000,
+          "seconds": 1.309832598,
+          "ns_per_op": 1309832.598,
+          "wire_bytes": 96,
+          "recipients": 32,
+          "p50_us": 1273.985,
+          "p99_us": 1776.371
+        }
+      },
+      {
+        "build": {
+          "scenario": "build",
+          "mode": "Release(NDEBUG)",
+          "compiler": "14.2.0"
+        },
+        "publish_scalar_32": {
+          "scenario": "publish_scalar_32",
+          "iterations": 20000,
+          "seconds": 0.031389943,
+          "ns_per_op": 1569.49715,
+          "wire_bytes": 0,
+          "recipients": 0
+        },
+        "publish_vec3_32": {
+          "scenario": "publish_vec3_32",
+          "iterations": 20000,
+          "seconds": 0.040367422,
+          "ns_per_op": 2018.3711,
+          "wire_bytes": 0,
+          "recipients": 0
+        },
+        "replica_delta_32": {
+          "scenario": "replica_delta_32",
+          "iterations": 20000,
+          "seconds": 0.067903679,
+          "ns_per_op": 3395.18395,
+          "wire_bytes": 0,
+          "recipients": 0
+        },
+        "codec_roundtrip_32": {
+          "scenario": "codec_roundtrip_32",
+          "iterations": 5000,
+          "seconds": 0.017395813,
+          "ns_per_op": 3479.1626,
+          "wire_bytes": 613,
+          "recipients": 0
+        },
+        "payload_sizes": {
+          "scenario": "payload_sizes",
+          "full_bytes": 613,
+          "vec3_delta_bytes": 67
+        },
+        "lua_nested_read_32": {
+          "scenario": "lua_nested_read_32",
+          "iterations": 20000,
+          "seconds": 0.012804702,
+          "ns_per_op": 640.2351,
+          "wire_bytes": 0,
+          "recipients": 0
+        },
+        "lua_whole_write_32": {
+          "scenario": "lua_whole_write_32",
+          "iterations": 20000,
+          "seconds": 0.196111541,
+          "ns_per_op": 9805.57705,
+          "wire_bytes": 0,
+          "recipients": 0
+        },
+        "lua_nested_write_32": {
+          "scenario": "lua_nested_write_32",
+          "iterations": 20000,
+          "seconds": 0.199314881,
+          "ns_per_op": 9965.74405,
+          "wire_bytes": 0,
+          "recipients": 0
+        },
+        "fanout_1": {
+          "scenario": "fanout_1",
+          "iterations": 1000,
+          "seconds": 0.271058167,
+          "ns_per_op": 271058.167,
+          "wire_bytes": 96,
+          "recipients": 1,
+          "p50_us": 247.435,
+          "p99_us": 559.329
+        },
+        "fanout_8": {
+          "scenario": "fanout_8",
+          "iterations": 1000,
+          "seconds": 0.482945304,
+          "ns_per_op": 482945.304,
+          "wire_bytes": 96,
+          "recipients": 8,
+          "p50_us": 451.877,
+          "p99_us": 779.08
+        },
+        "fanout_32": {
+          "scenario": "fanout_32",
+          "iterations": 1000,
+          "seconds": 1.459940436,
+          "ns_per_op": 1459940.436,
+          "wire_bytes": 96,
+          "recipients": 32,
+          "p50_us": 1415.951,
+          "p99_us": 1852.935
+        }
+      },
+      {
+        "build": {
+          "scenario": "build",
+          "mode": "Release(NDEBUG)",
+          "compiler": "14.2.0"
+        },
+        "publish_scalar_32": {
+          "scenario": "publish_scalar_32",
+          "iterations": 20000,
+          "seconds": 0.031465738,
+          "ns_per_op": 1573.2869,
+          "wire_bytes": 0,
+          "recipients": 0
+        },
+        "publish_vec3_32": {
+          "scenario": "publish_vec3_32",
+          "iterations": 20000,
+          "seconds": 0.040556212,
+          "ns_per_op": 2027.8106,
+          "wire_bytes": 0,
+          "recipients": 0
+        },
+        "replica_delta_32": {
+          "scenario": "replica_delta_32",
+          "iterations": 20000,
+          "seconds": 0.06623156,
+          "ns_per_op": 3311.578,
+          "wire_bytes": 0,
+          "recipients": 0
+        },
+        "codec_roundtrip_32": {
+          "scenario": "codec_roundtrip_32",
+          "iterations": 5000,
+          "seconds": 0.017093701,
+          "ns_per_op": 3418.7402,
+          "wire_bytes": 613,
+          "recipients": 0
+        },
+        "payload_sizes": {
+          "scenario": "payload_sizes",
+          "full_bytes": 613,
+          "vec3_delta_bytes": 67
+        },
+        "lua_nested_read_32": {
+          "scenario": "lua_nested_read_32",
+          "iterations": 20000,
+          "seconds": 0.013432738,
+          "ns_per_op": 671.6369,
+          "wire_bytes": 0,
+          "recipients": 0
+        },
+        "lua_whole_write_32": {
+          "scenario": "lua_whole_write_32",
+          "iterations": 20000,
+          "seconds": 0.18390379,
+          "ns_per_op": 9195.1895,
+          "wire_bytes": 0,
+          "recipients": 0
+        },
+        "lua_nested_write_32": {
+          "scenario": "lua_nested_write_32",
+          "iterations": 20000,
+          "seconds": 0.194726879,
+          "ns_per_op": 9736.34395,
+          "wire_bytes": 0,
+          "recipients": 0
+        },
+        "fanout_1": {
+          "scenario": "fanout_1",
+          "iterations": 1000,
+          "seconds": 0.207173535,
+          "ns_per_op": 207173.535,
+          "wire_bytes": 96,
+          "recipients": 1,
+          "p50_us": 182.667,
+          "p99_us": 501.051
+        },
+        "fanout_8": {
+          "scenario": "fanout_8",
+          "iterations": 1000,
+          "seconds": 0.472958928,
+          "ns_per_op": 472958.928,
+          "wire_bytes": 96,
+          "recipients": 8,
+          "p50_us": 446.173,
+          "p99_us": 790.558
+        },
+        "fanout_32": {
+          "scenario": "fanout_32",
+          "iterations": 1000,
+          "seconds": 1.313315031,
+          "ns_per_op": 1313315.031,
+          "wire_bytes": 96,
+          "recipients": 32,
+          "p50_us": 1279.93,
+          "p99_us": 1763.711
+        }
+      },
+      {
+        "build": {
+          "scenario": "build",
+          "mode": "Release(NDEBUG)",
+          "compiler": "14.2.0"
+        },
+        "publish_scalar_32": {
+          "scenario": "publish_scalar_32",
+          "iterations": 20000,
+          "seconds": 0.030883297,
+          "ns_per_op": 1544.16485,
+          "wire_bytes": 0,
+          "recipients": 0
+        },
+        "publish_vec3_32": {
+          "scenario": "publish_vec3_32",
+          "iterations": 20000,
+          "seconds": 0.039365162,
+          "ns_per_op": 1968.2581,
+          "wire_bytes": 0,
+          "recipients": 0
+        },
+        "replica_delta_32": {
+          "scenario": "replica_delta_32",
+          "iterations": 20000,
+          "seconds": 0.067299507,
+          "ns_per_op": 3364.97535,
+          "wire_bytes": 0,
+          "recipients": 0
+        },
+        "codec_roundtrip_32": {
+          "scenario": "codec_roundtrip_32",
+          "iterations": 5000,
+          "seconds": 0.017362827,
+          "ns_per_op": 3472.5654,
+          "wire_bytes": 613,
+          "recipients": 0
+        },
+        "payload_sizes": {
+          "scenario": "payload_sizes",
+          "full_bytes": 613,
+          "vec3_delta_bytes": 67
+        },
+        "lua_nested_read_32": {
+          "scenario": "lua_nested_read_32",
+          "iterations": 20000,
+          "seconds": 0.011746419,
+          "ns_per_op": 587.32095,
+          "wire_bytes": 0,
+          "recipients": 0
+        },
+        "lua_whole_write_32": {
+          "scenario": "lua_whole_write_32",
+          "iterations": 20000,
+          "seconds": 0.183879201,
+          "ns_per_op": 9193.96005,
+          "wire_bytes": 0,
+          "recipients": 0
+        },
+        "lua_nested_write_32": {
+          "scenario": "lua_nested_write_32",
+          "iterations": 20000,
+          "seconds": 0.193409064,
+          "ns_per_op": 9670.4532,
+          "wire_bytes": 0,
+          "recipients": 0
+        },
+        "fanout_1": {
+          "scenario": "fanout_1",
+          "iterations": 1000,
+          "seconds": 0.200499051,
+          "ns_per_op": 200499.051,
+          "wire_bytes": 96,
+          "recipients": 1,
+          "p50_us": 179.489,
+          "p99_us": 403.898
+        },
+        "fanout_8": {
+          "scenario": "fanout_8",
+          "iterations": 1000,
+          "seconds": 0.565626297,
+          "ns_per_op": 565626.297,
+          "wire_bytes": 96,
+          "recipients": 8,
+          "p50_us": 532.048,
+          "p99_us": 939.091
+        },
+        "fanout_32": {
+          "scenario": "fanout_32",
+          "iterations": 1000,
+          "seconds": 1.35970095,
+          "ns_per_op": 1359700.95,
+          "wire_bytes": 96,
+          "recipients": 32,
+          "p50_us": 1296.826,
+          "p99_us": 1828.505
+        }
+      },
+      {
+        "build": {
+          "scenario": "build",
+          "mode": "Release(NDEBUG)",
+          "compiler": "14.2.0"
+        },
+        "publish_scalar_32": {
+          "scenario": "publish_scalar_32",
+          "iterations": 20000,
+          "seconds": 0.031776118,
+          "ns_per_op": 1588.8059,
+          "wire_bytes": 0,
+          "recipients": 0
+        },
+        "publish_vec3_32": {
+          "scenario": "publish_vec3_32",
+          "iterations": 20000,
+          "seconds": 0.040432488,
+          "ns_per_op": 2021.6244,
+          "wire_bytes": 0,
+          "recipients": 0
+        },
+        "replica_delta_32": {
+          "scenario": "replica_delta_32",
+          "iterations": 20000,
+          "seconds": 0.068495682,
+          "ns_per_op": 3424.7841,
+          "wire_bytes": 0,
+          "recipients": 0
+        },
+        "codec_roundtrip_32": {
+          "scenario": "codec_roundtrip_32",
+          "iterations": 5000,
+          "seconds": 0.017336593,
+          "ns_per_op": 3467.3186,
+          "wire_bytes": 613,
+          "recipients": 0
+        },
+        "payload_sizes": {
+          "scenario": "payload_sizes",
+          "full_bytes": 613,
+          "vec3_delta_bytes": 67
+        },
+        "lua_nested_read_32": {
+          "scenario": "lua_nested_read_32",
+          "iterations": 20000,
+          "seconds": 0.01300987,
+          "ns_per_op": 650.4935,
+          "wire_bytes": 0,
+          "recipients": 0
+        },
+        "lua_whole_write_32": {
+          "scenario": "lua_whole_write_32",
+          "iterations": 20000,
+          "seconds": 0.187564295,
+          "ns_per_op": 9378.21475,
+          "wire_bytes": 0,
+          "recipients": 0
+        },
+        "lua_nested_write_32": {
+          "scenario": "lua_nested_write_32",
+          "iterations": 20000,
+          "seconds": 0.197328413,
+          "ns_per_op": 9866.42065,
+          "wire_bytes": 0,
+          "recipients": 0
+        },
+        "fanout_1": {
+          "scenario": "fanout_1",
+          "iterations": 1000,
+          "seconds": 0.204946118,
+          "ns_per_op": 204946.118,
+          "wire_bytes": 96,
+          "recipients": 1,
+          "p50_us": 182.609,
+          "p99_us": 441.922
+        },
+        "fanout_8": {
+          "scenario": "fanout_8",
+          "iterations": 1000,
+          "seconds": 0.563234159,
+          "ns_per_op": 563234.159,
+          "wire_bytes": 96,
+          "recipients": 8,
+          "p50_us": 529.885,
+          "p99_us": 864.956
+        },
+        "fanout_32": {
+          "scenario": "fanout_32",
+          "iterations": 1000,
+          "seconds": 1.356537571,
+          "ns_per_op": 1356537.571,
+          "wire_bytes": 96,
+          "recipients": 32,
+          "p50_us": 1293.003,
+          "p99_us": 1859.534
+        }
+      },
+      {
+        "build": {
+          "scenario": "build",
+          "mode": "Release(NDEBUG)",
+          "compiler": "14.2.0"
+        },
+        "publish_scalar_32": {
+          "scenario": "publish_scalar_32",
+          "iterations": 20000,
+          "seconds": 0.032393354,
+          "ns_per_op": 1619.6677,
+          "wire_bytes": 0,
+          "recipients": 0
+        },
+        "publish_vec3_32": {
+          "scenario": "publish_vec3_32",
+          "iterations": 20000,
+          "seconds": 0.039717378,
+          "ns_per_op": 1985.8689,
+          "wire_bytes": 0,
+          "recipients": 0
+        },
+        "replica_delta_32": {
+          "scenario": "replica_delta_32",
+          "iterations": 20000,
+          "seconds": 0.068129149,
+          "ns_per_op": 3406.45745,
+          "wire_bytes": 0,
+          "recipients": 0
+        },
+        "codec_roundtrip_32": {
+          "scenario": "codec_roundtrip_32",
+          "iterations": 5000,
+          "seconds": 0.01731234,
+          "ns_per_op": 3462.468,
+          "wire_bytes": 613,
+          "recipients": 0
+        },
+        "payload_sizes": {
+          "scenario": "payload_sizes",
+          "full_bytes": 613,
+          "vec3_delta_bytes": 67
+        },
+        "lua_nested_read_32": {
+          "scenario": "lua_nested_read_32",
+          "iterations": 20000,
+          "seconds": 0.012559599,
+          "ns_per_op": 627.97995,
+          "wire_bytes": 0,
+          "recipients": 0
+        },
+        "lua_whole_write_32": {
+          "scenario": "lua_whole_write_32",
+          "iterations": 20000,
+          "seconds": 0.190404878,
+          "ns_per_op": 9520.2439,
+          "wire_bytes": 0,
+          "recipients": 0
+        },
+        "lua_nested_write_32": {
+          "scenario": "lua_nested_write_32",
+          "iterations": 20000,
+          "seconds": 0.19877205,
+          "ns_per_op": 9938.6025,
+          "wire_bytes": 0,
+          "recipients": 0
+        },
+        "fanout_1": {
+          "scenario": "fanout_1",
+          "iterations": 1000,
+          "seconds": 0.206809227,
+          "ns_per_op": 206809.227,
+          "wire_bytes": 96,
+          "recipients": 1,
+          "p50_us": 183.983,
+          "p99_us": 430.465
+        },
+        "fanout_8": {
+          "scenario": "fanout_8",
+          "iterations": 1000,
+          "seconds": 0.483489434,
+          "ns_per_op": 483489.434,
+          "wire_bytes": 96,
+          "recipients": 8,
+          "p50_us": 452.983,
+          "p99_us": 793.881
+        },
+        "fanout_32": {
+          "scenario": "fanout_32",
+          "iterations": 1000,
+          "seconds": 1.460077828,
+          "ns_per_op": 1460077.828,
+          "wire_bytes": 96,
+          "recipients": 32,
+          "p50_us": 1418.467,
+          "p99_us": 1825.922
+        }
+      }
+    ],
+    "after": [
+      {
+        "build": {
+          "scenario": "build",
+          "mode": "Release(NDEBUG)",
+          "compiler": "14.2.0"
+        },
+        "publish_scalar_32": {
+          "scenario": "publish_scalar_32",
+          "iterations": 20000,
+          "seconds": 0.003864041,
+          "ns_per_op": 193.20205,
+          "wire_bytes": 0,
+          "recipients": 0
+        },
+        "publish_vec3_32": {
+          "scenario": "publish_vec3_32",
+          "iterations": 20000,
+          "seconds": 0.012552997,
+          "ns_per_op": 627.64985,
+          "wire_bytes": 0,
+          "recipients": 0
+        },
+        "replica_delta_32": {
+          "scenario": "replica_delta_32",
+          "iterations": 20000,
+          "seconds": 0.015169796,
+          "ns_per_op": 758.4898,
+          "wire_bytes": 0,
+          "recipients": 0
+        },
+        "codec_roundtrip_32": {
+          "scenario": "codec_roundtrip_32",
+          "iterations": 5000,
+          "seconds": 0.017982145,
+          "ns_per_op": 3596.429,
+          "wire_bytes": 613,
+          "recipients": 0
+        },
+        "payload_sizes": {
+          "scenario": "payload_sizes",
+          "full_bytes": 613,
+          "vec3_delta_bytes": 67
+        },
+        "lua_nested_read_32": {
+          "scenario": "lua_nested_read_32",
+          "iterations": 20000,
+          "seconds": 0.011886205,
+          "ns_per_op": 594.31025,
+          "wire_bytes": 0,
+          "recipients": 0
+        },
+        "lua_whole_write_32": {
+          "scenario": "lua_whole_write_32",
+          "iterations": 20000,
+          "seconds": 0.057778558,
+          "ns_per_op": 2888.9279,
+          "wire_bytes": 0,
+          "recipients": 0
+        },
+        "lua_nested_write_32": {
+          "scenario": "lua_nested_write_32",
+          "iterations": 20000,
+          "seconds": 0.059828058,
+          "ns_per_op": 2991.4029,
+          "wire_bytes": 0,
+          "recipients": 0
+        },
+        "fanout_1": {
+          "scenario": "fanout_1",
+          "iterations": 1000,
+          "seconds": 0.180472461,
+          "ns_per_op": 180472.461,
+          "wire_bytes": 96,
+          "recipients": 1,
+          "p50_us": 150.164,
+          "p99_us": 501.596
+        },
+        "fanout_8": {
+          "scenario": "fanout_8",
+          "iterations": 1000,
+          "seconds": 0.306684562,
+          "ns_per_op": 306684.562,
+          "wire_bytes": 96,
+          "recipients": 8,
+          "p50_us": 261.802,
+          "p99_us": 819.185
+        },
+        "fanout_32": {
+          "scenario": "fanout_32",
+          "iterations": 1000,
+          "seconds": 0.654271218,
+          "ns_per_op": 654271.218,
+          "wire_bytes": 96,
+          "recipients": 32,
+          "p50_us": 615.82,
+          "p99_us": 1195.096
+        }
+      },
+      {
+        "build": {
+          "scenario": "build",
+          "mode": "Release(NDEBUG)",
+          "compiler": "14.2.0"
+        },
+        "publish_scalar_32": {
+          "scenario": "publish_scalar_32",
+          "iterations": 20000,
+          "seconds": 0.003940301,
+          "ns_per_op": 197.01505,
+          "wire_bytes": 0,
+          "recipients": 0
+        },
+        "publish_vec3_32": {
+          "scenario": "publish_vec3_32",
+          "iterations": 20000,
+          "seconds": 0.01225072,
+          "ns_per_op": 612.536,
+          "wire_bytes": 0,
+          "recipients": 0
+        },
+        "replica_delta_32": {
+          "scenario": "replica_delta_32",
+          "iterations": 20000,
+          "seconds": 0.015015546,
+          "ns_per_op": 750.7773,
+          "wire_bytes": 0,
+          "recipients": 0
+        },
+        "codec_roundtrip_32": {
+          "scenario": "codec_roundtrip_32",
+          "iterations": 5000,
+          "seconds": 0.017913167,
+          "ns_per_op": 3582.6334,
+          "wire_bytes": 613,
+          "recipients": 0
+        },
+        "payload_sizes": {
+          "scenario": "payload_sizes",
+          "full_bytes": 613,
+          "vec3_delta_bytes": 67
+        },
+        "lua_nested_read_32": {
+          "scenario": "lua_nested_read_32",
+          "iterations": 20000,
+          "seconds": 0.015209577,
+          "ns_per_op": 760.47885,
+          "wire_bytes": 0,
+          "recipients": 0
+        },
+        "lua_whole_write_32": {
+          "scenario": "lua_whole_write_32",
+          "iterations": 20000,
+          "seconds": 0.055880155,
+          "ns_per_op": 2794.00775,
+          "wire_bytes": 0,
+          "recipients": 0
+        },
+        "lua_nested_write_32": {
+          "scenario": "lua_nested_write_32",
+          "iterations": 20000,
+          "seconds": 0.059151495,
+          "ns_per_op": 2957.57475,
+          "wire_bytes": 0,
+          "recipients": 0
+        },
+        "fanout_1": {
+          "scenario": "fanout_1",
+          "iterations": 1000,
+          "seconds": 0.173328651,
+          "ns_per_op": 173328.651,
+          "wire_bytes": 96,
+          "recipients": 1,
+          "p50_us": 150.951,
+          "p99_us": 454.313
+        },
+        "fanout_8": {
+          "scenario": "fanout_8",
+          "iterations": 1000,
+          "seconds": 0.416800434,
+          "ns_per_op": 416800.434,
+          "wire_bytes": 96,
+          "recipients": 8,
+          "p50_us": 370.051,
+          "p99_us": 1246.694
+        },
+        "fanout_32": {
+          "scenario": "fanout_32",
+          "iterations": 1000,
+          "seconds": 0.773339311,
+          "ns_per_op": 773339.311,
+          "wire_bytes": 96,
+          "recipients": 32,
+          "p50_us": 663.904,
+          "p99_us": 2826.101
+        }
+      },
+      {
+        "build": {
+          "scenario": "build",
+          "mode": "Release(NDEBUG)",
+          "compiler": "14.2.0"
+        },
+        "publish_scalar_32": {
+          "scenario": "publish_scalar_32",
+          "iterations": 20000,
+          "seconds": 0.003811641,
+          "ns_per_op": 190.58205,
+          "wire_bytes": 0,
+          "recipients": 0
+        },
+        "publish_vec3_32": {
+          "scenario": "publish_vec3_32",
+          "iterations": 20000,
+          "seconds": 0.012512563,
+          "ns_per_op": 625.62815,
+          "wire_bytes": 0,
+          "recipients": 0
+        },
+        "replica_delta_32": {
+          "scenario": "replica_delta_32",
+          "iterations": 20000,
+          "seconds": 0.01471762,
+          "ns_per_op": 735.881,
+          "wire_bytes": 0,
+          "recipients": 0
+        },
+        "codec_roundtrip_32": {
+          "scenario": "codec_roundtrip_32",
+          "iterations": 5000,
+          "seconds": 0.017239274,
+          "ns_per_op": 3447.8548,
+          "wire_bytes": 613,
+          "recipients": 0
+        },
+        "payload_sizes": {
+          "scenario": "payload_sizes",
+          "full_bytes": 613,
+          "vec3_delta_bytes": 67
+        },
+        "lua_nested_read_32": {
+          "scenario": "lua_nested_read_32",
+          "iterations": 20000,
+          "seconds": 0.012404299,
+          "ns_per_op": 620.21495,
+          "wire_bytes": 0,
+          "recipients": 0
+        },
+        "lua_whole_write_32": {
+          "scenario": "lua_whole_write_32",
+          "iterations": 20000,
+          "seconds": 0.054210542,
+          "ns_per_op": 2710.5271,
+          "wire_bytes": 0,
+          "recipients": 0
+        },
+        "lua_nested_write_32": {
+          "scenario": "lua_nested_write_32",
+          "iterations": 20000,
+          "seconds": 0.058456045,
+          "ns_per_op": 2922.80225,
+          "wire_bytes": 0,
+          "recipients": 0
+        },
+        "fanout_1": {
+          "scenario": "fanout_1",
+          "iterations": 1000,
+          "seconds": 0.163266241,
+          "ns_per_op": 163266.241,
+          "wire_bytes": 96,
+          "recipients": 1,
+          "p50_us": 145.949,
+          "p99_us": 387.42
+        },
+        "fanout_8": {
+          "scenario": "fanout_8",
+          "iterations": 1000,
+          "seconds": 0.277824417,
+          "ns_per_op": 277824.417,
+          "wire_bytes": 96,
+          "recipients": 8,
+          "p50_us": 249.699,
+          "p99_us": 578.23
+        },
+        "fanout_32": {
+          "scenario": "fanout_32",
+          "iterations": 1000,
+          "seconds": 0.661122656,
+          "ns_per_op": 661122.656,
+          "wire_bytes": 96,
+          "recipients": 32,
+          "p50_us": 614.063,
+          "p99_us": 965.953
+        }
+      },
+      {
+        "build": {
+          "scenario": "build",
+          "mode": "Release(NDEBUG)",
+          "compiler": "14.2.0"
+        },
+        "publish_scalar_32": {
+          "scenario": "publish_scalar_32",
+          "iterations": 20000,
+          "seconds": 0.003913692,
+          "ns_per_op": 195.6846,
+          "wire_bytes": 0,
+          "recipients": 0
+        },
+        "publish_vec3_32": {
+          "scenario": "publish_vec3_32",
+          "iterations": 20000,
+          "seconds": 0.0125478,
+          "ns_per_op": 627.39,
+          "wire_bytes": 0,
+          "recipients": 0
+        },
+        "replica_delta_32": {
+          "scenario": "replica_delta_32",
+          "iterations": 20000,
+          "seconds": 0.014881004,
+          "ns_per_op": 744.0502,
+          "wire_bytes": 0,
+          "recipients": 0
+        },
+        "codec_roundtrip_32": {
+          "scenario": "codec_roundtrip_32",
+          "iterations": 5000,
+          "seconds": 0.017733158,
+          "ns_per_op": 3546.6316,
+          "wire_bytes": 613,
+          "recipients": 0
+        },
+        "payload_sizes": {
+          "scenario": "payload_sizes",
+          "full_bytes": 613,
+          "vec3_delta_bytes": 67
+        },
+        "lua_nested_read_32": {
+          "scenario": "lua_nested_read_32",
+          "iterations": 20000,
+          "seconds": 0.012818348,
+          "ns_per_op": 640.9174,
+          "wire_bytes": 0,
+          "recipients": 0
+        },
+        "lua_whole_write_32": {
+          "scenario": "lua_whole_write_32",
+          "iterations": 20000,
+          "seconds": 0.057044435,
+          "ns_per_op": 2852.22175,
+          "wire_bytes": 0,
+          "recipients": 0
+        },
+        "lua_nested_write_32": {
+          "scenario": "lua_nested_write_32",
+          "iterations": 20000,
+          "seconds": 0.058412136,
+          "ns_per_op": 2920.6068,
+          "wire_bytes": 0,
+          "recipients": 0
+        },
+        "fanout_1": {
+          "scenario": "fanout_1",
+          "iterations": 1000,
+          "seconds": 0.171673942,
+          "ns_per_op": 171673.942,
+          "wire_bytes": 96,
+          "recipients": 1,
+          "p50_us": 147.421,
+          "p99_us": 437.037
+        },
+        "fanout_8": {
+          "scenario": "fanout_8",
+          "iterations": 1000,
+          "seconds": 0.375362703,
+          "ns_per_op": 375362.703,
+          "wire_bytes": 96,
+          "recipients": 8,
+          "p50_us": 353.126,
+          "p99_us": 657.612
+        },
+        "fanout_32": {
+          "scenario": "fanout_32",
+          "iterations": 1000,
+          "seconds": 0.684621647,
+          "ns_per_op": 684621.647,
+          "wire_bytes": 96,
+          "recipients": 32,
+          "p50_us": 641.128,
+          "p99_us": 1083.613
+        }
+      },
+      {
+        "build": {
+          "scenario": "build",
+          "mode": "Release(NDEBUG)",
+          "compiler": "14.2.0"
+        },
+        "publish_scalar_32": {
+          "scenario": "publish_scalar_32",
+          "iterations": 20000,
+          "seconds": 0.003698101,
+          "ns_per_op": 184.90505,
+          "wire_bytes": 0,
+          "recipients": 0
+        },
+        "publish_vec3_32": {
+          "scenario": "publish_vec3_32",
+          "iterations": 20000,
+          "seconds": 0.012173762,
+          "ns_per_op": 608.6881,
+          "wire_bytes": 0,
+          "recipients": 0
+        },
+        "replica_delta_32": {
+          "scenario": "replica_delta_32",
+          "iterations": 20000,
+          "seconds": 0.014758344,
+          "ns_per_op": 737.9172,
+          "wire_bytes": 0,
+          "recipients": 0
+        },
+        "codec_roundtrip_32": {
+          "scenario": "codec_roundtrip_32",
+          "iterations": 5000,
+          "seconds": 0.019041128,
+          "ns_per_op": 3808.2256,
+          "wire_bytes": 613,
+          "recipients": 0
+        },
+        "payload_sizes": {
+          "scenario": "payload_sizes",
+          "full_bytes": 613,
+          "vec3_delta_bytes": 67
+        },
+        "lua_nested_read_32": {
+          "scenario": "lua_nested_read_32",
+          "iterations": 20000,
+          "seconds": 0.011998758,
+          "ns_per_op": 599.9379,
+          "wire_bytes": 0,
+          "recipients": 0
+        },
+        "lua_whole_write_32": {
+          "scenario": "lua_whole_write_32",
+          "iterations": 20000,
+          "seconds": 0.055984731,
+          "ns_per_op": 2799.23655,
+          "wire_bytes": 0,
+          "recipients": 0
+        },
+        "lua_nested_write_32": {
+          "scenario": "lua_nested_write_32",
+          "iterations": 20000,
+          "seconds": 0.059944443,
+          "ns_per_op": 2997.22215,
+          "wire_bytes": 0,
+          "recipients": 0
+        },
+        "fanout_1": {
+          "scenario": "fanout_1",
+          "iterations": 1000,
+          "seconds": 0.164622995,
+          "ns_per_op": 164622.995,
+          "wire_bytes": 96,
+          "recipients": 1,
+          "p50_us": 146.639,
+          "p99_us": 375.975
+        },
+        "fanout_8": {
+          "scenario": "fanout_8",
+          "iterations": 1000,
+          "seconds": 0.373139215,
+          "ns_per_op": 373139.215,
+          "wire_bytes": 96,
+          "recipients": 8,
+          "p50_us": 350.146,
+          "p99_us": 652.804
+        },
+        "fanout_32": {
+          "scenario": "fanout_32",
+          "iterations": 1000,
+          "seconds": 0.66748567,
+          "ns_per_op": 667485.67,
+          "wire_bytes": 96,
+          "recipients": 32,
+          "p50_us": 624.692,
+          "p99_us": 1094.523
+        }
+      },
+      {
+        "build": {
+          "scenario": "build",
+          "mode": "Release(NDEBUG)",
+          "compiler": "14.2.0"
+        },
+        "publish_scalar_32": {
+          "scenario": "publish_scalar_32",
+          "iterations": 20000,
+          "seconds": 0.003741307,
+          "ns_per_op": 187.06535,
+          "wire_bytes": 0,
+          "recipients": 0
+        },
+        "publish_vec3_32": {
+          "scenario": "publish_vec3_32",
+          "iterations": 20000,
+          "seconds": 0.012552263,
+          "ns_per_op": 627.61315,
+          "wire_bytes": 0,
+          "recipients": 0
+        },
+        "replica_delta_32": {
+          "scenario": "replica_delta_32",
+          "iterations": 20000,
+          "seconds": 0.014677923,
+          "ns_per_op": 733.89615,
+          "wire_bytes": 0,
+          "recipients": 0
+        },
+        "codec_roundtrip_32": {
+          "scenario": "codec_roundtrip_32",
+          "iterations": 5000,
+          "seconds": 0.018105899,
+          "ns_per_op": 3621.1798,
+          "wire_bytes": 613,
+          "recipients": 0
+        },
+        "payload_sizes": {
+          "scenario": "payload_sizes",
+          "full_bytes": 613,
+          "vec3_delta_bytes": 67
+        },
+        "lua_nested_read_32": {
+          "scenario": "lua_nested_read_32",
+          "iterations": 20000,
+          "seconds": 0.011864456,
+          "ns_per_op": 593.2228,
+          "wire_bytes": 0,
+          "recipients": 0
+        },
+        "lua_whole_write_32": {
+          "scenario": "lua_whole_write_32",
+          "iterations": 20000,
+          "seconds": 0.054649705,
+          "ns_per_op": 2732.48525,
+          "wire_bytes": 0,
+          "recipients": 0
+        },
+        "lua_nested_write_32": {
+          "scenario": "lua_nested_write_32",
+          "iterations": 20000,
+          "seconds": 0.059424125,
+          "ns_per_op": 2971.20625,
+          "wire_bytes": 0,
+          "recipients": 0
+        },
+        "fanout_1": {
+          "scenario": "fanout_1",
+          "iterations": 1000,
+          "seconds": 0.167577639,
+          "ns_per_op": 167577.639,
+          "wire_bytes": 96,
+          "recipients": 1,
+          "p50_us": 146.024,
+          "p99_us": 434.193
+        },
+        "fanout_8": {
+          "scenario": "fanout_8",
+          "iterations": 1000,
+          "seconds": 0.372315776,
+          "ns_per_op": 372315.776,
+          "wire_bytes": 96,
+          "recipients": 8,
+          "p50_us": 350.845,
+          "p99_us": 658.932
+        },
+        "fanout_32": {
+          "scenario": "fanout_32",
+          "iterations": 1000,
+          "seconds": 0.69170078,
+          "ns_per_op": 691700.78,
+          "wire_bytes": 96,
+          "recipients": 32,
+          "p50_us": 633.073,
+          "p99_us": 1377.563
+        }
+      },
+      {
+        "build": {
+          "scenario": "build",
+          "mode": "Release(NDEBUG)",
+          "compiler": "14.2.0"
+        },
+        "publish_scalar_32": {
+          "scenario": "publish_scalar_32",
+          "iterations": 20000,
+          "seconds": 0.003685541,
+          "ns_per_op": 184.27705,
+          "wire_bytes": 0,
+          "recipients": 0
+        },
+        "publish_vec3_32": {
+          "scenario": "publish_vec3_32",
+          "iterations": 20000,
+          "seconds": 0.012096555,
+          "ns_per_op": 604.82775,
+          "wire_bytes": 0,
+          "recipients": 0
+        },
+        "replica_delta_32": {
+          "scenario": "replica_delta_32",
+          "iterations": 20000,
+          "seconds": 0.014550082,
+          "ns_per_op": 727.5041,
+          "wire_bytes": 0,
+          "recipients": 0
+        },
+        "codec_roundtrip_32": {
+          "scenario": "codec_roundtrip_32",
+          "iterations": 5000,
+          "seconds": 0.017880259,
+          "ns_per_op": 3576.0518,
+          "wire_bytes": 613,
+          "recipients": 0
+        },
+        "payload_sizes": {
+          "scenario": "payload_sizes",
+          "full_bytes": 613,
+          "vec3_delta_bytes": 67
+        },
+        "lua_nested_read_32": {
+          "scenario": "lua_nested_read_32",
+          "iterations": 20000,
+          "seconds": 0.011992449,
+          "ns_per_op": 599.62245,
+          "wire_bytes": 0,
+          "recipients": 0
+        },
+        "lua_whole_write_32": {
+          "scenario": "lua_whole_write_32",
+          "iterations": 20000,
+          "seconds": 0.053680711,
+          "ns_per_op": 2684.03555,
+          "wire_bytes": 0,
+          "recipients": 0
+        },
+        "lua_nested_write_32": {
+          "scenario": "lua_nested_write_32",
+          "iterations": 20000,
+          "seconds": 0.05673231,
+          "ns_per_op": 2836.6155,
+          "wire_bytes": 0,
+          "recipients": 0
+        },
+        "fanout_1": {
+          "scenario": "fanout_1",
+          "iterations": 1000,
+          "seconds": 0.159875029,
+          "ns_per_op": 159875.029,
+          "wire_bytes": 96,
+          "recipients": 1,
+          "p50_us": 144.632,
+          "p99_us": 353.439
+        },
+        "fanout_8": {
+          "scenario": "fanout_8",
+          "iterations": 1000,
+          "seconds": 0.260738188,
+          "ns_per_op": 260738.188,
+          "wire_bytes": 96,
+          "recipients": 8,
+          "p50_us": 242.663,
+          "p99_us": 478.471
+        },
+        "fanout_32": {
+          "scenario": "fanout_32",
+          "iterations": 1000,
+          "seconds": 0.62489826,
+          "ns_per_op": 624898.26,
+          "wire_bytes": 96,
+          "recipients": 32,
+          "p50_us": 610.115,
+          "p99_us": 876.898
+        }
+      }
+    ]
+  }
+}

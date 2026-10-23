@@ -49,6 +49,8 @@ int main() {
         AttributeUpdate full{0, 7, true, {{"negative", std::numeric_limits<std::int64_t>::min()}, {"binary", std::string("a\0b", 3)}, {"real", 0.25}, {"flag", true}}};
         auto bytes = encode_attributes(full);
         CHECK(decode_attributes(bytes).values == full.values);
+        CHECK(attribute_wire_size(full)==bytes.size());
+        CHECK(attribute_wire_size(full.values)==bytes.size());
         for (std::size_t i = 0; i < bytes.size(); ++i) denied([&] { decode_attributes(std::string_view(bytes).substr(0, i)); });
         denied([&] { decode_attributes(bytes + "trailing"); });
         auto duplicate = encode_attributes({0, 1, true, {{"x", true}}}); duplicate[22] = 2;
@@ -62,6 +64,30 @@ int main() {
         CHECK(!std::get<bool>(replica.values().at("flag")));
         CHECK(!replica.apply(full)); // late old snapshot cannot roll back
         CHECK(replica.apply(AttributeUpdate{0, 9, true, {{"flag", false}}})); CHECK(replica.values().size() == 1);
+        // Sparse updates must enforce limits on the merged image, and leave
+        // every field/revision untouched if a later field exceeds a limit.
+        AttributeReplica bounded;
+        AttributeUpdate many{0,1,true,{}};
+        for(int i=0;i<256;++i) many.values.emplace("p"+std::to_string(i),false);
+        CHECK(bounded.apply(many)); auto saved=bounded.values();
+        denied([&] { bounded.apply({1,2,false,{{"p0",true},{"z_new",true}}}); });
+        CHECK(bounded.values()==saved && bounded.revision()==1);
+        AttributeUpdate large{0,1,true,{}};
+        for(int i=0;i<15;++i) large.values.emplace("p"+std::to_string(i),std::string(65536,'x'));
+        CHECK(bounded.apply(large)); saved=bounded.values();
+        denied([&] { bounded.apply({1,2,false,{{"p0",true},{"q",std::string(65536,'x')},{"r",std::string(65536,'x')}}}); });
+        CHECK(bounded.values()==saved && bounded.revision()==1);
+        AttributeArray nodes(256,AttributeValue(false));
+        AttributeUpdate wide{0,2,true,{}};
+        for(int i=0;i<15;++i) wide.values.emplace("p"+std::to_string(i),nodes);
+        CHECK(bounded.apply(wide)); saved=bounded.values();
+        denied([&] { bounded.apply({2,3,false,{{"p0",true},{"q",nodes},{"r",nodes}}}); });
+        CHECK(bounded.values()==saved && bounded.revision()==2);
+        CHECK(bounded.apply({2,3,false,{{"p0",true},{"q",false}}}));
+        CHECK(bounded.values().size()==16 && bounded.revision()==3);
+        auto revision=entity.revision();
+        CHECK(entity.publish({revision,{{"hp",std::int64_t(80)}}}));
+        CHECK(entity.revision()==revision && entity.changes(revision,{"alice",true}).values.empty());
         schema.methods.emplace("unrestricted", RpcPolicy{}); denied([&] { schema.validate(); });
         std::cout << "PASS schema permissions, filtered snapshots/deltas, staged publication, persistence and stale revision rejection\n";
     } catch (const std::exception& e) { std::cerr << e.what() << '\n'; return 1; }
