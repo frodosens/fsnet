@@ -6,7 +6,7 @@
 | --- | --- | --- |
 | 服务端请求门面 | `Class:register()` 后由请求激活 | server 权限，mailbox、fencing 与提交后同步 |
 | 纯本地实例 | `Class:spawn_local(values, {id=...})` | 只有 `authority='driver'` 的属性可写，无持久化或联网 |
-| 客户端确认副本 | `Class:watch(id, {timeout_ms=...})` | 自动读取原生同步值；直接赋值拒绝，写入使用提案 |
+| 客户端确认副本 | `Class:watch(id, {timeout_ms=...})` | 自动读取原生同步值；有写权限时赋值自动提交提案，其他写入拒绝 |
 
 ```lua
 local Circle = fsnet.Entity:extend('Circle', {owner='id'})
@@ -50,7 +50,7 @@ end)
 读取时拒绝，不会用默认值冒充服务器私有属性。断线、owner/观察权限变化和注销订阅后
 访问会拒绝；`close` 在撤销后仍可调用，并可重复。GC/引擎停止也会释放订阅。
 
-可写客户端属性需要提交提案：
+可写客户端属性的赋值会自动提交提案（需要异步任务）；需要控制重试参数时显式调用：
 
 ```lua
 replica:write({display_name='Alice'}, {
@@ -80,3 +80,6 @@ ClientScriptHost 和 LuaEngine；每个 Node 一个属性客户端。服务端�
 
 服务端登录后自动创建客户端表现、LocalPlayer/RemotePlayer 工厂与控制目标同步见
 [实体存在性与表现](ENTITY_PRESENCE.md)。
+
+结构、固定数组与 `self.position.x = ...` 的自动提交规则见
+[结构属性](STRUCTURED_ATTRIBUTES.md)。

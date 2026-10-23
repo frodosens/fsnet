@@ -108,3 +108,6 @@ C++ 的 `ClusterClient` 支持静态成员健康探测、指数退避重连、�
 
 服务端登录创建/恢复实体、自动 LocalPlayer/RemotePlayer 表现、控制目标与移除同步见
 [实体存在性与表现](docs/ENTITY_PRESENCE.md)，可运行示例见 [场景客户端](examples/lua/client/player_scene.lua)。
+
+类型化 struct、vec3/mat4x4、固定数组，以及整值/字段赋值自动提交和同步见
+[结构属性](docs/STRUCTURED_ATTRIBUTES.md)。

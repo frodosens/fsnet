@@ -6,21 +6,71 @@ namespace fsnet {
 namespace {
 bool reads(Access a) { return a == Access::read || a == Access::read_write; }
 bool writes(Access a) { return a == Access::write || a == Access::read_write; }
-bool valid(const AttributeDefinition& d, const AttributeValue& v) {
-    if (v.index() != static_cast<std::size_t>(d.type)) return false;
-    if (auto n = std::get_if<std::int64_t>(&v)) return *n >= d.minimum && *n <= d.maximum;
-    if (auto n = std::get_if<double>(&v)) return std::isfinite(*n);
-    if (auto s = std::get_if<std::string>(&v)) return s->size() <= 64 * 1024;
+bool valid(const AttributeDefinition& d, const AttributeValue& v,unsigned depth=0,std::size_t* remaining=nullptr) {
+    std::size_t budget=4096; if(!remaining) remaining=&budget;
+    if(depth>8 || !*remaining || v.index()!=static_cast<std::size_t>(d.type)) return false;
+    --*remaining;
+    if(auto n=std::get_if<std::int64_t>(&v)) return *n>=d.minimum && *n<=d.maximum;
+    if(auto n=std::get_if<double>(&v)) return std::isfinite(*n);
+    if(auto text=std::get_if<std::string>(&v)) return text->size()<=65536;
+    if(auto fields=std::get_if<AttributeStruct>(&v)) {
+        if(fields->size()!=d.fields.size()) return false;
+        for(const auto& [name,child]:*fields) {
+            auto it=d.fields.find(name);
+            if(it==d.fields.end() || !valid(it->second,child,depth+1,remaining)) return false;
+        }
+    }
+    if(auto items=std::get_if<AttributeArray>(&v)) {
+        if(!d.element || items->size()!=d.length) return false;
+        for(const auto& child:*items) if(!valid(*d.element,child,depth+1,remaining)) return false;
+    }
     return true;
 }
 bool name_valid(const std::string& s) {
     return !s.empty() && s.size() <= 127 && s.find_first_of(".\0", 0, 2) == std::string::npos && s.front() != '$';
 }
+void definition_valid(const AttributeDefinition& d,unsigned depth,std::size_t& remaining) {
+    if(depth>8 || !remaining) throw std::invalid_argument("attribute schema depth/node limit");
+    --remaining;
+    if(d.minimum>d.maximum) throw std::invalid_argument("invalid attribute range");
+    if(d.type==AttributeType::structure) {
+        if(d.fields.empty() || d.fields.size()>64 || d.element || d.length) throw std::invalid_argument("invalid struct schema");
+        for(const auto& [name,child]:d.fields) {
+            if(!name_valid(name)) throw std::invalid_argument("invalid struct field");
+            definition_valid(child,depth+1,remaining);
+        }
+    } else if(d.type==AttributeType::array) {
+        if(!d.element || !d.fields.empty() || !d.length || d.length>256) throw std::invalid_argument("invalid fixed array schema");
+        definition_valid(*d.element,depth+1,remaining);
+    } else if(!d.fields.empty() || d.element || d.length || static_cast<unsigned>(d.type)>5)
+        throw std::invalid_argument("invalid scalar schema");
+}
+}
+std::size_t attribute_image_bytes(const AttributeStruct& values) {
+    std::size_t bytes=256;
+    for(const auto& [name,value]:values) {
+        bytes+=256+name.size();
+        if(auto text=std::get_if<std::string>(&value)) bytes+=text->size();
+        else if(auto fields=std::get_if<AttributeStruct>(&value)) bytes+=attribute_image_bytes(*fields);
+        else if(auto items=std::get_if<AttributeArray>(&value)) {
+            // Reuse the same recursive charge without allocating a map.
+            auto charge=[&](auto&& recurse,const AttributeValue& child)->std::size_t {
+                if(auto s=std::get_if<std::string>(&child)) return 256+s->size();
+                if(auto f=std::get_if<AttributeStruct>(&child)) return attribute_image_bytes(*f);
+                if(auto a=std::get_if<AttributeArray>(&child)) { std::size_t n=256; for(const auto& v:*a) n+=recurse(recurse,v); return n; }
+                return 256;
+            };
+            for(const auto& child:*items) bytes+=charge(charge,child);
+        }
+    }
+    return bytes;
 }
 void EntitySchema::validate() const {
     if (attributes.size() > 256 || methods.size() > 256) throw std::invalid_argument("entity schema limit");
+    std::size_t remaining=4096,values_remaining=4096;
     for (const auto& [name, d] : attributes) {
-        if (!name_valid(name) || d.minimum > d.maximum || !valid(d, d.initial)) throw std::invalid_argument("invalid attribute definition");
+        definition_valid(d,0,remaining);
+        if (!name_valid(name) || d.minimum > d.maximum || !valid(d, d.initial,0,&values_remaining)) throw std::invalid_argument("invalid attribute definition");
         if (d.visibility != Visibility::none && !reads(d.client)) throw std::invalid_argument("cannot synchronize unreadable attribute");
     }
     for (const auto& [name, p] : methods)

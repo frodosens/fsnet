@@ -124,7 +124,7 @@ struct AttributeReplication::Impl : std::enable_shared_from_this<Impl> {
                     std::string permission;
                     auto next=self->filtered(*sub,*definition,decode_attributes(result.data),&permission);
                     if(self->stopped || !self->subscriptions.contains(id)) return;
-                    auto count=encode_attributes(next).size();
+                    auto count=encode_attributes(next).size()+attribute_image_bytes(next.values);
                     if(count>512*1024) return self->remove(id,Status::overloaded,false);
                     if(count>self->limits.image_bytes-self->bytes) return self->remove(id,Status::overloaded,false);
                     auto response=packet(id,sub->type,sub->entity,Status::ok,&next,static_cast<std::uint32_t>(self->limits.lease.count()));
@@ -251,7 +251,7 @@ struct AttributeReplication::Impl : std::enable_shared_from_this<Impl> {
                 else if(update.values.empty() && (next.revision==sub->last.revision || sub->identity.subject!=host->owner_subject(sub->type,sub->entity))) continue;
                 // Owners need even an empty delta to advance their optimistic-write
                 // revision after server-private changes. Observers may skip it.
-                auto count=encode_attributes(next).size();
+                auto count=encode_attributes(next).size()+attribute_image_bytes(next.values);
                 if(count>limits.image_bytes-bytes+sub->bytes) { remove(id,Status::overloaded); continue; }
                 if(!node.notify(sub->identity.peer,channel,packet(id,sub->type,sub->entity,Status::ok,&update))) { node.close(sub->identity.peer); remove(id,Status::disconnected,false); continue; }
                 bytes=bytes-sub->bytes+count; sub->bytes=count; sub->last=std::move(next); sub->permission=std::move(permission);
@@ -365,7 +365,7 @@ struct AttributeClient::Impl : std::enable_shared_from_this<Impl> {
                 if(projections.size()+pending.size()>=256) throw std::length_error("entity projection limit");
                 auto p=std::make_shared<Projection>(Projection{message.type,message.id,{},Clock::now(),std::chrono::milliseconds(message.lease_ms/3),0,true,bool(flags&1),bool(flags&2)});
                 if(!p->replica.apply(*message.update)) throw std::invalid_argument("invalid entity snapshot");
-                p->bytes=encode_attributes(*message.update).size();
+                p->bytes=encode_attributes(*message.update).size()+attribute_image_bytes(message.update->values);
                 if(p->bytes>16*1024*1024-bytes) throw std::length_error("entity image budget");
                 projections.emplace(id,p); bytes+=p->bytes;
                 change(id,Status::ok,&p->replica);
@@ -400,7 +400,7 @@ struct AttributeClient::Impl : std::enable_shared_from_this<Impl> {
             if(message.status!=Status::ok) return remove(message.subscription,message.status,false);
             auto next=projection->replica;
             if(!next.apply(*message.update)) return remove(message.subscription,Status::rejected,true);
-            auto count=encode_attributes({0,next.revision(),true,next.values()}).size();
+            auto count=encode_attributes({0,next.revision(),true,next.values()}).size()+attribute_image_bytes(next.values());
             if(count>16*1024*1024-bytes+projection->bytes) return remove(message.subscription,Status::overloaded,true);
             bytes=bytes-projection->bytes+count; projection->bytes=count; projection->replica=std::move(next);
             change(message.subscription,Status::ok,&projection->replica);
@@ -428,7 +428,7 @@ struct AttributeClient::Impl : std::enable_shared_from_this<Impl> {
                     throw std::runtime_error("invalid watch response");
                 auto projection=std::make_shared<Projection>(Projection{std::move(pending.type),std::move(pending.entity),{},Clock::now(),std::chrono::milliseconds(message.lease_ms/3),0});
                 if(!projection->replica.apply(*message.update)) throw std::runtime_error("invalid initial snapshot");
-                auto count=encode_attributes({0,projection->replica.revision(),true,projection->replica.values()}).size();
+                auto count=encode_attributes({0,projection->replica.revision(),true,projection->replica.values()}).size()+attribute_image_bytes(projection->replica.values());
                 if(count>16*1024*1024-self->bytes) throw std::length_error("client replica budget exceeded");
                 projection->bytes=count;
                 self->projections.emplace(subscription,projection); self->bytes+=count;

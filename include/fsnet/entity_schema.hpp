@@ -1,6 +1,7 @@
 #pragma once
 #include <cstdint>
 #include <map>
+#include <memory>
 #include <limits>
 #include <set>
 #include <stdexcept>
@@ -24,8 +25,16 @@ struct RpcPolicy {
             (!owner_only || (!identity.subject.empty() && identity.subject == owner));
     }
 };
-using AttributeValue = std::variant<std::int64_t, double, bool, std::string>;
-enum class AttributeType { integer, number, boolean, string };
+struct AttributeValue;
+using AttributeStruct = std::map<std::string, AttributeValue>;
+using AttributeArray = std::vector<AttributeValue>;
+// Owned recursive values: copies cannot alias another entity or a Lua table.
+struct AttributeValue : std::variant<std::int64_t,double,bool,std::string,AttributeStruct,AttributeArray> {
+    using variant::variant;
+    using variant::operator=;
+};
+std::size_t attribute_image_bytes(const AttributeStruct&); // conservative native value allocation charge
+enum class AttributeType { integer, number, boolean, string, structure, array };
 struct AttributeDefinition {
     AttributeType type;
     AttributeValue initial;
@@ -34,6 +43,9 @@ struct AttributeDefinition {
     bool persist = true;
     std::int64_t minimum = std::numeric_limits<std::int64_t>::min(), maximum = std::numeric_limits<std::int64_t>::max();
     bool driver_authority = false; // local simulation may write; network authority is unchanged
+    std::map<std::string, AttributeDefinition> fields{};
+    std::shared_ptr<const AttributeDefinition> element{};
+    std::size_t length = 0;
 };
 struct EntitySchema {
     std::map<std::string, AttributeDefinition> attributes;

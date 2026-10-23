@@ -87,3 +87,12 @@ AttributeReplication 将连接/认证主体、实体代数与自动订阅绑定�
 表现类不改变服务器实体类型，也不参与服务器授权。场景/AOI 策略留在 Lua；本阶段只
 提供直连 owner 的存在性同步与单连接控制，不提供持久化场景或 Gateway 委托。详见
 [ENTITY_PRESENCE.md](ENTITY_PRESENCE.md)。
+
+## 结构属性
+
+EntityAttributes 使用拥有所有权的递归结构/固定数组值，schema 显式定义叶子类型、字段
+和数组维度。Lua 字段视图沿实体与路径读取当前值，赋值构建完整顶层属性候选；服务器
+经同一 mailbox/CAS 提交后广播，客户端可写属性赋值经原有 write 通道校验，不提前修改
+确认副本。预测载体仍只进行本地变换，禁止回放联网。FSA1 扩展结构/数组 tag，保持
+标量 tag 不变；编码、默认值展开、字段视图及投影节点都受预算限制。具体接口和上线
+兼容规则见 [STRUCTURED_ATTRIBUTES.md](STRUCTURED_ATTRIBUTES.md)。

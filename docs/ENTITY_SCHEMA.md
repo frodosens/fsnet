@@ -84,8 +84,8 @@ resembles an anonymous connection identifier cannot collide with its receipt.
 client visibility (`none`, `owner`, `observers`), persistence, and RPC policies.
 `EntityAttributes` owns values and monotonic revisions on the runtime thread.
 
-* Integer values are signed 64-bit; numbers are finite doubles; booleans and strings
-  are supported. Schemas contain at most 256 properties and 256 methods. Each string
+* Integer values are signed 64-bit; numbers are finite doubles; booleans, strings,
+  typed structures and fixed arrays are supported. Schemas contain at most 256 properties and 256 methods. Each string
   is bounded to 64 KiB. Unknown names and type mismatches fail closed.
 * Client writes require both explicit write permission and the authenticated entity
   owner's subject. Business validation remains the script's responsibility. A write
@@ -127,7 +127,7 @@ runtime.entity('Player', {
 Attribute handlers receive `(self, ctx, payload)` and return response bytes. They
 require explicit caller declarations and cannot also declare opaque `initial` state.
 Supported types are `int32`, `uint32`, `int64`, `number`/`double`, `bool`/`boolean`, and
-`string`. Integer ranges and strict Lua value types are enforced. The native userdata
+`string`, plus typed structures/fixed arrays. Integer ranges and strict Lua value types are enforced. The native userdata
 checks server read/write access and accounts native carrier memory against the Lua
 memory budget. Undeclared properties fail closed. `tick` receives the same attribute
 object and runs as an internal server operation.
@@ -243,3 +243,6 @@ between owner nodes remain pending. The current native client connects directly 
 entity owner endpoint; a gateway does not yet proxy these streams. Reconnect requires
 application connection establishment followed by a fresh watch. Browser/engine-specific
 client adapters are not implemented.
+
+Typed structures, vec3/mat4x4, native field views and implicit client write proposals are described in
+[STRUCTURED_ATTRIBUTES.md](STRUCTURED_ATTRIBUTES.md). Existing scalar wire tags remain unchanged.

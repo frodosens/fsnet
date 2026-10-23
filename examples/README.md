@@ -78,3 +78,17 @@ FSNET_CLUSTER_TOKEN=local-demo /path/to/build/fsnet-client /tmp/fsnet-scene-clie
 演示固定 subject=alice，不能用它模拟两个不同登录账号。生产宿主需提供可信账号映射。
 镜头/模型绑定在示例中仅用字段和打印展示，实际图形调用由引擎适配层提供。
 完整接口与撤销/预算边界见 [ENTITY_PRESENCE.md](../docs/ENTITY_PRESENCE.md)。
+
+## vec3 / mat4x4 与嵌套结构自动同步
+
+```sh
+cat examples/lua/shared/structured_entity.lua examples/lua/structured_entity.lua > /tmp/fsnet-struct-server.lua
+FSNET_CLUSTER_TOKEN=local-demo FSNET_DEMO_SUBJECT=alice /path/to/build/fsnet-script /tmp/fsnet-struct-server.lua 7001
+
+# 另一终端：
+cat examples/lua/shared/structured_entity.lua examples/lua/client/structured_entity.lua > /tmp/fsnet-struct-client.lua
+FSNET_CLUSTER_TOKEN=local-demo /path/to/build/fsnet-client /tmp/fsnet-struct-client.lua 127.0.0.1 7001
+```
+
+示例依次整值写 position、修改 position.x、矩阵行/元素及嵌套 pose 字段，隐式提交服务器
+校验后读取确认值；最后展示被服务器拒绝的写入。见 [结构属性](../docs/STRUCTURED_ATTRIBUTES.md)。

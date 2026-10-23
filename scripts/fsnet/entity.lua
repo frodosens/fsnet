@@ -17,7 +17,7 @@ end
 local function copy(value, seen, depth)
     if type(value)~='table' then return value end
     seen=seen or {}; depth=depth or 0
-    assert(depth<8 and not seen[value], 'recursive or excessively nested definition')
+    assert(depth<32 and not seen[value], 'recursive or excessively nested definition')
     assert(getmetatable(value)==nil, 'definitions must use plain tables')
     seen[value]=true
     local out={}; local count=0
@@ -499,3 +499,21 @@ end
 runtime.server_request=function(route,payload,timeout)
     return runtime.request(0,route,payload,timeout)
 end
+
+-- Structural value types. Definitions are copied into each sealed class schema.
+fsnet.struct=function(kind,fields)
+    name(kind)
+    assert(type(fields)=='table' and next(fields)~=nil,'struct requires fields')
+    local count=0
+    for key,value in pairs(fields) do
+        name(key); count=count+1
+        assert(count<=64 and (type(value)=='string' or type(value)=='table'),'invalid struct field type')
+    end
+    return {kind='struct',name=kind,fields=copy(fields)}
+end
+fsnet.array=function(element,length)
+    assert((type(element)=='string' or type(element)=='table') and math.type(length)=='integer' and length>=1 and length<=256,'invalid fixed array type')
+    return {kind='array',element=copy(element),length=length}
+end
+fsnet.vec3=fsnet.struct('Vec3',{x='number',y='number',z='number'})
+fsnet.mat4x4=fsnet.array(fsnet.array('number',4),4)

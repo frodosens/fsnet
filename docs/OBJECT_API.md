@@ -142,3 +142,5 @@ end
 
 服务端 `spawn_or_restore`、连接可见性与客户端表现生命周期见
 [实体存在性与表现](ENTITY_PRESENCE.md)。它们不代替服务端 on_create/on_activate/on_deactivate。
+
+结构属性、固定数组、整值与嵌套赋值自动同步见 [STRUCTURED_ATTRIBUTES.md](STRUCTURED_ATTRIBUTES.md)。

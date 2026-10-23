@@ -256,7 +256,7 @@ struct EntityScriptHost::Impl : std::enable_shared_from_this<Impl> {
                         }
                         AttributeUpdate full{0, image.revision, true, model.all_values()};
                         auto bytes = encode_attributes(full);
-                        auto retained = job->resident + 4 * bytes.size() + 65536;
+                        auto retained = job->resident + 4 * bytes.size() + 65536 + 4 * attribute_image_bytes(full.values);
                         if (retained > self->limits.resident_bytes - self->counters.state_bytes + job->resident)
                             return self->complete(job, {Status::overloaded, {}});
                         self->counters.state_bytes = self->counters.state_bytes - job->resident + retained;
@@ -323,7 +323,7 @@ struct EntityScriptHost::Impl : std::enable_shared_from_this<Impl> {
                     while (!job->receipts.empty() && (job->receipts.size() > owner->limits.receipts || receipt_bytes > owner->limits.receipt_bytes)) {
                         receipt_bytes -= job->receipts.front().bytes(); job->receipts.erase(job->receipts.begin());
                     }
-                    const auto retained = (job->attributes ? 5 : 1) * job->state.size() + job->transient.size() * 4 + job->output.size() + receipt_bytes + 12;
+                    const auto retained = (job->attributes ? 4*attribute_image_bytes(job->attributes->current.values)+4*attribute_image_bytes(job->attributes->previous.values) : 0) + (job->attributes ? 5 : 1) * job->state.size() + job->transient.size() * 4 + job->output.size() + receipt_bytes + 12;
                     if (retained > owner->limits.resident_bytes - owner->counters.state_bytes + job->resident)
                         return owner->complete(job, {Status::overloaded, {}});
                     owner->counters.state_bytes = owner->counters.state_bytes - job->resident + retained;
