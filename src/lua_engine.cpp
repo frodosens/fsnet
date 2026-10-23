@@ -9,6 +9,7 @@
 #include <optional>
 #include <stdexcept>
 #include <unordered_map>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 
@@ -23,7 +24,7 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
     struct Task {
         lua_State* thread = nullptr;
         int reference = LUA_NOREF, function = LUA_NOREF;
-        std::string data;
+        std::string data, entity_id, mailbox;
         Reply reply;
         std::optional<Await> await;
         bool waiting = false, startup = false, completion_queued = false;
@@ -42,6 +43,8 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
     unsigned budget = 0;
     std::uint64_t serial = 0;
     std::unordered_map<std::string, int> routes;
+    std::unordered_map<std::string, std::string> entity_routes;
+    std::unordered_set<std::string> busy;
     std::vector<std::string> bound;
     std::deque<Task> queue;
     std::unordered_map<std::uint64_t, Task> tasks;
@@ -75,10 +78,22 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
         try {
             std::string route(name, size);
             if (owner.routes.contains(route)) return luaL_error(L, "duplicate RPC route");
+            std::string entity_type;
+            if (!lua_isnoneornil(L, 3)) {
+                std::size_t length; const char* type = luaL_checklstring(L, 3, &length);
+                if (!length || length > 127 || std::string_view(type, length).find_first_of(".\0", 0, 2) != std::string_view::npos)
+                    return luaL_error(L, "invalid entity type");
+                entity_type.assign(type, length);
+            }
             lua_pushvalue(L, 2);
             int reference = luaL_ref(L, LUA_REGISTRYINDEX);
-            try { owner.routes.emplace(std::move(route), reference); }
-            catch (const std::exception&) { luaL_unref(L, LUA_REGISTRYINDEX, reference); throw; }
+            try {
+                if (!entity_type.empty()) owner.entity_routes.emplace(route, std::move(entity_type));
+                owner.routes.emplace(route, reference);
+            } catch (const std::exception&) {
+                owner.entity_routes.erase(route);
+                luaL_unref(L, LUA_REGISTRYINDEX, reference); throw;
+            }
             return 0;
         } catch (const std::exception& error) { return luaL_error(L, "%s", error.what()); }
     }
@@ -145,6 +160,18 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
         const char* wrapper = "runtime.request = function(...) local data, status = runtime.await(...); "
                               "if status ~= 0 then error('RPC failed: ' .. status, 2) end; return data end";
         if (luaL_loadstring(L, wrapper) != LUA_OK) return lua_error(L);
+        lua_call(L, 0, 0);
+        const char* entities = R"lua(
+            runtime.entity_rpc = function(kind, method, handler)
+                assert(type(method) == 'string' and #method > 0 and #method <= 127 and not method:find('[%.%z]'), 'invalid entity method')
+                runtime.rpc(kind .. '.' .. method, handler, kind)
+            end
+            runtime.entity_request = function(peer, kind, id, method, payload, timeout)
+                assert(type(id) == 'string' and #id > 0 and #id <= 256, 'invalid entity ID')
+                return runtime.request(peer, kind .. '.' .. method, 'FSE1' .. string.pack('>I2', #id) .. id .. payload, timeout)
+            end
+        )lua";
+        if (luaL_loadstring(L, entities) != LUA_OK) return lua_error(L);
         lua_call(L, 0, 0); return 0;
     }
     static int compile(lua_State* L) {
@@ -158,8 +185,9 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
         task.thread = lua_newthread(L);
         task.reference = luaL_ref(L, LUA_REGISTRYINDEX);
         lua_rawgeti(L, LUA_REGISTRYINDEX, task.function);
+        if (!task.mailbox.empty()) lua_pushlstring(L, task.entity_id.data(), task.entity_id.size());
         if (!task.startup) lua_pushlstring(L, task.data.data(), task.data.size());
-        lua_xmove(L, task.thread, task.startup ? 1 : 2); return 0;
+        lua_xmove(L, task.thread, task.startup ? 1 : (task.mailbox.empty() ? 2 : 3)); return 0;
     }
     static int return_values(lua_State* L) {
         auto& owner = self(L);
@@ -203,6 +231,7 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
         auto task = std::move(it->second); tasks.erase(it);
         threads.erase(task.thread);
         if (task.reference != LUA_NOREF) luaL_unref(state, LUA_REGISTRYINDEX, task.reference);
+        if (!task.mailbox.empty()) busy.erase(task.mailbox);
         task.reply(std::move(result));
     }
     void advance(std::uint64_t id, int arguments) {
@@ -286,12 +315,23 @@ void LuaEngine::load(std::string_view source, const std::string& name) {
         owner.bound.reserve(owner.routes.size());
         for (auto& [route, reference] : owner.routes) {
             owner.bound.push_back(route);
-            owner.host->bind(route, [weak = std::weak_ptr(impl_), reference](std::string data, Reply reply) {
+            auto entity = owner.entity_routes.find(route);
+            std::string kind = entity == owner.entity_routes.end() ? "" : entity->second;
+            owner.host->bind(route, [weak = std::weak_ptr(impl_), reference, kind](std::string data, Reply reply) {
                 auto self = weak.lock();
                 if (!self || self->stopped || !self->loaded) return reply({Status::disconnected, {}});
                 if (self->queue.size() >= self->limits.queued_requests || data.size() > self->limits.queued_bytes - self->queued_bytes)
                     return reply({Status::overloaded, {}});
-                Impl::Task task; task.function = reference; task.data = std::move(data); task.reply = std::move(reply);
+                Impl::Task task;
+                if (!kind.empty()) {
+                    if (data.size() < 6 || data.compare(0, 4, "FSE1") != 0) return reply({Status::rejected, {}});
+                    const auto length = (static_cast<unsigned char>(data[4]) << 8) | static_cast<unsigned char>(data[5]);
+                    if (!length || length > 256 || data.size() < 6u + length) return reply({Status::rejected, {}});
+                    task.entity_id = data.substr(6, length);
+                    task.mailbox = kind + '\0' + task.entity_id;
+                    data.erase(0, 6 + length);
+                }
+                task.function = reference; task.data = std::move(data); task.reply = std::move(reply);
                 task.deadline = Impl::Clock::now() + self->limits.task_timeout;
                 auto bytes = task.data.size();
                 self->queue.push_back(std::move(task));
@@ -332,7 +372,11 @@ std::size_t LuaEngine::poll(std::size_t work_limit) {
                 owner.finish(completion.id, {Status::overloaded, {}});
             } else owner.advance(completion.id, 2);
         } else if (!owner.queue.empty() && owner.tasks.size() < owner.limits.active_coroutines) {
-            auto task = std::move(owner.queue.front()); owner.queue.pop_front();
+            auto eligible = std::find_if(owner.queue.begin(), owner.queue.end(), [&](const auto& candidate) {
+                return candidate.mailbox.empty() || !owner.busy.contains(candidate.mailbox);
+            });
+            if (eligible == owner.queue.end()) break;
+            auto task = std::move(*eligible); owner.queue.erase(eligible);
             owner.queued_bytes -= task.data.size();
             owner.preparing = &task;
             auto status = owner.protect(Impl::prepare); owner.preparing = nullptr;
@@ -342,7 +386,9 @@ std::size_t LuaEngine::poll(std::size_t work_limit) {
                 task.reply({Status::overloaded, {}});
             } else {
                 auto id = ++owner.serial; owner.threads.emplace(task.thread, id);
-                task.data.clear(); owner.tasks.emplace(id, std::move(task)); owner.advance(id, 1);
+                const auto arguments = task.mailbox.empty() ? 1 : 2;
+                if (!task.mailbox.empty()) owner.busy.insert(task.mailbox);
+                task.data.clear(); owner.tasks.emplace(id, std::move(task)); owner.advance(id, arguments);
             }
         } else break;
         ++work;

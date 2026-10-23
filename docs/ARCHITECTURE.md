@@ -2,7 +2,7 @@
 
 ## 已确定的职责边界
 
-C++ 提供网络、分布式运行时、场景/实体载体、调度、存储机制与脚本宿主，不实现玩家、战斗、技能、任务和经济等游戏业务。业务全部在脚本中实现。优先支持 Lua，Ruby 作为可选适配器；统一的是宿主能力与消息边界，不是语言内部对象模型。Lua RPC 脚本宿主已实现，见 SCRIPTING.md；场景/实体 actor 宿主尚待实现。
+C++ 提供网络、分布式运行时、场景/实体载体、调度、存储机制与脚本宿主，不实现玩家、战斗、技能、任务和经济等游戏业务。业务全部在脚本中实现。优先支持 Lua，Ruby 作为可选适配器；统一的是宿主能力与消息边界，不是语言内部对象模型。Lua RPC 脚本宿主已实现，见 SCRIPTING.md；Lua 实体 mailbox 已实现；场景 tick 与迁移编排尚待实现。
 
 ## 当前实现
 
@@ -33,7 +33,7 @@ flowchart LR
 ## 生产设计约束
 
 1. 网关与逻辑分离权限。客户端身份认证、路由授权、消息 schema、速率配额都在网关执行；共享的 cluster token 只适用于可信网络内部，不能分发给不可信游戏客户端。当前 TCP 协议明文传递 token 和 payload；ICE 数据报也没有 DTLS 加密。上线前必须增加 mTLS/DTLS 或等效的加密认证层。
-2. 实体使用单写者/actor mailbox。目录租约只说明“最近健康”，不授予独占写权。`EntityStore` 已实现基于数据库 CAS 的 owner 转移、递增 fencing token，以及把 token 检查与状态写入放在同一事务中；测试确认旧 owner 无法在接管后覆盖状态。该保证依赖共享的线性一致存储，不能将两份独立 SQLite 当成一个存储。何时接管、每实体 mailbox、自动编排与跨机存储仍未实现。
+2. 实体使用单写者/actor mailbox。目录租约只说明“最近健康”，不授予独占写权。`EntityStore` 已实现基于数据库 CAS 的 owner 转移、递增 fencing token，以及把 token 检查与状态写入放在同一事务中；测试确认旧 owner 无法在接管后覆盖状态。该保证依赖共享的线性一致存储，不能将两份独立 SQLite 当成一个存储。Lua 已提供本地每实体 mailbox；何时接管、自动编排与跨机存储仍未实现。
 3. 钱包、库存、交易等写入使用事务和 idempotency key；事务写入与消息 outbox 原子提交。断线时，成功与未执行之间有不确定窗口，不承诺 exactly-once 网络投递。
 4. 小型游戏可以单机多个服务加 SQLite；大型游戏需要生产数据库适配器（例如 PostgreSQL）、数据库 HA、分片/迁移和区域隔离。Memory/SQLite 不提供跨机器副本一致性，也不能当作 MMO 的共享 HA 数据库。
 5. 公开 TURN 的 bind/external address、UDP 3478、relay UDP 范围、防火墙及短期凭据由部署配置管理。不能保证所有 NAT 都能打洞；对称 NAT 等情况需要中继，禁止 UDP 的网络还需要 TURN/TCP/TLS 后备（当前 libjuice 路径只有 UDP）。SDP/candidates 通过认证信令交换，不直接信任任意对等方。

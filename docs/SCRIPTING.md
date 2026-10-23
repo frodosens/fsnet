@@ -6,7 +6,7 @@
 
 `ScriptEngine` 定义 load/poll/stop；当前嵌入式实现是 `LuaEngine`。`NodeScriptHost` 将这些能力连接到 Node。Ruby 继续作为独立进程中的 Fiddle/C ABI 适配器，不是嵌入 C++ 的第二个 VM。两者共享网络/错误/消息合同，不强行共享语言内部对象、GC 或同一份业务代码。
 
-当前业务载体是 RPC 请求协程，不是完整的场景/实体 actor。单写者 mailbox、场景 tick、句柄代数与迁移钩子属于下一阶段。
+Lua 实体 RPC 已提供 C++ 调度的单写者 mailbox；场景 tick、句柄代数与迁移钩子仍待实现。Ruby 当前仍使用请求 Fiber，尚未接入实体 mailbox。
 
 ## Lua API
 
@@ -52,3 +52,25 @@ Ruby `rpc_bytes` / `call_bytes` / Fiber 内 `request_bytes` 直接传递相同�
 `fsnet-script-contract` 启动实际 Lua、可选 Ruby 服务进程，由同一 C ABI 客户端发送包含 NUL 和非 UTF-8 的消息，验证：字节所有权、显式路由、脚本异常、等待后端 RPC、超时恢复。C++ 后端只作为传输测试夹具。`fsnet-lua` 另测加载原子性、协程根、资源限制、停止、重复/晚到完成和真实 TCP 转发。
 
 构建开关：`FSNET_WITH_LUA` 控制嵌入式 VM/宿主；`FSNET_WITH_RUBY` 控制外部 Ruby 适配器发现与测试。两者关闭时核心、echo/relay 工具和核心测试仍然可构建；无脚本引擎时不运行游戏业务。
+
+## Lua 实体串行执行
+
+```lua
+runtime.entity_rpc('player', 'update', function(id, payload)
+    -- 在这里读取、修改脚本中的实体状态。
+    local result = runtime.request(backend, 'storage.write', payload, 1000)
+    return result
+end)
+-- 在另一个 RPC 协程中调用：
+-- runtime.entity_request(peer, 'player', '42', 'update', payload, 1000)
+```
+
+同一 LuaEngine 中，实体类型 + 二进制 ID 唯一标识 mailbox。同一实体的所有方法按接收 FIFO 顺序执行；等待外部 RPC 时仍占有 mailbox，后续请求不能交错修改状态。其他实体可继续执行。普通 `runtime.rpc` 是无状态服务接口，不提供实体隔离；实体状态只能由对应的实体处理器修改，不能从其他实体或普通 RPC 绕过访问。
+
+成功、异常、执行预算超限、任务超时都会结束当前协程并释放 mailbox。超时后的迟到回包被忽略。排队时间计入任务期限，队列受宿主全局请求数和字节预算限制。停止宿主会以 disconnected 结束活动和排队请求。调用方超时不等于服务端撤销，也不会回滚已发生的脚本状态修改或外部写入；持久化操作仍需要幂等性和 fencing。
+
+严格串行意味着持有 mailbox 时不能同步等待同一实体的新请求；实体之间的循环等待也应避免，否则只能靠超时终止。这里没有可重入执行或 await 时自动解锁。
+
+网络路由为 `类型.方法`。实体类型/方法各为 1–127 字节且不含点或 NUL；ID 为 1–256 字节。消息格式为 `FSE1` + 大端 uint16 ID 长度 + ID + 原始 payload。原生调用方可用 `fsnet::entity_message(id, payload)` 构造封包；业务 payload 格式由脚本决定。
+
+保证范围是单个 LuaEngine 内的实体执行，不是跨节点分布式锁。实体需要路由到唯一 owner；跨节点接管仍依赖 EntityStore 的 fencing 和后续迁移编排。Ruby 尚无此保证，不应作为实体逻辑执行入口。

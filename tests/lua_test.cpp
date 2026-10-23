@@ -1,4 +1,5 @@
 #include "fsnet/lua_engine.hpp"
+#include "fsnet/entity_message.hpp"
 #include <chrono>
 #include <iostream>
 #include <optional>
@@ -20,6 +21,7 @@ struct Host final : fsnet::ScriptHost {
     void call(std::uint64_t peer, std::string route, std::string data, std::chrono::milliseconds, fsnet::Reply reply) override {
         CHECK(peer == 42);
         if (route == "hang") delayed = std::move(reply);
+        else if (route == "player.read") { CHECK(data == fsnet::entity_message("42", "binary")); reply({fsnet::Status::ok, "encoded"}); }
         else if (route == "echo") reply({fsnet::Status::ok, std::move(data)});
         else if (route == "double") { reply({fsnet::Status::ok, data}); reply({fsnet::Status::internal, {}}); }
         else reply({fsnet::Status::timeout, {}});
@@ -113,6 +115,58 @@ void task_deadline() {
     host->delayed({fsnet::Status::ok, "late"}); engine.poll(); CHECK(engine.active() == 0);
     std::cout << "PASS Lua task deadline: suspended task expires and ignores its late completion\n";
 }
+void entity_serialization() {
+    auto host = std::make_shared<Host>();
+    fsnet::ScriptLimits limits; limits.task_timeout = 100ms;
+    fsnet::LuaEngine engine(host, limits);
+    engine.load(R"(
+        local values = {}
+        runtime.entity_rpc('player', 'wait', function(id, data)
+            values[id] = 'started'
+            local reply = runtime.request(42, 'hang', data)
+            values[id] = reply
+            return reply
+        end)
+        runtime.entity_rpc('player', 'read', function(id) return values[id] or 'empty' end)
+        runtime.entity_rpc('player', 'mark', function(id, data) values[id] = (values[id] or '') .. data; return values[id] end)
+        runtime.entity_rpc('player', 'fail', function() error('failed') end)
+        runtime.rpc('encode', function(data) return runtime.entity_request(42, 'player', '42', 'read', data) end)
+    )");
+    std::optional<fsnet::Result> first, second, third, other;
+    auto submit = [&](const char* method, const char* id, std::optional<fsnet::Result>& result) {
+        host->handlers.at(std::string("player.") + method)(fsnet::entity_message(id, "payload"),
+            [&result](fsnet::Result reply) { result = std::move(reply); });
+    };
+    submit("wait", "42", first); engine.poll(); CHECK(!first);
+    std::string order;
+    for (const auto* suffix : {"a", "b"}) host->handlers.at("player.mark")(fsnet::entity_message("42", suffix),
+        [&](fsnet::Result result) { CHECK(result.status == fsnet::Status::ok); order += result.data + ";"; });
+    submit("read", "42", second); submit("read", "43", other);
+    engine.poll(); CHECK(!second && other && other->data == "empty");
+    host->delayed({fsnet::Status::ok, "finished"}); engine.poll();
+    CHECK(first && first->data == "finished" && second && second->data == "finishedab");
+    CHECK(order == "finisheda;finishedab;");
+    first.reset(); second.reset();
+    submit("fail", "42", first); submit("read", "42", second); engine.poll();
+    CHECK(first && first->status == fsnet::Status::internal && second && second->data == "finishedab");
+    first.reset(); second.reset();
+    submit("wait", "42", first); engine.poll(); auto late = host->delayed;
+    std::this_thread::sleep_for(110ms);
+    submit("read", "42", second); engine.poll();
+    CHECK(first && first->status == fsnet::Status::timeout && second && second->data == "started");
+    late({fsnet::Status::ok, "stale"}); engine.poll();
+    submit("read", "42", third); engine.poll(); CHECK(third && third->data == "started");
+    CHECK(invoke(*host, engine, "player.read", "invalid").status == fsnet::Status::rejected);
+    // Exercise the Lua encoder against the independently implemented native encoder.
+    host->handlers.at("encode")("binary", [&](fsnet::Result result) {
+        CHECK(result.status == fsnet::Status::ok && result.data == "encoded");
+    });
+    engine.poll();
+    first.reset(); second.reset();
+    submit("wait", "42", first); engine.poll(); submit("read", "42", second);
+    engine.stop(); CHECK(first && second && first->status == fsnet::Status::disconnected && second->status == fsnet::Status::disconnected);
+    std::cout << "PASS entity mailbox: FIFO across methods, independent entities, await, failure, timeout, late reply and stop\n";
+}
 void callback_shutdown() {
     auto host = std::make_shared<Host>();
     auto engine = std::make_unique<fsnet::LuaEngine>(host);
@@ -146,6 +200,6 @@ void tcp() {
     std::cout << "PASS Lua host: real TCP client -> Lua coroutine -> backend -> resumed Lua reply\n";
 }
 int main() {
-    try { lifecycle(); budgets(); failed_load(); task_deadline(); callback_shutdown(); tcp(); }
+    try { lifecycle(); budgets(); failed_load(); task_deadline(); callback_shutdown(); entity_serialization(); tcp(); }
     catch (const std::exception& error) { std::cerr << error.what() << '\n'; return 1; }
 }
