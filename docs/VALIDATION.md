@@ -2,7 +2,7 @@
 
 验证日期：2026-10-23。执行环境：Debian 13、GCC 14.2、CMake 4.4.4。构建目录位于仓库外 `/workspace/fsnet-env`。
 
-## 当前验证配置
+## 共享实体阶段验证配置（历史）
 
 依赖均使用 CMake 固定来源，构建输出在仓库之外。本轮结果：
 
@@ -64,3 +64,26 @@ TLS 测试临时生成 CA/服务/客户端与不可信证书，验证 TLS 1.3 �
 可选 PostgreSQL 验证使用固定源码编译的 libpq/服务端和临时 TLS 证书：共同 CAS 合同、二进制 key/value、4 个独立连接竞争、无事务的 EntityStore fencing、不可信证书拒绝、Lua 三进程接管、数据库 immediate stop/WAL 恢复以及存活客户端安全读取重连。已检查 libfsnet.so 动态依赖仅为系统 C/C++ 运行库，不依赖机器上的 libpq/OpenSSL 私有库。
 
 共享实体阶段：fsnet-shared 覆盖本地 userdata、执行域、只读投影、客户端提案、定时等待、权限撤销和释放；fsnet-shared-process 启动两个真实程序，加载同一魔法阵类，验证服务端 tick 自动同步到 Lua 客户端。
+
+## 客户端预测阶段：本次检出环境
+
+2026-10-23，新环境重新配置固定来源依赖，使用 GCC 14.2、CMake 4.4.4。
+仓库外构建目录为 `/workspace/fsnet-env/build` 与 `/workspace/fsnet-env/asan`。
+本次开启 Lua、关闭可选 PostgreSQL；未重复旧环境的 PostgreSQL 或纯核心专用配置，
+上文 19/19 与 13/13 的 PostgreSQL 配置结果属于共享实体阶段历史。
+
+| 本次配置/检查 | 结果 |
+| --- | --- |
+| Debug，Lua ON、PostgreSQL OFF | CTest 20/20 通过 |
+| ASan/UBSan，Lua ON、PostgreSQL OFF | CTest 13/13 通过；开启 leak 检测和遇错终止 |
+| 修改文档的本地链接、Python 测试夹具语法、git diff --check | 通过 |
+
+新增 `fsnet-prediction` 验证独立预测/确认状态、连续序号与历史限额、权威校正后
+重放未确认输入、重复确认、无效确认、脚本失败和分配失败不发布部分状态、吞掉
+联网/等待错误仍拒绝预测、跨实体写入限制、私有属性与 driver 权限、指令死循环
+终止后继续正常调用、非零初始累计确认、权限撤销以及停止后的内存回收。
+
+`fsnet-prediction-process` 启动两个独立交付程序，加载同一共享类：客户端预测两次
+位移（5+5），服务端分别限幅为 4，首个确认后重放余下输入得到 9，最后收敛到 8，
+效果只交付 2 次。它也覆盖未指定 peer 的实体引用经客户端配置连接直达 owner。
+测试为本机回环，不代表公网、Gateway、重连重发或完整回滚世界验收。

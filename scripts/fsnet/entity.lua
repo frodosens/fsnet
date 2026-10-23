@@ -7,7 +7,7 @@ local register_entity=runtime.entity
 local reserved = {id=true, type=true, context=true, reject=true, attr=true, rpc=true,
                   private=true, extend=true, register=true, ref=true, reference=true,
                   define=true, spawn_local=true, watch=true, write=true, close=true,
-                  revision=true, mode=true, method=true}
+                  revision=true, mode=true, method=true, prediction=true}
 local unsupported_hooks = {new=true, init=true, on_create=true, on_activate=true, on_deactivate=true}
 local function name(value)
     assert(type(value)=='string' and #value>0 and #value<=127 and not value:find('[%.%z]') and value:sub(1,1)~='$', 'invalid entity/member name')
@@ -122,6 +122,7 @@ local function check_domain(object,domain)
     runtime._object_check(object)
     assert(domain==nil or domain=='shared' or (domain=='server')==(object.mode=='server'), 'method execution domain denied')
 end
+local create_prediction
 local function define(class)
     local data=record(class)
     if data.flat then return data.flat end
@@ -135,6 +136,7 @@ local function define(class)
             return fn(object,...)
         end
     end
+    members.prediction=function(object,opts) return create_prediction(object,opts) end
     members.reject=function(object) runtime._object_check(object); return runtime.reject() end
     members.close=function(object) return runtime._object_dispose(object) end
     members.write=function(object,values,opts)
@@ -289,3 +291,100 @@ runtime.sleep=function(ms)
     local _,status=runtime._sleep(ms)
     assert(status==runtime.status.ok,'sleep cancelled')
 end
+
+-- Input history owns only bounded immutable byte strings. All entity mutation is
+-- performed on native candidates; a failed step/replay never replaces live state.
+create_prediction=function(confirmed,opts)
+    runtime._object_check(confirmed)
+    assert(confirmed.mode=='replica','prediction requires a confirmed replica')
+    opts=copy(opts or {})
+    for key in pairs(opts) do assert(key=='max_inputs' or key=='max_bytes' or key=='acknowledged','unknown prediction option') end
+    local max_inputs=opts.max_inputs or 128
+    local max_bytes=opts.max_bytes or 262144
+    assert(math.type(max_inputs)=='integer' and max_inputs>=1 and max_inputs<=128,'invalid prediction input limit')
+    assert(math.type(max_bytes)=='integer' and max_bytes>=1 and max_bytes<=262144,'invalid prediction byte limit')
+    local initial=opts.acknowledged or 0
+    assert(math.type(initial)=='integer' and initial>=0,'invalid initial acknowledgement')
+    local current={state=runtime._prediction_clone(confirmed),history={},bytes=0,
+                   acked=initial,last=initial,revision=confirmed.revision}
+    local closed=false
+    local api={}
+    local function check()
+        assert(not closed,'prediction is closed')
+        runtime._object_check(confirmed)
+        runtime._object_check(current.state)
+    end
+    local function execute(candidate,input)
+        local fn=candidate[input.method]
+        assert(type(fn)=='function','prediction method required')
+        return runtime._prediction_run(candidate,fn,input.payload)
+    end
+    function api:push(sequence,method,payload)
+        check(); name(method)
+        assert(not reserved[method] and method~='on_tick' and method~='validate_write','invalid prediction method')
+        assert(math.type(sequence)=='integer' and sequence>current.last and sequence==current.last+1,'prediction sequence must be consecutive')
+        assert(type(payload)=='string','prediction payload must be bytes')
+        local charge=#method+#payload
+        assert(#current.history<max_inputs and charge<=max_bytes-current.bytes,'prediction history limit')
+        local input={sequence=sequence,method=method,payload=payload,charge=charge}
+        local candidate=runtime._prediction_clone(current.state)
+        local history={}
+        for i,value in ipairs(current.history) do history[i]=value end
+        history[#history+1]=input
+        local next_state={state=candidate,history=history,bytes=current.bytes+charge,
+                          acked=current.acked,last=sequence,revision=current.revision}
+        local ok,result=pcall(execute,candidate,input)
+        if not ok then candidate:close(); error(result,0) end
+        -- Publish one reference: instruction/allocator failure cannot split the
+        -- state and its history. Old read-only views are reclaimed by Lua GC.
+        current=next_state
+        -- Only first execution returns an effect description to the application.
+        -- Reconciliation never dispatches these results.
+        return result
+    end
+    function api:reconcile(sequence,confirmed_revision)
+        check()
+        assert(math.type(sequence)=='integer' and sequence>=current.acked and sequence<=current.last,'invalid acknowledgement sequence')
+        assert(math.type(confirmed_revision)=='integer' and confirmed_revision>=current.revision and confirmed_revision==confirmed.revision,'confirmation does not match current snapshot')
+        local candidate=runtime._prediction_clone(confirmed)
+        local remaining,retained={},0
+        local ok,err=pcall(function()
+            for _,input in ipairs(current.history) do
+                if input.sequence>sequence then
+                    execute(candidate,input)
+                    remaining[#remaining+1]=input; retained=retained+input.charge
+                end
+            end
+        end)
+        if not ok then candidate:close(); error(err,0) end
+        current={state=candidate,history=remaining,bytes=retained,acked=sequence,
+                 last=current.last,revision=confirmed_revision}
+    end
+    function api:close()
+        if not closed then current.state:close(); current.history={}; current.bytes=0; closed=true end
+    end
+    return setmetatable({}, {
+        __index=function(_,key)
+            if key=='close' then return api.close end
+            check()
+            if key=='state' then return current.state end
+            if key=='confirmed' then return confirmed end
+            if key=='pending' then return #current.history end
+            if key=='acknowledged' then return current.acked end
+            if key=='revision' then return current.revision end
+            return assert(api[key],'unknown prediction member')
+        end,
+        __newindex=function() error('prediction controllers are immutable',2) end,
+        __metatable=false,
+    })
+end
+
+-- Printing and ambient RNG state are external effects too. Preserve normal use
+-- outside prediction and reject even captured references inside a reducer.
+local function guard_effect(fn)
+    return function(...) runtime._prediction_guard(); return fn(...) end
+end
+print=guard_effect(print)
+warn=guard_effect(warn)
+math.random=guard_effect(math.random)
+math.randomseed=guard_effect(math.randomseed)

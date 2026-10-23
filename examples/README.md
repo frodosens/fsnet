@@ -39,3 +39,19 @@ FSNET_CLUSTER_TOKEN=local-demo /path/to/build/fsnet-client /tmp/fsnet-circle-cli
 
 示例启动器仅用于本地演示。生产接入需要可信登录身份映射，不能把 cluster token 当玩家
 身份；`owner='id'` 要求认证 subject 与实体 ID 一致。
+
+## 客户端预测与服务器校正
+
+同一份实体类由两个宿主加载；客户端先预测两个输入，服务器施加输入上限并同步累计
+确认序号，客户端重放剩余输入。每个首次输入交付一次效果，校正不重复播放。
+
+```sh
+cat examples/lua/shared/predicted_actor.lua examples/lua/predicted_actor.lua > /tmp/fsnet-prediction-server.lua
+FSNET_CLUSTER_TOKEN=local-demo FSNET_DEMO_SUBJECT=alice /path/to/build/fsnet-script /tmp/fsnet-prediction-server.lua 7001
+
+# 另一终端：
+cat examples/lua/shared/predicted_actor.lua examples/lua/client/predicted_actor.lua > /tmp/fsnet-prediction-client.lua
+FSNET_CLUSTER_TOKEN=local-demo /path/to/build/fsnet-client /tmp/fsnet-prediction-client.lua 127.0.0.1 7001
+```
+
+完整 API、输入确认与确定性限制见 [客户端预测](../docs/PREDICTION.md)。

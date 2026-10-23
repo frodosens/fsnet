@@ -8,6 +8,7 @@ namespace fsnet {
 // Node outlives this host and the LuaEngine. Poll drives subscription renewal.
 class ClientScriptHost final : public ScriptHost {
     Node& node_;
+    std::uint64_t server_peer_;
     std::unordered_map<std::uint64_t,std::shared_ptr<const AttributeUpdate>> images_;
     AttributeClient attributes_;
     void image(std::uint64_t id,Status status,const AttributeReplica* replica) {
@@ -15,7 +16,7 @@ class ClientScriptHost final : public ScriptHost {
         images_[id]=std::make_shared<const AttributeUpdate>(AttributeUpdate{0,replica->revision(),true,replica->values()});
     }
 public:
-    ClientScriptHost(Node& node, std::uint64_t server_peer) : node_(node), attributes_(node,server_peer,
+    ClientScriptHost(Node& node, std::uint64_t server_peer) : node_(node), server_peer_(server_peer), attributes_(node,server_peer,
         [this](std::uint64_t id,Status status,const AttributeReplica* replica) { image(id,status,replica); }) {}
     bool has_route(const std::string& route) const override { return node_.has_route(route); }
     void bind(std::string route, Handler handler) override { node_.bind(std::move(route),std::move(handler)); }
@@ -25,6 +26,11 @@ public:
     std::uint64_t connect(const std::string& host,std::uint16_t port) override { return node_.connect(host,port); }
     void call(std::uint64_t peer,std::string route,std::string data,std::chrono::milliseconds timeout,Reply reply) override {
         node_.call(peer,std::move(route),std::move(data),timeout,std::move(reply));
+    }
+    // Logical entity references target this client's configured owner endpoint.
+    // This is direct-owner access, not Gateway identity delegation or discovery.
+    void call_entity(std::string route,std::string data,std::chrono::milliseconds timeout,Reply reply) override {
+        node_.call(server_peer_,std::move(route),std::move(data),timeout,std::move(reply));
     }
     void watch_attributes(std::string type,std::string id,AttributeReady ready,std::chrono::milliseconds timeout) override {
         attributes_.watch(std::move(type),std::move(id),[this,ready=std::move(ready)](Status status,std::uint64_t subscription) {

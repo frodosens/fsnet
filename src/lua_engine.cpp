@@ -78,7 +78,7 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
         if (next) owner.used = retained + new_size;
         return next;
     }
-    enum class ObjectMode { request, local, replica };
+    enum class ObjectMode { request, local, replica, prediction };
     struct AttributeObject {
         Impl* engine; std::size_t charge; EntityAttributes model; std::uint64_t task = 0;
         ObjectMode mode = ObjectMode::request;
@@ -87,6 +87,15 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
         std::string kind;
         std::shared_ptr<const AttributeUpdate> projection;
     };
+    AttributeObject* predicting = nullptr;
+    bool prediction_violation = false;
+    static void prediction_external(lua_State* L) {
+        auto& engine = self(L);
+        if (engine.predicting) {
+            engine.prediction_violation = true;
+            luaL_error(L, "external effects and waits are forbidden during prediction/replay");
+        }
+    }
     std::unordered_map<std::string, EntitySchema> schemas;
     std::unordered_set<std::string> server_schemas;
     std::vector<std::string> defined_schemas;
@@ -185,6 +194,7 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
         return *static_cast<AttributeObject*>(luaL_checkudata(L, index, "fsnet.attributes"));
     }
     static int attributes_open(lua_State* L) {
+        prediction_external(L);
         auto& engine = self(L);
         std::size_t n, size; const char* kind = luaL_checklstring(L, 1, &n); const char* state = luaL_checklstring(L, 2, &size);
         try {
@@ -234,6 +244,11 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
                 lua_pop(L,1); throw std::logic_error("entity object is outside its request scope");
             }
         }
+        if (object.mode==ObjectMode::prediction) {
+            lua_getfield(L,-1,"confirmed");
+            object_check(L,-1,true);
+            lua_pop(L,1);
+        }
         lua_pop(L,1);
         refresh(object);
     }
@@ -269,6 +284,7 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
         catch (const std::exception& e) { return luaL_error(L,"%s",e.what()); }
     }
     static int object_attach(lua_State* L) {
+        prediction_external(L);
         auto& object = attribute_object(L,1); luaL_checktype(L,2,LUA_TTABLE);
         std::size_t id_size,type_size; const char* id=luaL_checklstring(L,3,&id_size); const char* type=luaL_checklstring(L,4,&type_size);
         luaL_checktype(L,5,LUA_TTABLE);
@@ -288,6 +304,7 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
         lua_setiuservalue(L,1,1); return 0;
     }
     static int object_close(lua_State* L) {
+        prediction_external(L);
         try { object_check(L,1,true); }
         catch (const std::exception& e) { return luaL_error(L,"%s",e.what()); }
         lua_getiuservalue(L,1,1);
@@ -312,7 +329,7 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
             auto& object=attribute_object(L,1);
             auto key=std::string(name,n);
             if(key=="revision") { lua_pushinteger(L,static_cast<lua_Integer>(object.model.revision())); return 1; }
-            if(key=="mode") { lua_pushstring(L,object.mode==ObjectMode::request?"server":object.mode==ObjectMode::local?"local":"replica"); return 1; }
+            if(key=="mode") { lua_pushstring(L,object.mode==ObjectMode::request?"server":object.mode==ObjectMode::local?"local":object.mode==ObjectMode::prediction?"prediction":"replica"); return 1; }
             lua_getiuservalue(L,1,1);
             if (lua_istable(L,-1)) {
                 auto key=std::string_view(name,n);
@@ -322,7 +339,7 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
                 lua_pop(L,2);
             }
             lua_pop(L,1);
-            if(object.mode==ObjectMode::replica) {
+            if(object.mode==ObjectMode::replica || object.mode==ObjectMode::prediction) {
                 if(!object.present.contains(key)) throw std::logic_error("property is absent from this projection");
                 auto access=object.model.schema().attributes.at(key).client;
                 if(access!=Access::read && access!=Access::read_write) throw std::logic_error("property read denied");
@@ -337,8 +354,15 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
         try {
             object_check(L,1);
             auto& object = attribute_object(L, 1); auto key = std::string(name, n);
+            if(object.engine->predicting && object.engine->predicting!=&object) {
+                object.engine->prediction_violation=true;
+                throw std::logic_error("prediction cannot mutate other objects");
+            }
+            if(object.mode==ObjectMode::prediction && object.engine->predicting!=&object)
+                throw std::logic_error("prediction state is writable only during input execution");
+            if(object.mode==ObjectMode::prediction && !object.present.contains(key)) throw std::logic_error("property is absent from this projection");
             if(object.mode==ObjectMode::replica) throw std::logic_error("confirmed replicas are read only");
-            if(object.mode==ObjectMode::local && !object.model.schema().attributes.at(key).driver_authority) throw std::logic_error("local write requires driver authority");
+            if((object.mode==ObjectMode::local || object.mode==ObjectMode::prediction) && !object.model.schema().attributes.at(key).driver_authority) throw std::logic_error("local write requires driver authority");
             auto value = attribute_value(L, 3, object.model.schema().attributes.at(key).type);
             auto mutation = object.mode==ObjectMode::request ? object.model.stage({{key, std::move(value)}}, {Caller::server, {}})
                 : EntityAttributes::Mutation{object.model.revision(),{{key,std::move(value)}}};
@@ -354,12 +378,14 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
         } catch (const std::exception& e) { return luaL_error(L, "%s", e.what()); }
     }
     static int reject_request(lua_State* L) {
+        prediction_external(L);
         auto& engine = self(L);
         if (!engine.threads.contains(L)) return luaL_error(L, "reject requires an RPC coroutine");
         engine.tasks.at(engine.threads.at(L)).rejected = true;
         return luaL_error(L, "request rejected by script");
     }
     static int attributes_proposal(lua_State* L) {
+        prediction_external(L);
         std::size_t size; const char* input = luaL_checklstring(L, 2, &size);
         try {
             auto& engine = self(L); auto& object = attribute_object(L, 1);
@@ -375,6 +401,7 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
         } catch (const std::exception&) { return reject_request(L); }
     }
     static int attributes_apply(lua_State* L) {
+        prediction_external(L);
         std::size_t size; const char* input = luaL_checklstring(L, 2, &size);
         try {
             auto& engine = self(L); auto& object = attribute_object(L, 1);
@@ -423,6 +450,7 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
         } catch(const std::exception& e) { return luaL_error(L,"%s",e.what()); }
     }
     static int object_create(lua_State* L) {
+        prediction_external(L);
         auto& engine=self(L); std::size_t n; const char* kind=luaL_checklstring(L,1,&n);
         bool replica=lua_toboolean(L,2); auto subscription=luaL_optinteger(L,3,0);
         try {
@@ -449,7 +477,70 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
             engine.used+=charge; luaL_setmetatable(L,"fsnet.attributes"); return 1;
         } catch(const std::exception& e) { return luaL_error(L,"%s",e.what()); }
     }
+    static int prediction_guard(lua_State* L) { prediction_external(L); return 0; }
+    static int prediction_clone(lua_State* L) {
+        prediction_external(L);
+        try {
+            object_check(L,1,true);
+            auto& source=attribute_object(L,1);
+            if(source.mode!=ObjectMode::replica && source.mode!=ObjectMode::prediction)
+                throw std::logic_error("prediction requires a confirmed replica");
+            EntityAttributes model(source.model.schema(),"");
+            model.restore_full(source.model.all_values(),source.model.revision());
+            auto charge=65536+6*encode_attributes({0,model.revision(),true,model.all_values()}).size();
+            auto& engine=self(L);
+            if(charge>engine.limits.memory_bytes-engine.used) throw std::length_error("prediction memory budget");
+            void* memory=lua_newuserdatauv(L,sizeof(AttributeObject),1);
+            if(charge>engine.limits.memory_bytes-engine.used) throw std::length_error("prediction memory budget");
+            new(memory) AttributeObject{&engine,charge,std::move(model),0,ObjectMode::prediction,0,source.present,source.kind,{}};
+            engine.used+=charge; luaL_setmetatable(L,"fsnet.attributes");
+            lua_getiuservalue(L,1,1);
+            lua_newtable(L);
+            for(const char* field : {"members","id","type","context"}) {
+                lua_getfield(L,-2,field); lua_setfield(L,-2,field);
+            }
+            if(source.mode==ObjectMode::replica) lua_pushvalue(L,1);
+            else lua_getfield(L,-2,"confirmed");
+            lua_setfield(L,-2,"confirmed");
+            lua_pushboolean(L,true); lua_setfield(L,-2,"active");
+            lua_setiuservalue(L,-3,1); lua_pop(L,1);
+            return 1;
+        } catch(const std::exception& e) { return luaL_error(L,"%s",e.what()); }
+    }
+    static int prediction_run(lua_State* L) {
+        prediction_external(L);
+        luaL_checktype(L,2,LUA_TFUNCTION);
+        try {
+            object_check(L,1,true);
+            auto& object=attribute_object(L,1);
+            if(object.mode!=ObjectMode::prediction) throw std::logic_error("expected prediction state");
+            auto& engine=self(L);
+            struct Scope {
+                Impl& engine;
+                ~Scope() { engine.predicting=nullptr; }
+            } scope{engine};
+            // A child coroutine keeps the instruction hook yieldable, including
+            // inside script pcall loops. A non-yieldable lua_pcall C boundary
+            // would turn budget yields into errors that gameplay could swallow.
+            auto* thread=lua_newthread(L); // rooted on the parent's stack
+            lua_sethook(thread,hook,LUA_MASKCOUNT,1000);
+            lua_pushvalue(L,2); lua_pushvalue(L,1); lua_pushvalue(L,3);
+            lua_xmove(L,thread,3);
+            engine.predicting=&object; engine.prediction_violation=false;
+            int results=0;
+            auto status=lua_resume(thread,L,2,&results);
+            engine.predicting=nullptr;
+            if(engine.prediction_violation) return luaL_error(L,"prediction attempted a forbidden effect");
+            if(engine.exhausted || status==LUA_YIELD) return luaL_error(L,"prediction instruction budget exceeded");
+            if(status!=LUA_OK) { lua_xmove(thread,L,1); return lua_error(L); }
+            if(results>1) return luaL_error(L,"prediction method must return bytes or nil");
+            if(results==0) lua_pushnil(L); else lua_xmove(thread,L,1);
+            if(!lua_isnil(L,-1) && lua_type(L,-1)!=LUA_TSTRING) return luaL_error(L,"prediction method must return bytes or nil");
+            return 1;
+        } catch(const std::exception& e) { return luaL_error(L,"%s",e.what()); }
+    }
     static int object_dispose(lua_State* L) {
+        prediction_external(L);
         auto& object=attribute_object(L,1);
         if(object.mode==ObjectMode::request) return luaL_error(L,"server objects are scoped by their request");
         if(object.subscription) {
@@ -462,22 +553,26 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
         lua_pop(L,1); return 0;
     }
     static int unwatch_attributes(lua_State* L) {
+        prediction_external(L);
         auto subscription=luaL_checkinteger(L,1);
         try { if(subscription>0) self(L).host->unwatch_attributes(static_cast<std::uint64_t>(subscription)); return 0; }
         catch(const std::exception& e) { return luaL_error(L,"%s",e.what()); }
     }
     static int start_task(lua_State* L) {
+        prediction_external(L);
         auto& engine=self(L); luaL_checktype(L,1,LUA_TFUNCTION);
         if(!engine.loading || engine.starts.size()>=engine.limits.queued_requests) return luaL_error(L,"start tasks only during load, within queue limit");
         lua_pushvalue(L,1); engine.starts.push_back(luaL_ref(L,LUA_REGISTRYINDEX)); return 0;
     }
     static int sleep_task(lua_State* L) {
+        prediction_external(L);
         auto& engine=self(L); auto duration=luaL_checkinteger(L,1);
         if(duration<1 || duration>30000 || !engine.threads.contains(L)) return luaL_error(L,"sleep requires an async task and 1..30000 ms");
         Await request{}; request.kind=Await::Kind::sleep; request.timeout=std::chrono::milliseconds(duration);
         engine.tasks.at(engine.threads.at(L)).await=std::move(request); return lua_yield(L,0);
     }
     static int watch_attributes(lua_State* L) {
+        prediction_external(L);
         auto& engine=self(L); std::size_t kind_size,id_size;
         const char* kind=luaL_checklstring(L,1,&kind_size); const char* id=luaL_checklstring(L,2,&id_size);
         auto timeout=luaL_optinteger(L,3,3000);
@@ -490,6 +585,7 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
         return lua_yield(L,0);
     }
     static int write_attributes(lua_State* L) {
+        prediction_external(L);
         auto& engine=self(L); auto& object=attribute_object(L,1);
         auto timeout=luaL_optinteger(L,5,3000);
         std::size_t n; const char* token=luaL_optlstring(L,4,"",&n);
@@ -557,6 +653,7 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
         } catch (const std::exception& error) { return luaL_error(L, "%s", error.what()); }
     }
     static int connect(lua_State* L) {
+        prediction_external(L);
         luaL_checktype(L, 1, LUA_TSTRING);
         auto port = luaL_checkinteger(L, 2);
         if (port <= 0 || port > 65535) return luaL_error(L, "invalid port");
@@ -571,6 +668,7 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
         } catch (const std::exception& error) { return luaL_error(L, "%s", error.what()); }
     }
     static int request(lua_State* L) {
+        prediction_external(L);
         auto peer = luaL_checkinteger(L, 1);
         luaL_checktype(L, 2, LUA_TSTRING); luaL_checktype(L, 3, LUA_TSTRING);
         auto timeout = luaL_optinteger(L, 4, 1000);
@@ -613,6 +711,9 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
         lua_pushcfunction(L,unwatch_attributes); lua_setfield(L,-2,"_unwatch");
         lua_pushcfunction(L,write_attributes); lua_setfield(L,-2,"_write");
         lua_pushcfunction(L,model_publish); lua_setfield(L,-2,"_model_publish");
+        lua_pushcfunction(L,prediction_guard); lua_setfield(L,-2,"_prediction_guard");
+        lua_pushcfunction(L,prediction_clone); lua_setfield(L,-2,"_prediction_clone");
+        lua_pushcfunction(L,prediction_run); lua_setfield(L,-2,"_prediction_run");
         lua_pushcfunction(L,object_create); lua_setfield(L,-2,"_object_create");
         lua_pushcfunction(L,object_dispose); lua_setfield(L,-2,"_object_dispose");
         lua_pushcfunction(L, object_registration); lua_setfield(L,-2,"_object_registration");

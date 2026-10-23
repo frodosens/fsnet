@@ -68,8 +68,12 @@ replica:write({display_name='Alice'}, {
 C++ 客户端用 `ClientScriptHost(node, server_peer)` 承载 LuaEngine，并持续推进 Node、
 ClientScriptHost 和 LuaEngine；每个 Node 一个属性客户端。服务端用 EntityScriptHost
 和 AttributeReplication。两个启动器 `fsnet-script` / `fsnet-client` 已接好这些组件。
+客户端未指定 peer 的实体引用通过 ClientScriptHost 发送到其配置的服务器连接；
+这仍是直连 owner，不包含 Gateway 身份委托或自动 owner 发现。
 
 完整魔法阵类见 [circle_entity.lua](../examples/lua/shared/circle_entity.lua)。
 启动步骤见 [examples](../examples/README.md)。`FSNET_DEMO_SUBJECT=alice` 是 loopback
 演示身份，非回环监听会拒绝启用。生产身份来自可信登录/证书映射，不能由 payload 指定。
-当前直连 owner 节点；Gateway 转发、预测校正、模块和完整生命周期将在后续阶段接入。
+当前直连 owner 节点；Gateway 转发、模块和完整生命周期将在后续阶段接入。
+
+独立预测状态、有界输入历史、服务器校正与重放见 [客户端预测](PREDICTION.md)。
