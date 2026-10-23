@@ -8,6 +8,7 @@ bool reads(Access a) { return a == Access::read || a == Access::read_write; }
 bool writes(Access a) { return a == Access::write || a == Access::read_write; }
 bool valid(const AttributeDefinition& d, const AttributeValue& v) {
     if (v.index() != static_cast<std::size_t>(d.type)) return false;
+    if (auto n = std::get_if<std::int64_t>(&v)) return *n >= d.minimum && *n <= d.maximum;
     if (auto n = std::get_if<double>(&v)) return std::isfinite(*n);
     if (auto s = std::get_if<std::string>(&v)) return s->size() <= 64 * 1024;
     return true;
@@ -19,7 +20,7 @@ bool name_valid(const std::string& s) {
 void EntitySchema::validate() const {
     if (attributes.size() > 256 || methods.size() > 256) throw std::invalid_argument("entity schema limit");
     for (const auto& [name, d] : attributes) {
-        if (!name_valid(name) || !valid(d, d.initial)) throw std::invalid_argument("invalid attribute definition");
+        if (!name_valid(name) || d.minimum > d.maximum || !valid(d, d.initial)) throw std::invalid_argument("invalid attribute definition");
         if (d.visibility != Visibility::none && !reads(d.client)) throw std::invalid_argument("cannot synchronize unreadable attribute");
     }
     for (const auto& [name, p] : methods)
@@ -80,6 +81,16 @@ EntityAttributes::Values EntityAttributes::persistent() const {
     Values result;
     for (const auto& [name, d] : schema_.attributes) if (d.persist) result.emplace(name, values_.at(name));
     return result;
+}
+void EntityAttributes::restore_full(const Values& values, std::uint64_t revision) {
+    auto next = values_;
+    for (const auto& [name, value] : values) {
+        if (!valid(schema_.attributes.at(name), value)) throw std::invalid_argument("invalid attribute image");
+        next.at(name) = value;
+    }
+    auto modified = modified_;
+    for (auto& [name, version] : modified) { (void)name; version = revision; }
+    values_.swap(next); modified_.swap(modified); revision_ = revision;
 }
 void EntityAttributes::restore(const Values& values, std::uint64_t revision) {
     auto next = values_;

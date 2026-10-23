@@ -1,6 +1,7 @@
 # Entity RPC and attribute schemas
 
-This stage implements a native schema carrier and explicit caller-role policies.
+This stage implements Lua attribute entities, a native schema carrier, post-commit
+attribute events and explicit caller-role policies.
 It does **not** yet provide an end-to-end client replication service. The existing
 opaque-state interface and legacy RPC registrations still exist for migration.
 Do not expose legacy registrations as an authorization boundary.
@@ -90,10 +91,57 @@ not be exposed directly to clients. Client updates must pass `stage` plus script
 validation. Values and property revisions must be serialized in the same entity
 record before publication; no database transaction is required.
 
+## Lua attributes and durable publication
+
+```lua
+runtime.entity('Player', {
+    attrs = {
+        hp = {type='int32', default=100, server='rw', client='r', sync='observers'},
+        gold = {type='int64', default=0, server='rw', client='r', sync='owner'},
+        temporary = {type='string', default='', persist=false, sync='owner'},
+        secret = {type='string', default='', client='none', sync='none'},
+    },
+    methods = {
+        damage = {callers={'server'}, handler=function(self, ctx, amount)
+            self.hp = math.max(0, self.hp - tonumber(amount))
+            return tostring(self.hp)
+        end},
+    },
+})
+```
+
+Attribute handlers receive `(self, ctx, payload)` and return response bytes. They
+require explicit caller declarations and cannot also declare opaque `initial` state.
+Supported types are `int32`, `uint32`, `int64`, `number`/`double`, `bool`/`boolean`, and
+`string`. Integer ranges and strict Lua value types are enforced. The native userdata
+checks server read/write access and accounts native carrier memory against the Lua
+memory budget. Undeclared properties fail closed. `tick` receives the same attribute
+object and runs as an internal server operation.
+
+The FSA1 binary codec stores typed values and a monotonic property revision. Persistent
+properties and their revision are serialized into the existing single FER1 record;
+transient properties live in a bounded runtime cache. They survive successive operations
+while the entity remains owned and resident, and reset on reactivation or failover.
+Transient cache growth is reserved before committing and released on failure or eviction.
+It has a separate `resident_bytes` budget, reported as `stats().transient_bytes`.
+
+`EntityScriptHost::on_attributes` receives old/new full images only after successful
+storage CAS and only when properties changed. Failed scripts, stale ownership, failed
+writes, and receipt replays emit no change event. Listeners run on the runtime thread;
+their exceptions increment `publication_failures` and cannot undo a committed state.
+Events contain private properties for trusted framework filtering and must never be
+forwarded wholesale to clients. This callback is currently single-listener.
+
+`encode_attributes`/`decode_attributes` provide a bounded FSA1 wire format, reject
+truncation, duplicates, non-finite numbers and trailing bytes. `AttributeReplica` is the
+native client projection: the first update must be a snapshot, deltas must bridge the
+current revision, late updates cannot rewind it, and replacement snapshots remove
+properties no longer visible. A new entity incarnation/subscription must reset its
+projection before applying its first snapshot.
+
 ## Remaining integration
 
-The Lua `attrs` declaration, property serialization into persistent entity records,
-commit-triggered publication, gateway delegation,
-subscription/AOI lifecycle, wire snapshots/deltas, and client SDK application are
-not implemented yet. In particular, changing `self.hp` does not currently generate
-network traffic. They must be connected before claiming automatic synchronization.
+Gateway identity delegation, mandatory migration of legacy RPC registrations, client
+write proposals, subscription/AOI lifecycle, post-commit network delivery and client
+SDK transport integration are still pending. Changing `self.hp` now emits a committed
+framework event; it does not yet automatically send a packet to a game client.

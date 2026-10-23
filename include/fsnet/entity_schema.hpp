@@ -1,6 +1,7 @@
 #pragma once
 #include <cstdint>
 #include <map>
+#include <limits>
 #include <set>
 #include <stdexcept>
 #include <string>
@@ -31,6 +32,7 @@ struct AttributeDefinition {
     Access server = Access::read_write, client = Access::read;
     Visibility visibility = Visibility::owner;
     bool persist = true;
+    std::int64_t minimum = std::numeric_limits<std::int64_t>::min(), maximum = std::numeric_limits<std::int64_t>::max();
 };
 struct EntitySchema {
     std::map<std::string, AttributeDefinition> attributes;
@@ -63,6 +65,8 @@ public:
     AttributeUpdate changes(std::uint64_t since, const AttributeView&) const;
     Values persistent() const;
     void restore(const Values&, std::uint64_t revision);
+    void restore_full(const Values&, std::uint64_t revision);
+    const Values& all_values() const { return values_; }
     std::uint64_t revision() const { return revision_; }
     const EntitySchema& schema() const { return schema_; }
 private:

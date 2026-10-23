@@ -1,4 +1,5 @@
 #include "fsnet/lua_engine.hpp"
+#include "fsnet/attribute_wire.hpp"
 #include "lua.h"
 #include "lauxlib.h"
 #include "lualib.h"
@@ -70,6 +71,145 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
         if (next) owner.used = retained + new_size;
         return next;
     }
+    struct AttributeObject { Impl* engine; std::size_t charge; EntityAttributes model; };
+    std::unordered_map<std::string, EntitySchema> schemas;
+    std::vector<std::string> defined_schemas;
+    static std::string text_field(lua_State* L, int table, const char* field, const char* fallback) {
+        lua_getfield(L, table, field);
+        std::size_t n = 0; const char* s = lua_isnil(L, -1) ? fallback : luaL_checklstring(L, -1, &n);
+        std::string value = lua_isnil(L, -1) ? std::string(fallback) : std::string(s, n);
+        lua_pop(L, 1); return value;
+    }
+    static Access attribute_access(const std::string& s) {
+        if (s == "none") return Access::none;
+        if (s == "r") return Access::read;
+        if (s == "w") return Access::write;
+        if (s == "rw") return Access::read_write;
+        throw std::invalid_argument("invalid attribute access");
+    }
+    static AttributeValue attribute_value(lua_State* L, int index, AttributeType type) {
+        if (type == AttributeType::integer) {
+            if (!lua_isinteger(L, index)) throw std::invalid_argument("integer attribute required");
+            return static_cast<std::int64_t>(lua_tointeger(L, index));
+        }
+        if (type == AttributeType::number) {
+            if (lua_type(L, index) != LUA_TNUMBER) throw std::invalid_argument("number attribute required");
+            return static_cast<double>(lua_tonumber(L, index));
+        }
+        if (type == AttributeType::boolean) {
+            if (!lua_isboolean(L, index)) throw std::invalid_argument("boolean attribute required");
+            return bool(lua_toboolean(L, index));
+        }
+        if (lua_type(L, index) != LUA_TSTRING) throw std::invalid_argument("string attribute required");
+        std::size_t n; const char* s = lua_tolstring(L, index, &n);
+        if (n > 65536) throw std::length_error("attribute string limit");
+        return std::string(s, n);
+    }
+    static void push_attribute(lua_State* L, const AttributeValue& value) {
+        if (auto n = std::get_if<std::int64_t>(&value)) lua_pushinteger(L, static_cast<lua_Integer>(*n));
+        else if (auto d = std::get_if<double>(&value)) lua_pushnumber(L, *d);
+        else if (auto b = std::get_if<bool>(&value)) lua_pushboolean(L, *b);
+        else { const auto& s = std::get<std::string>(value); lua_pushlstring(L, s.data(), s.size()); }
+    }
+    static int attributes_define(lua_State* L) {
+        auto& engine = self(L);
+        if (!engine.loading) return luaL_error(L, "declare attributes only during load");
+        std::size_t n; const char* type = luaL_checklstring(L, 1, &n);
+        luaL_checktype(L, 2, LUA_TTABLE);
+        try {
+            std::string kind(type, n);
+            if (kind.empty() || kind.size() > 127 || kind.find_first_of(".\0", 0, 2) != std::string::npos || engine.schemas.size() >= 256)
+                throw std::invalid_argument("invalid attribute entity kind");
+            EntitySchema schema;
+            lua_pushnil(L);
+            while (lua_next(L, 2)) {
+                if (schema.attributes.size() >= 256) throw std::length_error("attribute count limit");
+                if (lua_type(L, -2) != LUA_TSTRING || lua_type(L, -1) != LUA_TTABLE) throw std::invalid_argument("named attribute definitions required");
+                std::size_t length; const char* key = lua_tolstring(L, -2, &length); std::string name(key, length);
+                int definition = lua_gettop(L);
+                auto type_name = text_field(L, definition, "type", "");
+                AttributeDefinition d{AttributeType::integer, std::int64_t(0)};
+                if (type_name == "int32") { d.minimum = INT32_MIN; d.maximum = INT32_MAX; }
+                else if (type_name == "uint32") { d.minimum = 0; d.maximum = UINT32_MAX; }
+                else if (type_name == "int64") {}
+                else if (type_name == "number" || type_name == "double") d.type = AttributeType::number;
+                else if (type_name == "bool" || type_name == "boolean") d.type = AttributeType::boolean;
+                else if (type_name == "string") d.type = AttributeType::string;
+                else throw std::invalid_argument("unsupported attribute type");
+                d.server = attribute_access(text_field(L, definition, "server", "rw"));
+                d.client = attribute_access(text_field(L, definition, "client", "r"));
+                auto visibility = text_field(L, definition, "sync", (d.client == Access::none || d.client == Access::write) ? "none" : "owner");
+                if (visibility == "owner") d.visibility = Visibility::owner;
+                else if (visibility == "observers") d.visibility = Visibility::observers;
+                else if (visibility == "none") d.visibility = Visibility::none;
+                else throw std::invalid_argument("invalid property synchronization scope");
+                lua_getfield(L, definition, "persist");
+                if (!lua_isnil(L, -1) && !lua_isboolean(L, -1)) throw std::invalid_argument("persist must be boolean");
+                d.persist = lua_isnil(L, -1) || lua_toboolean(L, -1); lua_pop(L, 1);
+                lua_getfield(L, definition, "default"); d.initial = attribute_value(L, -1, d.type); lua_pop(L, 1);
+                schema.attributes.emplace(std::move(name), std::move(d)); lua_pop(L, 1);
+            }
+            schema.validate(); EntityAttributes model(schema, "");
+            auto full = encode_attributes({0, 0, true, model.all_values()}); (void)full;
+            auto initial = encode_attributes({0, 0, true, model.persistent()});
+            if (!engine.schemas.emplace(std::move(kind), std::move(schema)).second) throw std::invalid_argument("duplicate entity attributes");
+            lua_pushlstring(L, initial.data(), initial.size()); return 1;
+        } catch (const std::exception& e) { return luaL_error(L, "%s", e.what()); }
+    }
+    static AttributeObject& attribute_object(lua_State* L, int index) {
+        return *static_cast<AttributeObject*>(luaL_checkudata(L, index, "fsnet.attributes"));
+    }
+    static int attributes_open(lua_State* L) {
+        auto& engine = self(L);
+        std::size_t n, size; const char* kind = luaL_checklstring(L, 1, &n); const char* state = luaL_checklstring(L, 2, &size);
+        try {
+            const auto& schema = engine.schemas.at(std::string(kind, n));
+            auto image = decode_attributes(std::string_view(state, size));
+            if (!image.snapshot) throw std::invalid_argument("attribute state must be a snapshot");
+            EntityAttributes model(schema, ""); model.restore_full(image.values, image.revision);
+            auto defaults = encode_attributes({0, 0, true, EntityAttributes(schema, "").all_values()});
+            auto charge = 65536 + 4 * size + 2 * defaults.size();
+            if (charge > engine.limits.memory_bytes - engine.used) throw std::length_error("attribute object memory limit");
+            void* memory = lua_newuserdatauv(L, sizeof(AttributeObject), 0);
+            if (charge > engine.limits.memory_bytes - engine.used) throw std::length_error("attribute object memory limit");
+            new(memory) AttributeObject{&engine, charge, std::move(model)};
+            engine.used += charge; luaL_setmetatable(L, "fsnet.attributes"); return 1;
+        } catch (const std::exception& e) { return luaL_error(L, "%s", e.what()); }
+    }
+    static int attributes_gc(lua_State* L) {
+        auto& object = attribute_object(L, 1); object.engine->used -= object.charge;
+        object.~AttributeObject(); return 0;
+    }
+    static int attributes_index(lua_State* L) {
+        std::size_t n; const char* name = luaL_checklstring(L, 2, &n);
+        try { push_attribute(L, attribute_object(L, 1).model.read(std::string(name, n), {Caller::server, {}})); return 1; }
+        catch (const std::exception& e) { return luaL_error(L, "%s", e.what()); }
+    }
+    static int attributes_newindex(lua_State* L) {
+        std::size_t n; const char* name = luaL_checklstring(L, 2, &n);
+        try {
+            auto& object = attribute_object(L, 1); auto key = std::string(name, n);
+            auto value = attribute_value(L, 3, object.model.schema().attributes.at(key).type);
+            auto mutation = object.model.stage({{key, std::move(value)}}, {Caller::server, {}});
+            auto projected = object.model.all_values(); projected.at(key) = mutation.values.at(key);
+            auto encoded = encode_attributes({0, object.model.revision(), true, std::move(projected)});
+            auto defaults = encode_attributes({0, 0, true, EntityAttributes(object.model.schema(), "").all_values()});
+            auto charge = 65536 + 4 * encoded.size() + 2 * defaults.size();
+            auto& engine = *object.engine;
+            if (charge > object.charge && charge - object.charge > engine.limits.memory_bytes - engine.used)
+                throw std::length_error("attribute object memory limit");
+            if (!object.model.publish(mutation)) throw std::runtime_error("stale attribute object");
+            engine.used = engine.used - object.charge + charge; object.charge = charge; return 0;
+        } catch (const std::exception& e) { return luaL_error(L, "%s", e.what()); }
+    }
+    static int attributes_close(lua_State* L) {
+        try {
+            auto& model = attribute_object(L, 1).model;
+            auto state = encode_attributes({0, model.revision(), true, model.all_values()});
+            lua_pushlstring(L, state.data(), state.size()); return 1;
+        } catch (const std::exception& e) { return luaL_error(L, "%s", e.what()); }
+    }
+
     static int rpc(lua_State* L) {
         luaL_checktype(L, 1, LUA_TSTRING); luaL_checktype(L, 2, LUA_TFUNCTION);
         std::size_t size = 0; const char* name = lua_tolstring(L, 1, &size);
@@ -169,6 +309,14 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
         luaL_requiref(L, LUA_UTF8LIBNAME, luaopen_utf8, 1); lua_pop(L, 1);
         for (const char* name : {"dofile", "loadfile", "load", "collectgarbage"}) { lua_pushnil(L); lua_setglobal(L, name); }
         lua_newtable(L);
+        lua_pushcfunction(L, attributes_define); lua_setfield(L, -2, "_attributes_define");
+        lua_pushcfunction(L, attributes_open); lua_setfield(L, -2, "_attributes_open");
+        lua_pushcfunction(L, attributes_close); lua_setfield(L, -2, "_attributes_close");
+        luaL_newmetatable(L, "fsnet.attributes");
+        lua_pushcfunction(L, attributes_gc); lua_setfield(L, -2, "__gc");
+        lua_pushcfunction(L, attributes_index); lua_setfield(L, -2, "__index");
+        lua_pushcfunction(L, attributes_newindex); lua_setfield(L, -2, "__newindex");
+        lua_pushboolean(L, false); lua_setfield(L, -2, "__metatable"); lua_pop(L, 1);
         lua_pushcfunction(L, rpc); lua_setfield(L, -2, "rpc");
         lua_pushcfunction(L, connect); lua_setfield(L, -2, "connect");
         lua_pushcfunction(L, request); lua_setfield(L, -2, "await");
@@ -190,9 +338,11 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
             end
             runtime.entity = function(kind, definition)
                 assert(type(definition) == 'table' and type(definition.methods) == 'table', 'entity definition required')
-                local initial = definition.initial or ''
+                assert(not (definition.attrs and definition.initial), 'attribute entities cannot declare opaque initial state')
+                local initial = definition.attrs and runtime._attributes_define(kind, definition.attrs) or definition.initial or ''
                 local register = function(method, handler)
                     local policy
+                    assert(not definition.attrs or type(handler) == 'table', 'attribute entity methods require explicit callers')
                     if type(handler) == 'table' then
                         assert(handler.access == nil or handler.access == 'owner', 'invalid entity access')
                         assert(type(handler.callers) == 'table' and #handler.callers > 0, 'explicit RPC callers required')
@@ -210,7 +360,12 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
                         local size, offset = string.unpack('>I4', data, 5)
                         assert(#data >= offset + size - 1, 'truncated state')
                         local state = data:sub(offset, offset + size - 1)
-                        local next_state, response = handler(state, id, data:sub(offset + size), ctx)
+                        local next_state, response
+                        if definition.attrs then
+                            local self = runtime._attributes_open(kind, state)
+                            response = handler(self, ctx, data:sub(offset + size))
+                            next_state = runtime._attributes_close(self)
+                        else next_state, response = handler(state, id, data:sub(offset + size), ctx) end
                         assert(type(next_state) == 'string' and type(response) == 'string', 'return state and response bytes')
                         return 'FSS1' .. string.pack('>I4', #next_state) .. next_state .. response
                     end, kind, initial, policy)
@@ -219,7 +374,7 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
                     assert(method:sub(1, 1) ~= '$', 'reserved entity method')
                     register(method, handler)
                 end
-                if definition.tick then register('$tick', definition.tick) end
+                if definition.tick then register('$tick', definition.attrs and {callers={'server'}, handler=definition.tick} or definition.tick) end
             end
             runtime.entity_call = function(kind, id, method, payload, timeout, request_id)
                 return runtime.entity_request(0, kind, id, method, payload, timeout, request_id)
@@ -347,6 +502,8 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
         if (std::exchange(stopped, true)) return;
         for (auto& route : bound) host->unbind(route);
         bound.clear();
+        for (const auto& type : defined_schemas) host->forget_schema(type);
+        defined_schemas.clear();
         auto queued = std::move(queue); queue.clear(); queued_bytes = 0;
         for (auto& task : queued) {
             try { task.reply({Status::disconnected, {}}); } catch (...) { /* complete remaining shutdown work */ }
@@ -387,6 +544,12 @@ void LuaEngine::load(std::string_view source, const std::string& name) {
             for (const auto& [other, type] : owner.entity_routes)
                 if (kind == type && managed != owner.stateful_routes.contains(other))
                     throw std::runtime_error("cannot mix persistent and unmanaged methods for one entity type");
+        }
+        owner.defined_schemas.reserve(owner.schemas.size());
+        for (const auto& [type, schema] : owner.schemas) {
+            owner.defined_schemas.push_back(type);
+            try { owner.host->define_schema(type, schema); }
+            catch (...) { owner.defined_schemas.pop_back(); throw; }
         }
         owner.bound.reserve(owner.routes.size());
         for (auto& [route, reference] : owner.routes) {

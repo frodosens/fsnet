@@ -1,4 +1,6 @@
 #include "fsnet/entity_schema.hpp"
+#include "fsnet/attribute_wire.hpp"
+#include <limits>
 #include <iostream>
 #include <stdexcept>
 #define CHECK(x) do { if (!(x)) throw std::runtime_error(#x); } while (false)
@@ -44,6 +46,22 @@ int main() {
         auto invalid = entity.stage({}, server); invalid.values = {{"gold", std::int64_t(99)}, {"hp", std::string("bad")}};
         denied([&] { entity.publish(invalid); });
         CHECK(std::get<std::int64_t>(entity.read("gold", server)) == 20);
+        AttributeUpdate full{0, 7, true, {{"negative", std::numeric_limits<std::int64_t>::min()}, {"binary", std::string("a\0b", 3)}, {"real", 0.25}, {"flag", true}}};
+        auto bytes = encode_attributes(full);
+        CHECK(decode_attributes(bytes).values == full.values);
+        for (std::size_t i = 0; i < bytes.size(); ++i) denied([&] { decode_attributes(std::string_view(bytes).substr(0, i)); });
+        denied([&] { decode_attributes(bytes + "trailing"); });
+        auto duplicate = encode_attributes({0, 1, true, {{"x", true}}}); duplicate[22] = 2;
+        duplicate += duplicate.substr(23); denied([&] { decode_attributes(duplicate); });
+        denied([&] { encode_attributes({0, 1, true, {{"nan", std::numeric_limits<double>::quiet_NaN()}}}); });
+        AttributeReplica replica;
+        CHECK(!replica.apply(AttributeUpdate{7, 8, false, {{"flag", false}}}));
+        CHECK(replica.apply(bytes));
+        CHECK(!replica.apply(AttributeUpdate{6, 8, false, {{"flag", false}}})); CHECK(replica.revision() == 7);
+        CHECK(replica.apply(AttributeUpdate{7, 9, false, {{"flag", false}}}));
+        CHECK(!std::get<bool>(replica.values().at("flag")));
+        CHECK(!replica.apply(full)); // late old snapshot cannot roll back
+        CHECK(replica.apply(AttributeUpdate{0, 9, true, {{"flag", false}}})); CHECK(replica.values().size() == 1);
         schema.methods.emplace("unrestricted", RpcPolicy{}); denied([&] { schema.validate(); });
         std::cout << "PASS schema permissions, filtered snapshots/deltas, staged publication, persistence and stale revision rejection\n";
     } catch (const std::exception& e) { std::cerr << e.what() << '\n'; return 1; }

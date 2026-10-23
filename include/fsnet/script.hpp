@@ -17,6 +17,10 @@ public:
     virtual void bind_stateful(std::string, std::string, std::string, Handler) {
         throw std::logic_error("stateful entities require EntityScriptHost");
     }
+    virtual void define_schema(std::string, EntitySchema) {
+        throw std::logic_error("entity schemas require an entity host");
+    }
+    virtual void forget_schema(const std::string&) {}
     virtual void bind_context(std::string, RpcPolicy, ContextHandler) {
         throw std::logic_error("script host does not support caller context");
     }

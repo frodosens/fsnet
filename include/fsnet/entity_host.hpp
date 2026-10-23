@@ -1,6 +1,7 @@
 #pragma once
 #include "fsnet/async_database.hpp"
 #include "fsnet/script.hpp"
+#include "fsnet/attribute_wire.hpp"
 #include <optional>
 
 namespace fsnet {
@@ -22,7 +23,8 @@ struct EntityHandle {
     std::uint64_t generation = 0;
 };
 struct EntityRuntimeStats {
-    std::size_t entities = 0, pending = 0, queued_bytes = 0, state_bytes = 0;
+    std::size_t entities = 0, pending = 0, queued_bytes = 0, state_bytes = 0, transient_bytes = 0;
+    std::uint64_t publication_failures = 0;
     std::uint64_t committed = 0, replayed = 0, rejected = 0, failed = 0, tick_failures = 0;
 };
 // Stateful script-host decorator. Each operation restores opaque state, invokes
@@ -38,6 +40,13 @@ public:
     bool has_route(const std::string&) const override;
     void bind(std::string, Handler) override;
     void bind_stateful(std::string route, std::string type, std::string initial, Handler) override;
+    void define_schema(std::string, EntitySchema) override;
+    void forget_schema(const std::string&) override;
+    struct AttributeCommit { std::string type, id, owner; std::shared_ptr<const EntitySchema> schema; AttributeUpdate previous, current; };
+    using AttributeListener = std::function<void(const AttributeCommit&)>;
+    // Runs only after a successful fenced storage CAS, on the owner thread.
+    // A throwing listener cannot roll back an already committed entity.
+    void on_attributes(AttributeListener);
     void bind_context(std::string, RpcPolicy, ContextHandler) override;
     void bind_stateful_context(std::string, std::string, std::string, RpcPolicy, ContextHandler) override;
     using OwnerResolver = std::function<std::string(const std::string& type, const std::string& id)>;

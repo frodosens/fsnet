@@ -20,7 +20,7 @@ std::int64_t wall_time() {
 
 }
 struct EntityScriptHost::Impl : std::enable_shared_from_this<Impl> {
-    struct Method { std::string type, initial; ContextHandler logic; std::optional<RpcPolicy> policy; };
+    struct Method { std::string type, initial; ContextHandler logic; std::optional<RpcPolicy> policy; std::shared_ptr<const EntitySchema> schema; };
     struct Request {
         std::shared_ptr<Method> method;
         std::string payload, route, request_id;
@@ -35,6 +35,8 @@ struct EntityScriptHost::Impl : std::enable_shared_from_this<Impl> {
         std::deque<Request> queue;
         bool busy = false, releasing = false, activated = false;
         Clock::time_point next_tick, touched;
+        std::string transient;
+        std::uint64_t transient_fence = 0, transient_revision = 0;
     };
     struct Job {
         std::string entity, state, output, persisted;
@@ -45,7 +47,11 @@ struct EntityScriptHost::Impl : std::enable_shared_from_this<Impl> {
         std::int64_t expires = 0;
         Status status = Status::ok;
         Request request;
-        bool responded = false, committing = false;
+        bool responded = false, committing = false, previously_owned = false;
+        std::uint64_t previous_fence = 0;
+        std::optional<AttributeCommit> attributes;
+        std::string transient;
+        std::size_t cache_growth = 0;
     };
     std::shared_ptr<ScriptHost> parent;
     AsyncDatabase storage;
@@ -53,6 +59,8 @@ struct EntityScriptHost::Impl : std::enable_shared_from_this<Impl> {
     EntityRuntimeLimits limits;
     WallClock now;
     OwnerResolver owner_resolver;
+    AttributeListener attribute_listener;
+    std::unordered_map<std::string, std::shared_ptr<const EntitySchema>> schemas;
     std::unordered_map<std::string, std::shared_ptr<Method>> methods;
     std::unordered_map<std::string, Slot> slots;
     std::deque<std::string> schedule;
@@ -77,6 +85,13 @@ struct EntityScriptHost::Impl : std::enable_shared_from_this<Impl> {
         if (std::exchange(job->responded, true)) return;
         active.erase(job->entity);
         auto it = slots.find(job->entity);
+        if (job->attributes && result.status == Status::ok && it != slots.end()) {
+            auto& slot = it->second;
+            if (slot.transient.size() > job->transient.size()) counters.transient_bytes -= slot.transient.size() - job->transient.size();
+            slot.transient = std::move(job->transient); slot.transient_fence = job->fence;
+            slot.transient_revision = job->attributes->current.revision;
+        } else counters.transient_bytes -= job->cache_growth;
+        job->cache_growth = 0;
         if (it != slots.end()) { it->second.busy = false; it->second.touched = Clock::now();
             if (result.status == Status::ok) it->second.activated = true;
             else if (result.status == Status::rejected) it->second.activated = false; }
@@ -86,6 +101,10 @@ struct EntityScriptHost::Impl : std::enable_shared_from_this<Impl> {
         else ++counters.failed;
         if (job->request.tick && result.status != Status::ok) ++counters.tick_failures;
         auto reply = std::move(job->request.reply);
+        if (result.status == Status::ok && job->attributes && attribute_listener &&
+            (job->attributes->previous.values != job->attributes->current.values || job->attributes->previous.revision != job->attributes->current.revision)) {
+            try { auto listener = attribute_listener; listener(*job->attributes); } catch (...) { ++counters.publication_failures; }
+        }
         reply(std::move(result));
     }
     void enqueue(const std::string& route, std::string data, Reply reply, bool tick = false, CallIdentity identity = {Caller::server, {}}) {
@@ -129,7 +148,7 @@ struct EntityScriptHost::Impl : std::enable_shared_from_this<Impl> {
             if (slots.size() >= limits.entities) return reply({Status::overloaded, {}});
             auto time = Clock::now();
             it = slots.emplace(entity, Slot{{method->second->type, message->id, owner, ++generation}, {}, false, false, false,
-                time + limits.tick_interval, time}).first;
+                time + limits.tick_interval, time, {}, 0, 0}).first;
             schedule.push_back(entity);
         }
         if (it->second.releasing) return reply({Status::rejected, {}});
@@ -160,6 +179,7 @@ struct EntityScriptHost::Impl : std::enable_shared_from_this<Impl> {
                         throw std::runtime_error("invalid lease clock");
                     if (current.owner != owner_id && current.expires_ms > time) { job->status = Status::rejected; return; }
                     job->state = current.snapshot.state; job->receipts = current.snapshot.receipts;
+                    job->previously_owned = current.owner == owner_id; job->previous_fence = current.fence;
                     if (!job->request.request_id.empty()) for (const auto& receipt : job->receipts) {
                         if (receipt.id != job->request.request_id) continue;
                         if (receipt.route != job->request.route || receipt.request != job->request.payload) { job->status = Status::rejected; return; }
@@ -194,6 +214,28 @@ struct EntityScriptHost::Impl : std::enable_shared_from_this<Impl> {
                 job->resident = retained; self->counters.state_bytes += retained;
                 auto slot = self->slots.find(job->entity);
                 if (slot == self->slots.end()) return self->complete(job, {Status::disconnected, {}});
+                if (job->request.method->schema) {
+                    try {
+                        auto image = decode_attributes(job->state);
+                        if (!image.snapshot) throw std::runtime_error("persistent properties require a snapshot");
+                        EntityAttributes model(*job->request.method->schema, ""); model.restore(image.values, image.revision);
+                        auto& cached = slot->second;
+                        if (!cached.transient.empty() && job->previously_owned && cached.transient_fence == job->previous_fence && cached.transient_revision == image.revision) {
+                            auto transient = decode_attributes(cached.transient);
+                            model.restore_full(transient.values, image.revision);
+                        }
+                        AttributeUpdate full{0, image.revision, true, model.all_values()};
+                        auto bytes = encode_attributes(full);
+                        auto retained = job->resident + 4 * bytes.size() + 65536;
+                        if (retained > self->limits.resident_bytes - self->counters.state_bytes + job->resident)
+                            return self->complete(job, {Status::overloaded, {}});
+                        self->counters.state_bytes = self->counters.state_bytes - job->resident + retained;
+                        job->resident = retained; job->state = std::move(bytes);
+                        std::string account;
+                        if (self->owner_resolver) { auto resolve = self->owner_resolver; account = resolve(slot->second.handle.type, slot->second.handle.id); }
+                        job->attributes = AttributeCommit{slot->second.handle.type, slot->second.handle.id, account, job->request.method->schema, full, {}};
+                    } catch (...) { return self->complete(job, {Status::internal, {}}); }
+                }
                 auto input = entity_message(slot->second.handle.id, state_message(job->state, job->request.payload));
                 auto done = [weak, job](Result result) {
                     auto owner = weak.lock();
@@ -205,6 +247,21 @@ struct EntityScriptHost::Impl : std::enable_shared_from_this<Impl> {
                     if (!next) return owner->complete(job, {Status::internal, {}});
                     if (next->state.size() > owner->limits.state_bytes || next->payload.size() > owner->limits.queued_bytes)
                         return owner->complete(job, {Status::overloaded, {}});
+                    if (job->attributes) {
+                        try {
+                            auto image = decode_attributes(next->state);
+                            if (!image.snapshot || image.revision < job->attributes->previous.revision ||
+                                (image.revision == job->attributes->previous.revision && image.values != job->attributes->previous.values))
+                                throw std::runtime_error("invalid property revision");
+                            EntityAttributes model(*job->attributes->schema, ""); model.restore_full(image.values, image.revision);
+                            job->attributes->current = {0, image.revision, true, model.all_values()};
+                            EntityAttributes::Values transient;
+                            for (const auto& [name, definition] : job->attributes->schema->attributes)
+                                if (!definition.persist) transient.emplace(name, model.all_values().at(name));
+                            if (!transient.empty()) job->transient = encode_attributes({0, image.revision, true, std::move(transient)});
+                            next->state = encode_attributes({0, image.revision, true, model.persistent()});
+                        } catch (...) { return owner->complete(job, {Status::internal, {}}); }
+                    }
                     job->state = std::move(next->state); job->output = std::move(next->payload);
                     if (!job->request.request_id.empty()) {
                         EntityReceipt receipt{job->request.request_id, job->request.route, job->request.payload, job->output};
@@ -216,11 +273,20 @@ struct EntityScriptHost::Impl : std::enable_shared_from_this<Impl> {
                     while (!job->receipts.empty() && (job->receipts.size() > owner->limits.receipts || receipt_bytes > owner->limits.receipt_bytes)) {
                         receipt_bytes -= job->receipts.front().bytes(); job->receipts.erase(job->receipts.begin());
                     }
-                    const auto retained = job->state.size() + job->output.size() + receipt_bytes + 12;
+                    const auto retained = (job->attributes ? 5 : 1) * job->state.size() + job->transient.size() * 4 + job->output.size() + receipt_bytes + 12;
                     if (retained > owner->limits.resident_bytes - owner->counters.state_bytes + job->resident)
                         return owner->complete(job, {Status::overloaded, {}});
                     owner->counters.state_bytes = owner->counters.state_bytes - job->resident + retained;
                     job->resident = retained;
+                    if (job->attributes) {
+                        auto found = owner->slots.find(job->entity);
+                        if (found == owner->slots.end()) return owner->complete(job, {Status::disconnected, {}});
+                        auto previous = found->second.transient.size();
+                        auto growth = job->transient.size() > previous ? job->transient.size() - previous : 0;
+                        if (growth > owner->limits.resident_bytes - owner->counters.transient_bytes)
+                            return owner->complete(job, {Status::overloaded, {}});
+                        owner->counters.transient_bytes += growth; job->cache_growth = growth;
+                    }
                     job->persisted = encode_entity_record({owner->owner, job->expires, job->fence,
                         {std::move(job->state), std::move(job->receipts)}});
                     auto clock = owner->now;
@@ -257,8 +323,9 @@ void EntityScriptHost::bind_stateful(std::string route, std::string type, std::s
         throw std::invalid_argument("invalid stateful route");
     for (const auto& [name, method] : self.methods)
         if (method->type == type && method->initial != initial) throw std::invalid_argument("inconsistent initial entity state");
+    auto schema = self.schemas.contains(type) ? self.schemas.at(type) : nullptr;
     auto method = std::make_shared<Impl::Method>(Impl::Method{std::move(type), std::move(initial),
-        [logic = std::move(logic)](const CallIdentity&, std::string data, Reply reply) { logic(std::move(data), std::move(reply)); }, {}});
+        [logic = std::move(logic)](const CallIdentity&, std::string data, Reply reply) { logic(std::move(data), std::move(reply)); }, {}, std::move(schema)});
     self.methods.emplace(route, method);
     if (route == method->type + ".$tick") return; // runtime-only; clients cannot drive ticks
     try {
@@ -269,6 +336,16 @@ void EntityScriptHost::bind_stateful(std::string route, std::string type, std::s
         });
     } catch (...) { self.methods.erase(route); throw; }
 }
+void EntityScriptHost::define_schema(std::string type, EntitySchema schema) {
+    schema.validate();
+    if (impl_->stopped || type.empty() || type.size() > 127 || type.find_first_of(".\0", 0, 2) != std::string::npos || impl_->schemas.size() >= 256)
+        throw std::invalid_argument("invalid entity schema type");
+    for (const auto& [route, method] : impl_->methods) if (method->type == type) throw std::logic_error("entity schema must precede methods");
+    if (!impl_->schemas.emplace(std::move(type), std::make_shared<const EntitySchema>(std::move(schema))).second)
+        throw std::logic_error("duplicate entity schema");
+}
+void EntityScriptHost::forget_schema(const std::string& type) { impl_->schemas.erase(type); }
+void EntityScriptHost::on_attributes(AttributeListener listener) { impl_->attribute_listener = std::move(listener); }
 void EntityScriptHost::ownership(OwnerResolver resolve) { impl_->owner_resolver = std::move(resolve); }
 void EntityScriptHost::bind_context(std::string route, RpcPolicy policy, ContextHandler handler) {
     impl_->parent->bind_context(std::move(route), policy, std::move(handler));
@@ -314,7 +391,7 @@ std::size_t EntityScriptHost::poll(std::size_t budget) {
         auto it = self.slots.find(entity);
         if (it == self.slots.end()) continue;
         auto& slot = it->second;
-        if (!slot.busy && slot.queue.empty() && time - slot.touched >= self.limits.idle_timeout) { self.slots.erase(it); continue; }
+        if (!slot.busy && slot.queue.empty() && time - slot.touched >= self.limits.idle_timeout) { self.counters.transient_bytes -= slot.transient.size(); self.slots.erase(it); continue; }
         self.schedule.push_back(entity);
         if (slot.busy) continue;
         if (slot.queue.empty() && time >= slot.next_tick) {
@@ -351,7 +428,7 @@ void EntityScriptHost::deactivate(const EntityHandle& handle, Reply reply) {
         auto owner = weak.lock();
         if (!owner || owner->stopped) return release->reply({Status::disconnected, {}});
         owner->releases.erase(entity);
-        if (!error && *status == Status::ok) { owner->slots.erase(entity); std::erase(owner->schedule, entity); }
+        if (!error && *status == Status::ok) { auto it = owner->slots.find(entity); if (it != owner->slots.end()) owner->counters.transient_bytes -= it->second.transient.size(); owner->slots.erase(entity); std::erase(owner->schedule, entity); }
         else if (auto it = owner->slots.find(entity); it != owner->slots.end()) { it->second.busy = false; it->second.releasing = false; }
         release->reply({error ? Status::internal : *status, {}});
     };
@@ -374,7 +451,7 @@ void EntityScriptHost::stop() {
     for (auto& [entity, job] : active) {
         try { self.complete(job, {Status::disconnected, {}}); } catch (...) {}
     }
-    auto slots = std::move(self.slots); self.slots.clear(); self.schedule.clear();
+    auto slots = std::move(self.slots); self.slots.clear(); self.schedule.clear(); self.counters.transient_bytes = 0;
     for (auto& [entity, slot] : slots) for (auto& request : slot.queue) {
         --self.counters.pending; self.counters.queued_bytes -= request.bytes;
         try { request.reply({Status::disconnected, {}}); } catch (...) {}
