@@ -33,6 +33,7 @@ struct AttributeDefinition {
     Visibility visibility = Visibility::owner;
     bool persist = true;
     std::int64_t minimum = std::numeric_limits<std::int64_t>::min(), maximum = std::numeric_limits<std::int64_t>::max();
+    bool driver_authority = false; // local simulation may write; network authority is unchanged
 };
 struct EntitySchema {
     std::map<std::string, AttributeDefinition> attributes;

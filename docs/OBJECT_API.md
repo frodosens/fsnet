@@ -136,4 +136,6 @@ end
 `on_create`、`on_activate`、`on_deactivate` 这些伪生命周期 hook；声明时明确报错，避免
 误以为执行了一次性的持久化初始化或可靠卸载回调。
 
+客户端/服务端共享类、本地实例与确认副本见 [共享实体](SHARED_ENTITIES.md)。
+
 完整例子见 [attributes.lua](../examples/lua/attributes.lua)。

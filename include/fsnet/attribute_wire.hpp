@@ -1,8 +1,13 @@
 #pragma once
 #include "fsnet/entity_schema.hpp"
 #include <string_view>
+#include <optional>
 
 namespace fsnet {
+struct AttributeWriteOptions {
+    std::optional<std::uint64_t> expected_revision;
+    std::string request_id;
+};
 // Bounded, language-neutral FSA1 record used for both durable property snapshots
 // and replicated snapshots/deltas. Entity identity belongs to the enclosing frame.
 std::string encode_attributes(const AttributeUpdate&);

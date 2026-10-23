@@ -231,8 +231,9 @@ remains bounded; this is not unlimited exactly-once delivery. The native client
 bounds pending write callbacks to 256 and reports disconnection during shutdown.
 
 A complete script example is [attributes.lua](../examples/lua/attributes.lua).
-The generic `fsnet-script` binary remains a basic host: an embedding application
-must install authentication and AttributeReplication as described above.
+The `fsnet-script` binary installs AttributeReplication; production embeddings still
+provide trusted authentication. Lua client carriers use ClientScriptHost and the
+`fsnet-client` binary; see [shared entities](SHARED_ENTITIES.md).
 
 ## Remaining integration
 

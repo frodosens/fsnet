@@ -1,6 +1,7 @@
 #include "config.hpp"
 #include "fsnet/lua_engine.hpp"
 #include "fsnet/entity_host.hpp"
+#include "fsnet/attribute_replication.hpp"
 #include <random>
 #include <chrono>
 #include <csignal>
@@ -22,6 +23,12 @@ int main(int argc, char** argv) {
         std::string source(static_cast<std::size_t>(file.tellg()), '\0'); file.seekg(0);
         if (!file.read(source.data(), static_cast<std::streamsize>(source.size()))) throw std::runtime_error("cannot read script");
         fsnet::Node node(token, {}, tls_from_environment());
+        if(const char* subject=std::getenv("FSNET_DEMO_SUBJECT")) {
+            if(bind_from_environment()!="127.0.0.1" && bind_from_environment()!="::1") throw std::invalid_argument("demo identity is loopback only");
+            std::string account=subject;
+            if(account.empty() || account.size()>256) throw std::invalid_argument("invalid demo subject");
+            node.identify([account](std::uint64_t,const std::string&) { return std::optional(fsnet::CallIdentity{fsnet::Caller::client,account}); });
+        }
         auto transport = std::make_shared<fsnet::NodeScriptHost>(node);
         const char* path = std::getenv("FSNET_DATABASE_PATH");
         const char* storage_uri = std::getenv("FSNET_STORAGE_URI");
@@ -41,12 +48,13 @@ int main(int argc, char** argv) {
             entity_limits.request_timeout = std::min(std::chrono::milliseconds(30000), entity_limits.lease / 2);
         }
         auto host = std::make_shared<fsnet::EntityScriptHost>(transport, database, instance, entity_limits);
+        fsnet::AttributeReplication replication(node,host);
         fsnet::LuaEngine engine(host); engine.load(source, argv[1]);
         std::signal(SIGINT, stop); std::signal(SIGTERM, stop);
         std::cout << "listening " << node.listen(bind_from_environment(), static_cast<std::uint16_t>(port)) << std::endl;
         while (running) {
-            node.poll(); host->poll(); engine.poll(); std::this_thread::sleep_for(std::chrono::milliseconds(1));
+            node.poll(); host->poll(); replication.poll(); engine.poll(); std::this_thread::sleep_for(std::chrono::milliseconds(1));
         }
-        engine.stop(); host->stop(); node.stop();
+        engine.stop(); replication.stop(); host->stop(); node.stop();
     } catch (const std::exception& error) { std::cerr << error.what() << '\n'; return 1; }
 }

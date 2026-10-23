@@ -8,10 +8,10 @@
 
 | 配置/检查 | 结果 |
 | --- | --- |
-| Debug，Lua 与可选 PostgreSQL | CTest 17/17 通过 |
-| ASan/UBSan，Lua 与可选 PostgreSQL | CTest 12/12 通过 |
+| Debug，Lua 与可选 PostgreSQL | CTest 19/19 通过 |
+| ASan/UBSan，Lua 与可选 PostgreSQL | CTest 13/13 通过 |
 | 纯核心，Lua 和 PostgreSQL 均关闭 | CTest 9/9 通过 |
-| 重跑 tools/cloud-install.sh | 安装、配置、构建及 CTest 17/17 通过 |
+| 清理阶段重跑 tools/cloud-install.sh | 安装、配置、构建及 CTest 17/17 通过 |
 | 当前源码、文档和文件名清理检查 | 通过，无废弃适配器文件或引用 |
 | Shell/Python 语法、本地 Markdown 链接、git diff --check | 通过 |
 
@@ -62,3 +62,5 @@ TLS 测试临时生成 CA/服务/客户端与不可信证书，验证 TLS 1.3 �
 存储合同调整后，实体宿主测试使用不实现 transact 的后端，确认所有权、快照、接管、去重与卸载仅依赖单记录 CAS。文件后端验证二进制 key/value、多实例竞争、tombstone 防 ABA、低层 EntityStore fencing、重开持久化和损坏拒绝。独立进程测试覆盖多个文件 writer、SIGKILL 后已确认值保留与锁释放，以及完整 Lua 实体在文件后端的 owner 接管/恢复。该证据不等同于断电、远端文件系统或跨机存储一致性验证。
 
 可选 PostgreSQL 验证使用固定源码编译的 libpq/服务端和临时 TLS 证书：共同 CAS 合同、二进制 key/value、4 个独立连接竞争、无事务的 EntityStore fencing、不可信证书拒绝、Lua 三进程接管、数据库 immediate stop/WAL 恢复以及存活客户端安全读取重连。已检查 libfsnet.so 动态依赖仅为系统 C/C++ 运行库，不依赖机器上的 libpq/OpenSSL 私有库。
+
+共享实体阶段：fsnet-shared 覆盖本地 userdata、执行域、只读投影、客户端提案、定时等待、权限撤销和释放；fsnet-shared-process 启动两个真实程序，加载同一魔法阵类，验证服务端 tick 自动同步到 Lua 客户端。

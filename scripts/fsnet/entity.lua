@@ -5,7 +5,9 @@ local refs = setmetatable({}, {__mode='k'})
 local Class, class_mt, ref_mt = {}, {}, {}
 local register_entity=runtime.entity
 local reserved = {id=true, type=true, context=true, reject=true, attr=true, rpc=true,
-                  private=true, extend=true, register=true, ref=true, reference=true}
+                  private=true, extend=true, register=true, ref=true, reference=true,
+                  define=true, spawn_local=true, watch=true, write=true, close=true,
+                  revision=true, mode=true, method=true}
 local unsupported_hooks = {new=true, init=true, on_create=true, on_activate=true, on_deactivate=true}
 local function name(value)
     assert(type(value)=='string' and #value>0 and #value<=127 and not value:find('[%.%z]') and value:sub(1,1)~='$', 'invalid entity/member name')
@@ -58,7 +60,7 @@ function Class:extend(kind, opts)
     record(self); name(kind)
     assert(not names[kind], 'entity class name already exists')
     local class=setmetatable({},class_mt)
-    classes[class]={name=kind, parent=self, attrs={}, methods={}, rpcs={}, options=options(opts)}
+    classes[class]={name=kind, parent=self, attrs={}, methods={}, rpcs={}, domains={}, options=options(opts)}
     names[kind]=class
     return class
 end
@@ -66,9 +68,18 @@ function Class:attr(key, definition)
     local data=editable(self); name(key)
     assert(not reserved[key] and not unsupported_hooks[key] and key~='on_tick' and key~='validate_write', 'reserved property name')
     assert(data.attrs[key]==nil and type(definition)=='table', 'duplicate or invalid property')
-    local allowed={type=true, default=true, server=true, client=true, sync=true, persist=true}
+    local allowed={type=true, default=true, server=true, client=true, sync=true, persist=true, authority=true}
     for option in pairs(definition) do assert(allowed[option], 'unknown property option: '..tostring(option)) end
     data.attrs[key]=copy(definition)
+    return self
+end
+function Class:method(key,definition)
+    local data=editable(self); name(key)
+    assert(not reserved[key] and not unsupported_hooks[key], 'reserved method')
+    assert(type(definition)=='table' and (definition.runs_on=='shared' or definition.runs_on=='server' or definition.runs_on=='client'), 'invalid execution domain')
+    for option in pairs(definition) do assert(option=='runs_on','unknown method option') end
+    assert(data.domains[key]==nil,'duplicate method domain')
+    data.domains[key]=definition.runs_on
     return self
 end
 function Class:rpc(key, definition)
@@ -87,11 +98,12 @@ end
 local function flatten(class)
     local chain={}
     while class do table.insert(chain,1,class); class=record(class).parent end
-    local out={attrs={},methods={},rpcs={},options={}}
+    local out={attrs={},methods={},rpcs={},domains={},options={}}
     for _,base in ipairs(chain) do
         local data=record(base)
         for key,value in pairs(data.options) do out.options[key]=value end
         for key,value in pairs(data.attrs) do out.attrs[key]=copy(value) end
+        for key,value in pairs(data.domains) do out.domains[key]=value end
         for key,fn in pairs(data.methods) do
             assert(not out.rpcs[key] or data.rpcs[key]~=nil, 'overridden RPC requires an explicit policy: '..key)
             out.methods[key]=fn
@@ -103,7 +115,65 @@ local function flatten(class)
     end
     for key in pairs(out.attrs) do assert(not out.methods[key] and not reserved[key], 'property/method name collision: '..key) end
     for key in pairs(out.rpcs) do assert(out.methods[key], 'RPC implementation missing: '..key) end
+    for key in pairs(out.domains) do assert(out.methods[key], 'method implementation missing: '..key) end
     return out,chain
+end
+local function check_domain(object,domain)
+    runtime._object_check(object)
+    assert(domain==nil or domain=='shared' or (domain=='server')==(object.mode=='server'), 'method execution domain denied')
+end
+local function define(class)
+    local data=record(class)
+    if data.flat then return data.flat end
+    local flat,chain=flatten(class)
+    assert(data.name,'cannot define abstract root')
+    runtime._attributes_define(data.name,flat.attrs,flat.options.owner=='id' and 'id' or nil,true)
+    local members={}
+    for key,fn in pairs(flat.methods) do
+        members[key]=function(object,...)
+            check_domain(object,flat.domains[key])
+            return fn(object,...)
+        end
+    end
+    members.reject=function(object) runtime._object_check(object); return runtime.reject() end
+    members.close=function(object) return runtime._object_dispose(object) end
+    members.write=function(object,values,opts)
+        opts=copy(opts or {})
+        for key in pairs(opts) do assert(key=='expected_revision' or key=='request_id' or key=='timeout_ms','unknown write option') end
+        local _,status=runtime._write(object,values,opts.expected_revision,opts.request_id,opts.timeout_ms)
+        assert(status==runtime.status.ok,'property write failed: '..tostring(status))
+    end
+    for _,base in ipairs(chain) do record(base).sealed=true end
+    data.flat=flat; data.members=members
+    return flat
+end
+function Class:define()
+    define(self)
+    return self
+end
+local function construct(class,id,replica,subscription,values)
+    local data=record(class); define(class)
+    assert(type(id)=='string' and #id<=256, 'invalid entity ID')
+    local object=runtime._object_create(data.name,replica,subscription,values)
+    runtime._object_attach(object,data.members,id,data.name,{entity_id=id,entity_type=data.name,caller='client',subject='',peer=0})
+    return object
+end
+function Class:spawn_local(values,opts)
+    opts=copy(opts or {})
+    for key in pairs(opts) do assert(key=='id','unknown local option') end
+    return construct(self,opts.id or '',false,0,values or {})
+end
+function Class:watch(id,opts)
+    local data=record(self); define(self)
+    assert(type(id)=='string' and #id>0 and #id<=256,'invalid entity ID')
+    opts=copy(opts or {})
+    for key in pairs(opts) do assert(key=='timeout_ms','unknown watch option') end
+    local bytes,status=runtime._watch(data.name,id,opts.timeout_ms)
+    assert(status==runtime.status.ok,'watch failed: '..tostring(status))
+    local subscription=string.unpack('>I8',bytes)
+    local ok,object=pcall(construct,self,id,true,subscription)
+    if not ok then runtime._unwatch(subscription); error(object,0) end
+    return object
 end
 local function invoke(object, fn, payload)
     local result=table.pack(pcall(fn,object,payload))
@@ -115,20 +185,13 @@ end
 function Class:register()
     local data=record(self)
     assert(not data.registered and data.name, 'entity class already registered or abstract root')
-    local flat,chain=flatten(self)
-    local members={}
-    for key,fn in pairs(flat.methods) do
-        members[key]=function(object,...)
-            runtime._object_check(object)
-            return fn(object,...)
-        end
-    end
-    members.reject=function(object) runtime._object_check(object); return runtime.reject() end
+    local flat=define(self)
+    local members=data.members
     local function attach(object,ctx)
         runtime._object_attach(object,members,ctx.entity_id,data.name,ctx)
         return object
     end
-    local definition={attrs=flat.attrs,methods={},owner=flat.options.owner=='id' and 'id' or nil}
+    local definition={attrs=flat.attrs,model=true,methods={},owner=flat.options.owner=='id' and 'id' or nil}
     for key,p in pairs(flat.rpcs) do
         local fn=members[key]
         definition.methods[key]={callers=p.callers,access=p.access,handler=function(object,ctx,payload)
@@ -150,7 +213,6 @@ function Class:register()
         end
     end
     runtime._object_registration(function() register_entity(data.name,definition) end)
-    for _,base in ipairs(chain) do record(base).sealed=true end
     data.registered=true; data.exported=flat.rpcs
     return self
 end
@@ -202,14 +264,10 @@ ref_mt.__newindex=function() error('entity references are immutable',2) end
 ref_mt.__metatable=false
 class_mt.__index=function(class,key)
     if Class[key] then return Class[key] end
-    local current=class
-    while current do
-        local data=record(current)
-        if data.methods[key] then
-            local fn=data.methods[key]
-            return function(object,...) runtime._object_check(object); return fn(object,...) end
-        end
-        current=data.parent
+    local flat=record(class).flat or flatten(class)
+    if flat.methods[key] then
+        local fn=flat.methods[key]
+        return function(object,...) check_domain(object,flat.domains[key]); return fn(object,...) end
     end
     error('unknown class member: '..tostring(key),2)
 end
@@ -221,5 +279,13 @@ class_mt.__newindex=function(class,key,value)
 end
 class_mt.__metatable=false
 local Entity=setmetatable({},class_mt)
-classes[Entity]={sealed=true,attrs={},methods={},rpcs={},options={}}
+classes[Entity]={sealed=true,attrs={},methods={},rpcs={},domains={},options={}}
 fsnet={Entity=Entity}
+runtime.start=function(fn)
+    assert(type(fn)=='function','start requires a function')
+    runtime._start(function() fn(); return '' end)
+end
+runtime.sleep=function(ms)
+    local _,status=runtime._sleep(ms)
+    assert(status==runtime.status.ok,'sleep cancelled')
+end

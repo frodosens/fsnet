@@ -1,5 +1,6 @@
 #pragma once
 #include "fsnet/node.hpp"
+#include "fsnet/attribute_wire.hpp"
 #include <cstddef>
 #include <string>
 #include <string_view>
@@ -22,6 +23,14 @@ public:
     }
     virtual void forget_schema(const std::string&) {}
     virtual std::string entity_owner(const std::string&, const std::string&) const { return {}; }
+    using AttributeReady = std::function<void(Status, std::uint64_t)>;
+    virtual void watch_attributes(std::string, std::string, AttributeReady ready, std::chrono::milliseconds) {
+        ready(Status::rejected, 0);
+    }
+    virtual std::shared_ptr<const AttributeUpdate> attribute_snapshot(std::uint64_t) const { return {}; }
+    virtual void write_attributes(std::uint64_t, EntityAttributes::Values, Reply reply,
+                                  AttributeWriteOptions, std::chrono::milliseconds) { reply({Status::rejected,{}}); }
+    virtual void unwatch_attributes(std::uint64_t) {}
     virtual void bind_context(std::string, RpcPolicy, ContextHandler) {
         throw std::logic_error("script host does not support caller context");
     }

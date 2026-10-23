@@ -20,10 +20,6 @@ private:
     struct Impl;
     std::shared_ptr<Impl> impl_;
 };
-struct AttributeWriteOptions {
-    std::optional<std::uint64_t> expected_revision;
-    std::string request_id;
-};
 // One client projection manager per Node. The expected server peer must be an
 // authenticated connection (TLS outside loopback). Poll renews bounded leases.
 class AttributeClient {
