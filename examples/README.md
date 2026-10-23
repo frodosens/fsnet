@@ -70,7 +70,10 @@ cat examples/lua/shared/player_entity.lua examples/lua/client/player_scene.lua >
 FSNET_CLUSTER_TOKEN=local-demo /path/to/build/fsnet-client /tmp/fsnet-scene-client.lua 127.0.0.1 7001
 ```
 
-单客户端示例打印 LocalPlayer、镜头目标、预测位置、解除控制和移除，然后退出。
+单客户端示例打印 LocalPlayer、镜头目标，依次模拟三次移动（+2、+3、-1），
+展示每次发送前的预测位置与确认位置、服务器确认后的位置（2、5、4），再注销并移除。
+客户端 `LocalPlayer:move(delta)` 是普通业务方法，demo 在异步任务中依次调用并等待每次确认；
+实时输入循环和不确定 RPC 结果的重试策略由业务另外实现。
 双账号互相看到 RemotePlayer 的真实 Node 验证见 `fsnet-presence`；上面的 loopback
 演示固定 subject=alice，不能用它模拟两个不同登录账号。生产宿主需提供可信账号映射。
 镜头/模型绑定在示例中仅用字段和打印展示，实际图形调用由引擎适配层提供。

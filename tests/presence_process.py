@@ -27,7 +27,10 @@ with tempfile.TemporaryDirectory(prefix='fsnet-presence-') as directory:
                                 env=environment, capture_output=True, text=True, timeout=12)
         assert client.returncode == 0, client.stderr
         lines = client.stdout.splitlines()
-        assert lines == ['LocalPlayer\talice\tAlice', 'camera\talice', 'position\t2',
+        assert lines == ['LocalPlayer\talice\tAlice', 'camera\talice',
+                         'predicted\t2\tconfirmed\t0', 'position\t2',
+                         'predicted\t5\tconfirmed\t2', 'position\t5',
+                         'predicted\t4\tconfirmed\t5', 'position\t4',
                          'unpossess\talice', 'despawn\talice'], client.stdout
         print('PASS shipped entity presence: login, automatic LocalPlayer, possession, prediction and logout')
     finally:
