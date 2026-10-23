@@ -1,8 +1,8 @@
 # fsnet
 
-C++20 网络核心与现代 Ruby 逻辑接口。当前版本提供有界 TCP RPC、可替换存储、服务路由与健康探测，以及客户端 ICE/STUN/TURN 互联。
+C++20 网络核心、Lua 5.4 脚本宿主与可选 Ruby 逻辑接口。当前版本提供有界 TCP RPC、可替换存储、服务路由与健康探测，以及客户端 ICE/STUN/TURN 互联。
 
-目标边界：C++ 仅实现网络与分布式运行时、场景/实体载体及脚本宿主；游戏业务全部由脚本实现。后续优先接入 Lua，Ruby 保留为可选适配器。Lua 尚未实现，当前可运行的脚本适配器是 Ruby。阶段计划见 [ROADMAP.md](docs/ROADMAP.md)。
+目标边界：C++ 仅实现网络与分布式运行时、场景/实体载体及脚本宿主；游戏业务全部由脚本实现。Lua 是首选嵌入式适配器，Ruby 是可选外部适配器。场景/实体的调度载体尚待后续阶段实现。阶段计划见 [ROADMAP.md](docs/ROADMAP.md)。
 
 **当前是可运行的重构基础，不是已经验收的生产级 MMO 框架。** 已实现能力、测试和未完成的高可用/安全工作见 [架构与验收](docs/ARCHITECTURE.md)；旧实现的严重缺陷见 [代码审查](docs/REVIEW.md)。历史文档保存在 [LEGACY_README.md](docs/LEGACY_README.md)。
 
@@ -16,7 +16,7 @@ cmake --build build -j4
 ctest --test-dir build --output-on-failure
 ```
 
-CMake 按固定版本与 SHA256 下载 Asio、SQLiteCpp（含 SQLite 源码）、libjuice，并从源码编译。应用不依赖 `/usr/local` 中的 libevent、jemalloc、SQLite 或 Ruby 2.1；仅保留编译器和操作系统运行库依赖。首次构建需要访问 `codeload.github.com`；后续可复用 build 中的下载缓存。离线构建需预先填充 FetchContent 源码，不自动使用未知系统库。
+CMake 按固定版本与 SHA256 下载 Asio、SQLiteCpp（含 SQLite 源码）、libjuice 和 Lua，并从源码编译。应用不依赖 `/usr/local` 中的 libevent、jemalloc、SQLite 或 Ruby 2.1；仅保留编译器和操作系统运行库依赖。首次构建需要访问 `codeload.github.com`；后续可复用 build 中的下载缓存。离线构建需预先填充 FetchContent 源码，不自动使用未知系统库。
 
 如果 CMake 找到 Ruby 3.2+，CTest 会包含 Ruby 测试；否则只运行 C++ 测试。可用 `-DFSNET_RUBY_EXECUTABLE=/path/to/ruby` 指定解释器。
 
@@ -38,6 +38,36 @@ bash tools/cloud-install.sh
 ```
 
 复用当前 checkout；每个云任务已隔离，不需要新建 worktree。旧 Ruby 2.1 和旧示例的本地诊断产物不属于新框架的运行依赖。
+
+## 可选脚本适配器
+
+默认构建 Lua 宿主；Ruby 适配器不嵌入 Ruby VM，不给核心引入 Ruby 链接依赖。可以分别关闭它们：
+
+```sh
+# 只构建网络/分布式核心，不下载或编译 Lua，也不发现 Ruby。
+cmake -S . -B build-core -DFSNET_WITH_LUA=OFF -DFSNET_WITH_RUBY=OFF
+cmake --build build-core -j4
+ctest --test-dir build-core --output-on-failure
+```
+
+`FSNET_WITH_RUBY=OFF` 关闭 Ruby 自动发现与适配器测试；通用 C ABI 仍保留，供其他语言使用。`FSNET_WITH_LUA=OFF` 不生成 `fsnet-lua` / `fsnet-script` 目标。
+
+## Lua 逻辑接口
+
+```lua
+local visits = {}
+runtime.rpc('player.visit', function(player_id)
+    visits[player_id] = (visits[player_id] or 0) + 1
+    return tostring(visits[player_id])
+end)
+```
+
+```sh
+# 通过安全环境设置提供 FSNET_CLUSTER_TOKEN，宿主默认只监听 loopback。
+./build/fsnet-script examples/lua/player.lua 7001
+```
+
+C++ 宿主负责启动、网络和 VM；示例中的计数规则全部在 Lua。Lua RPC 参数与返回值是二进制字符串，业务自己选择编码。`runtime.request(peer, route, payload, timeout_ms)` 等待时让出协程；`runtime.await` 允许显式处理状态码。Lua 与 Ruby 的原始字节接口运行同一组跨进程合同测试。详见 [脚本宿主合同](docs/SCRIPTING.md)。
 
 ## Ruby 逻辑接口
 

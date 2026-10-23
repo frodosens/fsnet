@@ -5,13 +5,19 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        build_type: [Debug, Release]
+        include:
+          - {build_type: Debug, lua: 'ON', ruby: 'ON'}
+          - {build_type: Release, lua: 'ON', ruby: 'ON'}
+          - {build_type: Debug, lua: 'OFF', ruby: 'OFF'}
+          - {build_type: Debug, lua: 'ON', ruby: 'OFF'}
+          - {build_type: Debug, lua: 'OFF', ruby: 'ON'}
     steps:
       - uses: actions/checkout@v4
       - uses: ruby/setup-ruby@v1
+        if: matrix.ruby == 'ON'
         with:
           ruby-version: '3.3'
-      - run: cmake -S . -B build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+      - run: cmake -S . -B build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DFSNET_WITH_LUA=${{ matrix.lua }} -DFSNET_WITH_RUBY=${{ matrix.ruby }}
       - run: cmake --build build -j4
       - run: ctest --test-dir build --output-on-failure
   sanitize:

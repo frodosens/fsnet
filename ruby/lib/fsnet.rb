@@ -129,6 +129,10 @@ module FSNet
       Native.check(Native.fsnet_connect(@handle, host, port))
     end
     def rpc(route, &handler)
+      raise ArgumentError, 'handler required' unless handler
+      rpc_bytes(route) { |payload| JSON.generate(handler.call(JSON.parse(payload))) }
+    end
+    def rpc_bytes(route, &handler)
       ensure_open
       raise ArgumentError, 'handler required' unless handler
       closure = Fiddle::Closure::BlockCaller.new(Fiddle::TYPE_VOID,
@@ -137,8 +141,8 @@ module FSNet
         payload = Fiddle::Pointer.new(bytes).to_s(length)
         fiber = Fiber.new do
           begin
-            data = JSON.parse(payload)
-            result = JSON.generate(handler.call(data))
+            result = handler.call(payload)
+            raise TypeError, 'RPC handler must return a binary string' unless result.is_a?(String)
             Native.fsnet_respond(@handle, id, 0, result, result.bytesize)
           rescue StandardError => error
             warn "fsnet #{route}: #{error.class}: #{error.message}"
@@ -155,14 +159,28 @@ module FSNet
       self
     end
     def call(peer, route, params = {}, timeout: 1000, &completion)
+      raise ArgumentError, 'completion required' unless completion
+      call_bytes(peer, route, JSON.generate(params), timeout: timeout) do |data, error|
+        result = nil
+        unless error
+          begin
+            result = JSON.parse(data)
+          rescue JSON::ParserError, EncodingError
+            error = Error.new('invalid JSON RPC response')
+          end
+        end
+        completion.call(result, error)
+      end
+    end
+    def call_bytes(peer, route, data = '', timeout: 1000, &completion)
       ensure_open
       raise ArgumentError, 'completion required' unless completion
-      data = JSON.generate(params)
+      raise TypeError, 'payload must be a binary string' unless data.is_a?(String)
       id = (@sequence += 1)
       closure = Fiddle::Closure::BlockCaller.new(Fiddle::TYPE_VOID,
         [Fiddle::TYPE_INT, Fiddle::TYPE_VOIDP, Fiddle::TYPE_SIZE_T]) do |status, bytes, length|
         begin
-          result = status == 0 ? JSON.parse(Fiddle::Pointer.new(bytes).to_s(length)) : nil
+          result = status == 0 ? Fiddle::Pointer.new(bytes).to_s(length) : nil
           completion.call(result, status == 0 ? nil : RPCError.new(status))
         rescue StandardError => error
           warn "fsnet completion: #{error.class}: #{error.message}"
@@ -180,11 +198,17 @@ module FSNet
     # Sequential-looking RPC inside a service fiber; the owning event loop keeps
     # processing other requests while this fiber waits, with the same deadline.
     def request(peer, route, params = {}, timeout: 1000)
+      await_rpc(:call, peer, route, params, timeout)
+    end
+    def request_bytes(peer, route, payload = '', timeout: 1000)
+      await_rpc(:call_bytes, peer, route, payload, timeout)
+    end
+    def await_rpc(method, peer, route, params, timeout)
       fiber = Fiber.current
       raise Error, 'request must run inside an RPC handler' unless @fibers.value?(fiber)
       completed = suspended = false
       outcome = nil
-      call(peer, route, params, timeout: timeout) do |value, failure|
+      public_send(method, peer, route, params, timeout: timeout) do |value, failure|
         outcome = [value, failure]
         completed = true
         fiber.resume if suspended && fiber.alive?
@@ -196,6 +220,7 @@ module FSNet
       raise outcome[1] if outcome[1]
       outcome[0]
     end
+    private :await_rpc
     def mount(name, service)
       service.class.routes.each do |route, handler|
         rpc("#{name}.#{route}") { |params| service.instance_exec(params, &handler) }

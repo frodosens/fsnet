@@ -9,6 +9,7 @@ client = FSNet::Node.new(token: 'ruby-test-token')
 database = FSNet::Database.new
 backend = FSNet::Node.new(token: 'ruby-test-token')
 backend.rpc('profile.name') { |request| { 'name' => request.fetch('name').upcase } }
+backend.rpc_bytes('profile.invalid_json') { |_request| 'invalid JSON' }
 class IdentityService < FSNet::Service
   rpc(:get) { |request| { 'id' => request.fetch('id') } }
 end
@@ -17,6 +18,7 @@ backend_peer = server.connect(host: '127.0.0.1', port: backend.listen)
 server.rpc('player.profile') { |request| server.request(backend_peer, 'profile.name', request) }
 server.rpc('player.identity') { |request| server.request(backend_peer, 'identity.get', request) }
 server.rpc('player.invalid') { server.request(999999, 'invalid', {}) }
+server.rpc('player.invalid_json') { server.request(backend_peer, 'profile.invalid_json', {}) }
 server.rpc('player.save') do |request|
   { 'saved' => database.save(request.fetch('id'), request.fetch('value'), version: request.fetch('version')) }
 end
@@ -55,6 +57,12 @@ begin
   check(record['value'] == {'name' => '测试', 'coins' => 12} && record['version'] > 0, 'round trip mismatch')
   check(invoke(server, client, peer, 'player.profile', {name: 'alice'}, extra: backend) == {'name' => 'ALICE'}, 'fiber RPC failed')
   check(invoke(server, client, peer, 'player.identity', {id: '42'}, extra: backend) == {'id' => '42'}, 'service mount failed')
+  begin
+    invoke(server, client, peer, 'player.invalid_json', {}, extra: backend)
+    raise 'invalid JSON response was accepted'
+  rescue FSNet::RPCError => error
+    check(error.status == 6, 'invalid JSON did not terminate the waiting handler')
+  end
   begin
     invoke(server, client, peer, 'instance_eval', {})
     raise 'unregistered method executed'

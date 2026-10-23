@@ -29,6 +29,8 @@ public:
     std::uint16_t listen(const std::string& address, std::uint16_t port);
     std::uint64_t connect(const std::string& address, std::uint16_t port);
     void bind(std::string route, Handler handler);
+    bool has_route(const std::string& route) const;
+    bool unbind(const std::string& route);
     void call(std::uint64_t peer, std::string route, std::string data,
               std::chrono::milliseconds timeout, Reply reply);
     void close(std::uint64_t peer);

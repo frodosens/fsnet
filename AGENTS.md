@@ -3,7 +3,8 @@
 - C++ owns the networking/distributed runtime, scene/entity carriers, scheduling,
   storage mechanisms, and script hosting. Do not put game business rules in C++.
 - Game business logic belongs in scripts. Target a small common script-host API,
-  prioritize Lua, and retain Ruby as an optional adapter. Lua is not implemented yet.
+  prioritize Lua, and retain Ruby as an optional adapter. See docs/SCRIPTING.md
+  for the implemented host contract and adapter limits.
 - Native protocol/transport test handlers and benchmarks are framework fixtures,
   not a reason to add native player/combat/economy services.
 - Legacy C/Ruby 2.1 code is migration reference, excluded from the default build.

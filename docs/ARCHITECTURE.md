@@ -2,7 +2,7 @@
 
 ## 已确定的职责边界
 
-C++ 提供网络、分布式运行时、场景/实体载体、调度、存储机制与脚本宿主，不实现玩家、战斗、技能、任务和经济等游戏业务。业务全部在脚本中实现。优先支持 Lua，Ruby 作为可选适配器；统一的是宿主能力与消息边界，不是语言内部对象模型。Lua 适配器和场景宿主尚待实现，不能将以下基础模块视为已经完成这些能力。
+C++ 提供网络、分布式运行时、场景/实体载体、调度、存储机制与脚本宿主，不实现玩家、战斗、技能、任务和经济等游戏业务。业务全部在脚本中实现。优先支持 Lua，Ruby 作为可选适配器；统一的是宿主能力与消息边界，不是语言内部对象模型。Lua RPC 脚本宿主已实现，见 SCRIPTING.md；场景/实体 actor 宿主尚待实现。
 
 ## 当前实现
 
@@ -26,6 +26,7 @@ flowchart LR
 - 默认最大帧 1 MiB、每连接排队 4 MiB、1024 连接、4096 个出站调用、每连接 128 个执行中请求、30 秒空闲超时。RPC deadline 不能超过 30 秒；超时只是停止等待，不撤销已经开始的业务写入。
 - `ClusterClient` 对静态成员做健康探测、过期租约和指数退避重连；rendezvous hashing 按实体稳定选择服务副本。节点停止后可将后续调用导向存活副本。仅显式标记幂等的调用，才能在原 deadline 内做一次替代节点重试。应用需要持续调用 `tick()` 和 Node 的 `poll()`。
 - `Database` 以值/版本与原子多记录条件事务表达业务需求，不暴露 SQLite 连接。Memory 和 SQLite 执行同一合同；版本号在删除/重建后不复用，避免 ABA。SQLite 用 WAL、FULL synchronous 和 IMMEDIATE 事务；同一个句柄有 mutex，并发连接由数据库串行化写事务。Memory 是 copy-on-commit 的测试后端，不用于海量数据。
+- Lua 5.4.7 提供受控宿主、请求协程、指令/内存/任务预算和停止清理。Lua 与 Ruby 运行同一组二进制宿主合同；两者都可独立关闭。
 - Ruby 3.2+ 接口有显式 `rpc`、`Service`、GC 保根和 Fiber 内 `request`。请求等待时让出 Fiber，事件循环继续推进。用例见 `examples/player.rb` 和 `tests/ruby_test.rb`。
 - 客户端 P2P 使用 libjuice 的 ICE/STUN/TURN，交换 SDP、trickle candidates 与 gathering-done。优先直连；不能建立直连时使用带凭据的 TURN。中继有 allocation/peer 配额、凭据有效期和可配置端口范围。ICE 收包队列最多 256 个 1200 字节数据报；它是无序、不保证可靠的传输，不可替代服务端权威状态。
 

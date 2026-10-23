@@ -244,6 +244,11 @@ void Node::call(std::uint64_t peer, std::string route, std::string data, std::ch
     });
     if (!it->second->enqueue(frame(1, Status::ok, id, route, data))) impl_->finish(id, {Status::overloaded, {}});
 }
+bool Node::has_route(const std::string& route) const { return impl_->handlers.contains(route); }
+bool Node::unbind(const std::string& route) {
+    if (route == "system.health") return false;
+    return impl_->handlers.erase(route) != 0;
+}
 void Node::close(std::uint64_t peer) {
     auto it = impl_->sessions.find(peer);
     if (it != impl_->sessions.end()) { auto session = it->second; session->close(); }
