@@ -4,3 +4,8 @@
 *.O
 
 *.txt
+!CMakeLists.txt
+/build*/
+*.db
+*.db-wal
+*.db-shm

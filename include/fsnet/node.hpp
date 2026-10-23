@@ -1,0 +1,43 @@
+#pragma once
+#include <chrono>
+#include <cstdint>
+#include <functional>
+#include <memory>
+#include <string>
+
+namespace fsnet {
+enum class Status : std::uint8_t { ok, not_found, overloaded, timeout, disconnected, rejected, internal };
+struct Result { Status status; std::string data; };
+using Reply = std::function<void(Result)>;
+using Handler = std::function<void(std::string, Reply)>;
+struct Limits {
+    std::size_t frame_bytes = 1024 * 1024;
+    std::size_t queued_bytes = 4 * 1024 * 1024;
+    std::size_t connections = 1024;
+    std::size_t pending_calls = 4096;
+    std::size_t inflight_requests = 128;
+    std::chrono::milliseconds idle_timeout{30000};
+};
+// All Node methods/callbacks run on its owning thread. Separate nodes can run on
+// separate threads/processes. No user code runs on a networking worker thread.
+class Node {
+public:
+    explicit Node(std::string token, Limits limits = {});
+    ~Node();
+    Node(const Node&) = delete;
+    Node& operator=(const Node&) = delete;
+    std::uint16_t listen(const std::string& address, std::uint16_t port);
+    std::uint64_t connect(const std::string& address, std::uint16_t port);
+    void bind(std::string route, Handler handler);
+    void call(std::uint64_t peer, std::string route, std::string data,
+              std::chrono::milliseconds timeout, Reply reply);
+    void close(std::uint64_t peer);
+    void poll();
+    void run();
+    void stop();
+    std::size_t pending() const;
+private:
+    struct Impl;
+    std::shared_ptr<Impl> impl_;
+};
+}
