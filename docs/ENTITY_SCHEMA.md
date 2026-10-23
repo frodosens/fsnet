@@ -15,7 +15,7 @@ connections have the client role. Only trusted application code can assign a ser
 role. Resolver rejection and exceptions fail closed. Route authorization configured
 with `Node::authorize` remains an additional check.
 
-The contextual handler receives an owned request identity; do not retain a reference
+The contextual handler receives a request-scoped identity; do not retain a reference
 to it after returning. Copy it if asynchronous work needs it. The RPC payload cannot
 set this identity. A gateway must preserve the original client identity when forwarding;
 forwarding through a server connection is not sufficient authorization for a client
@@ -46,9 +46,22 @@ These policies reach Node through both persistent and routed script-host decorat
 Hosts without policy support reject registration. Empty or unknown caller lists fail
 script loading. The original function-only methods and `runtime.rpc` are legacy
 registrations, not protected client entry points. Migration to mandatory declarations
-is pending. `access='owner'` is explicitly rejected until entity contextual dispatch
-is integrated; transport-level policies also reject owner-only declarations rather
-than silently ignoring them.
+is pending. Persistent methods now support `access='owner'`. Configure
+`EntityScriptHost::ownership` with a trusted `(type, id) -> account subject` mapping;
+an absent, empty, or throwing mapping denies access. Entity IDs are not implicitly
+account IDs. The owner check executes before state acquisition and before receipt
+lookup. `ctx` is passed as a fourth argument to persistent handlers:
+`handler(state, id, payload, ctx)`, containing `caller`, `subject`, and transport-local
+`peer`. Each queued task owns its context across awaits; modifying a Lua context table
+does not change transport authentication. Owner-only transport routes still reject
+registration because a plain transport route has no entity ownership information.
+
+Retry receipts for contextual entities are scoped by caller role and authenticated
+subject. Anonymous calls additionally use the connection and process incarnation;
+their receipts intentionally do not survive reconnects. Two different principals
+cannot reuse a request ID to replay one another's response. Identical subject values
+must represent the same security principal within the application's identity domain.
+
 
 ## Native attribute carrier
 
@@ -80,7 +93,7 @@ record before publication; no database transaction is required.
 ## Remaining integration
 
 The Lua `attrs` declaration, property serialization into persistent entity records,
-commit-triggered publication, contextual owner authorization, gateway delegation,
+commit-triggered publication, gateway delegation,
 subscription/AOI lifecycle, wire snapshots/deltas, and client SDK application are
 not implemented yet. In particular, changing `self.hp` does not currently generate
 network traffic. They must be connected before claiming automatic synchronization.

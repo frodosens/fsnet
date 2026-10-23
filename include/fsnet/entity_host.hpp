@@ -38,6 +38,12 @@ public:
     bool has_route(const std::string&) const override;
     void bind(std::string, Handler) override;
     void bind_stateful(std::string route, std::string type, std::string initial, Handler) override;
+    void bind_context(std::string, RpcPolicy, ContextHandler) override;
+    void bind_stateful_context(std::string, std::string, std::string, RpcPolicy, ContextHandler) override;
+    using OwnerResolver = std::function<std::string(const std::string& type, const std::string& id)>;
+    // Trusted application mapping from entity identity to account subject. Empty
+    // results deny owner-only calls; the default resolver denies all such calls.
+    void ownership(OwnerResolver);
     void rpc_policy(const std::string&, RpcPolicy) override;
     void unbind(const std::string&) override;
     void call_entity(std::string, std::string, std::chrono::milliseconds, Reply) override;

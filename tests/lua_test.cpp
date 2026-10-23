@@ -14,11 +14,13 @@ using namespace std::chrono_literals;
 struct Host final : fsnet::ScriptHost {
     std::unordered_map<std::string, fsnet::Handler> handlers;
     fsnet::Reply delayed;
+    std::unordered_map<std::string, fsnet::ContextHandler> contexts;
+    void bind_context(std::string route, fsnet::RpcPolicy, fsnet::ContextHandler handler) override { contexts.emplace(std::move(route), std::move(handler)); }
     bool has_route(const std::string& route) const override { return handlers.contains(route); }
     void bind(std::string route, fsnet::Handler handler) override {
         if (!handlers.emplace(std::move(route), std::move(handler)).second) throw std::runtime_error("duplicate");
     }
-    void unbind(const std::string& route) override { handlers.erase(route); }
+    void unbind(const std::string& route) override { handlers.erase(route); contexts.erase(route); }
     std::uint64_t connect(const std::string&, std::uint16_t) override { return 42; }
     void call(std::uint64_t peer, std::string route, std::string data, std::chrono::milliseconds, fsnet::Reply reply) override {
         CHECK(peer == 42);
@@ -275,6 +277,25 @@ void tcp() {
     engine.stop(); CHECK(!server.has_route("forward") && server.has_route("system.health"));
     std::cout << "PASS Lua host: real TCP client -> Lua coroutine -> backend -> resumed Lua reply\n";
 }
+void context_suspension() {
+    auto host = std::make_shared<Host>(); fsnet::LuaEngine engine(host);
+    engine.load(R"(
+        runtime.rpc('identity', function(data, ctx)
+            if data == 'wait' then runtime.request(42, 'hang', data) end
+            return ctx.subject
+        end, nil, nil, {client=true})
+    )");
+    std::optional<fsnet::Result> first, second;
+    fsnet::CallIdentity who{fsnet::Caller::client, "alice", 1};
+    host->contexts.at("identity")(who, "wait", [&](fsnet::Result r) { first = std::move(r); });
+    engine.poll(); CHECK(!first && host->delayed);
+    who.subject = "bob"; who.peer = 2;
+    host->contexts.at("identity")(who, "now", [&](fsnet::Result r) { second = std::move(r); });
+    engine.poll(); CHECK(second && second->data == "bob" && !first);
+    host->delayed({fsnet::Status::ok, "resume"}); engine.poll();
+    CHECK(first && first->data == "alice");
+    std::cout << "PASS Lua request context survives suspension and another concurrent principal\n";
+}
 void rpc_policies() {
     fsnet::Node server("policy-token"), client("policy-token");
     auto transport = std::make_shared<fsnet::NodeScriptHost>(server);
@@ -283,13 +304,20 @@ void rpc_policies() {
     engine.load(R"(
         runtime.entity('counter', {initial='0', methods={
             read={callers={'client'}, handler=function(state) return state, state end},
+            owned={callers={'client'}, access='owner', handler=function(state, id, data, ctx)
+                assert(ctx.caller == 'client' and ctx.subject == 'alice' and ctx.peer > 0)
+                return state, ctx.subject
+            end},
+            identify={callers={'client'}, handler=function(state, id, data, ctx)
+                local n=tostring(tonumber(state)+1); return n,ctx.subject..':'..n
+            end},
             increment={callers={'server'}, handler=function(state) local n=tostring(tonumber(state)+1); return n,n end}
         }})
     )");
     auto peer = client.connect("127.0.0.1", server.listen("127.0.0.1", 0));
-    auto invoke = [&](const char* method) {
+    auto invoke = [&](const char* method, const std::string& request_id = "") {
         std::optional<fsnet::Result> result;
-        client.call(peer, std::string("counter.") + method, fsnet::entity_message("42", ""), 1s,
+        client.call(peer, std::string("counter.") + method, fsnet::entity_message("42", "", request_id), 1s,
             [&](fsnet::Result value) { result = std::move(value); });
         auto deadline = std::chrono::steady_clock::now() + 2s;
         while (!result) {
@@ -300,12 +328,24 @@ void rpc_policies() {
     };
     CHECK(invoke("increment").status == fsnet::Status::rejected);
     CHECK(invoke("read").data == "0");
+    CHECK(invoke("owned").status == fsnet::Status::rejected); // no owner resolver: fail closed
+    entities->ownership([](const std::string& type, const std::string&) { CHECK(type == "counter"); return "alice"; });
+    fsnet::CallIdentity who{fsnet::Caller::client, "alice"};
+    server.identify([&](std::uint64_t, const std::string&) { return std::optional(who); });
+    CHECK(invoke("owned").data == "alice");
+    CHECK(invoke("identify", "same-request").data == "alice:1");
+    CHECK(invoke("identify", "same-request").data == "alice:1"); // retry receipt
+    who.subject = "bob";
+    CHECK(invoke("owned").status == fsnet::Status::rejected);
+    CHECK(invoke("identify", "same-request").data == "bob:2"); // never replay Alice's response
+    entities->ownership([](const std::string&, const std::string&) -> std::string { throw std::runtime_error("mapping error"); });
+    CHECK(invoke("owned").status == fsnet::Status::rejected);
     server.identify([](std::uint64_t, const std::string&) { return std::optional(fsnet::CallIdentity{fsnet::Caller::server, "test-service"}); });
-    CHECK(invoke("increment").data == "1");
+    CHECK(invoke("increment").data == "3");
     CHECK(invoke("read").status == fsnet::Status::rejected);
     engine.stop();
     for (auto definition : {"{callers={},handler=function()end}", "{callers={'bogus'},handler=function()end}",
-                            "{callers={'client'},access='owner',handler=function()end}"}) {
+                            "{callers={'client'},access='invalid',handler=function()end}"}) {
         fsnet::LuaEngine invalid(entities); bool rejected = false;
         try { invalid.load(std::string("runtime.entity('invalid', {methods={read=") + definition + "}})"); }
         catch (const std::exception&) { rejected = true; }
@@ -314,6 +354,6 @@ void rpc_policies() {
     std::cout << "PASS Lua explicit RPC caller policies through persistent host and TCP transport, invalid policy rollback\n";
 }
 int main() {
-    try { lifecycle(); budgets(); failed_load(); task_deadline(); callback_shutdown(); entity_serialization(); persistent_lua(); lua_routing(); tcp(); rpc_policies(); }
+    try { lifecycle(); budgets(); failed_load(); task_deadline(); callback_shutdown(); entity_serialization(); persistent_lua(); lua_routing(); tcp(); rpc_policies(); context_suspension(); }
     catch (const std::exception& error) { std::cerr << error.what() << '\n'; return 1; }
 }

@@ -12,6 +12,7 @@ enum class Status : std::uint8_t { ok, not_found, overloaded, timeout, disconnec
 struct Result { Status status; std::string data; };
 using Reply = std::function<void(Result)>;
 using Handler = std::function<void(std::string, Reply)>;
+using ContextHandler = std::function<void(const CallIdentity&, std::string, Reply)>;
 struct TlsConfig {
     std::string ca_file, certificate_file, private_key_file;
     std::string peer_name; // outbound certificate name; default is the target IP
@@ -40,7 +41,7 @@ public:
     void authorize(Authorizer);
     std::string peer_identity(std::uint64_t peer) const;
     using IdentityResolver = std::function<std::optional<CallIdentity>(std::uint64_t, const std::string&)>;
-    using ContextHandler = std::function<void(const CallIdentity&, std::string, Reply)>;
+    using ContextHandler = fsnet::ContextHandler;
     // Trusted application hook. Input identity is the verified TLS fingerprint;
     // never derive a server role from a field supplied in an RPC payload.
     // With no resolver, connections are clients identified by their certificate.

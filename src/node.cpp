@@ -237,6 +237,10 @@ struct Node::Impl::Session : std::enable_shared_from_this<Session> {
                     if (!resolved) { if (!enqueue(frame(2, Status::rejected, call, {}, {}))) close(); return; }
                     principal = std::move(*resolved);
                 }
+                if (principal.subject.size() > 256 || (principal.caller != Caller::client && principal.caller != Caller::server)) {
+                    if (!enqueue(frame(2, Status::rejected, call, {}, {}))) close();
+                    return;
+                }
                 // Entity ownership is checked by the entity dispatcher; this
                 // transport layer can enforce only the authenticated caller role.
                 if (!(principal.caller == Caller::server ? registered.policy.server : registered.policy.client)) {
@@ -246,6 +250,7 @@ struct Node::Impl::Session : std::enable_shared_from_this<Session> {
             } catch (...) { if (!enqueue(frame(2, Status::rejected, call, {}, {}))) close(); return; }
             if (closed || node->stopped) return;
         }
+        principal.peer = id;
         ++inflight;
         auto replied = std::make_shared<bool>(false);
         auto reply = [weak = weak_from_this(), replied, call](Result result) {

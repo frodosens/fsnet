@@ -3,6 +3,7 @@
 #include "fsnet/entity_snapshot.hpp"
 #include "fsnet/entity_record.hpp"
 #include <algorithm>
+#include <openssl/sha.h>
 #include <deque>
 #include <limits>
 #include <unordered_map>
@@ -19,7 +20,7 @@ std::int64_t wall_time() {
 
 }
 struct EntityScriptHost::Impl : std::enable_shared_from_this<Impl> {
-    struct Method { std::string type, initial; Handler logic; };
+    struct Method { std::string type, initial; ContextHandler logic; std::optional<RpcPolicy> policy; };
     struct Request {
         std::shared_ptr<Method> method;
         std::string payload, route, request_id;
@@ -27,6 +28,7 @@ struct EntityScriptHost::Impl : std::enable_shared_from_this<Impl> {
         Clock::time_point deadline;
         std::size_t bytes;
         bool tick = false;
+        CallIdentity identity{Caller::server, {}};
     };
     struct Slot {
         EntityHandle handle;
@@ -50,6 +52,7 @@ struct EntityScriptHost::Impl : std::enable_shared_from_this<Impl> {
     std::string owner;
     EntityRuntimeLimits limits;
     WallClock now;
+    OwnerResolver owner_resolver;
     std::unordered_map<std::string, std::shared_ptr<Method>> methods;
     std::unordered_map<std::string, Slot> slots;
     std::deque<std::string> schedule;
@@ -85,7 +88,7 @@ struct EntityScriptHost::Impl : std::enable_shared_from_this<Impl> {
         auto reply = std::move(job->request.reply);
         reply(std::move(result));
     }
-    void enqueue(const std::string& route, std::string data, Reply reply, bool tick = false) {
+    void enqueue(const std::string& route, std::string data, Reply reply, bool tick = false, CallIdentity identity = {Caller::server, {}}) {
         if (stopped) return reply({Status::disconnected, {}});
         auto method = methods.find(route);
         if (method == methods.end()) return reply({Status::not_found, {}});
@@ -95,6 +98,31 @@ struct EntityScriptHost::Impl : std::enable_shared_from_this<Impl> {
         if (!message) return reply({Status::rejected, {}});
         if (!message->request_id.empty() && message->payload.size() + route.size() + message->request_id.size() + 16 > limits.receipt_bytes)
             return reply({Status::overloaded, {}});
+        if (method->second->policy) {
+            try {
+                auto policy = *method->second->policy;
+                std::string account;
+                if (policy.owner_only && owner_resolver) {
+                    auto resolve = owner_resolver;
+                    account = resolve(method->second->type, message->id);
+                }
+                if (!policy.allows(identity, account)) return reply({Status::rejected, {}});
+            } catch (...) { return reply({Status::rejected, {}}); }
+            if (stopped) return reply({Status::disconnected, {}});
+            // Receipts must not disclose another principal's response, even if
+            // two callers choose the same request ID and payload.
+            if (!message->request_id.empty()) {
+                auto subject = identity.subject;
+                if (subject.empty()) subject = "anonymous:" + owner + ':' + std::to_string(identity.peer);
+                auto scope = std::string(identity.caller == Caller::server ? "server:" : "client:") +
+                    std::to_string(subject.size()) + ':' + subject + message->request_id;
+                unsigned char digest[SHA256_DIGEST_LENGTH];
+                SHA256(reinterpret_cast<const unsigned char*>(scope.data()), scope.size(), digest);
+                constexpr char hex[] = "0123456789abcdef";
+                message->request_id = "context:";
+                for (auto byte : digest) { message->request_id += hex[byte >> 4]; message->request_id += hex[byte & 15]; }
+            }
+        }
         auto entity = key(method->second->type, message->id);
         auto it = slots.find(entity);
         if (it == slots.end()) {
@@ -107,7 +135,7 @@ struct EntityScriptHost::Impl : std::enable_shared_from_this<Impl> {
         if (it->second.releasing) return reply({Status::rejected, {}});
         auto bytes = data.size();
         it->second.queue.push_back({method->second, std::move(message->payload), route, std::move(message->request_id), std::move(reply),
-            Clock::now() + limits.request_timeout, bytes, tick});
+            Clock::now() + limits.request_timeout, bytes, tick, std::move(identity)});
         ++counters.pending; counters.queued_bytes += bytes;
     }
     void acquire(const std::string& entity, Slot& slot) {
@@ -208,7 +236,7 @@ struct EntityScriptHost::Impl : std::enable_shared_from_this<Impl> {
                         });
                     if (!accepted) owner->complete(job, {Status::overloaded, {}});
                 };
-                try { job->request.method->logic(std::move(input), done); }
+                try { job->request.method->logic(job->request.identity, std::move(input), done); }
                 catch (...) { done({Status::internal, {}}); }
             });
         if (!accepted) complete(job, {Status::overloaded, {}});
@@ -229,7 +257,8 @@ void EntityScriptHost::bind_stateful(std::string route, std::string type, std::s
         throw std::invalid_argument("invalid stateful route");
     for (const auto& [name, method] : self.methods)
         if (method->type == type && method->initial != initial) throw std::invalid_argument("inconsistent initial entity state");
-    auto method = std::make_shared<Impl::Method>(Impl::Method{std::move(type), std::move(initial), std::move(logic)});
+    auto method = std::make_shared<Impl::Method>(Impl::Method{std::move(type), std::move(initial),
+        [logic = std::move(logic)](const CallIdentity&, std::string data, Reply reply) { logic(std::move(data), std::move(reply)); }, {}});
     self.methods.emplace(route, method);
     if (route == method->type + ".$tick") return; // runtime-only; clients cannot drive ticks
     try {
@@ -239,6 +268,27 @@ void EntityScriptHost::bind_stateful(std::string route, std::string type, std::s
             self->enqueue(route, std::move(data), std::move(reply));
         });
     } catch (...) { self.methods.erase(route); throw; }
+}
+void EntityScriptHost::ownership(OwnerResolver resolve) { impl_->owner_resolver = std::move(resolve); }
+void EntityScriptHost::bind_context(std::string route, RpcPolicy policy, ContextHandler handler) {
+    impl_->parent->bind_context(std::move(route), policy, std::move(handler));
+}
+void EntityScriptHost::bind_stateful_context(std::string route, std::string type, std::string initial, RpcPolicy policy, ContextHandler handler) {
+    if (!handler || (!policy.client && !policy.server)) throw std::invalid_argument("explicit contextual handler required");
+    bind_stateful(route, std::move(type), std::move(initial), [](std::string, Reply reply) { reply({Status::internal, {}}); });
+    auto method = impl_->methods.at(route);
+    method->logic = std::move(handler); method->policy = policy;
+    if (route == method->type + ".$tick") return;
+    impl_->parent->unbind(route);
+    auto transport_policy = policy; transport_policy.owner_only = false;
+    try {
+        impl_->parent->bind_context(route, transport_policy,
+            [weak = std::weak_ptr(impl_), route](const CallIdentity& identity, std::string data, Reply reply) {
+                auto self = weak.lock();
+                if (!self) return reply({Status::disconnected, {}});
+                self->enqueue(route, std::move(data), std::move(reply), false, identity);
+            });
+    } catch (...) { impl_->methods.erase(route); throw; }
 }
 void EntityScriptHost::unbind(const std::string& route) { impl_->parent->unbind(route); impl_->methods.erase(route); }
 void EntityScriptHost::call_entity(std::string route, std::string data, std::chrono::milliseconds timeout, Reply reply) {

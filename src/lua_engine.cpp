@@ -26,6 +26,8 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
         int reference = LUA_NOREF, function = LUA_NOREF;
         std::string data, entity_id, mailbox;
         Reply reply;
+        CallIdentity identity;
+        bool contextual = false;
         std::optional<Await> await;
         bool waiting = false, startup = false, completion_queued = false;
         std::uint64_t generation = 0;
@@ -99,6 +101,7 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
                 RpcPolicy parsed;
                 lua_getfield(L, 5, "client"); parsed.client = lua_toboolean(L, -1); lua_pop(L, 1);
                 lua_getfield(L, 5, "server"); parsed.server = lua_toboolean(L, -1); lua_pop(L, 1);
+                lua_getfield(L, 5, "owner_only"); parsed.owner_only = lua_toboolean(L, -1); lua_pop(L, 1);
                 if (!parsed.client && !parsed.server) return luaL_error(L, "explicit RPC callers required");
                 policy = parsed;
             }
@@ -191,9 +194,9 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
                 local register = function(method, handler)
                     local policy
                     if type(handler) == 'table' then
-                        assert(handler.access == nil, 'entity access policies require contextual dispatch; unsupported access must not be ignored')
+                        assert(handler.access == nil or handler.access == 'owner', 'invalid entity access')
                         assert(type(handler.callers) == 'table' and #handler.callers > 0, 'explicit RPC callers required')
-                        policy = {}
+                        policy = {owner_only = handler.access == 'owner'}
                         for _, caller in ipairs(handler.callers) do
                             assert(caller == 'client' or caller == 'server', 'invalid RPC caller')
                             policy[caller] = true
@@ -202,12 +205,12 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
                     end
                     assert(type(method) == 'string' and #method > 0 and #method <= 127 and not method:find('[%.%z]'), 'invalid entity method')
                     assert(type(handler) == 'function', 'entity handler required')
-                    runtime.rpc(kind .. '.' .. method, function(id, data)
+                    runtime.rpc(kind .. '.' .. method, function(id, data, ctx)
                         assert(data:sub(1, 4) == 'FSS1', 'invalid state boundary')
                         local size, offset = string.unpack('>I4', data, 5)
                         assert(#data >= offset + size - 1, 'truncated state')
                         local state = data:sub(offset, offset + size - 1)
-                        local next_state, response = handler(state, id, data:sub(offset + size))
+                        local next_state, response = handler(state, id, data:sub(offset + size), ctx)
                         assert(type(next_state) == 'string' and type(response) == 'string', 'return state and response bytes')
                         return 'FSS1' .. string.pack('>I4', #next_state) .. next_state .. response
                     end, kind, initial, policy)
@@ -247,7 +250,13 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
         lua_rawgeti(L, LUA_REGISTRYINDEX, task.function);
         if (!task.mailbox.empty()) lua_pushlstring(L, task.entity_id.data(), task.entity_id.size());
         if (!task.startup) lua_pushlstring(L, task.data.data(), task.data.size());
-        lua_xmove(L, task.thread, task.startup ? 1 : (task.mailbox.empty() ? 2 : 3)); return 0;
+        if (task.contextual) {
+            lua_createtable(L, 0, 3);
+            lua_pushlstring(L, task.identity.subject.data(), task.identity.subject.size()); lua_setfield(L, -2, "subject");
+            lua_pushstring(L, task.identity.caller == Caller::server ? "server" : "client"); lua_setfield(L, -2, "caller");
+            lua_pushinteger(L, static_cast<lua_Integer>(task.identity.peer)); lua_setfield(L, -2, "peer");
+        }
+        lua_xmove(L, task.thread, task.startup ? 1 : (task.mailbox.empty() ? 2 : 3) + (task.contextual ? 1 : 0)); return 0;
     }
     static int return_values(lua_State* L) {
         auto& owner = self(L);
@@ -384,12 +393,13 @@ void LuaEngine::load(std::string_view source, const std::string& name) {
             owner.bound.push_back(route);
             auto entity = owner.entity_routes.find(route);
             std::string kind = entity == owner.entity_routes.end() ? "" : entity->second;
-            Handler handler = [weak = std::weak_ptr(impl_), reference, kind](std::string data, Reply reply) {
+            const bool contextual = owner.policies.contains(route);
+            ContextHandler handler = [weak = std::weak_ptr(impl_), reference, kind, contextual](const CallIdentity& identity, std::string data, Reply reply) {
                 auto self = weak.lock();
                 if (!self || self->stopped || !self->loaded) return reply({Status::disconnected, {}});
                 if (self->queue.size() >= self->limits.queued_requests || data.size() > self->limits.queued_bytes - self->queued_bytes)
                     return reply({Status::overloaded, {}});
-                Impl::Task task;
+                Impl::Task task; task.identity = identity; task.contextual = contextual;
                 if (!kind.empty()) {
                     if (data.size() < 6 || data.compare(0, 4, "FSE1") != 0) return reply({Status::rejected, {}});
                     const auto length = (static_cast<unsigned char>(data[4]) << 8) | static_cast<unsigned char>(data[5]);
@@ -404,10 +414,16 @@ void LuaEngine::load(std::string_view source, const std::string& name) {
                 self->queue.push_back(std::move(task));
                 self->queued_bytes += bytes;
             };
-            if (auto managed = owner.stateful_routes.find(route); managed != owner.stateful_routes.end())
-                owner.host->bind_stateful(route, kind, managed->second, std::move(handler));
-            else owner.host->bind(route, std::move(handler));
-            if (auto policy = owner.policies.find(route); policy != owner.policies.end()) owner.host->rpc_policy(route, policy->second);
+            auto managed = owner.stateful_routes.find(route);
+            if (contextual) {
+                auto policy = owner.policies.at(route);
+                if (managed != owner.stateful_routes.end()) owner.host->bind_stateful_context(route, kind, managed->second, policy, std::move(handler));
+                else owner.host->bind_context(route, policy, std::move(handler));
+            } else {
+                Handler legacy = [handler = std::move(handler)](std::string data, Reply reply) { handler({}, std::move(data), std::move(reply)); };
+                if (managed != owner.stateful_routes.end()) owner.host->bind_stateful(route, kind, managed->second, std::move(legacy));
+                else owner.host->bind(route, std::move(legacy));
+            }
         }
         owner.loaded = true; owner.source = {};
     } catch (...) { owner.error = "script load failed"; owner.stop(); throw; }
@@ -457,7 +473,7 @@ std::size_t LuaEngine::poll(std::size_t work_limit) {
                 task.reply({Status::overloaded, {}});
             } else {
                 auto id = ++owner.serial; owner.threads.emplace(task.thread, id);
-                const auto arguments = task.mailbox.empty() ? 1 : 2;
+                const auto arguments = (task.mailbox.empty() ? 1 : 2) + (task.contextual ? 1 : 0);
                 if (!task.mailbox.empty()) owner.busy.insert(task.mailbox);
                 task.data.clear(); owner.tasks.emplace(id, std::move(task)); owner.advance(id, arguments);
             }

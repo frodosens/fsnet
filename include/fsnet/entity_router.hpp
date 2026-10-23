@@ -38,6 +38,10 @@ public:
     void bind_stateful(std::string r, std::string t, std::string s, Handler h) override {
         parent_->bind_stateful(std::move(r), std::move(t), std::move(s), std::move(h));
     }
+    void bind_context(std::string r, RpcPolicy p, ContextHandler h) override { parent_->bind_context(std::move(r), p, std::move(h)); }
+    void bind_stateful_context(std::string r, std::string t, std::string s, RpcPolicy p, ContextHandler h) override {
+        parent_->bind_stateful_context(std::move(r), std::move(t), std::move(s), p, std::move(h));
+    }
     void rpc_policy(const std::string& r, RpcPolicy p) override { parent_->rpc_policy(r, p); }
     void unbind(const std::string& r) override { parent_->unbind(r); }
     std::uint64_t connect(const std::string& a, std::uint16_t p) override { return parent_->connect(a, p); }

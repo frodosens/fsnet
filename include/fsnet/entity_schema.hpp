@@ -12,6 +12,7 @@ enum class Caller { client, server };
 struct CallIdentity {
     Caller caller = Caller::client;
     std::string subject;
+    std::uint64_t peer = 0; // transport-local connection; never serialized as identity
 };
 enum class Access { none, read, write, read_write };
 enum class Visibility { none, owner, observers };
