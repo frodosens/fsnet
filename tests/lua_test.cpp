@@ -275,7 +275,45 @@ void tcp() {
     engine.stop(); CHECK(!server.has_route("forward") && server.has_route("system.health"));
     std::cout << "PASS Lua host: real TCP client -> Lua coroutine -> backend -> resumed Lua reply\n";
 }
+void rpc_policies() {
+    fsnet::Node server("policy-token"), client("policy-token");
+    auto transport = std::make_shared<fsnet::NodeScriptHost>(server);
+    auto entities = std::make_shared<fsnet::EntityScriptHost>(transport, fsnet::memory_database(), "policy/boot");
+    fsnet::LuaEngine engine(entities);
+    engine.load(R"(
+        runtime.entity('counter', {initial='0', methods={
+            read={callers={'client'}, handler=function(state) return state, state end},
+            increment={callers={'server'}, handler=function(state) local n=tostring(tonumber(state)+1); return n,n end}
+        }})
+    )");
+    auto peer = client.connect("127.0.0.1", server.listen("127.0.0.1", 0));
+    auto invoke = [&](const char* method) {
+        std::optional<fsnet::Result> result;
+        client.call(peer, std::string("counter.") + method, fsnet::entity_message("42", ""), 1s,
+            [&](fsnet::Result value) { result = std::move(value); });
+        auto deadline = std::chrono::steady_clock::now() + 2s;
+        while (!result) {
+            server.poll(); client.poll(); entities->poll(); engine.poll();
+            CHECK(std::chrono::steady_clock::now() < deadline); std::this_thread::sleep_for(1ms);
+        }
+        return *result;
+    };
+    CHECK(invoke("increment").status == fsnet::Status::rejected);
+    CHECK(invoke("read").data == "0");
+    server.identify([](std::uint64_t, const std::string&) { return std::optional(fsnet::CallIdentity{fsnet::Caller::server, "test-service"}); });
+    CHECK(invoke("increment").data == "1");
+    CHECK(invoke("read").status == fsnet::Status::rejected);
+    engine.stop();
+    for (auto definition : {"{callers={},handler=function()end}", "{callers={'bogus'},handler=function()end}",
+                            "{callers={'client'},access='owner',handler=function()end}"}) {
+        fsnet::LuaEngine invalid(entities); bool rejected = false;
+        try { invalid.load(std::string("runtime.entity('invalid', {methods={read=") + definition + "}})"); }
+        catch (const std::exception&) { rejected = true; }
+        CHECK(rejected && !server.has_route("invalid.read"));
+    }
+    std::cout << "PASS Lua explicit RPC caller policies through persistent host and TCP transport, invalid policy rollback\n";
+}
 int main() {
-    try { lifecycle(); budgets(); failed_load(); task_deadline(); callback_shutdown(); entity_serialization(); persistent_lua(); lua_routing(); tcp(); }
+    try { lifecycle(); budgets(); failed_load(); task_deadline(); callback_shutdown(); entity_serialization(); persistent_lua(); lua_routing(); tcp(); rpc_policies(); }
     catch (const std::exception& error) { std::cerr << error.what() << '\n'; return 1; }
 }

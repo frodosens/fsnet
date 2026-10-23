@@ -17,6 +17,9 @@ public:
     virtual void bind_stateful(std::string, std::string, std::string, Handler) {
         throw std::logic_error("stateful entities require EntityScriptHost");
     }
+    virtual void rpc_policy(const std::string&, RpcPolicy) {
+        throw std::logic_error("script host does not support RPC policies");
+    }
     virtual void unbind(const std::string& route) = 0;
     virtual void call_entity(std::string, std::string, std::chrono::milliseconds, Reply reply) {
         reply({Status::rejected, {}});
@@ -32,6 +35,7 @@ public:
     explicit NodeScriptHost(Node& node) : node_(node) {}
     bool has_route(const std::string& route) const override { return node_.has_route(route); }
     void bind(std::string route, Handler handler) override { node_.bind(std::move(route), std::move(handler)); }
+    void rpc_policy(const std::string& route, RpcPolicy policy) override { node_.rpc_policy(route, policy); }
     void unbind(const std::string& route) override { node_.unbind(route); }
     std::uint64_t connect(const std::string& address, std::uint16_t port) override { return node_.connect(address, port); }
     void call(std::uint64_t peer, std::string route, std::string data,

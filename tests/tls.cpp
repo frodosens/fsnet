@@ -29,6 +29,27 @@ int main(int argc, char** argv) {
         auto result = invoke(client, peer, "echo"); CHECK(result.status == fsnet::Status::ok && result.data == std::string("binary\0data", 11));
         CHECK(!authenticated.empty() && client.peer_identity(peer).size() == 71);
         CHECK(invoke(client, peer, "private").status == fsnet::Status::rejected);
+        server.authorize({});
+        server.bind_rpc("client_only", {true, false, false}, [](const fsnet::CallIdentity& who, std::string, fsnet::Reply reply) {
+            CHECK(who.caller == fsnet::Caller::client && who.subject.starts_with("sha256:"));
+            reply({fsnet::Status::ok, "client"});
+        });
+        server.bind_rpc("server_only", {false, true, false}, [](const fsnet::CallIdentity& who, std::string, fsnet::Reply reply) {
+            CHECK(who.caller == fsnet::Caller::server && who.subject == "trusted-service");
+            reply({fsnet::Status::ok, "server"});
+        });
+        CHECK(invoke(client, peer, "client_only").status == fsnet::Status::ok);
+        CHECK(invoke(client, peer, "server_only").status == fsnet::Status::rejected);
+        const auto trusted_fingerprint = authenticated;
+        server.identify([trusted_fingerprint](std::uint64_t, const std::string& fingerprint) -> std::optional<fsnet::CallIdentity> {
+            if (fingerprint != trusted_fingerprint) return std::nullopt;
+            return fsnet::CallIdentity{fsnet::Caller::server, "trusted-service"};
+        });
+        CHECK(invoke(client, peer, "server_only").status == fsnet::Status::ok);
+        CHECK(invoke(client, peer, "client_only").status == fsnet::Status::rejected);
+        server.identify([](std::uint64_t, const std::string&) -> std::optional<fsnet::CallIdentity> { throw std::runtime_error("identity failure"); });
+        CHECK(invoke(client, peer, "server_only").status == fsnet::Status::rejected);
+        server.identify({});
         fsnet::Node wrong_name("token", {}, config("client"));
         CHECK(invoke(wrong_name, wrong_name.connect("127.0.0.1", port, "wrong.fsnet"), "echo").status == fsnet::Status::disconnected);
         fsnet::Node rogue("token", {}, config("rogue"));

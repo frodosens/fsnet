@@ -219,6 +219,7 @@ EntityScriptHost::EntityScriptHost(std::shared_ptr<ScriptHost> parent, std::shar
   : impl_(std::make_shared<Impl>(std::move(parent), std::move(db), std::move(owner), limits, storage, std::move(now))) {}
 EntityScriptHost::~EntityScriptHost() { stop(); }
 bool EntityScriptHost::has_route(const std::string& route) const { return impl_->methods.contains(route) || impl_->parent->has_route(route); }
+void EntityScriptHost::rpc_policy(const std::string& route, RpcPolicy policy) { impl_->parent->rpc_policy(route, policy); }
 void EntityScriptHost::bind(std::string route, Handler handler) { impl_->parent->bind(std::move(route), std::move(handler)); }
 void EntityScriptHost::bind_stateful(std::string route, std::string type, std::string initial, Handler logic) {
     auto& self = *impl_;

@@ -38,6 +38,7 @@ public:
     bool has_route(const std::string&) const override;
     void bind(std::string, Handler) override;
     void bind_stateful(std::string route, std::string type, std::string initial, Handler) override;
+    void rpc_policy(const std::string&, RpcPolicy) override;
     void unbind(const std::string&) override;
     void call_entity(std::string, std::string, std::chrono::milliseconds, Reply) override;
     std::uint64_t connect(const std::string&, std::uint16_t) override;

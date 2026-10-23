@@ -38,6 +38,7 @@ public:
     void bind_stateful(std::string r, std::string t, std::string s, Handler h) override {
         parent_->bind_stateful(std::move(r), std::move(t), std::move(s), std::move(h));
     }
+    void rpc_policy(const std::string& r, RpcPolicy p) override { parent_->rpc_policy(r, p); }
     void unbind(const std::string& r) override { parent_->unbind(r); }
     std::uint64_t connect(const std::string& a, std::uint16_t p) override { return parent_->connect(a, p); }
     void call(std::uint64_t p, std::string r, std::string d, std::chrono::milliseconds t, Reply f) override {

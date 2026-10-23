@@ -52,11 +52,13 @@ struct Node::Impl : std::enable_shared_from_this<Node::Impl> {
     TlsConfig tls_config;
     std::unique_ptr<asio::ssl::context> tls;
     Authorizer authorizer;
+    IdentityResolver identity_resolver;
+    struct Route { RpcPolicy policy; ContextHandler handler; bool legacy = false; };
     bool stopped = false;
     std::uint64_t peer_serial = 0, call_serial = 0;
     std::unordered_map<std::uint64_t, std::shared_ptr<Session>> sessions;
     std::unordered_map<std::uint64_t, Pending> calls;
-    std::unordered_map<std::string, Handler> handlers;
+    std::unordered_map<std::string, Route> handlers;
     Impl(std::string auth, Limits settings, TlsConfig security) : token(std::move(auth)), limits(settings), tls_config(std::move(security)) {
         if ((token.empty() && tls_config.ca_file.empty()) || token.size() > 4096 || limits.frame_bytes < token.size() + 14 ||
             limits.frame_bytes > 16 * 1024 * 1024 || limits.queued_bytes < limits.frame_bytes + 4 ||
@@ -225,6 +227,25 @@ struct Node::Impl::Session : std::enable_shared_from_this<Session> {
             if (!enqueue(frame(2, Status::not_found, call, {}, {}))) close();
             return;
         }
+        auto registered = it->second;
+        CallIdentity principal{Caller::client, identity};
+        if (!registered.legacy) {
+            try {
+                if (node->identity_resolver) {
+                    auto resolve = node->identity_resolver;
+                    auto resolved = resolve(id, identity);
+                    if (!resolved) { if (!enqueue(frame(2, Status::rejected, call, {}, {}))) close(); return; }
+                    principal = std::move(*resolved);
+                }
+                // Entity ownership is checked by the entity dispatcher; this
+                // transport layer can enforce only the authenticated caller role.
+                if (!(principal.caller == Caller::server ? registered.policy.server : registered.policy.client)) {
+                    if (!enqueue(frame(2, Status::rejected, call, {}, {}))) close();
+                    return;
+                }
+            } catch (...) { if (!enqueue(frame(2, Status::rejected, call, {}, {}))) close(); return; }
+            if (closed || node->stopped) return;
+        }
         ++inflight;
         auto replied = std::make_shared<bool>(false);
         auto reply = [weak = weak_from_this(), replied, call](Result result) {
@@ -238,8 +259,8 @@ struct Node::Impl::Session : std::enable_shared_from_this<Session> {
             if (!self->enqueue(frame(2, result.status, call, {}, result.data))) self->close();
         };
         // Copy before dispatch: handlers may register another route and rehash.
-        auto handler = it->second;
-        try { handler(std::move(data), reply); }
+        auto handler = std::move(registered.handler);
+        try { handler(principal, std::move(data), reply); }
         catch (...) { reply({Status::internal, {}}); }
     }
 };
@@ -291,9 +312,26 @@ std::string Node::peer_identity(std::uint64_t peer) const {
     auto it = impl_->sessions.find(peer);
     return it == impl_->sessions.end() || !it->second->authenticated ? std::string{} : it->second->identity;
 }
+void Node::identify(IdentityResolver resolve) { impl_->identity_resolver = std::move(resolve); }
+void Node::bind_rpc(std::string route, RpcPolicy policy, ContextHandler handler) {
+    if (route.empty() || route.size() > 256 || route.find('\0') != std::string::npos || !handler || (!policy.client && !policy.server))
+        throw std::invalid_argument("RPC requires a valid route, handler and explicit callers");
+    // A plain transport route has no entity owner to compare against. Reject this
+    // policy rather than silently claiming owner authorization has been enforced.
+    if (policy.owner_only) throw std::invalid_argument("owner policy requires an entity dispatcher");
+    if (!impl_->handlers.emplace(std::move(route), Impl::Route{policy, std::move(handler), false}).second)
+        throw std::logic_error("duplicate RPC route");
+}
+void Node::rpc_policy(const std::string& route, RpcPolicy policy) {
+    if ((!policy.client && !policy.server) || policy.owner_only)
+        throw std::invalid_argument("explicit caller roles required; owner policy requires entity dispatcher");
+    auto& registered = impl_->handlers.at(route);
+    registered.policy = policy; registered.legacy = false;
+}
 void Node::bind(std::string route, Handler handler) {
     if (route.empty() || route.size() > 256 || route.find('\0') != std::string::npos || !handler) throw std::invalid_argument("invalid RPC route");
-    if (!impl_->handlers.emplace(std::move(route), std::move(handler)).second) throw std::logic_error("duplicate RPC route");
+    if (!impl_->handlers.emplace(std::move(route), Impl::Route{{true, true, false},
+        [handler = std::move(handler)](const CallIdentity&, std::string data, Reply reply) { handler(std::move(data), std::move(reply)); }, true}).second) throw std::logic_error("duplicate RPC route");
 }
 void Node::call(std::uint64_t peer, std::string route, std::string data, std::chrono::milliseconds timeout, Reply reply) {
     if (!reply) throw std::invalid_argument("missing reply callback");

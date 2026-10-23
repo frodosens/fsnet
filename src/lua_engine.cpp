@@ -44,6 +44,7 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
     std::uint64_t serial = 0;
     std::unordered_map<std::string, int> routes;
     std::unordered_map<std::string, std::string> entity_routes, stateful_routes;
+    std::unordered_map<std::string, RpcPolicy> policies;
     std::unordered_set<std::string> busy;
     std::vector<std::string> bound;
     std::deque<Task> queue;
@@ -92,14 +93,24 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
                 if (length > owner.limits.queued_bytes) return luaL_error(L, "initial state too large");
                 initial_state = std::string(initial, length);
             }
+            std::optional<RpcPolicy> policy;
+            if (!lua_isnoneornil(L, 5)) {
+                luaL_checktype(L, 5, LUA_TTABLE);
+                RpcPolicy parsed;
+                lua_getfield(L, 5, "client"); parsed.client = lua_toboolean(L, -1); lua_pop(L, 1);
+                lua_getfield(L, 5, "server"); parsed.server = lua_toboolean(L, -1); lua_pop(L, 1);
+                if (!parsed.client && !parsed.server) return luaL_error(L, "explicit RPC callers required");
+                policy = parsed;
+            }
             lua_pushvalue(L, 2);
             int reference = luaL_ref(L, LUA_REGISTRYINDEX);
             try {
                 if (!entity_type.empty()) owner.entity_routes.emplace(route, std::move(entity_type));
                 if (initial_state) owner.stateful_routes.emplace(route, std::move(*initial_state));
                 owner.routes.emplace(route, reference);
+                if (policy) owner.policies.emplace(route, *policy);
             } catch (const std::exception&) {
-                owner.entity_routes.erase(route); owner.stateful_routes.erase(route);
+                owner.entity_routes.erase(route); owner.stateful_routes.erase(route); owner.policies.erase(route); owner.routes.erase(route);
                 luaL_unref(L, LUA_REGISTRYINDEX, reference); throw;
             }
             return 0;
@@ -178,6 +189,17 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
                 assert(type(definition) == 'table' and type(definition.methods) == 'table', 'entity definition required')
                 local initial = definition.initial or ''
                 local register = function(method, handler)
+                    local policy
+                    if type(handler) == 'table' then
+                        assert(handler.access == nil, 'entity access policies require contextual dispatch; unsupported access must not be ignored')
+                        assert(type(handler.callers) == 'table' and #handler.callers > 0, 'explicit RPC callers required')
+                        policy = {}
+                        for _, caller in ipairs(handler.callers) do
+                            assert(caller == 'client' or caller == 'server', 'invalid RPC caller')
+                            policy[caller] = true
+                        end
+                        handler = handler.handler
+                    end
                     assert(type(method) == 'string' and #method > 0 and #method <= 127 and not method:find('[%.%z]'), 'invalid entity method')
                     assert(type(handler) == 'function', 'entity handler required')
                     runtime.rpc(kind .. '.' .. method, function(id, data)
@@ -188,7 +210,7 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
                         local next_state, response = handler(state, id, data:sub(offset + size))
                         assert(type(next_state) == 'string' and type(response) == 'string', 'return state and response bytes')
                         return 'FSS1' .. string.pack('>I4', #next_state) .. next_state .. response
-                    end, kind, initial)
+                    end, kind, initial, policy)
                 end
                 for method, handler in pairs(definition.methods) do
                     assert(method:sub(1, 1) ~= '$', 'reserved entity method')
@@ -385,6 +407,7 @@ void LuaEngine::load(std::string_view source, const std::string& name) {
             if (auto managed = owner.stateful_routes.find(route); managed != owner.stateful_routes.end())
                 owner.host->bind_stateful(route, kind, managed->second, std::move(handler));
             else owner.host->bind(route, std::move(handler));
+            if (auto policy = owner.policies.find(route); policy != owner.policies.end()) owner.host->rpc_policy(route, policy->second);
         }
         owner.loaded = true; owner.source = {};
     } catch (...) { owner.error = "script load failed"; owner.stop(); throw; }

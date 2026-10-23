@@ -1,5 +1,7 @@
 #pragma once
+#include "fsnet/entity_schema.hpp"
 #include <chrono>
+#include <optional>
 #include <cstdint>
 #include <functional>
 #include <memory>
@@ -37,6 +39,15 @@ public:
     // the verified certificate SHA-256 fingerprint, or empty on loopback plaintext.
     void authorize(Authorizer);
     std::string peer_identity(std::uint64_t peer) const;
+    using IdentityResolver = std::function<std::optional<CallIdentity>(std::uint64_t, const std::string&)>;
+    using ContextHandler = std::function<void(const CallIdentity&, std::string, Reply)>;
+    // Trusted application hook. Input identity is the verified TLS fingerprint;
+    // never derive a server role from a field supplied in an RPC payload.
+    // With no resolver, connections are clients identified by their certificate.
+    void identify(IdentityResolver);
+    void bind_rpc(std::string route, RpcPolicy, ContextHandler);
+    void rpc_policy(const std::string& route, RpcPolicy);
+    // Legacy binary host API; migration to explicit policies is still required.
     void bind(std::string route, Handler handler);
     bool has_route(const std::string& route) const;
     bool unbind(const std::string& route);
