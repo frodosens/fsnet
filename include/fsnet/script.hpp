@@ -5,11 +5,18 @@
 #include <string>
 #include <string_view>
 #include <stdexcept>
+#include <optional>
 
 namespace fsnet {
 // Language-neutral host contract. Payloads are owned binary strings; script
 // values, VM pointers, and C++ entities never cross this boundary. All methods
 // and callbacks execute on the owning runtime thread.
+struct EntityPresence {
+    enum class Kind { enter=1, leave=2, control=3 } kind;
+    std::string type,id;
+    std::uint64_t subscription=0;
+    bool owned=false, controlled=false;
+};
 class ScriptHost {
 public:
     virtual ~ScriptHost() = default;
@@ -21,6 +28,10 @@ public:
     virtual void define_schema(std::string, EntitySchema) {
         throw std::logic_error("entity schemas require an entity host");
     }
+    virtual void spawn_entity(std::string, std::string, EntityAttributes::Values, Reply reply) { reply({Status::rejected,{}}); }
+    virtual void entity_visibility(std::uint64_t, std::string, std::string, unsigned, Reply reply) { reply({Status::rejected,{}}); }
+    virtual std::optional<EntityPresence> pop_entity_event() { return {}; }
+    virtual void stop_entity_events() {}
     virtual void forget_schema(const std::string&) {}
     virtual std::string entity_owner(const std::string&, const std::string&) const { return {}; }
     using AttributeReady = std::function<void(Status, std::uint64_t)>;

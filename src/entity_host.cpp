@@ -41,7 +41,7 @@ struct EntityScriptHost::Impl : std::enable_shared_from_this<Impl> {
     struct Job {
         std::string entity, state, output, persisted;
         std::vector<EntityReceipt> receipts;
-        bool replay = false;
+        bool replay = false, created = false;
         std::size_t resident = 0;
         std::uint64_t fence = 0, version = 0;
         std::int64_t expires = 0;
@@ -60,6 +60,7 @@ struct EntityScriptHost::Impl : std::enable_shared_from_this<Impl> {
     WallClock now;
     OwnerResolver owner_resolver;
     AttributeListener attribute_listener;
+    Visibility visibility;
     std::unordered_map<std::string, std::shared_ptr<const EntitySchema>> schemas;
     std::unordered_map<std::string, std::shared_ptr<Method>> methods;
     std::unordered_map<std::string, Slot> slots;
@@ -171,6 +172,7 @@ struct EntityScriptHost::Impl : std::enable_shared_from_this<Impl> {
             [job, owner_id, clock, settings](Database& db) {
                 for (int attempt = 0; attempt < 4; ++attempt) {
                     auto record = db.get(record_key(job->entity));
+                    job->created = !record;
                     EntityRecord current;
                     if (record) current = decode_entity_record(record->value);
                     else {
@@ -178,6 +180,11 @@ struct EntityScriptHost::Impl : std::enable_shared_from_this<Impl> {
                         if (db.get("fsnet/actor/owner/" + job->entity) || db.get("fsnet/actor/state/" + job->entity))
                             throw std::runtime_error("legacy entity needs offline migration");
                         current.snapshot.state = job->request.method->initial;
+                        if(job->request.method->schema && job->request.route==job->request.method->type+".$spawn") {
+                            EntityAttributes initial(*job->request.method->schema,"");
+                            initial.publish(initial.stage(decode_attributes(job->request.payload).values,{Caller::server,{}}));
+                            current.snapshot.state=encode_attributes({0,initial.revision(),true,initial.persistent()});
+                        }
                     }
                     auto time = clock();
                     if (time < 0 || time > std::numeric_limits<std::int64_t>::max() - settings.lease.count())
@@ -239,6 +246,13 @@ struct EntityScriptHost::Impl : std::enable_shared_from_this<Impl> {
                         if (!cached.transient.empty() && job->previously_owned && cached.transient_fence == job->previous_fence && cached.transient_revision == image.revision) {
                             auto transient = decode_attributes(cached.transient);
                             model.restore_full(transient.values, image.revision);
+                        }
+                        if(job->created && job->request.route==job->request.method->type+".$spawn") {
+                            auto requested=decode_attributes(job->request.payload).values;
+                            EntityAttributes::Values transient;
+                            for(const auto& [name,value]:requested)
+                                if(!model.schema().attributes.at(name).persist) transient.emplace(name,value);
+                            model.restore_full(transient,image.revision);
                         }
                         AttributeUpdate full{0, image.revision, true, model.all_values()};
                         auto bytes = encode_attributes(full);
@@ -389,15 +403,32 @@ void EntityScriptHost::define_schema(std::string type, EntitySchema schema) {
                 if (!state) return reply({Status::internal, {}});
                 reply({Status::ok, state_message(state->state, state->state)});
             }, RpcPolicy{false, true, false}, std::move(definition)});
-        impl_->methods.emplace(type + ".$snapshot", std::move(method));
-    } catch (...) { impl_->schemas.erase(type); throw; }
+        impl_->methods.emplace(type + ".$snapshot", method);
+        impl_->methods.emplace(type + ".$spawn", std::move(method));
+    } catch (...) { impl_->schemas.erase(type); impl_->methods.erase(type+".$snapshot"); impl_->methods.erase(type+".$spawn"); throw; }
 }
-void EntityScriptHost::forget_schema(const std::string& type) { impl_->schemas.erase(type); impl_->methods.erase(type + ".$snapshot"); }
+void EntityScriptHost::forget_schema(const std::string& type) { impl_->schemas.erase(type); impl_->methods.erase(type + ".$snapshot"); impl_->methods.erase(type + ".$spawn"); }
 std::shared_ptr<const EntitySchema> EntityScriptHost::schema(const std::string& type) const {
     auto it = impl_->schemas.find(type); return it == impl_->schemas.end() ? nullptr : it->second;
 }
 std::string EntityScriptHost::owner_subject(const std::string& type, const std::string& id) const {
     return impl_->account(type,id);
+}
+void EntityScriptHost::spawn_entity(std::string type,std::string id,EntityAttributes::Values values,Reply reply) {
+    std::string message;
+    try {
+        auto definition=schema(type); if(!definition) return reply({Status::not_found,{}});
+        EntityAttributes model(*definition,"");
+        (void)model.stage(values,{Caller::server,{}});
+        message=entity_message(id,encode_attributes({0,0,true,std::move(values)}));
+    } catch(...) { return reply({Status::rejected,{}}); }
+    impl_->enqueue(type+".$spawn",std::move(message),std::move(reply));
+}
+void EntityScriptHost::on_visibility(Visibility fn) { impl_->visibility=std::move(fn); }
+void EntityScriptHost::entity_visibility(std::uint64_t peer,std::string type,std::string id,unsigned action,Reply reply) {
+    auto fn=impl_->visibility;
+    if(impl_->stopped || !fn) return reply({Status::rejected,{}});
+    fn(peer,std::move(type),std::move(id),action,std::move(reply));
 }
 void EntityScriptHost::read_attributes(std::string type, std::string id, Reply reply) {
     if (!reply) throw std::invalid_argument("missing snapshot callback");
@@ -475,6 +506,10 @@ std::size_t EntityScriptHost::poll(std::size_t budget) {
         ++work;
     }
     return work;
+}
+bool EntityScriptHost::active(const std::string& type,const std::string& id) const {
+    auto it=impl_->slots.find(key(type,id));
+    return !impl_->stopped && it!=impl_->slots.end() && it->second.activated && !it->second.releasing;
 }
 std::optional<EntityHandle> EntityScriptHost::handle(const std::string& type, const std::string& id) const {
     auto it = impl_->slots.find(key(type, id));

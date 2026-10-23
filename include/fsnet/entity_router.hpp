@@ -39,6 +39,14 @@ public:
         parent_->bind_stateful(std::move(r), std::move(t), std::move(s), std::move(h));
     }
     void define_schema(std::string t, EntitySchema s) override { parent_->define_schema(std::move(t), std::move(s)); }
+    void spawn_entity(std::string t,std::string id,EntityAttributes::Values values,Reply reply) override {
+        parent_->spawn_entity(std::move(t),std::move(id),std::move(values),std::move(reply));
+    }
+    void entity_visibility(std::uint64_t peer,std::string t,std::string id,unsigned action,Reply reply) override {
+        parent_->entity_visibility(peer,std::move(t),std::move(id),action,std::move(reply));
+    }
+    std::optional<EntityPresence> pop_entity_event() override { return parent_->pop_entity_event(); }
+    void stop_entity_events() override { parent_->stop_entity_events(); }
     void forget_schema(const std::string& t) override { parent_->forget_schema(t); }
     std::string entity_owner(const std::string& t, const std::string& id) const override { return parent_->entity_owner(t,id); }
     void bind_context(std::string r, RpcPolicy p, ContextHandler h) override { parent_->bind_context(std::move(r), p, std::move(h)); }

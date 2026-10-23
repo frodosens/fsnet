@@ -41,6 +41,10 @@ public:
     void bind(std::string, Handler) override;
     void bind_stateful(std::string route, std::string type, std::string initial, Handler) override;
     void define_schema(std::string, EntitySchema) override;
+    void spawn_entity(std::string type, std::string id, EntityAttributes::Values, Reply) override;
+    using Visibility = std::function<void(std::uint64_t,std::string,std::string,unsigned,Reply)>;
+    void on_visibility(Visibility);
+    void entity_visibility(std::uint64_t,std::string,std::string,unsigned,Reply) override;
     void forget_schema(const std::string&) override;
     struct AttributeCommit { std::string type, id, owner; std::shared_ptr<const EntitySchema> schema; AttributeUpdate previous, current; };
     using AttributeListener = std::function<void(const AttributeCommit&)>;
@@ -66,6 +70,7 @@ public:
     std::uint64_t connect(const std::string&, std::uint16_t) override;
     void call(std::uint64_t, std::string, std::string, std::chrono::milliseconds, Reply) override;
     std::size_t poll(std::size_t budget = 64);
+    bool active(const std::string& type,const std::string& id) const;
     std::optional<EntityHandle> handle(const std::string& type, const std::string& id) const;
     // Only an idle entity can deactivate. Releases its lease with a fenced CAS;
     // already-committed state remains durable. Stale local handles are rejected.

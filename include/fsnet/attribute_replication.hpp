@@ -14,6 +14,8 @@ public:
     using Observer = std::function<bool(const CallIdentity&, const std::string& type, const std::string& id)>;
     AttributeReplication(Node&, std::shared_ptr<EntityScriptHost>, Observer = {}, ReplicationLimits = {});
     ~AttributeReplication();
+    // Trusted server scene API: 1 show, 2 hide, 3 possess, 4 unpossess.
+    void visibility(std::uint64_t peer,std::string type,std::string id,unsigned action,Reply);
     std::size_t poll(std::size_t budget = 64);
     void stop();
 private:
@@ -27,12 +29,14 @@ public:
     using Ready = std::function<void(Status, std::uint64_t subscription)>;
     using Written = std::function<void(Status)>;
     using Changed = std::function<void(std::uint64_t subscription, Status, const AttributeReplica*)>;
-    AttributeClient(Node&, std::uint64_t server_peer, Changed = {});
+    using Presence = std::function<void(const EntityPresence&)>;
+    AttributeClient(Node&, std::uint64_t server_peer, Changed = {}, Presence = {});
     ~AttributeClient();
     void watch(std::string type, std::string id, Ready, std::chrono::milliseconds timeout = std::chrono::seconds(3));
     void write(std::uint64_t subscription, EntityAttributes::Values, Written,
                AttributeWriteOptions = {}, std::chrono::milliseconds timeout = std::chrono::seconds(3));
     void unwatch(std::uint64_t subscription);
+    void stop_entities(); // release auto projections; retain ordinary manual watches
     const AttributeReplica* get(std::uint64_t subscription) const;
     void poll();
     void stop();

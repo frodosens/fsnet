@@ -105,3 +105,6 @@ C++ 的 `ClusterClient` 支持静态成员健康探测、指数退避重连、�
 实体 RPC 权限、Lua 属性声明与原生客户端自动同步见 [ENTITY_SCHEMA.md](docs/ENTITY_SCHEMA.md)。当前同步连接到实体 owner 节点，Gateway 转发与迁移订阅仍在后续阶段。
 
 脚本业务推荐使用 [面向对象的 Lua 实体 API](docs/OBJECT_API.md)，示例为 [attributes.lua](examples/lua/attributes.lua)。
+
+服务端登录创建/恢复实体、自动 LocalPlayer/RemotePlayer 表现、控制目标与移除同步见
+[实体存在性与表现](docs/ENTITY_PRESENCE.md)，可运行示例见 [场景客户端](examples/lua/client/player_scene.lua)。

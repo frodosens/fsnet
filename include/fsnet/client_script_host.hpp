@@ -2,6 +2,7 @@
 #include "fsnet/script.hpp"
 #include "fsnet/attribute_replication.hpp"
 #include <unordered_map>
+#include <deque>
 
 namespace fsnet {
 // Owner-thread client adapter. One per Node, bound to an authenticated server peer.
@@ -10,14 +11,22 @@ class ClientScriptHost final : public ScriptHost {
     Node& node_;
     std::uint64_t server_peer_;
     std::unordered_map<std::uint64_t,std::shared_ptr<const AttributeUpdate>> images_;
+    std::deque<EntityPresence> events_;
+    bool event_overflow_=false;
     AttributeClient attributes_;
+    void event(const EntityPresence& value) {
+        if(event_overflow_) return;
+        if(events_.size()>=512) { events_.clear(); event_overflow_=true; node_.close(server_peer_); return; }
+        events_.push_back(value);
+    }
     void image(std::uint64_t id,Status status,const AttributeReplica* replica) {
         if(status!=Status::ok || !replica) { images_.erase(id); return; }
         images_[id]=std::make_shared<const AttributeUpdate>(AttributeUpdate{0,replica->revision(),true,replica->values()});
     }
 public:
     ClientScriptHost(Node& node, std::uint64_t server_peer) : node_(node), server_peer_(server_peer), attributes_(node,server_peer,
-        [this](std::uint64_t id,Status status,const AttributeReplica* replica) { image(id,status,replica); }) {}
+        [this](std::uint64_t id,Status status,const AttributeReplica* replica) { image(id,status,replica); },
+        [this](const EntityPresence& value) { event(value); }) {}
     bool has_route(const std::string& route) const override { return node_.has_route(route); }
     void bind(std::string route, Handler handler) override { node_.bind(std::move(route),std::move(handler)); }
     void bind_context(std::string route,RpcPolicy policy,ContextHandler handler) override { node_.bind_rpc(std::move(route),policy,std::move(handler)); }
@@ -47,6 +56,12 @@ public:
         attributes_.write(subscription,std::move(values),[reply=std::move(reply)](Status status) { reply({status,{}}); },std::move(options),timeout);
     }
     void unwatch_attributes(std::uint64_t subscription) override { attributes_.unwatch(subscription); }
+    std::optional<EntityPresence> pop_entity_event() override {
+        if(event_overflow_) throw std::runtime_error("entity event queue overflow");
+        if(events_.empty()) return {};
+        auto value=std::move(events_.front()); events_.pop_front(); return value;
+    }
+    void stop_entity_events() override { attributes_.stop_entities(); events_.clear(); }
     void poll() { attributes_.poll(); }
     void stop() { attributes_.stop(); }
 };

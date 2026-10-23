@@ -55,3 +55,23 @@ FSNET_CLUSTER_TOKEN=local-demo /path/to/build/fsnet-client /tmp/fsnet-prediction
 ```
 
 完整 API、输入确认与确定性限制见 [客户端预测](../docs/PREDICTION.md)。
+
+## 登录后自动创建 LocalPlayer / RemotePlayer
+
+服务端统一注册 Player，客户端按归属选择表现 prototype。服务端场景脚本负责把在线玩家
+show 给彼此；进入/离开同步会自动调用表现生命周期，不需要客户端逐个 watch。
+
+```sh
+cat examples/lua/shared/player_entity.lua examples/lua/player_scene.lua > /tmp/fsnet-scene-server.lua
+FSNET_CLUSTER_TOKEN=local-demo FSNET_DEMO_SUBJECT=alice /path/to/build/fsnet-script /tmp/fsnet-scene-server.lua 7001
+
+# 另一终端：
+cat examples/lua/shared/player_entity.lua examples/lua/client/player_scene.lua > /tmp/fsnet-scene-client.lua
+FSNET_CLUSTER_TOKEN=local-demo /path/to/build/fsnet-client /tmp/fsnet-scene-client.lua 127.0.0.1 7001
+```
+
+单客户端示例打印 LocalPlayer、镜头目标、预测位置、解除控制和移除，然后退出。
+双账号互相看到 RemotePlayer 的真实 Node 验证见 `fsnet-presence`；上面的 loopback
+演示固定 subject=alice，不能用它模拟两个不同登录账号。生产宿主需提供可信账号映射。
+镜头/模型绑定在示例中仅用字段和打印展示，实际图形调用由引擎适配层提供。
+完整接口与撤销/预算边界见 [ENTITY_PRESENCE.md](../docs/ENTITY_PRESENCE.md)。

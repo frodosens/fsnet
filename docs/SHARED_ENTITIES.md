@@ -77,3 +77,6 @@ ClientScriptHost 和 LuaEngine；每个 Node 一个属性客户端。服务端�
 当前直连 owner 节点；Gateway 转发、模块和完整生命周期将在后续阶段接入。
 
 独立预测状态、有界输入历史、服务器校正与重放见 [客户端预测](PREDICTION.md)。
+
+服务端登录后自动创建客户端表现、LocalPlayer/RemotePlayer 工厂与控制目标同步见
+[实体存在性与表现](ENTITY_PRESENCE.md)。

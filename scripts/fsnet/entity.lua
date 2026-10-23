@@ -7,7 +7,8 @@ local register_entity=runtime.entity
 local reserved = {id=true, type=true, context=true, reject=true, attr=true, rpc=true,
                   private=true, extend=true, register=true, ref=true, reference=true,
                   define=true, spawn_local=true, watch=true, write=true, close=true,
-                  revision=true, mode=true, method=true, prediction=true}
+                  revision=true, mode=true, method=true, prediction=true, spawn_or_restore=true,
+                  show_to=true, hide_from=true, possess=true, unpossess=true}
 local unsupported_hooks = {new=true, init=true, on_create=true, on_activate=true, on_deactivate=true}
 local function name(value)
     assert(type(value)=='string' and #value>0 and #value<=127 and not value:find('[%.%z]') and value:sub(1,1)~='$', 'invalid entity/member name')
@@ -160,6 +161,14 @@ local function construct(class,id,replica,subscription,values)
     runtime._object_attach(object,data.members,id,data.name,{entity_id=id,entity_type=data.name,caller='client',subject='',peer=0})
     return object
 end
+function Class:spawn_or_restore(id,values)
+    local data=record(self)
+    assert(data.registered,'spawn requires a registered server class')
+    assert(type(id)=='string' and #id>0 and #id<=256,'invalid entity ID')
+    local _,status=runtime._spawn_entity(data.name,id,values or {})
+    assert(status==runtime.status.ok,'entity spawn failed: '..tostring(status))
+    return self:ref(id)
+end
 function Class:spawn_local(values,opts)
     opts=copy(opts or {})
     for key in pairs(opts) do assert(key=='id','unknown local option') end
@@ -253,8 +262,15 @@ local function call(ref,method,payload,opts)
     if data.defaults.peer then return runtime.entity_request(data.defaults.peer,data.type,data.id,method,payload,timeout,request_id) end
     return runtime.entity_call(data.type,data.id,method,payload,timeout,request_id)
 end
+local visibility_actions={show_to=1,hide_from=2,possess=3,unpossess=4}
+local function visibility(ref,peer,action)
+    local data=assert(refs[ref],'expected an entity reference')
+    local _,status=runtime._entity_visibility(peer,data.type,data.id,action)
+    assert(status==runtime.status.ok,'entity visibility failed: '..tostring(status))
+end
 ref_mt.__index=function(ref,key)
     local data=assert(refs[ref],'invalid entity reference')
+    if visibility_actions[key] then return function(object,peer) return visibility(object,peer,visibility_actions[key]) end end
     if key=='id' or key=='type' then return data[key] end
     if key=='call' then return call end
     if data.exported and data.exported[key] then
@@ -388,3 +404,98 @@ print=guard_effect(print)
 warn=guard_effect(warn)
 math.random=guard_effect(math.random)
 math.randomseed=guard_effect(math.randomseed)
+
+-- Presentation factories wrap native confirmed replicas. The server owns the
+-- entity type; the client chooses local/remote behaviour from trusted metadata.
+local entities={}
+fsnet.entities=entities
+local factories,views={},{ }
+local started,running=false,false
+local function view_key(kind,id) return kind..'\0'..id end
+local function lifecycle(view,hook)
+    local fn=view[hook]
+    if fn then assert(type(fn)=='function','invalid presentation hook'); fn(view) end
+end
+local function control(view,value)
+    if view.controlled==value then return end
+    view.controlled=value
+    lifecycle(view,value and 'on_possess' or 'on_unpossess')
+end
+local function remove_view(key)
+    local view=views[key]
+    if not view then return end
+    views[key]=nil
+    -- Cleanup must still release native resources if a presentation hook fails.
+    local ok,err=pcall(control,view,false)
+    local disposed,dispose_err=pcall(lifecycle,view,'on_despawn')
+    view.entity:close()
+    if not ok then error(err,0) end
+    if not disposed then error(dispose_err,0) end
+end
+function entities:register(class,definition)
+    assert(self==entities and not started,'register presentations before start')
+    local data=record(class); define(class)
+    assert(not factories[data.name] and type(definition)=='table','invalid or duplicate presentation')
+    for key in pairs(definition) do assert(key=='owned' or key=='observed','unknown presentation option') end
+    assert(type(definition.owned)=='table' and type(definition.observed)=='table','local/remote prototypes required')
+    factories[data.name]={class=class,owned=definition.owned,observed=definition.observed}
+end
+function entities:get(kind,id)
+    local view=views[view_key(kind,id)]
+    if view and pcall(runtime._object_check,view.entity) then return view end
+    return nil -- revocation is immediate, before the next lifecycle dispatch
+end
+function entities:stop() running=false end
+function entities:start()
+    assert(self==entities and not started,'entity presentations already started')
+    started=true; running=true
+    runtime.start(function()
+        local function dispatch(event)
+            local key=view_key(event.type,event.id)
+            local view=views[key]
+            if event.action==2 then
+                if view and view.subscription==event.subscription then remove_view(key) end
+            elseif event.action==3 then
+                if view and view.subscription==event.subscription then
+                    if event.controlled and not pcall(runtime._object_check,view.entity) then remove_view(key)
+                    else control(view,event.controlled) end
+                end
+            else
+                if view and view.subscription==event.subscription then return end
+                if view then remove_view(key) end
+                local factory=assert(factories[event.type],'no presentation factory for '..event.type)
+                -- A queued enter can already have been revoked before Lua polls.
+                local ok,entity=pcall(construct,factory.class,event.id,true,event.subscription)
+                if not ok then
+                    local alive=runtime._subscription_alive(event.subscription)
+                    runtime._unwatch(event.subscription)
+                    if alive then error(entity,0) end
+                    return
+                end
+                view=setmetatable({entity=entity,id=event.id,type=event.type,owned=event.owned,
+                                   controlled=false,subscription=event.subscription},
+                                  {__index=event.owned and factory.owned or factory.observed})
+                views[key]=view
+                lifecycle(view,'on_spawn')
+                control(view,event.controlled)
+            end
+        end
+        local ok,err=pcall(function()
+            while running do
+                local event=runtime._entity_event()
+                if event then dispatch(event) else runtime.sleep(16) end
+            end
+        end)
+        running=false
+        local keys={}
+        for key in pairs(views) do keys[#keys+1]=key end
+        for _,key in ipairs(keys) do pcall(remove_view,key) end
+        runtime._stop_entity_events()
+        if not ok then error(err,0) end
+    end)
+end
+
+-- The client host resolves peer 0 to its configured authenticated owner endpoint.
+runtime.server_request=function(route,payload,timeout)
+    return runtime.request(0,route,payload,timeout)
+end

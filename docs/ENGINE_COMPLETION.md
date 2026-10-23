@@ -7,7 +7,8 @@
 | 共享类、本地实例、确认副本、执行域 | 已实现 | SHARED_ENTITIES.md；fsnet-shared |
 | Lua 客户端属性订阅/写提案、后台任务和定时等待 | 已实现 | ClientScriptHost；fsnet-shared 与 fsnet-shared-process |
 | 预测、服务器校正、回滚与效果去重 | 已实现显式输入初版 | PREDICTION.md；独立预测载体、有界历史、显式累计确认与重放；不含自动输入协议或完整世界回滚 |
-| 资源模块加载、生命周期 hook | 待交付 | 保留现有原生 mailbox/fencing 合同 |
+| 服务端 spawn/restore、自动副本、客户端表现与控制绑定 | 已实现连接内初版 | ENTITY_PRESENCE.md；fsnet-presence、fsnet-presence-process；可见性由服务端脚本显式管理 |
+| 资源模块加载、服务端生命周期 hook | 待交付 | 客户端表现 hook 已实现；完整服务端创建/激活/卸载 hook 仍待补齐，保留 mailbox/fencing 合同 |
 | 版本迁移与安全热更新 | 待交付 | 必须明确 drain、失败回滚及状态兼容规则 |
 | Gateway 身份委托与属性流转发/迁移 | 待交付 | 客户端当前直接连接 owner |
 | 加密 P2P、认证信令和 TLS 后备 | 待交付 | ICE/TURN 原语已有；不能以本机测试宣称公网验收 |

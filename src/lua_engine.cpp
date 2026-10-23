@@ -22,10 +22,11 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
         std::uint64_t peer;
         std::string route, data;
         std::chrono::milliseconds timeout;
-        enum class Kind { rpc, sleep, watch, write } kind = Kind::rpc;
+        enum class Kind { rpc, sleep, watch, write, spawn, visibility } kind = Kind::rpc;
         std::uint64_t subscription = 0;
         AttributeWriteOptions options;
         EntityAttributes::Values values;
+        unsigned action=0;
     };
     struct Task {
         lua_State* thread = nullptr;
@@ -603,6 +604,65 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
         return lua_yield(L,0);
     }
 
+    static int spawn_entity(lua_State* L) {
+        prediction_external(L);
+        auto& engine=self(L);
+        std::size_t n,m; const char* kind=luaL_checklstring(L,1,&n); const char* id=luaL_checklstring(L,2,&m);
+        if(!engine.threads.contains(L)) return luaL_error(L,"spawn requires an async server task");
+        try {
+            std::string type(kind,n);
+            if(!engine.server_schemas.contains(type) || m==0 || m>256) throw std::invalid_argument("spawn requires a registered server class and valid ID");
+            const auto& task=engine.tasks.at(engine.threads.at(L));
+            if(task.entity_type==type && task.entity_id==std::string_view(id,m)) throw std::logic_error("cannot spawn the currently executing entity");
+            Await request{}; request.kind=Await::Kind::spawn; request.timeout=engine.limits.task_timeout;
+            request.route=std::move(type); request.data=std::string(id,m);
+            request.values=values(L,3,engine.schemas.at(request.route));
+            engine.tasks.at(engine.threads.at(L)).await=std::move(request);
+        } catch(const std::exception& e) { return luaL_error(L,"%s",e.what()); }
+        return lua_yield(L,0);
+    }
+    static int entity_visibility(lua_State* L) {
+        prediction_external(L);
+        auto& engine=self(L);
+        auto peer=luaL_checkinteger(L,1),action=luaL_checkinteger(L,4);
+        std::size_t n,m; const char* kind=luaL_checklstring(L,2,&n); const char* id=luaL_checklstring(L,3,&m);
+        if(!engine.threads.contains(L) || peer<=0 || action<1 || action>4) return luaL_error(L,"visibility requires an async server task and valid peer/action");
+        try {
+            std::string type(kind,n);
+            if(!engine.server_schemas.contains(type)) throw std::invalid_argument("visibility requires a registered server class");
+            const auto& task=engine.tasks.at(engine.threads.at(L));
+            if(action==1 && task.entity_type==type && task.entity_id==std::string_view(id,m)) throw std::logic_error("show must run outside the target entity mailbox");
+            Await request{}; request.kind=Await::Kind::visibility; request.timeout=engine.limits.task_timeout;
+            request.peer=static_cast<std::uint64_t>(peer); request.route=std::move(type); request.data=std::string(id,m); request.action=static_cast<unsigned>(action);
+            engine.tasks.at(engine.threads.at(L)).await=std::move(request);
+        } catch(const std::exception& e) { return luaL_error(L,"%s",e.what()); }
+        return lua_yield(L,0);
+    }
+    static int stop_entity_events(lua_State* L) {
+        prediction_external(L);
+        try { self(L).host->stop_entity_events(); return 0; }
+        catch(const std::exception& e) { return luaL_error(L,"%s",e.what()); }
+    }
+    static int subscription_alive(lua_State* L) {
+        auto id=luaL_checkinteger(L,1);
+        try { lua_pushboolean(L,id>0 && bool(self(L).host->attribute_snapshot(static_cast<std::uint64_t>(id)))); return 1; }
+        catch(const std::exception& e) { return luaL_error(L,"%s",e.what()); }
+    }
+    static int entity_event(lua_State* L) {
+        prediction_external(L);
+        try {
+            auto event=self(L).host->pop_entity_event();
+            if(!event) { lua_pushnil(L); return 1; }
+            lua_createtable(L,0,6);
+            lua_pushinteger(L,static_cast<unsigned>(event->kind)); lua_setfield(L,-2,"action");
+            lua_pushlstring(L,event->type.data(),event->type.size()); lua_setfield(L,-2,"type");
+            lua_pushlstring(L,event->id.data(),event->id.size()); lua_setfield(L,-2,"id");
+            lua_pushinteger(L,static_cast<lua_Integer>(event->subscription)); lua_setfield(L,-2,"subscription");
+            lua_pushboolean(L,event->owned); lua_setfield(L,-2,"owned");
+            lua_pushboolean(L,event->controlled); lua_setfield(L,-2,"controlled");
+            return 1;
+        } catch(const std::exception& e) { return luaL_error(L,"%s",e.what()); }
+    }
     static int rpc(lua_State* L) {
         luaL_checktype(L, 1, LUA_TSTRING); luaL_checktype(L, 2, LUA_TFUNCTION);
         std::size_t size = 0; const char* name = lua_tolstring(L, 1, &size);
@@ -710,6 +770,11 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
         lua_pushcfunction(L,watch_attributes); lua_setfield(L,-2,"_watch");
         lua_pushcfunction(L,unwatch_attributes); lua_setfield(L,-2,"_unwatch");
         lua_pushcfunction(L,write_attributes); lua_setfield(L,-2,"_write");
+        lua_pushcfunction(L,spawn_entity); lua_setfield(L,-2,"_spawn_entity");
+        lua_pushcfunction(L,entity_visibility); lua_setfield(L,-2,"_entity_visibility");
+        lua_pushcfunction(L,stop_entity_events); lua_setfield(L,-2,"_stop_entity_events");
+        lua_pushcfunction(L,subscription_alive); lua_setfield(L,-2,"_subscription_alive");
+        lua_pushcfunction(L,entity_event); lua_setfield(L,-2,"_entity_event");
         lua_pushcfunction(L,model_publish); lua_setfield(L,-2,"_model_publish");
         lua_pushcfunction(L,prediction_guard); lua_setfield(L,-2,"_prediction_guard");
         lua_pushcfunction(L,prediction_clone); lua_setfield(L,-2,"_prediction_clone");
@@ -955,6 +1020,8 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
                         completion({status,std::move(result)});
                     },request.timeout);
             } else if(request.kind==Await::Kind::write) host->write_attributes(request.subscription,std::move(request.values),std::move(completion),std::move(request.options),request.timeout);
+            else if(request.kind==Await::Kind::spawn) host->spawn_entity(std::move(request.route),std::move(request.data),std::move(request.values),std::move(completion));
+            else if(request.kind==Await::Kind::visibility) host->entity_visibility(request.peer,std::move(request.route),std::move(request.data),request.action,std::move(completion));
             else if (request.peer) host->call(request.peer, std::move(request.route), std::move(request.data), request.timeout, std::move(completion));
             else host->call_entity(std::move(request.route), std::move(request.data), request.timeout, std::move(completion));
         } catch (const std::exception& exception) { error = exception.what(); finish(id, {Status::internal, {}}); }

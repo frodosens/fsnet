@@ -139,3 +139,6 @@ end
 客户端/服务端共享类、本地实例与确认副本见 [共享实体](SHARED_ENTITIES.md)。
 
 完整例子见 [attributes.lua](../examples/lua/attributes.lua)。
+
+服务端 `spawn_or_restore`、连接可见性与客户端表现生命周期见
+[实体存在性与表现](ENTITY_PRESENCE.md)。它们不代替服务端 on_create/on_activate/on_deactivate。

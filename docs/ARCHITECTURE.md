@@ -77,3 +77,13 @@ ICE/STUN/TURN 直连与中继原语已实现并做本机验证；原始 IcePeer 
 及跨对象修改，效果仅由首次成功 push 的返回值交给应用处理。业务输入协议和确定性
 规则留在 Lua，服务器仍独立验证输入并通过原有 CAS 发布权威属性。具体边界见
 [PREDICTION.md](PREDICTION.md)。
+
+## 实体存在性与客户端表现
+
+服务端脚本在可信登录上下文中 spawn/restore 权威实体，再显式 show 给场景内连接。
+AttributeReplication 将连接/认证主体、实体代数与自动订阅绑定，先发送过滤后的初始
+快照，再发送属性增量；hide、身份变化或卸载撤销订阅。客户端按服务器确认的 owner
+选择 LocalPlayer/RemotePlayer 表现 prototype，控制目标另外同步，切换时先解除旧目标。
+表现类不改变服务器实体类型，也不参与服务器授权。场景/AOI 策略留在 Lua；本阶段只
+提供直连 owner 的存在性同步与单连接控制，不提供持久化场景或 Gateway 委托。详见
+[ENTITY_PRESENCE.md](ENTITY_PRESENCE.md)。
