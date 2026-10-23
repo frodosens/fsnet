@@ -62,3 +62,5 @@ Lua 实体 mailbox 测试覆盖跨方法 FIFO、不同实体推进、await 期�
 TLS 测试临时生成 CA/服务/客户端与不可信证书，验证 TLS 1.3 双向认证、证书名称拒绝、未知 CA 客户端拒绝、按指纹路由授权、无共享 token 的证书认证与非 loopback 明文拒绝；Ruby 另验证证书身份回调和二进制往返。ICE 的候选队列与结束标志改为原子批次获取，核心测试重复 20 次验证原先的结束信令竞态。
 
 存储合同调整后，实体宿主测试使用不实现 transact 的后端，确认所有权、快照、接管、去重与卸载仅依赖单记录 CAS。文件后端验证二进制 key/value、多实例竞争、tombstone 防 ABA、低层 EntityStore fencing、重开持久化和损坏拒绝。独立进程测试覆盖多个文件 writer、SIGKILL 后已确认值保留与锁释放，以及完整 Lua 实体在文件后端的 owner 接管/恢复。该证据不等同于断电、远端文件系统或跨机存储一致性验证。
+
+可选 PostgreSQL 验证使用固定源码编译的 libpq/服务端和临时 TLS 证书：共同 CAS 合同、二进制 key/value、4 个独立连接竞争、无事务的 EntityStore fencing、不可信证书拒绝、Lua 三进程接管、数据库 immediate stop/WAL 恢复以及存活客户端安全读取重连。已检查 libfsnet.so 动态依赖仅为系统 C/C++ 运行库，不依赖机器上的 libpq/OpenSSL 私有库。

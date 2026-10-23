@@ -23,41 +23,7 @@ template<class Step, class Done> void until(Step step, Done done, std::chrono::m
         std::this_thread::sleep_for(1ms);
     }
 }
-void database_contract(std::shared_ptr<fsnet::Database> db) {
-    const std::string binary("value\0data", 10);
-    CHECK(!db->get("player"));
-    CHECK(db->compare_exchange("player", 0, binary));
-    CHECK(!db->compare_exchange("player", 0, "duplicate"));
-    CHECK(db->get("player")->value == binary);
-    CHECK(db->compare_exchange("player", 1, "0"));
-    CHECK(!db->compare_exchange("player", 1, "stale"));
-    std::vector<std::thread> workers;
-    for (int t = 0; t < 4; ++t) workers.emplace_back([db] {
-        for (int n = 0; n < 50; ++n) {
-            for (;;) {
-                auto old = db->get("player");
-                auto next = std::to_string(std::stoi(old->value) + 1);
-                if (db->compare_exchange("player", old->version, next)) break;
-            }
-        }
-    });
-    for (auto& worker : workers) worker.join();
-    auto record = db->get("player");
-    CHECK(record->value == "200");
-    CHECK(!db->erase("player", 1));
-    CHECK(db->erase("player", record->version));
-    CHECK(!db->get("player"));
-    CHECK(!db->erase("player", record->version));
-    CHECK(db->compare_exchange("player", 0, "recreated"));
-    CHECK(!db->compare_exchange("player", 1, "ABA stale update"));
-    CHECK(db->get("player")->version > record->version);
-    CHECK(db->transact({{"wallet:a", 0, "100"}, {"wallet:b", 0, "0"}}));
-    auto a = db->get("wallet:a"), b = db->get("wallet:b");
-    CHECK(!db->transact({{"wallet:a", a->version, "90"}, {"wallet:b", b->version + 1, "10"}}));
-    CHECK(db->get("wallet:a")->value == "100");
-    CHECK(db->transact({{"wallet:a", a->version, "90"}, {"wallet:b", b->version, "10"}}));
-    CHECK(db->get("wallet:b")->value == "10");
-}
+#include "storage_contract.hpp"
 void database_tests() {
     database_contract(fsnet::memory_database());
     auto file = (std::filesystem::temp_directory_path() / ("fsnet-test-" + std::to_string(std::chrono::steady_clock::now().time_since_epoch().count()) + ".db")).string();

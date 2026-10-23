@@ -35,3 +35,15 @@ delete 以 tombstone 替换记录，重建时沿用并增加版本；不能手�
 ## 跨实体业务
 
 两个实体的状态不要求同一事务提交。转账、交易、跨场景移动等流程应使用脚本定义的 Saga/幂等消息；需要可靠发送时把 outbox 内容放进本实体状态，和状态一起 CAS，再异步投递并确认。整个流程的业务补偿规则由脚本定义，不能由 C++ 网络框架猜测。
+
+## 可选 PostgreSQL
+
+`-DFSNET_WITH_POSTGRES=ON` 从固定 PostgreSQL 17.11 源码构建 libpq，并链接固定源码构建的 OpenSSL；不查找本机私有数据库客户端库。编译 Git 源码需要 Bison、Flex 和 m4。默认关闭，不影响文件/内存/SQLite 独立运行。
+
+使用 open_storage('postgresql://...') 或 postgres_database(libpq_options)。远端连接必须 sslmode=verify-full，校验服务端证书与目标名称；库不会把公共连接降级为明文。驱动强制连接超时 5 秒、语句/锁超时 5 秒、target_session_attrs=read-write 和 synchronous_commit=on。凭据通过安全配置/环境提供，不写入日志或仓库。
+
+单记录 CAS 使用带版本条件的 INSERT/UPDATE，删除同样带版本条件；版本使用不回退的 PostgreSQL sequence。该适配器不提供多记录事务扩展，实体运行时也不需要。所有权、状态与去重仍是同一行的一次条件替换。字节参数使用 libpq 二进制参数绑定，不拼接业务 key/value。
+
+安全的读取在断线后可重连一次；写入不在驱动中自动重放，避免 COMMIT/网络状态不明时重复副作用。上层带请求 ID 的实体调用负责幂等重试。一个客户端连接由 mutex 串行使用，可配置多个 Storage/执行器实例进行分片与连接并发。
+
+`-DFSNET_POSTGRES_TEST_SERVER=ON` 额外编译私有测试服务端。测试临时初始化数据库与证书，验证 TLS、同一存储合同、多个独立连接 CAS、进程 owner 接管，以及 immediate stop 后 WAL 恢复和读取重连。测试的 trust 身份配置仅用于本机临时实例；生产应设置 SCRAM/证书等数据库权限、备份和同步复制，不能把单台 PostgreSQL 当作 HA 集群。异步复制丢失已确认写入的部署不满足 Storage 的线性一致/持久化合同。

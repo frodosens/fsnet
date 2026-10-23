@@ -15,7 +15,7 @@ flowchart TB
     Storage --> Files[POSIX 文件存储]
     Storage --> SQLite[SQLite]
     Storage --> Memory[Memory: 开发与测试]
-    Storage -.-> PG[PostgreSQL: 正在接入]
+    Storage --> PG[PostgreSQL: 可选适配器]
 ```
 
 ## 存储合同不依赖数据库事务
@@ -65,7 +65,7 @@ ICE/STUN/TURN 直连与中继原语已实现并做本机验证；原始 IcePeer 
 ## 当前边界
 
 - 文件后端支持本机多进程、持久化与崩溃恢复，不会把每台机器自己的目录自动复制成一致存储。跨机器 HA 需要具备相同 CAS/持久化语义的共享或复制后端，不能靠文件复制或健康检查假定一致性。
-- PostgreSQL 驱动正在实现，数据库 HA、主备配置和故障恢复仍需单独验收；数据库不是实体运行时的必需条件。
+- PostgreSQL 适配器已实现，使用单记录条件 INSERT/UPDATE/DELETE；TLS、跨连接 CAS、实体进程接管与数据库崩溃恢复已验证。主备复制/仲裁与跨机 HA 仍需单独部署验收，数据库不是实体运行时的必需条件。
 - Ruby 支持外部 RPC/Fiber 与 TLS，但尚未接入托管实体 mailbox/快照运行时。Lua 和 Ruby 的语言内部对象模型不统一。
 - 固定步长 tick、句柄代数、快照恢复和空闲卸载已实现。完整客户端 SDK、自动 outbox、部署/观测与长期容量验证仍待完成。
 - 整体仍在分阶段交付，尚未标为任意规模通用游戏的生产验收版本。当前测试证据见 VALIDATION.md。

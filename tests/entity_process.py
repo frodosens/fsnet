@@ -65,7 +65,8 @@ def message(payload):
 
 try:
     with tempfile.TemporaryDirectory(prefix='fsnet-entity-') as directory:
-        environment['FSNET_STORAGE_URI'] = ('file:' + str(Path(directory) / 'records')) if backend == ['file'] else ('sqlite:' + str(Path(directory) / 'state.sqlite'))
+        if backend != ['postgres']:
+            environment['FSNET_STORAGE_URI'] = ('file:' + str(Path(directory) / 'records')) if backend == ['file'] else ('sqlite:' + str(Path(directory) / 'state.sqlite'))
         environment['FSNET_ENTITY_LEASE_MS'] = '400'
         first, a = start()
         assert invoke(a, b'counter.add', message(b'7')) == (0, b'7')

@@ -8,7 +8,7 @@ ExternalProject_Add(fsnet-openssl
   URL_HASH SHA256=796831ec533bf41998eaaee9d632d921b8a69f57394fa4086ff01a941113d26d
   DOWNLOAD_EXTRACT_TIMESTAMP TRUE
   CONFIGURE_COMMAND ${PERL_EXECUTABLE} <SOURCE_DIR>/Configure
-    --prefix=${FSNET_CRYPTO_ROOT} --libdir=lib no-shared no-tests no-module no-legacy -fPIC
+    --prefix=${FSNET_CRYPTO_ROOT} --libdir=lib shared no-tests no-module no-legacy -fPIC
   BUILD_COMMAND ${FSNET_MAKE_EXECUTABLE} -j4 build_libs
   INSTALL_COMMAND ${FSNET_MAKE_EXECUTABLE} install_dev
   BUILD_BYPRODUCTS ${FSNET_CRYPTO_ROOT}/lib/libssl.a ${FSNET_CRYPTO_ROOT}/lib/libcrypto.a
