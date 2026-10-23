@@ -47,6 +47,11 @@ public:
     // Runs only after a successful fenced storage CAS, on the owner thread.
     // A throwing listener cannot roll back an already committed entity.
     void on_attributes(AttributeListener);
+    std::shared_ptr<const EntitySchema> schema(const std::string& type) const;
+    std::string owner_subject(const std::string& type, const std::string& id) const;
+    // Trusted framework API, not a public RPC: serialized with entity operations,
+    // returns the full image for subsequent recipient-specific filtering.
+    void read_attributes(std::string type, std::string id, Reply);
     void bind_context(std::string, RpcPolicy, ContextHandler) override;
     void bind_stateful_context(std::string, std::string, std::string, RpcPolicy, ContextHandler) override;
     using OwnerResolver = std::function<std::string(const std::string& type, const std::string& id)>;

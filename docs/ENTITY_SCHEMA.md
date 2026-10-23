@@ -2,7 +2,7 @@
 
 This stage implements Lua attribute entities, a native schema carrier, post-commit
 attribute events and explicit caller-role policies.
-It does **not** yet provide an end-to-end client replication service. The existing
+It includes a local owner-node replication service and a native client projection manager. The existing
 opaque-state interface and legacy RPC registrations still exist for migration.
 Do not expose legacy registrations as an authorization boundary.
 
@@ -139,9 +139,56 @@ current revision, late updates cannot rewind it, and replacement snapshots remov
 properties no longer visible. A new entity incarnation/subscription must reset its
 projection before applying its first snapshot.
 
+## Network replication
+
+Applications wire `AttributeReplication(node, entity_host, observer_hook)` after loading
+attribute entities. It owns the host's single change listener. The trusted observer hook
+answers whether a subject can observe an entity; ownership is resolved separately by
+`EntityScriptHost::ownership`. No observer hook means owner-only subscriptions.
+Use authenticated, stable account subjects through `Node::identify`; default TLS
+fingerprints are connection identities, not a game login system.
+
+On the client, construct `AttributeClient(node, server_peer, changed_callback)` and
+call `watch(type, id, ready_callback)`. `get(subscription)` provides the local
+`AttributeReplica`. Both runtimes execute on their owner threads. Poll the server
+replication service and client manager as well as Node, EntityScriptHost and LuaEngine.
+The Node and host must outlive the corresponding managers.
+
+The initial control RPC returns a filtered FSA1 snapshot in an FSN1 subscription
+envelope. After a successful entity commit, recipient-specific deltas travel in
+Node's **one-way notification frames** (kind 3), without request IDs, replies or
+pending RPC slots. Business code only assigns `self.hp`. Repeated receipt responses
+do not emit another update. Control RPCs watch/unwatch/renew explicitly permit client
+callers. All synchronization packets are bounded by the transport frame/queue limits.
+
+The client accepts updates only from its configured server connection. Type, entity
+ID, subscription ID, and revision must match. Unrelated peers cannot inject changes.
+A revision gap invalidates that subscription and reports rejection; the application
+must obtain a fresh snapshot. On backpressure, the server closes the connection so
+the application can reconnect and resubscribe instead of silently retaining a gap.
+
+The server rechecks the current connection principal, logical owner and observer
+permission before delivery and during bounded polling. Identity rebinding, AOI or
+ownership changes, deactivation, disconnection, expiration and schema removal revoke
+subscriptions. Permission changes discovered during polling require a fresh watch;
+clients clear revoked projections. This cannot erase information a client previously
+received legitimately. Entity handles prevent a transient property cache from being
+silently reused across deactivation/reactivation.
+
+Defaults are 1,024 server subscriptions, 32 per connection, and 16 MiB of cached
+projection images. Pending watches expire after 5 seconds; active leases last 30 seconds
+and are renewed by the client manager at one third of the advertised lease. Server
+configuration accepts leases of at least 3 seconds. Individual initial projections
+are limited to 512 KiB. The native client permits at most 256 subscriptions plus
+pending watches and 16 MiB of projection data. Replica updates cannot accumulate more
+than 256 named properties or exceed the FSA1 record limit. Subscriber lookup is indexed
+by entity, so a commit visits only interested subscribers.
+
 ## Remaining integration
 
-Gateway identity delegation, mandatory migration of legacy RPC registrations, client
-write proposals, subscription/AOI lifecycle, post-commit network delivery and client
-SDK transport integration are still pending. Changing `self.hp` now emits a committed
-framework event; it does not yet automatically send a packet to a game client.
+Client write proposals, gateway identity delegation, mandatory migration of legacy RPC
+registrations, automatic scene/AOI subscription discovery, and subscription migration
+between owner nodes remain pending. The current native client connects directly to the
+entity owner endpoint; a gateway does not yet proxy these streams. Reconnect requires
+application connection establishment followed by a fresh watch. Ruby property hosting
+and browser/engine-specific client adapters are not implemented.

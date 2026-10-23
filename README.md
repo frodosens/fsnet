@@ -132,3 +132,5 @@ C++ 的 `ClusterClient` 支持静态成员健康探测、指数退避重连、�
 旧 C/libevent/Ruby 2.1 实现、旧 C++ 客户端、Xcode 用户文件、旧构建产物、依赖压缩包和旧示例已从主线移除，通过上述归档标签保留历史。新协议有版本和边界检查，与旧的 `F` 包头协议不兼容。旧逻辑需要迁移到显式服务，旧客户端需要适配新协议或经过专门的隔离兼容网关；不能直接接入新节点。
 
 依赖与许可证见 [THIRD_PARTY.md](docs/THIRD_PARTY.md)。
+
+实体 RPC 权限、Lua 属性声明与原生客户端自动同步见 [ENTITY_SCHEMA.md](docs/ENTITY_SCHEMA.md)。当前同步连接到实体 owner 节点，Gateway 转发与迁移订阅仍在后续阶段。

@@ -54,6 +54,14 @@ public:
     bool unbind(const std::string& route);
     void call(std::uint64_t peer, std::string route, std::string data,
               std::chrono::milliseconds timeout, Reply reply);
+    using Notification = std::function<void(std::uint64_t, const std::string& certificate, std::string)>;
+    void on_notification(std::string channel, Notification);
+    void off_notification(const std::string& channel);
+    // Bounded one-way frame: no request ID, reply or pending-RPC slot. True means
+    // queued, not delivered. Receivers must authenticate the expected sender.
+    bool notify(std::uint64_t peer, const std::string& channel, const std::string& data);
+    bool connected(std::uint64_t peer) const;
+    std::optional<CallIdentity> identity(std::uint64_t peer) const;
     void close(std::uint64_t peer);
     void poll();
     void run();

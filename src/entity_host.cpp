@@ -318,7 +318,7 @@ void EntityScriptHost::bind(std::string route, Handler handler) { impl_->parent-
 void EntityScriptHost::bind_stateful(std::string route, std::string type, std::string initial, Handler logic) {
     auto& self = *impl_;
     if (self.stopped || type.empty() || type.size() > 127 || type.find_first_of(".\0", 0, 2) != std::string::npos ||
-        !logic || initial.size() > self.limits.state_bytes || route.size() <= type.size() + 1 ||
+        !logic || self.methods.contains(route) || initial.size() > self.limits.state_bytes || route.size() <= type.size() + 1 ||
         route.compare(0, type.size() + 1, type + '.') || self.parent->has_route(route))
         throw std::invalid_argument("invalid stateful route");
     for (const auto& [name, method] : self.methods)
@@ -341,10 +341,34 @@ void EntityScriptHost::define_schema(std::string type, EntitySchema schema) {
     if (impl_->stopped || type.empty() || type.size() > 127 || type.find_first_of(".\0", 0, 2) != std::string::npos || impl_->schemas.size() >= 256)
         throw std::invalid_argument("invalid entity schema type");
     for (const auto& [route, method] : impl_->methods) if (method->type == type) throw std::logic_error("entity schema must precede methods");
-    if (!impl_->schemas.emplace(std::move(type), std::make_shared<const EntitySchema>(std::move(schema))).second)
-        throw std::logic_error("duplicate entity schema");
+    auto definition = std::make_shared<const EntitySchema>(std::move(schema));
+    EntityAttributes defaults(*definition, "");
+    auto initial = encode_attributes({0, 0, true, defaults.persistent()});
+    if (!impl_->schemas.emplace(type, definition).second) throw std::logic_error("duplicate entity schema");
+    try {
+        auto method = std::make_shared<Impl::Method>(Impl::Method{type, std::move(initial),
+            [](const CallIdentity&, std::string input, Reply reply) {
+                auto entity = parse_entity_message(input);
+                auto state = entity ? parse_state_message(entity->payload) : std::nullopt;
+                if (!state) return reply({Status::internal, {}});
+                reply({Status::ok, state_message(state->state, state->state)});
+            }, RpcPolicy{false, true, false}, std::move(definition)});
+        impl_->methods.emplace(type + ".$snapshot", std::move(method));
+    } catch (...) { impl_->schemas.erase(type); throw; }
 }
-void EntityScriptHost::forget_schema(const std::string& type) { impl_->schemas.erase(type); }
+void EntityScriptHost::forget_schema(const std::string& type) { impl_->schemas.erase(type); impl_->methods.erase(type + ".$snapshot"); }
+std::shared_ptr<const EntitySchema> EntityScriptHost::schema(const std::string& type) const {
+    auto it = impl_->schemas.find(type); return it == impl_->schemas.end() ? nullptr : it->second;
+}
+std::string EntityScriptHost::owner_subject(const std::string& type, const std::string& id) const {
+    auto resolve = impl_->owner_resolver; return resolve ? resolve(type, id) : std::string{};
+}
+void EntityScriptHost::read_attributes(std::string type, std::string id, Reply reply) {
+    if (!reply) throw std::invalid_argument("missing snapshot callback");
+    std::string message;
+    try { message = entity_message(id, ""); } catch (...) { return reply({Status::rejected, {}}); }
+    impl_->enqueue(type + ".$snapshot", std::move(message), std::move(reply), false, {Caller::server, "framework:snapshot"});
+}
 void EntityScriptHost::on_attributes(AttributeListener listener) { impl_->attribute_listener = std::move(listener); }
 void EntityScriptHost::ownership(OwnerResolver resolve) { impl_->owner_resolver = std::move(resolve); }
 void EntityScriptHost::bind_context(std::string route, RpcPolicy policy, ContextHandler handler) {

@@ -53,6 +53,7 @@ struct Node::Impl : std::enable_shared_from_this<Node::Impl> {
     std::unique_ptr<asio::ssl::context> tls;
     Authorizer authorizer;
     IdentityResolver identity_resolver;
+    std::unordered_map<std::string, Notification> notifications;
     struct Route { RpcPolicy policy; ContextHandler handler; bool legacy = false; };
     bool stopped = false;
     std::uint64_t peer_serial = 0, call_serial = 0;
@@ -210,6 +211,20 @@ struct Node::Impl::Session : std::enable_shared_from_this<Session> {
                 node->finish(call, {static_cast<Status>(code), std::move(data)});
             return;
         }
+        if (kind == 3) {
+            if (call || code || route.empty() || route.find('\0') != std::string::npos) return close();
+            if (node->authorizer) {
+                try { auto authorize = node->authorizer; if (!authorize(id, identity, route)) return close(); }
+                catch (...) { return close(); }
+                if (closed || node->stopped) return;
+            }
+            auto found = node->notifications.find(route);
+            if (found != node->notifications.end()) {
+                auto callback = found->second;
+                try { callback(id, identity, std::move(data)); } catch (...) { close(); }
+            }
+            return;
+        }
         if (kind != 1 || !call || route.empty() || route.find('\0') != std::string::npos || code) return close();
         if (inflight >= node->limits.inflight_requests) {
             if (!enqueue(frame(2, Status::overloaded, call, {}, {}))) close();
@@ -358,6 +373,33 @@ bool Node::has_route(const std::string& route) const { return impl_->handlers.co
 bool Node::unbind(const std::string& route) {
     if (route == "system.health") return false;
     return impl_->handlers.erase(route) != 0;
+}
+void Node::on_notification(std::string channel, Notification handler) {
+    if (channel.empty() || channel.size() > 256 || channel.find('\0') != std::string::npos || !handler)
+        throw std::invalid_argument("invalid notification channel");
+    if (!impl_->notifications.emplace(std::move(channel), std::move(handler)).second) throw std::logic_error("duplicate notification channel");
+}
+void Node::off_notification(const std::string& channel) { impl_->notifications.erase(channel); }
+bool Node::notify(std::uint64_t peer, const std::string& channel, const std::string& data) {
+    if (channel.empty() || channel.size() > 256 || channel.find('\0') != std::string::npos || channel.size() + data.size() > impl_->limits.frame_bytes - 14) return false;
+    auto it = impl_->sessions.find(peer);
+    if (impl_->stopped || it == impl_->sessions.end()) return false;
+    return it->second->enqueue(frame(3, Status::ok, 0, channel, data));
+}
+bool Node::connected(std::uint64_t peer) const {
+    auto it = impl_->sessions.find(peer);
+    return !impl_->stopped && it != impl_->sessions.end() && it->second->authenticated && !it->second->closed;
+}
+std::optional<CallIdentity> Node::identity(std::uint64_t peer) const {
+    if (!connected(peer)) return {};
+    auto it = impl_->sessions.find(peer);
+    auto session = it->second;
+    try {
+        std::optional<CallIdentity> principal = CallIdentity{Caller::client, session->identity, peer};
+        if (impl_->identity_resolver) { auto resolve = impl_->identity_resolver; principal = resolve(peer, session->identity); }
+        if (!principal || principal->subject.size() > 256 || (principal->caller != Caller::client && principal->caller != Caller::server) || !connected(peer)) return {};
+        principal->peer = peer; return principal;
+    } catch (...) { return {}; }
 }
 void Node::close(std::uint64_t peer) {
     auto it = impl_->sessions.find(peer);

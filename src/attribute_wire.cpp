@@ -77,6 +77,7 @@ bool AttributeReplica::apply(const AttributeUpdate& update) {
     if (initialized_ && update.revision < revision_) return false;
     auto next = update.snapshot ? std::map<std::string, AttributeValue>{} : values_;
     for (const auto& [name, value] : update.values) next.insert_or_assign(name, value);
+    (void)encode_attributes({0, update.revision, true, next});
     values_.swap(next); revision_ = update.revision; initialized_ = true; return true;
 }
 }
