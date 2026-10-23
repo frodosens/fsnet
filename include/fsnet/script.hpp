@@ -3,6 +3,7 @@
 #include <cstddef>
 #include <string>
 #include <string_view>
+#include <stdexcept>
 
 namespace fsnet {
 // Language-neutral host contract. Payloads are owned binary strings; script
@@ -13,6 +14,9 @@ public:
     virtual ~ScriptHost() = default;
     virtual bool has_route(const std::string& route) const = 0;
     virtual void bind(std::string route, Handler handler) = 0;
+    virtual void bind_stateful(std::string, std::string, std::string, Handler) {
+        throw std::logic_error("stateful entities require EntityScriptHost");
+    }
     virtual void unbind(const std::string& route) = 0;
     virtual std::uint64_t connect(const std::string& address, std::uint16_t port) = 0;
     virtual void call(std::uint64_t peer, std::string route, std::string data,

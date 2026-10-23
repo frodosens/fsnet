@@ -43,7 +43,7 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
     unsigned budget = 0;
     std::uint64_t serial = 0;
     std::unordered_map<std::string, int> routes;
-    std::unordered_map<std::string, std::string> entity_routes;
+    std::unordered_map<std::string, std::string> entity_routes, stateful_routes;
     std::unordered_set<std::string> busy;
     std::vector<std::string> bound;
     std::deque<Task> queue;
@@ -85,13 +85,21 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
                     return luaL_error(L, "invalid entity type");
                 entity_type.assign(type, length);
             }
+            std::optional<std::string> initial_state;
+            if (!lua_isnoneornil(L, 4)) {
+                if (entity_type.empty()) return luaL_error(L, "entity type required");
+                std::size_t length; const char* initial = luaL_checklstring(L, 4, &length);
+                if (length > owner.limits.queued_bytes) return luaL_error(L, "initial state too large");
+                initial_state = std::string(initial, length);
+            }
             lua_pushvalue(L, 2);
             int reference = luaL_ref(L, LUA_REGISTRYINDEX);
             try {
                 if (!entity_type.empty()) owner.entity_routes.emplace(route, std::move(entity_type));
+                if (initial_state) owner.stateful_routes.emplace(route, std::move(*initial_state));
                 owner.routes.emplace(route, reference);
             } catch (const std::exception&) {
-                owner.entity_routes.erase(route);
+                owner.entity_routes.erase(route); owner.stateful_routes.erase(route);
                 luaL_unref(L, LUA_REGISTRYINDEX, reference); throw;
             }
             return 0;
@@ -165,6 +173,28 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
             runtime.entity_rpc = function(kind, method, handler)
                 assert(type(method) == 'string' and #method > 0 and #method <= 127 and not method:find('[%.%z]'), 'invalid entity method')
                 runtime.rpc(kind .. '.' .. method, handler, kind)
+            end
+            runtime.entity = function(kind, definition)
+                assert(type(definition) == 'table' and type(definition.methods) == 'table', 'entity definition required')
+                local initial = definition.initial or ''
+                local register = function(method, handler)
+                    assert(type(method) == 'string' and #method > 0 and #method <= 127 and not method:find('[%.%z]'), 'invalid entity method')
+                    assert(type(handler) == 'function', 'entity handler required')
+                    runtime.rpc(kind .. '.' .. method, function(id, data)
+                        assert(data:sub(1, 4) == 'FSS1', 'invalid state boundary')
+                        local size, offset = string.unpack('>I4', data, 5)
+                        assert(#data >= offset + size - 1, 'truncated state')
+                        local state = data:sub(offset, offset + size - 1)
+                        local next_state, response = handler(state, id, data:sub(offset + size))
+                        assert(type(next_state) == 'string' and type(response) == 'string', 'return state and response bytes')
+                        return 'FSS1' .. string.pack('>I4', #next_state) .. next_state .. response
+                    end, kind, initial)
+                end
+                for method, handler in pairs(definition.methods) do
+                    assert(method:sub(1, 1) ~= '$', 'reserved entity method')
+                    register(method, handler)
+                end
+                if definition.tick then register('$tick', definition.tick) end
             end
             runtime.entity_request = function(peer, kind, id, method, payload, timeout)
                 assert(type(id) == 'string' and #id > 0 and #id <= 256, 'invalid entity ID')
@@ -312,12 +342,18 @@ void LuaEngine::load(std::string_view source, const std::string& name) {
             (void)reference;
             if (owner.host->has_route(route)) throw std::runtime_error("host route already exists: " + route);
         }
+        for (const auto& [route, kind] : owner.entity_routes) {
+            bool managed = owner.stateful_routes.contains(route);
+            for (const auto& [other, type] : owner.entity_routes)
+                if (kind == type && managed != owner.stateful_routes.contains(other))
+                    throw std::runtime_error("cannot mix persistent and unmanaged methods for one entity type");
+        }
         owner.bound.reserve(owner.routes.size());
         for (auto& [route, reference] : owner.routes) {
             owner.bound.push_back(route);
             auto entity = owner.entity_routes.find(route);
             std::string kind = entity == owner.entity_routes.end() ? "" : entity->second;
-            owner.host->bind(route, [weak = std::weak_ptr(impl_), reference, kind](std::string data, Reply reply) {
+            Handler handler = [weak = std::weak_ptr(impl_), reference, kind](std::string data, Reply reply) {
                 auto self = weak.lock();
                 if (!self || self->stopped || !self->loaded) return reply({Status::disconnected, {}});
                 if (self->queue.size() >= self->limits.queued_requests || data.size() > self->limits.queued_bytes - self->queued_bytes)
@@ -336,7 +372,10 @@ void LuaEngine::load(std::string_view source, const std::string& name) {
                 auto bytes = task.data.size();
                 self->queue.push_back(std::move(task));
                 self->queued_bytes += bytes;
-            });
+            };
+            if (auto managed = owner.stateful_routes.find(route); managed != owner.stateful_routes.end())
+                owner.host->bind_stateful(route, kind, managed->second, std::move(handler));
+            else owner.host->bind(route, std::move(handler));
         }
         owner.loaded = true; owner.source = {};
     } catch (...) { owner.error = "script load failed"; owner.stop(); throw; }

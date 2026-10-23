@@ -2,7 +2,7 @@
 
 ## 已确定的职责边界
 
-C++ 提供网络、分布式运行时、场景/实体载体、调度、存储机制与脚本宿主，不实现玩家、战斗、技能、任务和经济等游戏业务。业务全部在脚本中实现。优先支持 Lua，Ruby 作为可选适配器；统一的是宿主能力与消息边界，不是语言内部对象模型。Lua RPC 脚本宿主已实现，见 SCRIPTING.md；Lua 实体 mailbox 已实现；场景 tick 与迁移编排尚待实现。
+C++ 提供网络、分布式运行时、场景/实体载体、调度、存储机制与脚本宿主，不实现玩家、战斗、技能、任务和经济等游戏业务。业务全部在脚本中实现。优先支持 Lua，Ruby 作为可选适配器；统一的是宿主能力与消息边界，不是语言内部对象模型。Lua RPC 脚本宿主已实现，见 SCRIPTING.md；Lua 持久化实体宿主提供 mailbox、固定步长 tick、句柄代数、快照恢复与卸载交接；完整跨节点路由与迁移编排尚待实现。
 
 ## 当前实现
 
@@ -56,3 +56,5 @@ flowchart LR
 ## 异步存储
 
 `AsyncDatabase` 将 Database 操作放到独立的单工作线程，网络/VM 线程只提交任务并 poll 完成回调。排队、执行中、已完成未消费的任务共同占用请求数/声明字节预算，避免完成队列绕过背压。异常通过 exception_ptr 回到提交线程；数据库操作不得触碰 Node/VM。stop 拒绝新任务、排空已接收操作并 join；随后仍可 poll 完成回调。退出时必须先停止业务入口，再排空存储，最后销毁数据库。已经接受的写入不能用 RPC 超时撤销。
+
+`EntityScriptHost` 的状态型路径是 restore → fenced lease → script → atomic checkpoint → reply，区别于非持久化 entity_rpc。每次进程 incarnation 使用唯一 owner；接管只在租约过期或显式释放后发生。旧 owner 的状态写入被原子 fencing 条件拒绝。该阶段不提供外部 RPC 副作用的 exactly-once。详见 SCRIPTING.md。

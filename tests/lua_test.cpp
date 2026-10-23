@@ -1,5 +1,6 @@
 #include "fsnet/lua_engine.hpp"
 #include "fsnet/entity_message.hpp"
+#include "fsnet/entity_host.hpp"
 #include <chrono>
 #include <iostream>
 #include <optional>
@@ -167,6 +168,54 @@ void entity_serialization() {
     engine.stop(); CHECK(first && second && first->status == fsnet::Status::disconnected && second->status == fsnet::Status::disconnected);
     std::cout << "PASS entity mailbox: FIFO across methods, independent entities, await, failure, timeout, late reply and stop\n";
 }
+void persistent_lua() {
+    auto db = fsnet::memory_database();
+    auto parent = std::make_shared<Host>();
+    auto host = std::make_shared<fsnet::EntityScriptHost>(parent, db, "lua/boot-1");
+    fsnet::LuaEngine engine(host);
+    const auto source = R"(
+        runtime.entity('counter', {
+            initial = '0',
+            methods = {
+                add = function(state, id, payload)
+                    assert(id == '42')
+                    local next = tostring(tonumber(state) + tonumber(runtime.request(42, 'echo', payload)))
+                    return next, next
+                end,
+                get = function(state) return state, state end,
+                fail = function(state) error('discard tentative state') end,
+            }
+        })
+    )";
+    engine.load(source);
+    auto call = [&](const char* method, const char* payload) {
+        std::optional<fsnet::Result> result;
+        parent->handlers.at(std::string("counter.") + method)(fsnet::entity_message("42", payload),
+            [&](fsnet::Result reply) { result = std::move(reply); });
+        auto deadline = std::chrono::steady_clock::now() + 2s;
+        while (!result) { host->poll(); engine.poll(); CHECK(std::chrono::steady_clock::now() < deadline); std::this_thread::sleep_for(1ms); }
+        return *result;
+    };
+    CHECK(call("add", "7").data == "7"); CHECK(call("fail", "").status == fsnet::Status::internal);
+    CHECK(call("get", "").data == "7");
+    auto handle = host->handle("counter", "42"); CHECK(handle);
+    std::optional<fsnet::Result> deactivated;
+    host->deactivate(*handle, [&](fsnet::Result result) { deactivated = std::move(result); });
+    while (!deactivated) { host->poll(); std::this_thread::sleep_for(1ms); }
+    CHECK(deactivated->status == fsnet::Status::ok);
+    engine.stop(); host->stop();
+    // Replace the VM and its host, restoring solely from committed database bytes.
+    auto recovered_parent = std::make_shared<Host>();
+    auto recovered = std::make_shared<fsnet::EntityScriptHost>(recovered_parent, db, "lua/boot-2");
+    fsnet::LuaEngine new_engine(recovered); new_engine.load(source);
+    std::optional<fsnet::Result> result;
+    recovered_parent->handlers.at("counter.get")(fsnet::entity_message("42", ""), [&](fsnet::Result reply) { result = std::move(reply); });
+    auto deadline = std::chrono::steady_clock::now() + 2s;
+    while (!result) { recovered->poll(); new_engine.poll(); CHECK(std::chrono::steady_clock::now() < deadline); std::this_thread::sleep_for(1ms); }
+    CHECK(result->status == fsnet::Status::ok && result->data == "7");
+    CHECK(recovered->stats().committed == 1);
+    std::cout << "PASS Lua stateful entities: async RPC, committed state, failure isolation and VM replacement recovery\n";
+}
 void callback_shutdown() {
     auto host = std::make_shared<Host>();
     auto engine = std::make_unique<fsnet::LuaEngine>(host);
@@ -200,6 +249,6 @@ void tcp() {
     std::cout << "PASS Lua host: real TCP client -> Lua coroutine -> backend -> resumed Lua reply\n";
 }
 int main() {
-    try { lifecycle(); budgets(); failed_load(); task_deadline(); callback_shutdown(); entity_serialization(); tcp(); }
+    try { lifecycle(); budgets(); failed_load(); task_deadline(); callback_shutdown(); entity_serialization(); persistent_lua(); tcp(); }
     catch (const std::exception& error) { std::cerr << error.what() << '\n'; return 1; }
 }

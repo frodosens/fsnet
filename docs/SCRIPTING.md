@@ -6,7 +6,7 @@
 
 `ScriptEngine` 定义 load/poll/stop；当前嵌入式实现是 `LuaEngine`。`NodeScriptHost` 将这些能力连接到 Node。Ruby 继续作为独立进程中的 Fiddle/C ABI 适配器，不是嵌入 C++ 的第二个 VM。两者共享网络/错误/消息合同，不强行共享语言内部对象、GC 或同一份业务代码。
 
-Lua 实体 RPC 已提供 C++ 调度的单写者 mailbox；场景 tick、句柄代数与迁移钩子仍待实现。Ruby 当前仍使用请求 Fiber，尚未接入实体 mailbox。
+Lua 实体 RPC 已提供 C++ 调度的单写者 mailbox；`runtime.entity` 进一步提供不透明状态、持久化、tick、带代数/宿主身份的句柄和卸载交接。Ruby 当前仍使用请求 Fiber，尚未接入实体 mailbox。
 
 ## Lua API
 
@@ -29,7 +29,7 @@ end)
 
 加载为单次操作：先编译并在 VM 内收集路由，整个 chunk 成功且宿主无冲突后才发布。语法错误、加载异常、加载死循环不会留下半套路由。停止后不能重新 load；未来热更新应创建新引擎并按明确的状态迁移协议切换。
 
-`fsnet-script script.lua [port]` 是通用启动器，仅从文件加载脚本、监听 loopback、推进 Node 和引擎；没有玩家或场景业务实现。示例 `examples/lua/player.lua` 的业务状态仅在内存中，未接入持久化。
+`fsnet-script script.lua [port]` 是通用启动器，加载脚本、监听 loopback、推进 Node、实体宿主和引擎；没有玩家或场景业务实现。`FSNET_DATABASE_PATH` 选择 SQLite 持久化，未设置时使用内存。`examples/lua/stateful.lua` 展示托管状态；`player.lua` 是旧的内存示例。
 
 ## 所有权、调度与限制
 
@@ -74,3 +74,29 @@ end)
 网络路由为 `类型.方法`。实体类型/方法各为 1–127 字节且不含点或 NUL；ID 为 1–256 字节。消息格式为 `FSE1` + 大端 uint16 ID 长度 + ID + 原始 payload。原生调用方可用 `fsnet::entity_message(id, payload)` 构造封包；业务 payload 格式由脚本决定。
 
 保证范围是单个 LuaEngine 内的实体执行，不是跨节点分布式锁。实体需要路由到唯一 owner；跨节点接管仍依赖 EntityStore 的 fencing 和后续迁移编排。Ruby 尚无此保证，不应作为实体逻辑执行入口。
+
+## 托管状态、快照与接管
+
+```lua
+runtime.entity('counter', {
+    initial = '0',
+    methods = {
+        add = function(state, id, payload)
+            local next_state = tostring(tonumber(state) + tonumber(payload))
+            return next_state, next_state
+        end,
+        get = function(state) return state, state end,
+    },
+    -- tick = function(state, id, interval_ms) return state, '' end,
+})
+```
+
+`EntityScriptHost` 装饰通用 ScriptHost，通过 AsyncDatabase 执行存储。每次操作按以下步骤执行：读取持久化租约与快照；CAS 获取/续租并验证快照版本；将状态字节交给 Lua；检查租约期限，并把 fencing 检查与新快照写入同一事务；提交成功才发送业务响应。脚本失败不提交返回状态，下一次操作从已提交快照恢复。状态可表示单个实体，也可表示脚本定义的场景聚合；C++ 不解释状态结构。
+
+处理器必须返回两个字符串：`next_state, response`，可以等待后端 RPC。状态不可通过全局表共享或绕过对应 mailbox 修改。外部 RPC 写入不在本地状态事务内，仍需幂等/事务性 outbox；框架不会回滚已经发出的外部副作用。不能混用同一类型的托管方法与非托管 entity_rpc。
+
+可选 tick 由宿主内部排入同一 mailbox，不能从网络调用 `$tick`。间隔默认 100 ms，每次交付一个固定步长；忙碌时合并缺失 tick，不做无限追赶。tick 的状态同样持久化。高频场景应按需要调大间隔，或将短暂状态与可靠检查点分开，不能将逐 tick 同步持久化的性能推断为完整战斗服务器容量。
+
+默认最多 4096 个本地实体、1024 个待完成操作、16 MiB 请求预算，每实体状态最多 1 MiB；存储队列另有独立预算。空闲实体默认 5 分钟后卸载本地句柄，持久化状态保留。C++ `deactivate(handle, reply)` 只允许空闲实体卸载，用 fenced CAS 释放租约，随后另一宿主可立即恢复；旧句柄的代数或宿主身份不匹配会被拒绝。停机不提前释放仍执行中的租约，避免已接受的写入与接管交错。
+
+每次进程启动的 owner_id 必须全局唯一。默认租约 60 秒，请求期限 30 秒，租约必须大于请求期限。运行中的 handler 不会被宿主强制解锁；LuaEngine 自己的任务预算会结束悬挂协程，然后宿主才可推进同一实体。多节点需要共享线性一致 Database；多份独立 SQLite 文件不构成分布式数据库。本地跨进程测试使用同一 SQLite 文件验证进程退出后的恢复。自动过期接管依赖节点时钟同步，fencing 事务负责最终写入排他，不能把租约当成外部副作用的分布式锁。
