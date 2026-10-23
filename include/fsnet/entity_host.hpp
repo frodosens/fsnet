@@ -8,6 +8,9 @@ struct EntityRuntimeLimits {
     std::size_t entities = 4096;
     std::size_t requests = 1024;
     std::size_t queued_bytes = 16 * 1024 * 1024;
+    std::size_t resident_bytes = 32 * 1024 * 1024;
+    std::size_t receipts = 64;
+    std::size_t receipt_bytes = 4 * 1024 * 1024;
     std::size_t state_bytes = 1024 * 1024;
     std::chrono::milliseconds lease{60000};
     std::chrono::milliseconds request_timeout{30000};
@@ -19,8 +22,8 @@ struct EntityHandle {
     std::uint64_t generation = 0;
 };
 struct EntityRuntimeStats {
-    std::size_t entities = 0, pending = 0, queued_bytes = 0;
-    std::uint64_t committed = 0, rejected = 0, failed = 0, tick_failures = 0;
+    std::size_t entities = 0, pending = 0, queued_bytes = 0, state_bytes = 0;
+    std::uint64_t committed = 0, replayed = 0, rejected = 0, failed = 0, tick_failures = 0;
 };
 // Stateful script-host decorator. Each operation restores opaque state, invokes
 // script logic, atomically fences + saves the next state, then publishes its reply.
@@ -36,6 +39,7 @@ public:
     void bind(std::string, Handler) override;
     void bind_stateful(std::string route, std::string type, std::string initial, Handler) override;
     void unbind(const std::string&) override;
+    void call_entity(std::string, std::string, std::chrono::milliseconds, Reply) override;
     std::uint64_t connect(const std::string&, std::uint16_t) override;
     void call(std::uint64_t, std::string, std::string, std::chrono::milliseconds, Reply) override;
     std::size_t poll(std::size_t budget = 64);

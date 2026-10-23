@@ -18,6 +18,9 @@ public:
         throw std::logic_error("stateful entities require EntityScriptHost");
     }
     virtual void unbind(const std::string& route) = 0;
+    virtual void call_entity(std::string, std::string, std::chrono::milliseconds, Reply reply) {
+        reply({Status::rejected, {}});
+    }
     virtual std::uint64_t connect(const std::string& address, std::uint16_t port) = 0;
     virtual void call(std::uint64_t peer, std::string route, std::string data,
                       std::chrono::milliseconds timeout, Reply reply) = 0;

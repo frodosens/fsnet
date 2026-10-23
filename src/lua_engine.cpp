@@ -123,7 +123,7 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
         auto peer = luaL_checkinteger(L, 1);
         luaL_checktype(L, 2, LUA_TSTRING); luaL_checktype(L, 3, LUA_TSTRING);
         auto timeout = luaL_optinteger(L, 4, 1000);
-        if (peer <= 0 || timeout <= 0 || timeout > 30000) return luaL_error(L, "invalid peer or deadline");
+        if (peer < 0 || timeout <= 0 || timeout > 30000) return luaL_error(L, "invalid peer or deadline");
         auto& owner = self(L);
         auto it = owner.threads.find(L);
         if (owner.loading || it == owner.threads.end()) return luaL_error(L, "request requires an RPC coroutine");
@@ -196,9 +196,17 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
                 end
                 if definition.tick then register('$tick', definition.tick) end
             end
-            runtime.entity_request = function(peer, kind, id, method, payload, timeout)
+            runtime.entity_call = function(kind, id, method, payload, timeout, request_id)
+                return runtime.entity_request(0, kind, id, method, payload, timeout, request_id)
+            end
+            runtime.entity_request = function(peer, kind, id, method, payload, timeout, request_id)
                 assert(type(id) == 'string' and #id > 0 and #id <= 256, 'invalid entity ID')
-                return runtime.request(peer, kind .. '.' .. method, 'FSE1' .. string.pack('>I2', #id) .. id .. payload, timeout)
+                local envelope
+                if request_id then
+                    assert(type(request_id) == 'string' and #request_id > 0 and #request_id <= 128, 'invalid request ID')
+                    envelope = 'FSE2' .. string.pack('>I2', #id) .. id .. string.pack('>I2', #request_id) .. request_id .. payload
+                else envelope = 'FSE1' .. string.pack('>I2', #id) .. id .. payload end
+                return runtime.request(peer, kind .. '.' .. method, envelope, timeout)
             end
         )lua";
         if (luaL_loadstring(L, entities) != LUA_OK) return lua_error(L);
@@ -287,8 +295,7 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
         auto request = std::move(*task.await); task.await.reset(); task.waiting = true;
         const auto generation = ++task.generation;
         try {
-            host->call(request.peer, std::move(request.route), std::move(request.data), request.timeout,
-                [weak = weak_from_this(), id, generation](Result result) {
+            auto completion = [weak = weak_from_this(), id, generation](Result result) {
                     auto owner = weak.lock();
                     if (!owner || owner->stopped) return;
                     auto current = owner->tasks.find(id);
@@ -300,7 +307,9 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
                     owner->resumes.push_back({id, std::move(result)});
                     owner->completed_bytes += size;
                     current->second.completion_queued = true;
-                });
+                };
+            if (request.peer) host->call(request.peer, std::move(request.route), std::move(request.data), request.timeout, std::move(completion));
+            else host->call_entity(std::move(request.route), std::move(request.data), request.timeout, std::move(completion));
         } catch (const std::exception& exception) { error = exception.what(); finish(id, {Status::internal, {}}); }
     }
     void stop() {

@@ -24,7 +24,11 @@ int main(int argc, char** argv) {
         auto transport = std::make_shared<fsnet::NodeScriptHost>(node);
         const char* path = std::getenv("FSNET_DATABASE_PATH");
         auto database = path ? fsnet::sqlite_database(path) : fsnet::memory_database();
-        std::string instance;
+        const char* node_id = std::getenv("FSNET_NODE_ID");
+        std::string instance = node_id ? node_id : "local";
+        if (instance.empty() || instance.size() > 127 || instance.find_first_of("/\0", 0, 2) != std::string::npos)
+            throw std::invalid_argument("invalid stable node ID");
+        instance += '/';
         std::random_device entropy;
         for (int i = 0; i < 4; ++i) instance += std::to_string(entropy()) + '-';
         fsnet::EntityRuntimeLimits entity_limits;

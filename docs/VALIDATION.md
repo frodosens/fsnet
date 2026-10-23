@@ -56,3 +56,5 @@ Lua 5.4.7 由固定源码 SHA256 构建；Debug/Release 分别执行 5 个 CTest
 Lua 实体 mailbox 测试覆盖跨方法 FIFO、不同实体推进、await 期间互斥、异常释放、超时释放、忽略迟到回包、非法封包拒绝、Lua/原生编码一致和停止清理。此验证不包含 Ruby 实体执行或跨节点独占所有权。
 
 实体持久化验证包括：原生宿主的租约竞争、超期接管、未到期行政转移后的 fencing 拒写、句柄与显式交接、tick 背压；Lua VM 替换后的状态恢复；`fsnet-entity-process` 启动三个独立 Lua 服务进程，共享同一 SQLite 文件，验证双进程 owner 排他、SIGKILL 后租约接管、已确认状态恢复和第二次重启。没有把该本机共享文件测试描述为跨机数据库验证。
+
+`fsnet-routing` 使用真实 TCP 节点测试目录路由、节点退出后的租约接管、保留窗口内去重、响应丢失后的安全重试和停止取消。Lua 集成另验证 gateway 协程通过 entity_call 找到 owner 并恢复响应。去重单元验证 ID 冲突、容量淘汰和新 owner 恢复。

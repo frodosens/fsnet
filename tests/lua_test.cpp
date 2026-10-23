@@ -1,6 +1,7 @@
 #include "fsnet/lua_engine.hpp"
 #include "fsnet/entity_message.hpp"
 #include "fsnet/entity_host.hpp"
+#include "fsnet/entity_router.hpp"
 #include <chrono>
 #include <iostream>
 #include <optional>
@@ -229,6 +230,32 @@ void callback_shutdown() {
     CHECK(completed && !engine && host->handlers.empty());
     std::cout << "PASS Lua lifetime: engine destruction from completion is deferred until VM execution exits\n";
 }
+void lua_routing() {
+    fsnet::Node server("token"), gateway("token"), client("token");
+    auto db = fsnet::memory_database();
+    auto transport = std::make_shared<fsnet::NodeScriptHost>(server);
+    auto entities = std::make_shared<fsnet::EntityScriptHost>(transport, db, "server/boot-1");
+    fsnet::LuaEngine backend(entities);
+    backend.load("runtime.entity('counter', {initial='0', methods={add=function(state, id, data) local next=tostring(tonumber(state)+tonumber(data)); return next, next end}})");
+    fsnet::EntityRouter router(gateway, db, {{"server", "127.0.0.1", server.listen("127.0.0.1", 0), {"counter"}}});
+    auto gateway_transport = std::make_shared<fsnet::NodeScriptHost>(gateway);
+    auto routed = std::make_shared<fsnet::RoutedScriptHost>(gateway_transport, router);
+    fsnet::LuaEngine frontend(routed);
+    frontend.load("runtime.rpc('gateway.add', function(data) return runtime.entity_call('counter', '42', 'add', data, 1000, 'request-1') end)");
+    auto peer = client.connect("127.0.0.1", gateway.listen("127.0.0.1", 0));
+    auto call = [&] {
+        std::optional<fsnet::Result> result;
+        client.call(peer, "gateway.add", "7", 2s, [&](fsnet::Result reply) { result = std::move(reply); });
+        auto deadline = std::chrono::steady_clock::now() + 3s;
+        while (!result) {
+            server.poll(); gateway.poll(); client.poll(); entities->poll(); router.poll(); backend.poll(); frontend.poll();
+            CHECK(std::chrono::steady_clock::now() < deadline); std::this_thread::sleep_for(1ms);
+        }
+        CHECK(result->status == fsnet::Status::ok && result->data == "7");
+    };
+    call(); call(); CHECK(entities->stats().replayed == 1);
+    std::cout << "PASS Lua routed entity call: gateway coroutine -> owner lookup -> state commit -> duplicate receipt replay\n";
+}
 void tcp() {
     fsnet::Node server("lua-test-token"), client("lua-test-token"), backend("lua-test-token");
     backend.bind("echo", [](std::string data, fsnet::Reply reply) { reply({fsnet::Status::ok, std::move(data)}); });
@@ -249,6 +276,6 @@ void tcp() {
     std::cout << "PASS Lua host: real TCP client -> Lua coroutine -> backend -> resumed Lua reply\n";
 }
 int main() {
-    try { lifecycle(); budgets(); failed_load(); task_deadline(); callback_shutdown(); entity_serialization(); persistent_lua(); tcp(); }
+    try { lifecycle(); budgets(); failed_load(); task_deadline(); callback_shutdown(); entity_serialization(); persistent_lua(); lua_routing(); tcp(); }
     catch (const std::exception& error) { std::cerr << error.what() << '\n'; return 1; }
 }

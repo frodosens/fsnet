@@ -80,6 +80,33 @@ void fencing() {
     CHECK(!db->get((std::string("fsnet/actor/state/counter") + '\0') + "42"));
     std::cout << "PASS entity fencing: ownership version is checked atomically with state writes\n";
 }
+void receipts() {
+    auto db = fsnet::memory_database(); auto parent = std::make_shared<Host>();
+    fsnet::EntityRuntimeLimits limits; limits.receipts = 2;
+    fsnet::EntityScriptHost runtime(parent, db, "owner", limits); bind(runtime);
+    auto call = [&](const std::string& token, const std::string& data) {
+        std::optional<fsnet::Result> result;
+        parent->handlers.at("counter.append")(fsnet::entity_message("42", data, token), [&](fsnet::Result value) { result = std::move(value); });
+        until(runtime, [&] { return result.has_value(); }); return *result;
+    };
+    CHECK(call("request-1", "a").data == "initiala");
+    CHECK(call("request-1", "a").data == "initiala");
+    CHECK(call("request-1", "changed").status == fsnet::Status::rejected);
+    CHECK(invoke(runtime, *parent, "counter.append", "42").data == "initiala");
+    CHECK(call("request-2", "b").data == "initialab");
+    CHECK(call("request-3", "c").data == "initialabc");
+    CHECK(call("request-3", "c").data == "initialabc");
+    CHECK(call("request-1", "a").data == "initialabca"); // receipt retention is bounded, not infinite exactly-once
+    CHECK(runtime.stats().replayed == 2 && runtime.stats().state_bytes == 0);
+    auto handle = runtime.handle("counter", "42"); std::optional<fsnet::Result> release;
+    runtime.deactivate(*handle, [&](fsnet::Result result) { release = std::move(result); });
+    until(runtime, [&] { return release.has_value(); }); CHECK(release->status == fsnet::Status::ok);
+    auto new_parent = std::make_shared<Host>(); fsnet::EntityScriptHost recovered(new_parent, db, "new-owner", limits); bind(recovered);
+    std::optional<fsnet::Result> replay;
+    new_parent->handlers.at("counter.append")(fsnet::entity_message("42", "a", "request-1"), [&](fsnet::Result value) { replay = std::move(value); });
+    until(recovered, [&] { return replay.has_value(); }); CHECK(replay->data == "initialabca" && recovered.stats().replayed == 1);
+    std::cout << "PASS entity receipts: duplicate replay, token conflict, bounded retention and recovery on a new owner\n";
+}
 void ticks_and_limits() {
     auto parent = std::make_shared<Host>(); fsnet::EntityRuntimeLimits limits;
     limits.entities = 1; limits.requests = 1; limits.tick_interval = 2ms;
@@ -99,6 +126,6 @@ void ticks_and_limits() {
     std::cout << "PASS entity ticks: bounded admission, serialized ticks and draining shutdown\n";
 }
 int main() {
-    try { ownership(); fencing(); ticks_and_limits(); }
+    try { ownership(); fencing(); receipts(); ticks_and_limits(); }
     catch (const std::exception& error) { std::cerr << error.what() << '\n'; return 1; }
 }
