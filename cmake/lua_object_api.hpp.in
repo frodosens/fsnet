@@ -1,0 +1,4 @@
+#pragma once
+namespace fsnet::detail {
+inline constexpr char lua_object_api[] = R"FSNET_LUA(@FSNET_LUA_OBJECT_SOURCE@)FSNET_LUA";
+}

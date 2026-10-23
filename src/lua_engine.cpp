@@ -1,5 +1,6 @@
 #include "fsnet/lua_engine.hpp"
 #include "fsnet/attribute_wire.hpp"
+#include "fsnet_lua_object_api.hpp"
 #include "lua.h"
 #include "lauxlib.h"
 #include "lualib.h"
@@ -25,7 +26,7 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
     struct Task {
         lua_State* thread = nullptr;
         int reference = LUA_NOREF, function = LUA_NOREF;
-        std::string data, entity_id, mailbox;
+        std::string data, entity_id, entity_type, mailbox;
         Reply reply;
         CallIdentity identity;
         bool contextual = false, rejected = false;
@@ -71,7 +72,7 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
         if (next) owner.used = retained + new_size;
         return next;
     }
-    struct AttributeObject { Impl* engine; std::size_t charge; EntityAttributes model; };
+    struct AttributeObject { Impl* engine; std::size_t charge; EntityAttributes model; std::uint64_t task = 0; };
     std::unordered_map<std::string, EntitySchema> schemas;
     std::vector<std::string> defined_schemas;
     static std::string text_field(lua_State* L, int table, const char* field, const char* fallback) {
@@ -177,9 +178,9 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
             auto defaults = encode_attributes({0, 0, true, EntityAttributes(schema, "").all_values()});
             auto charge = 65536 + 4 * size + 2 * defaults.size();
             if (charge > engine.limits.memory_bytes - engine.used) throw std::length_error("attribute object memory limit");
-            void* memory = lua_newuserdatauv(L, sizeof(AttributeObject), 0);
+            void* memory = lua_newuserdatauv(L, sizeof(AttributeObject), 1);
             if (charge > engine.limits.memory_bytes - engine.used) throw std::length_error("attribute object memory limit");
-            new(memory) AttributeObject{&engine, charge, std::move(model)};
+            new(memory) AttributeObject{&engine, charge, std::move(model), engine.threads.contains(L) ? engine.threads.at(L) : 0};
             engine.used += charge; luaL_setmetatable(L, "fsnet.attributes"); return 1;
         } catch (const std::exception& e) { return luaL_error(L, "%s", e.what()); }
     }
@@ -187,14 +188,98 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
         auto& object = attribute_object(L, 1); object.engine->used -= object.charge;
         object.~AttributeObject(); return 0;
     }
+    static void object_check(lua_State* L, int index, bool require_attached = false) {
+        auto& object = attribute_object(L,index);
+        lua_getiuservalue(L,index,1);
+        if (lua_isnil(L,-1) && require_attached) { lua_pop(L,1); throw std::logic_error("expected an attached entity object"); }
+        if (!lua_isnil(L,-1)) {
+            lua_getfield(L,-1,"active"); bool active = lua_toboolean(L,-1); lua_pop(L,1);
+            auto& engine = *object.engine;
+            if (!active || !engine.threads.contains(L) || engine.threads.at(L)!=object.task) {
+                lua_pop(L,1); throw std::logic_error("entity object is outside its request scope");
+            }
+        }
+        lua_pop(L,1);
+    }
+    static int object_registration(lua_State* L) {
+        auto& engine=self(L);
+        if (!engine.loading) return luaL_error(L,"register classes only during load");
+        luaL_checktype(L,1,LUA_TFUNCTION);
+        try {
+            std::unordered_set<std::string> routes, schemas;
+            for (const auto& [route,reference] : engine.routes) { (void)reference; routes.insert(route); }
+            for (const auto& [type,schema] : engine.schemas) { (void)schema; schemas.insert(type); }
+            lua_pushvalue(L,1);
+            int status=lua_pcall(L,0,0,0);
+            if (status!=LUA_OK) {
+                for (auto it=engine.routes.begin(); it!=engine.routes.end();) {
+                    if (routes.contains(it->first)) { ++it; continue; }
+                    luaL_unref(L,LUA_REGISTRYINDEX,it->second);
+                    engine.entity_routes.erase(it->first); engine.stateful_routes.erase(it->first); engine.policies.erase(it->first);
+                    it=engine.routes.erase(it);
+                }
+                for (auto it=engine.schemas.begin(); it!=engine.schemas.end();) {
+                    if (schemas.contains(it->first)) ++it; else it=engine.schemas.erase(it);
+                }
+                return lua_error(L);
+            }
+            return 0;
+        } catch (const std::exception& e) { return luaL_error(L,"%s",e.what()); }
+    }
+    static int object_validate(lua_State* L) {
+        try { object_check(L,1,true); return 0; }
+        catch (const std::exception& e) { return luaL_error(L,"%s",e.what()); }
+    }
+    static int object_attach(lua_State* L) {
+        auto& object = attribute_object(L,1); luaL_checktype(L,2,LUA_TTABLE);
+        std::size_t id_size,type_size; const char* id=luaL_checklstring(L,3,&id_size); const char* type=luaL_checklstring(L,4,&type_size);
+        luaL_checktype(L,5,LUA_TTABLE);
+        lua_getiuservalue(L,1,1); bool attached=!lua_isnil(L,-1); lua_pop(L,1);
+        auto& engine=*object.engine;
+        if (attached || !engine.threads.contains(L) || object.task!=engine.threads.at(L)) return luaL_error(L,"invalid entity object attachment");
+        const auto& task=engine.tasks.at(object.task);
+        if (std::string_view(id,id_size)!=task.entity_id || std::string_view(type,type_size)!=task.entity_type)
+            return luaL_error(L,"entity object identity mismatch");
+        lua_createtable(L,0,5);
+        lua_pushvalue(L,2); lua_setfield(L,-2,"members");
+        lua_pushvalue(L,3); lua_setfield(L,-2,"id"); lua_pushvalue(L,4); lua_setfield(L,-2,"type");
+        lua_pushvalue(L,5); lua_setfield(L,-2,"context"); lua_pushboolean(L,true); lua_setfield(L,-2,"active");
+        lua_setiuservalue(L,1,1); return 0;
+    }
+    static int object_close(lua_State* L) {
+        try { object_check(L,1,true); }
+        catch (const std::exception& e) { return luaL_error(L,"%s",e.what()); }
+        lua_getiuservalue(L,1,1);
+        if (!lua_istable(L,-1)) return luaL_error(L,"entity object is not attached");
+        lua_pushboolean(L,false); lua_setfield(L,-2,"active"); lua_pop(L,1); return 0;
+    }
+    static int current_entity(lua_State* L) {
+        auto& engine=self(L);
+        if (!engine.threads.contains(L)) { lua_pushnil(L); lua_pushnil(L); return 2; }
+        const auto& task=engine.tasks.at(engine.threads.at(L));
+        lua_pushlstring(L,task.entity_type.data(),task.entity_type.size());
+        lua_pushlstring(L,task.entity_id.data(),task.entity_id.size()); return 2;
+    }
     static int attributes_index(lua_State* L) {
-        std::size_t n; const char* name = luaL_checklstring(L, 2, &n);
-        try { push_attribute(L, attribute_object(L, 1).model.read(std::string(name, n), {Caller::server, {}})); return 1; }
-        catch (const std::exception& e) { return luaL_error(L, "%s", e.what()); }
+        std::size_t n; const char* name=luaL_checklstring(L,2,&n);
+        try {
+            object_check(L,1);
+            lua_getiuservalue(L,1,1);
+            if (lua_istable(L,-1)) {
+                auto key=std::string_view(name,n);
+                if (key=="id" || key=="type" || key=="context") { lua_pushvalue(L,2); lua_gettable(L,-2); return 1; }
+                lua_getfield(L,-1,"members"); lua_pushvalue(L,2); lua_gettable(L,-2);
+                if (!lua_isnil(L,-1)) return 1;
+                lua_pop(L,2);
+            }
+            lua_pop(L,1);
+            push_attribute(L,attribute_object(L,1).model.read(std::string(name,n),{Caller::server,{}})); return 1;
+        } catch (const std::exception& e) { return luaL_error(L,"%s",e.what()); }
     }
     static int attributes_newindex(lua_State* L) {
         std::size_t n; const char* name = luaL_checklstring(L, 2, &n);
         try {
+            object_check(L,1);
             auto& object = attribute_object(L, 1); auto key = std::string(name, n);
             auto value = attribute_value(L, 3, object.model.schema().attributes.at(key).type);
             auto mutation = object.model.stage({{key, std::move(value)}}, {Caller::server, {}});
@@ -356,6 +441,11 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
         luaL_requiref(L, LUA_UTF8LIBNAME, luaopen_utf8, 1); lua_pop(L, 1);
         for (const char* name : {"dofile", "loadfile", "load", "collectgarbage"}) { lua_pushnil(L); lua_setglobal(L, name); }
         lua_newtable(L);
+        lua_pushcfunction(L, object_registration); lua_setfield(L,-2,"_object_registration");
+        lua_pushcfunction(L, object_attach); lua_setfield(L,-2,"_object_attach");
+        lua_pushcfunction(L, object_close); lua_setfield(L,-2,"_object_close");
+        lua_pushcfunction(L, object_validate); lua_setfield(L,-2,"_object_check");
+        lua_pushcfunction(L, current_entity); lua_setfield(L,-2,"_current_entity");
         lua_pushcfunction(L, reject_request); lua_setfield(L, -2, "reject");
         lua_pushcfunction(L, attributes_proposal); lua_setfield(L, -2, "_attributes_proposal");
         lua_pushcfunction(L, attributes_apply); lua_setfield(L, -2, "_attributes_apply");
@@ -465,7 +555,9 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
             end
         )lua";
         if (luaL_loadstring(L, entities) != LUA_OK) return lua_error(L);
-        lua_call(L, 0, 0); return 0;
+        lua_call(L, 0, 0);
+        if (luaL_loadbufferx(L, detail::lua_object_api, sizeof(detail::lua_object_api)-1, "@fsnet/entity.lua", "t") != LUA_OK) return lua_error(L);
+        lua_call(L,0,0); return 0;
     }
     static int compile(lua_State* L) {
         auto& owner = self(L);
@@ -481,7 +573,9 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
         if (!task.mailbox.empty()) lua_pushlstring(L, task.entity_id.data(), task.entity_id.size());
         if (!task.startup) lua_pushlstring(L, task.data.data(), task.data.size());
         if (task.contextual) {
-            lua_createtable(L, 0, 3);
+            lua_createtable(L, 0, 5);
+            lua_pushlstring(L,task.entity_id.data(),task.entity_id.size()); lua_setfield(L,-2,"entity_id");
+            lua_pushlstring(L,task.entity_type.data(),task.entity_type.size()); lua_setfield(L,-2,"entity_type");
             lua_pushlstring(L, task.identity.subject.data(), task.identity.subject.size()); lua_setfield(L, -2, "subject");
             lua_pushstring(L, task.identity.caller == Caller::server ? "server" : "client"); lua_setfield(L, -2, "caller");
             lua_pushinteger(L, static_cast<lua_Integer>(task.identity.peer)); lua_setfield(L, -2, "peer");
@@ -638,7 +732,7 @@ void LuaEngine::load(std::string_view source, const std::string& name) {
                 if (!self || self->stopped || !self->loaded) return reply({Status::disconnected, {}});
                 if (self->queue.size() >= self->limits.queued_requests || data.size() > self->limits.queued_bytes - self->queued_bytes)
                     return reply({Status::overloaded, {}});
-                Impl::Task task; task.identity = identity; task.contextual = contextual;
+                Impl::Task task; task.entity_type = kind; task.identity = identity; task.contextual = contextual;
                 if (!kind.empty()) {
                     if (data.size() < 6 || data.compare(0, 4, "FSE1") != 0) return reply({Status::rejected, {}});
                     const auto length = (static_cast<unsigned char>(data[4]) << 8) | static_cast<unsigned char>(data[5]);
