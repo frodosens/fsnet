@@ -14,7 +14,7 @@ TLS 最低版本 1.3，双向验证证书链；出站校验目标证书名称，
 
 `peer_identity(peer)` 和授权回调返回已验证客户端证书的 SHA-256 指纹。授权在路由分发前执行；未通过或策略抛异常均拒绝调用。可信 CA 只证明证书来源，业务角色、账号绑定、吊销与轮换仍由应用/证书管理服务定义。共享 cluster token 可作为内部节点的额外校验；公开客户端使用独立证书与空 token，不能获得集群共享秘密。
 
-无 TLS 时只允许 loopback 监听/连接。跨机器、容器网络或公开监听必须显式提供 TLS。C ABI 提供 fsnet_create_tls/fsnet_authorize；Ruby 提供 `Node.new(token: '', tls: {ca:, certificate:, key:, peer_name:}, authorize: proc)`。
+无 TLS 时只允许 loopback 监听/连接。跨机器、容器网络或公开监听必须显式提供 TLS。C ABI 提供 fsnet_create_tls/fsnet_authorize。
 
 示例可配置 FSNET_TLS_CA、FSNET_TLS_CERTIFICATE、FSNET_TLS_KEY、FSNET_TLS_PEER_NAME；FSNET_BIND_ADDRESS 默认 127.0.0.1，公开地址需要有效 TLS 配置。示例内部节点仍从 FSNET_CLUSTER_TOKEN 读取额外 token；客户端接入服务可在自身启动器中选择证书认证。
 

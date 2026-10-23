@@ -16,7 +16,7 @@
 auto storage = fsnet::open_storage("file:/srv/fsnet/state");
 ```
 
-Lua 启动器配置 FSNET_STORAGE_URI=file:/srv/fsnet/state；Ruby 使用 Database.new(storage: 'file:/srv/fsnet/state')。memory: 用于开发；sqlite:/path/state.sqlite 仍可选。FSNET_DATABASE_PATH 保留为早期 SQLite 配置兼容项。
+Lua 启动器配置 FSNET_STORAGE_URI=file:/srv/fsnet/state。memory: 用于开发；sqlite:/path/state.sqlite 仍可选。FSNET_DATABASE_PATH 保留为早期 SQLite 配置兼容项。
 
 文件后端面向本地 POSIX 文件系统，多个线程/进程可打开同一目录。每个 key 映射到哈希分片下的稳定锁文件和记录文件；记录包含原 key、版本、tombstone 标志、值和 SHA-256 完整性校验。
 
@@ -28,7 +28,7 @@ delete 以 tombstone 替换记录，重建时沿用并增加版本；不能手�
 
 ## 实体记录与升级
 
-托管实体把 owner、租约、fencing、状态与请求结果保存在单个 FER1 记录中。提交与接管都只进行一次单记录 CAS。内部 EntityStore 也采用单记录格式，Ruby 的低层 EntityStore 用单 JSON 记录；二者的辅助格式不应混读，跨语言通过 RPC 字节合同交互。
+托管实体把 owner、租约、fencing、状态与请求结果保存在单个 FER1 记录中。提交与接管都只进行一次单记录 CAS。底层 EntityStore 同样采用单记录格式；其辅助记录与托管实体格式不同，不应混读。
 
 此前分支版本把 owner 和状态分开保存。新运行时检测到旧记录时拒绝初始化，避免静默重置。升级这些实验数据需要先停止全部旧实例，再离线转换；不能混跑旧的双 key 协议与新的单记录协议。已提供 fsnet-storage-migrate type id [--raw-state]：从 FSNET_STORAGE_URI 读取存储地址，拒绝仍有效的旧租约，保留旧 key，仅创建新记录；重复执行不覆盖目标。旧的纯状态恰好以 FSP1 开头时显式加 --raw-state。该命令不是在线迁移协议，执行前必须停止全部旧实例。
 

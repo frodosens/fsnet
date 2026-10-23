@@ -4,11 +4,11 @@
 
 ## 分层
 
-`ScriptHost` 是不含 Lua/Ruby 类型的 C++ 能力接口：显式路由注册/注销、连接、带 deadline 的异步 RPC。跨边界的数据是拥有所有权的二进制字符串、peer 句柄和 `Status`，不传递裸 C++ 指针、Ruby VALUE 或 Lua 对象。
+`ScriptHost` 是不含脚本 VM 类型的 C++ 能力接口：显式路由注册/注销、连接、带 deadline 的异步 RPC。跨边界的数据是拥有所有权的二进制字符串、peer 句柄和 `Status`，不传递裸 C++ 指针、Lua 对象。
 
-`ScriptEngine` 定义 load/poll/stop；当前嵌入式实现是 `LuaEngine`。`NodeScriptHost` 将这些能力连接到 Node。Ruby 继续作为独立进程中的 Fiddle/C ABI 适配器，不是嵌入 C++ 的第二个 VM。两者共享网络/错误/消息合同，不强行共享语言内部对象、GC 或同一份业务代码。
+`ScriptEngine` 定义 load/poll/stop；当前嵌入式实现是 `LuaEngine`。`NodeScriptHost` 将这些能力连接到 Node。脚本与网络共享消息及错误合同，不跨边界传递 VM 对象。
 
-Lua 实体 RPC 已提供 C++ 调度的单写者 mailbox；`runtime.entity` 进一步提供不透明状态、持久化、tick、带代数/宿主身份的句柄和卸载交接。Ruby 当前仍使用请求 Fiber，尚未接入实体 mailbox。
+Lua 实体 RPC 已提供 C++ 调度的单写者 mailbox；`runtime.entity` 进一步提供不透明状态、持久化、tick、带代数/宿主身份的句柄和卸载交接。
 
 ## Lua API
 
@@ -47,13 +47,13 @@ end)
 
 这些限制面向**可信游戏脚本的错误隔离**，不是运行敌对上传代码的安全沙箱。指令 hook 不能抢占长时间运行的原生库函数，原生内存/最终器也不能用 Lua 指令计数完整隔离。需要执行不可信脚本时必须使用独立进程与操作系统资源限制。
 
-## Ruby 接口与共同验收
+## 宿主合同验收
 
-Ruby `rpc_bytes` / `call_bytes` / Fiber 内 `request_bytes` 直接传递相同的二进制 payload；原来的 `rpc` / `call` / `request` 保留为 JSON 包装。JSON 响应解码失败会完成等待并返回错误，不会留下悬挂 Fiber。Ruby 的资源与执行限制不等同于 Lua 的 VM 预算。
+`fsnet-script-contract` 启动实际 Lua 服务进程，由 C ABI 客户端发送包含 NUL 和非 UTF-8
+的消息，验证字节所有权、显式路由、脚本异常、等待后端 RPC 和超时恢复。C++ 后端只是
+传输测试夹具。`fsnet-lua` 另测加载原子性、协程根、资源限制、停止、重复/晚到完成和真实 TCP 转发。
 
-`fsnet-script-contract` 启动实际 Lua、可选 Ruby 服务进程，由同一 C ABI 客户端发送包含 NUL 和非 UTF-8 的消息，验证：字节所有权、显式路由、脚本异常、等待后端 RPC、超时恢复。C++ 后端只作为传输测试夹具。`fsnet-lua` 另测加载原子性、协程根、资源限制、停止、重复/晚到完成和真实 TCP 转发。
-
-构建开关：`FSNET_WITH_LUA` 控制嵌入式 VM/宿主；`FSNET_WITH_RUBY` 控制外部 Ruby 适配器发现与测试。两者关闭时核心、echo/relay 工具和核心测试仍然可构建；无脚本引擎时不运行游戏业务。
+`FSNET_WITH_LUA` 控制嵌入式 VM/宿主；关闭时仍可构建核心、echo/relay 工具和核心测试。
 
 ## Lua 实体串行执行
 
@@ -75,7 +75,7 @@ end)
 
 网络路由为 `类型.方法`。实体类型/方法各为 1–127 字节且不含点或 NUL；ID 为 1–256 字节。消息格式为 `FSE1` + 大端 uint16 ID 长度 + ID + 原始 payload。原生调用方可用 `fsnet::entity_message(id, payload)` 构造封包；业务 payload 格式由脚本决定。
 
-保证范围是单个 LuaEngine 内的实体执行，不是跨节点分布式锁。实体需要路由到唯一 owner；跨节点接管仍依赖 EntityStore 的 fencing 和后续迁移编排。Ruby 尚无此保证，不应作为实体逻辑执行入口。
+保证范围是单个 LuaEngine 内的实体执行，不是跨节点分布式锁。实体需要路由到唯一 owner；跨节点接管仍依赖 EntityStore 的 fencing 和后续迁移编排。
 
 ## 托管状态、快照与接管
 

@@ -240,5 +240,5 @@ Gateway identity delegation, mandatory migration of legacy RPC
 registrations, automatic scene/AOI subscription discovery, and subscription migration
 between owner nodes remain pending. The current native client connects directly to the
 entity owner endpoint; a gateway does not yet proxy these streams. Reconnect requires
-application connection establishment followed by a fresh watch. Ruby property hosting
-and browser/engine-specific client adapters are not implemented.
+application connection establishment followed by a fresh watch. Browser/engine-specific
+client adapters are not implemented.

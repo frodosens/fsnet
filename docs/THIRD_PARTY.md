@@ -12,4 +12,4 @@ CMake downloads source archives over verified TLS and checks SHA256 before use. 
 | OpenSSL | 3.5.9 (LTS) | Apache 2.0 | TLS 1.3, certificate identity and cryptography |
 | libjuice | 1.6.2 | MPL 2.0 | ICE/STUN/TURN client and relay |
 
-Archive URLs and exact hashes are in the root CMakeLists.txt and cmake/*.cmake. Historical dependency archives were removed from mainline and remain available in the `archive/legacy-c-ruby21` Git tag.
+Archive URLs and exact hashes are in the root CMakeLists.txt and cmake/*.cmake. Historical dependency archives were removed from mainline and remain available in original Git revision `69a4b62e52ff1874d25f7e64cdb176829f2024be`.

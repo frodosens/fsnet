@@ -6,8 +6,6 @@
 | [lua/shared/magic_circle.lua](lua/shared/magic_circle.lua) | 客户端与服务端共用的纯 Lua 魔法阵规则 |
 | [lua/magic_circle.lua](lua/magic_circle.lua) | 服务端实体适配：属性声明、串行 tick、owner RPC |
 | [lua/client/magic_circle.lua](lua/client/magic_circle.lua) | 纯客户端本地执行与基于确认属性的查询，无引擎依赖 |
-| [player.rb](player.rb) | 当前可运行的 Ruby JSON RPC/存储接口；没有实体 mailbox 和属性自动同步 |
-| [design/magic_circle.rb.proposed](design/magic_circle.rb.proposed) | Ruby OO/属性 DSL 设计草案，尚不可运行 |
 | [lua/player.lua](lua/player.lua) | 旧的无状态 RPC/内存示例，不是持久化实体设计 |
 | [lua/stateful.lua](lua/stateful.lua) | 底层不透明状态兼容示例，也是恢复测试的夹具 |
 
@@ -35,4 +33,4 @@ Lua 客户端订阅绑定、`spawn_local`、`authority='driver'` 或预测校正
 启动器没有安装该服务。完整权限合同见 [OBJECT_API](../docs/OBJECT_API.md)。
 
 示例启动器仅用于本地演示。生产接入需要可信登录身份映射，不能把 cluster token 当玩家
-身份；`owner='id'` 要求认证 subject 与实体 ID 一致。Ruby 示例同样不是公网玩家入口。
+身份；`owner='id'` 要求认证 subject 与实体 ID 一致。

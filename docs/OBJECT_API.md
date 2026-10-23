@@ -136,5 +136,4 @@ end
 `on_create`、`on_activate`、`on_deactivate` 这些伪生命周期 hook；声明时明确报错，避免
 误以为执行了一次性的持久化初始化或可靠卸载回调。
 
-当前面向对象实现针对 Lua。Ruby 保留原有可选适配器，尚未提供对应的实体类 API。
 完整例子见 [attributes.lua](../examples/lua/attributes.lua)。

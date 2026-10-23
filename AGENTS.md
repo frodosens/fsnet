@@ -3,13 +3,13 @@
 - C++ owns the networking/distributed runtime, scene/entity carriers, scheduling,
   storage mechanisms, and script hosting. Do not put game business rules in C++.
 - Game business logic belongs in scripts. Target a small common script-host API,
-  prioritize Lua, and retain Ruby as an optional adapter. See docs/SCRIPTING.md
+  use Lua for gameplay. See docs/SCRIPTING.md
   for the implemented host contract and adapter limits.
 - Native protocol/transport test handlers and benchmarks are framework fixtures,
   not a reason to add native player/combat/economy services.
-- Legacy C/Ruby 2.1 code, SDK, examples, and binary archives were removed from
-  mainline. The original implementation is preserved in the pushed tag
-  `archive/legacy-c-ruby21`; do not restore it as a runtime dependency.
+- Legacy C code, SDK, examples, and binary archives were removed from
+  mainline. The original implementation remains in Git history; do not restore it
+  as a runtime dependency.
 
 # Workflow
 
@@ -26,6 +26,6 @@
 
 See README.md and docs/VALIDATION.md. In the prepared cloud instance, source
 `/workspace/fsnet-env/activate-modern`, build with CMake, and run CTest. C++ core,
-process crash/restart, and Ruby tests should execute in a normal build. Native
+process crash/restart, and Lua tests should execute in a normal build. Native
 sanitizers use a separate build. Do not interpret local ICE/TURN checks as real
 cross-NAT production validation.

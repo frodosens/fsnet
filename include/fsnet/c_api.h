@@ -25,8 +25,6 @@ void fsnet_db_close(void* database);
 char* fsnet_db_get(void* database, const char* key, size_t key_length, size_t* length, uint64_t* version);
 int fsnet_db_cas(void* database, const char* key, size_t key_length, uint64_t version, const char* bytes, size_t length);
 int fsnet_db_erase(void* database, const char* key, size_t key_length, uint64_t version);
-int fsnet_db_fenced_cas(void* database, const char* guard, size_t guard_length, uint64_t fence,
-                        const char* key, size_t key_length, uint64_t version, const char* bytes, size_t length);
 void fsnet_free(void* bytes);
 #ifdef __cplusplus
 }

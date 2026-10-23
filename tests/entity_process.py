@@ -1,4 +1,4 @@
-"""Execute the same binary host contract against Lua and optional Ruby processes."""
+"""Verify Lua entity ownership and recovery across independent processes."""
 import ctypes
 import os
 from pathlib import Path

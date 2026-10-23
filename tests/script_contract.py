@@ -1,4 +1,4 @@
-"""Execute the same binary host contract against Lua and optional Ruby processes."""
+"""Verify the Lua process binary host contract through the native C ABI."""
 import ctypes
 import os
 from pathlib import Path
@@ -9,7 +9,7 @@ import sys
 import tempfile
 import time
 
-library, lua_executable, ruby_executable, ruby_fixture = sys.argv[1:]
+library, lua_executable = sys.argv[1:]
 native = ctypes.CDLL(library)
 reply_type = ctypes.CFUNCTYPE(None, ctypes.c_int, ctypes.c_void_p, ctypes.c_size_t)
 handler_type = ctypes.CFUNCTYPE(None, ctypes.c_uint64, ctypes.c_void_p, ctypes.c_size_t)
@@ -27,7 +27,6 @@ native.fsnet_call.argtypes = [ctypes.c_void_p, ctypes.c_uint64, ctypes.c_char_p,
 token = secrets.token_hex(32)
 environment = os.environ.copy()
 environment['FSNET_CLUSTER_TOKEN'] = token
-environment['FSNET_LIBRARY'] = library
 backend = native.fsnet_create(token.encode())
 client = native.fsnet_create(token.encode())
 assert backend and client
@@ -108,8 +107,6 @@ runtime.rpc('contract.timeout', function(data)
 end)
 '''.replace('BACKEND_PORT', str(backend_port)))
         contract('Lua', [lua_executable, str(script), '0'])
-        if ruby_executable != '-':
-            contract('Ruby', [ruby_executable, ruby_fixture, str(backend_port)])
 finally:
     native.fsnet_destroy(client)
     native.fsnet_destroy(backend)

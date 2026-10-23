@@ -157,13 +157,5 @@ int fsnet_db_cas(void* db, const char* key, size_t key_length, uint64_t version,
 int fsnet_db_erase(void* db, const char* key, size_t length, uint64_t version) {
     return guard([&] { return database(db).erase(bytes(key, length), version) ? 1 : 0; });
 }
-int fsnet_db_fenced_cas(void* db, const char* guard_key, size_t guard_length, uint64_t fence,
-                       const char* key, size_t key_length, uint64_t version, const char* value, size_t length) {
-    return guard([&] {
-        if (!fence) return 0;
-        return database(db).transact({{bytes(guard_key, guard_length), fence, std::nullopt, true},
-                                     {bytes(key, key_length), version, bytes(value, length)}}) ? 1 : 0;
-    });
-}
 void fsnet_free(void* pointer) { std::free(pointer); }
 }
