@@ -129,17 +129,17 @@ Lua 候选值解析也有递归节点预算，map 的嵌套分配会计入载体
 
 ## 可运行示例与验证
 
-共享声明：[container_entity.lua](../examples/lua/shared/container_entity.lua)。
-服务端：[container_entity.lua](../examples/lua/container_entity.lua)。
-客户端：[container_entity.lua](../examples/lua/client/container_entity.lua)，包含任务新增/修改/删除的通知 diff。
+共享声明：[container_entity.lua](../tests/fixtures/lua/shared/container_entity.lua)。
+服务端：[container_entity.lua](../tests/fixtures/lua/container_entity.lua)。
+客户端：[container_entity.lua](../tests/fixtures/lua/client/container_entity.lua)，包含任务新增/修改/删除的通知 diff。
 示例 `demo` RPC 仅用于触发确定的服务端流程，不能直接照搬成生产奖励入口。
 
 ```sh
-cat examples/lua/shared/container_entity.lua examples/lua/container_entity.lua > /tmp/fsnet-container-server.lua
+cat tests/fixtures/lua/shared/container_entity.lua tests/fixtures/lua/container_entity.lua > /tmp/fsnet-container-server.lua
 FSNET_CLUSTER_TOKEN=local-demo FSNET_DEMO_SUBJECT=alice /path/to/build/fsnet-script /tmp/fsnet-container-server.lua 7001
 
 # 另一终端，连接本轮新启动的默认内存服务端：
-cat examples/lua/shared/container_entity.lua examples/lua/client/container_entity.lua > /tmp/fsnet-container-client.lua
+cat tests/fixtures/lua/shared/container_entity.lua tests/fixtures/lua/client/container_entity.lua > /tmp/fsnet-container-client.lua
 FSNET_CLUSTER_TOKEN=local-demo /path/to/build/fsnet-client /tmp/fsnet-container-client.lua 127.0.0.1 7001
 ```
 

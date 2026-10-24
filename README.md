@@ -60,22 +60,24 @@ ctest --test-dir build-core --output-on-failure
 
 通用 C ABI 用于原生调用与协议测试。`FSNET_WITH_LUA=OFF` 不生成 `fsnet-lua` / `fsnet-script` 目标。
 
-## Lua 逻辑接口
+## 客户端 SDK 与示例
 
-```lua
-local visits = {}
-runtime.rpc('player.visit', function(player_id)
-    visits[player_id] = (visits[player_id] or 0) + 1
-    return tostring(visits[player_id])
-end)
-```
+C++使用 `fsnet::Client` 管理连接、实体视图、不可变确认快照和控制事件；Lua通过同一Client的
+script_host运行现有实体、字段/容器合批和预测。安装后用 `find_package(fsnet CONFIG REQUIRED)`
+和 `fsnet::client` / `fsnet::lua` 接入，详见 [客户端SDK](docs/CLIENT_SDK.md)。
 
 ```sh
-# 通过安全环境设置提供 FSNET_CLUSTER_TOKEN，宿主默认只监听 loopback。
-./build/fsnet-script examples/lua/player.lua 7001
+# 完成上面的debug构建后：
+python3 examples/run.py scene
+python3 examples/run.py scene --native
+python3 examples/run.py attributes
 ```
 
-C++ 宿主负责启动、网络和 VM；示例中的计数规则全部在 Lua。Lua RPC 参数与返回值是二进制字符串，业务自己选择编码。`runtime.request(peer, route, payload, timeout_ms)` 等待时让出协程；`runtime.await` 允许显式处理状态码。Lua 原始字节接口通过 C ABI 客户端执行跨进程合同测试。详见 [脚本宿主合同](docs/SCRIPTING.md)。
+共享类、服务端、客户端分别位于 `examples/scene` 和 `examples/attributes`；启动器自动组合
+脚本并清理本机进程。例子包括登录spawn、自动LocalPlayer/RemotePlayer、镜头控制、vec3预测
+移动、结构/容器同步和写入校验。玩法在Lua，SDK只提供机制。
+[示例导航](examples/README.md)说明演示与生产接入边界；[脚本宿主合同](docs/SCRIPTING.md)
+保留底层接口说明。旧单项脚本迁入tests/fixtures，性能程序迁入benchmarks。
 
 ## 数据库
 
@@ -117,10 +119,10 @@ C++ 的 `ClusterClient` 支持静态成员健康探测、指数退避重连、�
 
 实体 RPC 权限、Lua 属性声明与原生客户端自动同步见 [ENTITY_SCHEMA.md](docs/ENTITY_SCHEMA.md)。支持直连 owner 或 [Gateway 委托、转发与迁移](docs/CLIENT_GATEWAY.md)。部署包和故障验收见 [运行手册](docs/PRODUCTION.md)。
 
-脚本业务推荐使用 [面向对象的 Lua 实体 API](docs/OBJECT_API.md)，示例为 [attributes.lua](examples/lua/attributes.lua)。
+脚本业务推荐使用 [面向对象的 Lua 实体 API](docs/OBJECT_API.md)，示例为 [属性示例](examples/attributes/shared.lua)。
 
 服务端登录创建/恢复实体、自动 LocalPlayer/RemotePlayer 表现、控制目标与移除同步见
-[实体存在性与表现](docs/ENTITY_PRESENCE.md)，可运行示例见 [场景客户端](examples/lua/client/player_scene.lua)。
+[实体存在性与表现](docs/ENTITY_PRESENCE.md)，可运行示例见 [场景客户端](examples/scene/client.lua)。
 
 类型化 struct、vec3/mat4x4、固定数组，以及整值/字段赋值自动提交和同步见
 [结构属性](docs/STRUCTURED_ATTRIBUTES.md) 与 [变长容器](docs/CONTAINER_ATTRIBUTES.md)，支持 [显式合批与下行容器增量](docs/ATTRIBUTE_BATCHING.md) 和 [递归字段路径增量](docs/FIELD_PATH_DELTAS.md)，默认 [上下行共用差量](docs/SHARED_ATTRIBUTE_DELTAS.md)。

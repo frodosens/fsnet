@@ -51,8 +51,8 @@ struct Client::Impl : std::enable_shared_from_this<Impl> {
             if(it!=bindings.end()){auto old=std::move(it->second);bindings.erase(it);emit_binding(ClientEvent::Kind::leave,id,old,status);}
             return;
         }
-        auto info=host->projection_info(id);if(!info)return;
         if(it==bindings.end()) {
+            auto info=host->projection_info(id);if(!info)return;
             Binding b{{info->type,info->id},info->automatic,info->automatic?std::optional(info->owned):std::nullopt,info->controlled,replica->revision()};
             bindings.emplace(id,b);emit_binding(ClientEvent::Kind::enter,id,b);
         } else if(it->second.revision!=replica->revision()) {
@@ -77,6 +77,11 @@ struct Client::Impl : std::enable_shared_from_this<Impl> {
         ++generation;peer=new_peer;host=new_host;state=ClientState::connecting;
         deadline=Clock::now()+connect_timeout;error.clear();
         auto weak=weak_from_this();auto epoch=generation;
+        node->identify([weak,epoch,new_peer](std::uint64_t incoming,const std::string& certificate)->std::optional<CallIdentity> {
+            auto self=weak.lock();
+            if(!self || !self->active() || self->generation!=epoch || incoming!=new_peer)return {};
+            return CallIdentity{Caller::server,certificate.empty()?"configured-server":certificate,incoming};
+        });
         host->observe([weak,epoch](auto id,auto status,auto* replica) {
             if(auto self=weak.lock();self && self->generation==epoch)self->invoke([&]{self->changed(id,status,replica);});
         },[weak,epoch](const auto& event) {

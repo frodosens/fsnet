@@ -257,3 +257,16 @@ Python 语法、文档本地链接和 git diff --check 通过。GitHub Actions �
 断线清理、回调重连/销毁/异常、握手超时）及SDK安装后重定位的独立CMake消费者检查。
 导出fsnet::client与可选fsnet::lua，验证静态Lua依赖随安装包完整交付。ASan和示例重写的
 最终集成结果在后续阶段另记，本段不代替尚未执行的检查。
+
+## SDK接入与示例重写最终验证
+
+源码内Debug构建 **35/35**、ASan/UBSan **20/20**、Lua OFF核心构建 **12/12**通过；
+核心检查后恢复Debug默认Lua ON配置。ASan使用仓库内独立preset重新配置构建，覆盖回调重连、
+销毁、异常和额外连接/旧宿主路由清理；额外脚本连接不能冒充配置的服务器回调身份。
+
+重写的scene/Lua、scene/Native、attributes三例均有独立进程检查。SDK安装测试将安装目录改名，
+由独立CMake消费者链接fsnet::client及可选fsnet::lua，再直接运行安装包内三例。
+原来的Lua单项脚本移至tests/fixtures，进程测试继续通过新SDK客户端宿主执行，回归覆盖保留。
+性能夹具移至benchmarks，命令名不变；未把历史性能数据当成本轮SDK性能承诺。
+Python语法、当前Markdown本地链接、git diff --check通过。未重跑可选PostgreSQL服务端、
+真实图形平台、跨机HA或公网NAT；C#/Unity/浏览器绑定仍不在本轮范围。

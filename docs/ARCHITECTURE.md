@@ -7,7 +7,9 @@ C++ 只负责网络、调度、实体/场景载体、存储机制和脚本宿主
 
 ```mermaid
 flowchart TB
-    Client[客户端 / 服务节点] --> Node[Node: TLS 1.3 / 身份授权 / RPC / 背压]
+    Client[客户端应用] --> SDK[Client SDK: 会话 / 句柄 / 实体事件 / Lua桥接]
+    SDK --> Node[Node: TLS 1.3 / 身份授权 / RPC / 背压]
+    Service[服务节点] --> Node
     Node --> Router[EntityRouter: owner 查询 / 连接复用 / 有界重试]
     Router --> Host[EntityScriptHost: 每实体 mailbox / tick / 生命周期]
     Host --> Lua[LuaEngine: 业务协程 / 指令与内存预算]
@@ -23,6 +25,10 @@ flowchart TB
 
 上图的 Router 是可选服务间路由组合；客户端可直连 owner，或通过 ClientGateway 接入多个 owner。
 Gateway 使用独立后端连接委托可信账号，转发属性流并恢复迁移订阅，见 [跨节点接入](CLIENT_GATEWAY.md)。
+
+客户端SDK入口为 [CLIENT_SDK.md](CLIENT_SDK.md)。Client组合Node和ClientScriptHost，
+持有会话generation、实体元数据和控制事件；属性投影仍只有一份AttributeClient，Lua和Native
+共享确认版本/codec。重连不重放业务RPC，旧宿主释放其路由和额外连接，不复用旧句柄。
 
 ## 公共引擎与各端边界
 
@@ -88,7 +94,7 @@ ICE/STUN/TURN 直连与中继原语已实现并做本机验证；原始 IcePeer 
 
 - 文件后端支持本机多进程、持久化与崩溃恢复，不会把每台机器自己的目录自动复制成一致存储。跨机器 HA 需要具备相同 CAS/持久化语义的共享或复制后端，不能靠文件复制或健康检查假定一致性。
 - PostgreSQL 适配器已实现，使用单记录条件 INSERT/UPDATE/DELETE；TLS、跨连接 CAS、实体进程接管与数据库崩溃恢复已验证。主备复制/仲裁与跨机 HA 仍需单独部署验收，数据库不是实体运行时的必需条件。
-- 固定步长 tick、句柄代数、快照恢复和空闲卸载已实现。可部署启动器、指标、打包与本机多进程故障验收已交付；图形/浏览器 SDK、自动 outbox 与跨机长稳容量仍待完成。
+- 固定步长 tick、句柄代数、快照恢复和空闲卸载已实现。可部署启动器、指标、打包与本机多进程故障验收已交付；Native/Lua客户端SDK已交付；图形/浏览器适配、自动outbox与跨机长稳容量仍待完成。
 - 整体仍在分阶段交付，尚未标为任意规模通用游戏的生产验收版本。当前测试证据见 VALIDATION.md。
 
 ## 服务端生命周期

@@ -110,9 +110,9 @@ other.position=self.position -- 整值复制，不共享可变状态
 
 ## 示例与验证
 
-共享类：[structured_entity.lua](../examples/lua/shared/structured_entity.lua)。
-客户端：[structured_entity.lua](../examples/lua/client/structured_entity.lua)。
-服务端：[structured_entity.lua](../examples/lua/structured_entity.lua)。
+共享类：[structured_entity.lua](../tests/fixtures/lua/shared/structured_entity.lua)。
+客户端：[structured_entity.lua](../tests/fixtures/lua/client/structured_entity.lua)。
+服务端：[structured_entity.lua](../tests/fixtures/lua/structured_entity.lua)。
 
 `fsnet-structured` 包含原生 schema/codec/复制边界、两个真实客户端与 Lua 服务端，验证
 整值/嵌套自动提案、观察者接收与拒写、validator 拒绝、原生作用域与类型/矩阵越界、

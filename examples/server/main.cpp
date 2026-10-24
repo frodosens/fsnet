@@ -1,4 +1,4 @@
-#include "config.hpp"
+#include "../common/config.hpp"
 #include "fsnet/lua_engine.hpp"
 #include "fsnet/entity_host.hpp"
 #include "fsnet/attribute_replication.hpp"

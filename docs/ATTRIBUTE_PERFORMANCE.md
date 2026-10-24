@@ -90,7 +90,7 @@ cmake --build /tmp/fsnet-perf-after --target fsnet-attribute-benchmark -j3
 ```sh
 mkdir -p /tmp/fsnet-perf-baseline-src
 git archive 475b6f8 | tar -x -C /tmp/fsnet-perf-baseline-src
-cp examples/attribute_benchmark.cpp /tmp/fsnet-perf-baseline-src/examples/
+cp benchmarks/attribute_benchmark.cpp /tmp/fsnet-perf-baseline-src/examples/
 cat >> /tmp/fsnet-perf-baseline-src/CMakeLists.txt <<'CMAKE'
 if(FSNET_WITH_LUA)
   add_executable(fsnet-attribute-benchmark examples/attribute_benchmark.cpp)

@@ -31,7 +31,7 @@ end)
 
 加载为单次操作：先编译并在 VM 内收集路由，整个 chunk 成功且宿主无冲突后才发布。语法错误、加载异常、加载死循环不会留下半套路由。停止后不能重新 load；未来热更新应创建新引擎并按明确的状态迁移协议切换。
 
-`fsnet-script script.lua [port]` 是通用启动器，加载脚本、监听 loopback、推进 Node、实体宿主和引擎；没有玩家或场景业务实现。`FSNET_DATABASE_PATH` 选择 SQLite 持久化，未设置时使用内存。`examples/lua/stateful.lua` 展示托管状态；`player.lua` 是旧的内存示例。
+`fsnet-script script.lua [port]` 是通用启动器，加载脚本、监听 loopback、推进 Node、实体宿主和引擎；没有玩家或场景业务实现。`FSNET_DATABASE_PATH` 选择 SQLite 持久化，未设置时使用内存。`tests/fixtures/lua/stateful.lua` 展示托管状态；`player.lua` 是旧的内存示例。
 
 ## 所有权、调度与限制
 

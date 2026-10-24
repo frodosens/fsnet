@@ -3,6 +3,7 @@
 #include "fsnet/attribute_replication.hpp"
 #include <unordered_map>
 #include <deque>
+#include <set>
 
 namespace fsnet {
 // Owner-thread client adapter. One per Node, bound to an authenticated server peer.
@@ -14,8 +15,15 @@ class ClientScriptHost final : public ScriptHost {
     std::deque<EntityPresence> events_;
     bool event_overflow_=false,queue_events_=true,stopped_=false;
     std::vector<std::uint64_t> extra_peers_;
-    AttributeClient::Changed changed_;
-    AttributeClient::Presence presence_;
+    std::set<std::string> bound_routes_;
+    template<class Bind> void tracked_bind(std::string route,Bind bind) {
+        if(stopped_)throw std::logic_error("client host stopped");
+        auto [it,inserted]=bound_routes_.insert(route);
+        if(!inserted)throw std::logic_error("duplicate client route");
+        try{bind(std::move(route));}catch(...){bound_routes_.erase(it);throw;}
+    }
+    struct Observers { AttributeClient::Changed changed;AttributeClient::Presence presence; };
+    std::shared_ptr<const Observers> observers_;
     static Node& require_node(const std::shared_ptr<Node>& node) { if(!node)throw std::invalid_argument("missing node");return *node; }
     AttributeClient attributes_;
     void event(const EntityPresence& value) {
@@ -25,11 +33,11 @@ class ClientScriptHost final : public ScriptHost {
     }
 public:
     ClientScriptHost(Node& node, std::uint64_t server_peer) : node_(node), server_peer_(server_peer), attributes_(node,server_peer,
-        [this](std::uint64_t id,Status status,const AttributeReplica* replica) { if(changed_){auto callback=changed_;callback(id,status,replica);} },
-        [this](const EntityPresence& value) { event(value);if(presence_){auto callback=presence_;callback(value);} }) {}
+        [this](std::uint64_t id,Status status,const AttributeReplica* replica) { auto observer=observers_;if(observer && observer->changed)observer->changed(id,status,replica); },
+        [this](const EntityPresence& value) { event(value);auto observer=observers_;if(observer && observer->presence)observer->presence(value); }) {}
     ClientScriptHost(std::shared_ptr<Node> node,std::uint64_t peer,bool queue_events)
       : ClientScriptHost(require_node(node),peer) { node_owner_=std::move(node);queue_events_=queue_events; }
-    void observe(AttributeClient::Changed changed,AttributeClient::Presence presence) { changed_=std::move(changed);presence_=std::move(presence); }
+    void observe(AttributeClient::Changed changed,AttributeClient::Presence presence) { if(!changed && !presence)observers_.reset();else observers_=std::make_shared<const Observers>(Observers{std::move(changed),std::move(presence)}); }
     void enable_entity_events() {
         if(queue_events_)return;
         queue_events_=true;
@@ -38,10 +46,10 @@ public:
     std::optional<AttributeProjectionInfo> projection_info(std::uint64_t id) const { return attributes_.projection_info(id); }
     ~ClientScriptHost() override { stop(); }
     bool has_route(const std::string& route) const override { return node_.has_route(route); }
-    void bind(std::string route, Handler handler) override { if(stopped_)throw std::logic_error("client host stopped");node_.bind(std::move(route),std::move(handler)); }
-    void bind_context(std::string route,RpcPolicy policy,ContextHandler handler) override { if(stopped_)throw std::logic_error("client host stopped");node_.bind_rpc(std::move(route),policy,std::move(handler)); }
-    void rpc_policy(const std::string& route,RpcPolicy policy) override { node_.rpc_policy(route,policy); }
-    void unbind(const std::string& route) override { node_.unbind(route); }
+    void bind(std::string route, Handler handler) override { tracked_bind(std::move(route),[&](auto name){node_.bind(std::move(name),std::move(handler));}); }
+    void bind_context(std::string route,RpcPolicy policy,ContextHandler handler) override { tracked_bind(std::move(route),[&](auto name){node_.bind_rpc(std::move(name),policy,std::move(handler));}); }
+    void rpc_policy(const std::string& route,RpcPolicy policy) override { if(stopped_ || !bound_routes_.contains(route))throw std::logic_error("unowned client route");node_.rpc_policy(route,policy); }
+    void unbind(const std::string& route) override { if(bound_routes_.erase(route))node_.unbind(route); }
     std::uint64_t connect(const std::string& host,std::uint16_t port) override {
         if(stopped_)throw std::logic_error("client host stopped");
         auto peer=node_.connect(host,port);try{extra_peers_.push_back(peer);}catch(...){node_.close(peer);throw;}return peer;
@@ -78,6 +86,6 @@ public:
     }
     void stop_entity_events() override { attributes_.stop_entities(); events_.clear(); }
     void poll() { attributes_.poll(); }
-    void stop() { if(std::exchange(stopped_,true))return;attributes_.stop();auto peers=std::move(extra_peers_);for(auto peer:peers)node_.close(peer); }
+    void stop() { if(std::exchange(stopped_,true))return;attributes_.stop();auto routes=std::move(bound_routes_);bound_routes_.clear();for(const auto& route:routes)node_.unbind(route);auto peers=std::move(extra_peers_);for(auto peer:peers)node_.close(peer); }
 };
 }

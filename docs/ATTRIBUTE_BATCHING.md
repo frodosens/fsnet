@@ -71,7 +71,7 @@ end,{timeout_ms=3000,request_id='inventory-edit-42'})
 合并图像节点限制和固定随机种子的 600 轮增删改重放。
 `fsnet-containers` 验证 batch 一次提交、多属性同一版本、确认/草稿分离、取消、禁止网络/等待、
 validator 拒绝、无变化不发、字段视图失效、owner/AOI、预测，以及多次草稿回收。
-交付的 [结构属性客户端](../examples/lua/client/structured_entity.lua) 与独立进程测试也覆盖四次赋值一次提交。
+交付的 [结构属性客户端](../tests/fixtures/lua/client/structured_entity.lua) 与独立进程测试也覆盖四次赋值一次提交。
 
 本轮没有消除所有复制：构造草稿、提案和副本预算校验仍有图像/容器遍历；服务端仍持久化完整实体记录。
 默认上行合批提案也会比较字段/容器差量；固定 ID 写入仍保留全值。尚无公共前缀树编码、跨实体帧合包、共享观察者投影缓存或数值量化。

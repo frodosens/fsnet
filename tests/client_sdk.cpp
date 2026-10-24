@@ -35,6 +35,7 @@ int main(){try{
             });
         });
     });
+    server.bind_rpc("peer_id",{true,false,false},[](const auto& who,std::string,fsnet::Reply reply){reply({fsnet::Status::ok,std::to_string(who.peer)});});
     server.bind("wait",[](std::string,fsnet::Reply){});
     auto port=server.listen("127.0.0.1",0);
     fsnet::ClientOptions options;options.token="sdk-test";
@@ -64,12 +65,23 @@ int main(){try{
     client->watch({"Actor","bob"},[&](auto status,auto handle){CHECK(status==fsnet::Status::ok);manual=handle;CHECK(client->entity(handle));});
     until([&]{return bool(manual);});CHECK(!client->entity(manual)->owned.has_value());
     reply.reset();client->write(manual,{{"text",std::string("forbidden")}},[&](auto r){reply=std::move(r);});until([&]{return reply.has_value();});CHECK(reply->status==fsnet::Status::rejected);
+    std::optional<fsnet::Result> shown;
+    host->entity_visibility(physical,"Actor","bob",1,[&](auto r){shown=std::move(r);});
+    until([&]{auto other=client->entity(fsnet::EntityKey{"Actor","bob"});return shown && other && other->automatic;});
+    CHECK(client->entity(fsnet::EntityKey{"Actor","bob"})->owned==false);
     client->unwatch(manual);CHECK(!client->entity(manual));
     auto script_host=client->script_host();CHECK(script_host->pop_entity_event().has_value());
+    script_host->bind_context("client_callback",{false,true,false},[](const auto& who,std::string data,fsnet::Reply reply){CHECK(who.caller==fsnet::Caller::server);reply({fsnet::Status::ok,std::move(data)});});
+    std::optional<fsnet::Result> pushed;server.call(physical,"client_callback","server push",1s,[&](auto r){pushed=std::move(r);});
+    until([&]{return pushed.has_value();});CHECK(pushed->status==fsnet::Status::ok && pushed->data=="server push");
     auto extra_peer=script_host->connect("127.0.0.1",port);CHECK(extra_peer);
+    std::optional<fsnet::Result> extra_identity;
+    script_host->call(extra_peer,"peer_id","",1s,[&](auto result){extra_identity=std::move(result);});until([&]{return extra_identity.has_value();});
+    pushed.reset();server.call(std::stoull(extra_identity->data),"client_callback","untrusted extra",1s,[&](auto r){pushed=std::move(r);});
+    until([&]{return pushed.has_value();});CHECK(pushed->status==fsnet::Status::rejected);
     std::optional<fsnet::Result> pending;client->request("wait","",[&](auto r){pending=std::move(r);});
     client->disconnect();CHECK(pending && pending->status==fsnet::Status::disconnected && !client->entity(owned.handle));
-    CHECK(!script_host->attribute_snapshot(owned.handle.subscription));
+    CHECK(!script_host->attribute_snapshot(owned.handle.subscription) && !script_host->has_route("client_callback"));
     std::optional<fsnet::Result> stopped_host;script_host->call(extra_peer,"wait","",1s,[&](auto result){stopped_host=std::move(result);});
     CHECK(stopped_host && stopped_host->status==fsnet::Status::disconnected);
     auto previous_generation=owned.handle.generation;
@@ -79,6 +91,10 @@ int main(){try{
     reply.reset();client->request("login","",[&](auto r){reply=std::move(r);});until([&]{return reply && client->controlled();});
     CHECK(client->controlled()->handle.generation>previous_generation);
     reply.reset();client->write(owned.handle,{{"text",std::string("stale")}},[&](auto r){reply=std::move(r);});CHECK(reply->status==fsnet::Status::rejected);
+    auto new_bridge=client->script_host();
+    new_bridge->bind_context("client_callback",{false,true,false},[](const auto&,std::string,fsnet::Reply reply){reply({fsnet::Status::ok,"new session"});});
+    script_host->unbind("client_callback");
+    pushed.reset();server.call(physical,"client_callback","",1s,[&](auto r){pushed=std::move(r);});until([&]{return pushed.has_value();});CHECK(pushed->data=="new session");
     auto generation=client->stats().generation;server.close(physical);
     until([&]{return client->stats().generation>generation && client->state()==fsnet::ClientState::connected;});
     // Destruction inside an event cannot leave dangling Node/host callbacks.

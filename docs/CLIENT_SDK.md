@@ -1,7 +1,8 @@
 # 客户端 SDK
 
 C++入口为 `fsnet/client.hpp`，CMake目标为 `fsnet::client`；Lua集成使用同一Client的script_host，
-复用已有实体、差量、权限、确认版本和预测引擎。SDK不内置登录业务、商店或角色移动规则。
+复用已有实体、差量、权限、确认版本和预测引擎。SDK不内置登录业务、商店或角色移动规则。配置的服务器连接可调用server-only客户端RPC；
+角色来自已认证的固定连接，额外脚本连接不会自动取得该权限。
 
 ## 安装接入
 
@@ -97,7 +98,7 @@ client.disconnect();
 Lua继续使用 `runtime.server_request`、实体引用、`fsnet.entities`、字段/容器赋值、batch和
 显式预测输入确认。Native与Lua读取同一同步投影，没有并行差量/回放实现。
 一条连接只接一个Lua事件消费者；在poll之外取得script_host，可为已有自动实体补发初始表现事件。
-断线后旧宿主停止并释放其额外连接；重新连接必须先停止旧LuaEngine，再取得新host并重载脚本。
+断线后旧宿主停止并释放其路由与额外连接；旧宿主不能解绑新会话的同名路由。重新连接必须先停止旧LuaEngine，再取得新host并重载脚本。
 SDK不自动重发未确认输入，也不在Native层重复实现Lua预测算法。
 
 ## 回调、断线和资源

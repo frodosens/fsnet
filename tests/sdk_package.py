@@ -13,6 +13,10 @@ with tempfile.TemporaryDirectory(prefix='fsnet-sdk-package-') as directory:
         run(cmake,'-S',source,'-B',str(root/'consumer'),'-DCMAKE_PREFIX_PATH='+str(root/'relocated'))
         run(cmake,'--build',str(root/'consumer'),'-j2')
         run(str(root/'consumer'/'consumer'))
+        if (root/'relocated'/'bin'/'fsnet-script').is_file():
+            runner=root/'relocated'/'share'/'fsnet'/'examples'/'run.py'
+            for example in ('scene','attributes'):run(sys.executable,str(runner),example)
+            run(sys.executable,str(runner),'scene','--native')
     except subprocess.CalledProcessError as error:
         print(error.stdout);raise
 print('PASS installed SDK: relocatable fsnet::client and optional fsnet::lua targets')

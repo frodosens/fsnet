@@ -5,6 +5,7 @@
 
 | 工作项 | 状态 | 证据/边界 |
 | --- | --- | --- |
+| Native客户端SDK与Lua桥接 | 已实现 | CLIENT_SDK.md；连接状态、generation句柄、实体/控制事件、不可变快照、安装/重定位；图形/C#/浏览器适配不含在内 |
 | 共享类、本地实例、确认副本、执行域 | 已实现 | SHARED_ENTITIES.md；fsnet-shared |
 | Lua 客户端属性订阅/写提案、后台任务和定时等待 | 已实现 | ClientScriptHost；fsnet-shared 与 fsnet-shared-process |
 | 预测、服务器校正、回滚与效果去重 | 已实现显式输入初版 | PREDICTION.md；独立预测载体、有界历史、显式累计确认与重放；不含自动输入协议或完整世界回滚 |

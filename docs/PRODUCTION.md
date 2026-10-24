@@ -14,8 +14,10 @@ cmake --install build --prefix /opt/fsnet
 cpack --config build/CPackConfig.cmake -B packages
 ```
 
-TGZ 包包含 `bin/fsnet-service`、`bin/fsnet-client`、`lib/libfsnet.so`、公开头文件、
-Lua 示例、部署模板及文档。可解压到其他前缀；程序通过 `$ORIGIN/../lib` 寻找库。
+TGZ 包包含 `bin/fsnet-service`、`bin/fsnet-client`、`bin/fsnet-native-client`、`bin/fsnet-script`、
+`lib/libfsnet.so`、公开头文件、CMake SDK导出目标与可选Lua静态库、
+Lua示例、示例启动器、部署模板及文档。
+安装后的SDK示例可直接 `python3 /opt/fsnet/share/fsnet/examples/run.py scene --native`。可解压到其他前缀；程序通过 `$ORIGIN/../lib` 寻找库。
 Linux 构建仍依赖兼容 glibc/libstdc++ 等系统运行库，不是任意系统通用的静态发行包。
 `tools/validate_delivery.py` 同时安装到 `share/fsnet/tools/`，需要 Python3 与 openssl。
 可选 PostgreSQL 需构建时启用相应选项，见 STORAGE.md；默认交付验证不要求它。

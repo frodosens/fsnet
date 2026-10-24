@@ -76,7 +76,7 @@ end})
 
 `ctx.subject/ctx.peer` 来自可信宿主认证。新实体保存初值，已有实体恢复状态、不重置初值。
 返回的是逻辑引用，不是可跨 mailbox 直接写的服务端对象。
-登录/会话重入、跨账号可见性、登出清理由业务实现；完整例子见 [player_scene.lua](../examples/lua/player_scene.lua)。
+登录/会话重入、跨账号可见性、登出清理由业务实现；完整例子见 [player_scene.lua](../examples/scene/server.lua)。
 
 | 服务端引用 API | 效果 |
 | --- | --- |
@@ -229,8 +229,8 @@ FSA1/FSA2 继续可读；未知版本旧读端会拒绝，暂无能力协商，�
 
 ## 7. 预测独立于确认副本
 
-移动推荐参考已交付的 [player_entity.lua](../examples/lua/shared/player_entity.lua) 和
-[客户端场景](../examples/lua/client/player_scene.lua)，不要把上面的可写坐标示例当作移动输入协议。
+移动推荐参考已交付的 [player_entity.lua](../examples/scene/shared.lua) 和
+[客户端场景](../examples/scene/client.lua)，不要把上面的可写坐标示例当作移动输入协议。
 该示例的共享方法为 `advance`，确认属性为 x/processed_input：
 
 ```lua
@@ -268,8 +268,8 @@ confirmed:close()
 Native 值/codec 定义见 [attribute_wire.hpp](../include/fsnet/attribute_wire.hpp)，宿主见
 [entity_host.hpp](../include/fsnet/entity_host.hpp)，同步见 [attribute_replication.hpp](../include/fsnet/attribute_replication.hpp)。
 Node、宿主、引擎和 manager 在所属线程推进 poll；Node 必须比适配器更晚销毁。
-启动器会配置这些机制，嵌入自己的图形引擎时参考 [client_host.cpp](../examples/client_host.cpp)
-和 [script_host.cpp](../examples/script_host.cpp)。
+启动器会配置这些机制，嵌入自己的图形引擎时参考 [client/main.cpp](../examples/client/main.cpp)
+和 [server/main.cpp](../examples/server/main.cpp)。
 
 逻辑实体引用通过已配置的路由宿主或客户端默认服务器连接发出；直接 NodeScriptHost 没有自动 owner 发现能力。
 不要把一个普通服务器连接当作 Gateway 原客户端身份委托。不同端各自的认证、权威状态、存储提交和平台适配保持边界。
@@ -278,10 +278,12 @@ Node、宿主、引擎和 manager 在所属线程推进 poll；Node 必须比适
 
 | 场景 | 共享/服务端/客户端入口 |
 | --- | --- |
-| 登录、自动 LocalPlayer/RemotePlayer、镜头与移动预测 | [运行说明](../examples/README.md#登录后自动创建-localplayer--remoteplayer) |
-| vec3/矩阵/嵌套赋值/batch | [运行说明](../examples/README.md#vec3--mat4x4-与嵌套结构自动同步) |
+| 登录、自动 LocalPlayer/RemotePlayer、镜头与移动预测 | [运行说明](../examples/README.md) |
+| vec3/矩阵/嵌套赋值/batch | [运行说明](../examples/README.md) |
 | 背包与任务增删、客户端状态 diff | [容器运行说明](CONTAINER_ATTRIBUTES.md#可运行示例与验证) |
-| 输入确认与重放 | [运行说明](../examples/README.md#客户端预测与服务器校正) |
+| 输入确认与重放 | [运行说明](../examples/README.md) |
+
+推荐入口为 [客户端SDK](CLIENT_SDK.md) 和 [重写后的示例](../examples/README.md)，无需直接拼装Node与投影管理器。
 
 服务端 create/activate/deactivate/destroy hook、卸载/删除与 drain 已实现，见 [生命周期](ENTITY_LIFECYCLE.md)。
 模块资源加载/热更新与状态迁移仍未实现；

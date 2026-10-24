@@ -1,4 +1,4 @@
-#include "config.hpp"
+#include "../../examples/common/config.hpp"
 #include "fsnet/node.hpp"
 #include <cstdlib>
 #include <iostream>

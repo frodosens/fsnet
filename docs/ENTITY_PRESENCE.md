@@ -91,8 +91,8 @@ end)
 ```
 
 models/camera/input 只是图形引擎适配接口示意，不是 fsnet 内置模块。完整的无图形依赖示例见
-[共享类](../examples/lua/shared/player_entity.lua)、[服务端场景](../examples/lua/player_scene.lua)、
-[客户端场景](../examples/lua/client/player_scene.lua)。
+[共享类](../examples/scene/shared.lua)、[服务端场景](../examples/scene/server.lua)、
+[客户端场景](../examples/scene/client.lua)。
 
 工厂在脚本加载时注册并 start，由一个有预算的后台协程按接收顺序分发事件。prototype 是
 普通 Lua 表，可以用普通 Lua 继承组织公共表现逻辑。框架填入：

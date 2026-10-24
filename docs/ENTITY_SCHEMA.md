@@ -239,7 +239,7 @@ Successful receipt replay returns without another property event. Receipt retent
 remains bounded; this is not unlimited exactly-once delivery. The native client
 bounds pending write callbacks to 256 and reports disconnection during shutdown.
 
-A complete script example is [attributes.lua](../examples/lua/attributes.lua).
+A complete script example is [attributes.lua](../tests/fixtures/lua/attributes.lua).
 The `fsnet-script` binary installs AttributeReplication; production embeddings still
 provide trusted authentication. Lua client carriers use ClientScriptHost and the
 `fsnet-client` binary; see [shared entities](SHARED_ENTITIES.md).
