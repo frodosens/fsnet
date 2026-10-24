@@ -1,0 +1,126 @@
+{
+  "version": 5,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 24,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "base",
+      "hidden": true,
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/.dev/build/${presetName}",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": true,
+        "BUILD_TESTING": true,
+        "FSNET_WITH_LUA": true,
+        "FSNET_WITH_POSTGRES": false,
+        "FSNET_SANITIZERS": false
+      }
+    },
+    {
+      "name": "debug",
+      "inherits": "base",
+      "cacheVariables": {}
+    },
+    {
+      "name": "release",
+      "inherits": "base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      }
+    },
+    {
+      "name": "asan",
+      "inherits": "base",
+      "cacheVariables": {
+        "FSNET_SANITIZERS": true
+      }
+    },
+    {
+      "name": "core",
+      "inherits": "base",
+      "cacheVariables": {
+        "FSNET_WITH_LUA": false
+      }
+    },
+    {
+      "name": "postgres",
+      "inherits": "base",
+      "cacheVariables": {
+        "FSNET_WITH_POSTGRES": true,
+        "FSNET_POSTGRES_TEST_SERVER": true
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "debug",
+      "configurePreset": "debug",
+      "jobs": 2
+    },
+    {
+      "name": "release",
+      "configurePreset": "release",
+      "jobs": 2
+    },
+    {
+      "name": "asan",
+      "configurePreset": "asan",
+      "jobs": 2
+    },
+    {
+      "name": "core",
+      "configurePreset": "core",
+      "jobs": 2
+    },
+    {
+      "name": "postgres",
+      "configurePreset": "postgres",
+      "jobs": 2
+    }
+  ],
+  "testPresets": [
+    {
+      "name": "debug",
+      "configurePreset": "debug",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "release",
+      "configurePreset": "release",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "asan",
+      "configurePreset": "asan",
+      "output": {
+        "outputOnFailure": true
+      },
+      "environment": {
+        "ASAN_OPTIONS": "detect_leaks=1:halt_on_error=1",
+        "UBSAN_OPTIONS": "halt_on_error=1"
+      }
+    },
+    {
+      "name": "core",
+      "configurePreset": "core",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "postgres",
+      "configurePreset": "postgres",
+      "output": {
+        "outputOnFailure": true
+      }
+    }
+  ]
+}

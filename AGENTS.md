@@ -31,8 +31,9 @@
 
 # Validation
 
-See README.md and docs/VALIDATION.md. In the prepared cloud instance, source
-`/workspace/fsnet-env/activate-modern`, build with CMake, and run CTest. C++ core,
-process crash/restart, and Lua tests should execute in a normal build. Native
+See README.md, docs/DEV_ENVIRONMENT.md and docs/VALIDATION.md. Bootstrap with
+`bash tools/dev/bootstrap.sh`, source `tools/dev/activate.sh`, then configure/build/test
+with the checked-in CMake presets. Local tools and outputs live in ignored `.dev/`.
+C++ core, process crash/restart, and Lua tests should execute in a normal build. Native
 sanitizers use a separate build. Do not interpret local ICE/TURN checks as real
 cross-NAT production validation.

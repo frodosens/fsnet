@@ -25,3 +25,7 @@
 
 __pycache__/
 *.py[cod]
+
+# Local developer tools, caches, builds and private preset overrides.
+/.dev/
+/CMakeUserPresets.json

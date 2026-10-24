@@ -30,12 +30,20 @@ Sanitizer 构建检查 C++ 核心、Lua 宿主和原生 C ABI。
 
 ## 云环境
 
-当前工作区无 sudo，系统目录只读。可重跑安装脚本会将经过 Debian 签名/包校验的构建工具解包到仓库外，安装固定版本的 CMake，并构建及测试新核心：
+开发环境入口随源码保存，不依赖 `/workspace/fsnet-env` 等固定路径。CMake/Ninja 使用固定版本，
+工具和构建输出统一放在仓库内、被 Git 忽略的 `.dev/`：
 
 ```sh
-bash tools/cloud-install.sh
-. /workspace/fsnet-env/activate-modern
+bash tools/dev/bootstrap.sh
+. tools/dev/activate.sh
+cmake --preset debug
+cmake --build --preset debug
+ctest --preset debug
 ```
+
+另有 `release`、`asan`、`core`、`postgres` presets。兼容入口 `bash tools/cloud-install.sh [preset]`
+会完成工具准备、构建和测试，默认 debug。无 sudo 的 Debian/Ubuntu 可用私有 APT 缓存补齐
+可选 PostgreSQL 的 bison/flex/m4，具体见 [开发环境与迁移](docs/DEV_ENVIRONMENT.md)。
 
 复用当前 checkout；每个云任务已隔离，不需要新建 worktree。旧示例的本地诊断产物不属于新框架的运行依赖。
 

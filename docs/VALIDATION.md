@@ -237,3 +237,15 @@ Python 语法、文档本地链接和 git diff --check 通过。GitHub Actions �
 性能数据、编译兼容边界与尚未消除的复制见 [Copy 优化记录](COPY_OPTIMIZATION.md)。
 优化后的可重定位Release包另通过1000轮mTLS+文件持久化交付验收，包含崩溃接管、回执重放、
 优雅交接和资源清理；[报告](validation/copy-optimized-delivery-2026-10-24.json)。
+
+## 2026-10-24：开发环境迁入仓库
+
+固定工具清单、激活/bootstrap脚本和五个CMake presets已进入源码管理。工具副本及本机性能
+基线复制到被忽略的 `.dev/`；编译产物和第三方源码不入Git。
+在 `.dev/build/debug` 重新下载/校验固定依赖，从头使用仓库内 CMake 4.4.4/Ninja 1.13.2
+配置、编译，`ctest --preset debug` **30/30**通过。CMakeCache不包含旧fsnet-env路径。
+另验证从仓库外运行bootstrap、重复准备跳过工具下载、全部preset列表、脚本语法、非法preset
+拒绝和忽略规则。当前轮次没有新建ASan/Release/PG完整构建，不挪用历史结果充当本轮验证。
+
+当前环境入口见 [开发环境](DEV_ENVIRONMENT.md)；历史记录中的旧绝对路径保持原样，仅代表
+当时测量位置。旧目录未删除，后续开发可使用仓库内配置重建而不依赖它。
