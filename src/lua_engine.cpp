@@ -1008,6 +1008,7 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
         std::size_t n,m,k,p;const char* type=luaL_checklstring(L,1,&n);const char* id=luaL_checklstring(L,2,&m);
         const char* method=luaL_checklstring(L,3,&k);const char* payload=luaL_checklstring(L,4,&p);
         if(!engine.threads.contains(L)) return luaL_error(L,"durable send requires an entity task");
+        if(!n || n>127 || !m || m>256 || !k || k>127 || p>delivery_payload_limit) return luaL_error(L,"invalid durable destination or payload size");
         try {
             const auto& task=engine.tasks.at(engine.threads.at(L));
             if(task.entity_type.empty() || !engine.server_schemas.contains(task.entity_type)) throw std::logic_error("durable send requires a managed server entity transaction");
@@ -1021,6 +1022,7 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
     static int delivery_status(lua_State* L) {
         prediction_external(L);auto& engine=self(L);std::size_t n;const char* ticket=luaL_checklstring(L,1,&n);
         if(!engine.threads.contains(L)) return luaL_error(L,"delivery query requires an entity task");
+        if(n>64) return luaL_error(L,"invalid delivery ticket size");
         try {
             const auto& task=engine.tasks.at(engine.threads.at(L));if(task.entity_type.empty())throw std::logic_error("delivery query requires an entity transaction");
             auto value=engine.host->delivery_status(task.entity_type,task.entity_id,std::string(ticket,n));
@@ -1033,6 +1035,7 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
     static int forget_delivery(lua_State* L) {
         prediction_external(L);auto& engine=self(L);std::size_t n;const char* ticket=luaL_checklstring(L,1,&n);
         if(!engine.threads.contains(L)) return luaL_error(L,"delivery cleanup requires an entity task");
+        if(n>64) return luaL_error(L,"invalid delivery ticket size");
         try {const auto& task=engine.tasks.at(engine.threads.at(L));lua_pushboolean(L,engine.host->forget_delivery(task.entity_type,task.entity_id,std::string(ticket,n)));return 1;}
         catch(const std::exception& e){return luaL_error(L,"%s",e.what());}
     }

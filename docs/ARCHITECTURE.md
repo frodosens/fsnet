@@ -51,14 +51,15 @@ Gateway 使用独立后端连接委托可信账号，转发属性流并恢复迁
 
 最低要求是读取带版本的记录、按预期版本原子替换、按版本删除。版本在删除/重建后不能复用。Storage 不要求 SQL、多记录事务或数据库服务。Database 是旧接口名称的兼容别名。
 
-Memory/SQLite 可以提供可选的 transact 扩展，但实体宿主、目录路由、所有权和 EntityStore 不调用它。多实体变更不伪装成原子事务，由脚本使用消息、幂等、Saga 或 outbox 协议组织；自动 outbox 调度仍待补齐。
+Memory/SQLite 可以提供可选的 transact 扩展，但实体宿主、目录路由、所有权和 EntityStore 不调用它。多实体变更不伪装成原子事务，业务用脚本定义补偿与状态推进；框架已提供[持久命令 outbox/inbox](ENTITY_DELIVERY.md)，状态与发送意图共同提交，确认后推进完成结果。
 
-每个托管实体使用一个 FER1 记录：
+每个托管实体使用一个 FER1/FER2/FER3 记录：
 
 ```text
 entity-key = 类型 + 实体 ID
 record = owner incarnation + lease expiry + fencing counter
        + opaque script state + bounded request receipts
+       + optional durable outbox / inbox cursors / channel counters
 ```
 
 owner、租约、状态和去重结果共同受一次单记录 CAS 保护。接管会替换同一个记录，导致旧 owner 的预期版本失效；提交无需同时修改两个 key。
@@ -76,6 +77,30 @@ owner、租约、状态和去重结果共同受一次单记录 CAS 保护。接�
 同一实体的不同方法和 tick 共享 mailbox，await 期间不释放。其他实体可以继续推进。Lua/Node/宿主均在所属线程调度，数据库或文件操作在独立存储线程执行。CPU 扩容使用多个分片/节点/进程，不把一个 Lua VM 放到多个线程并发执行。
 
 脚本失败不发布返回的新状态；下一次请求恢复已提交状态。已经发送的外部 RPC 副作用不受本地 CAS 回滚，必须另行幂等。状态聚合可表示玩家、房间或场景，C++ 不内置玩法规则。
+
+## 服务端持久命令
+
+服务端实体事务内 `ref:send(method,payload)` 暂存命令；父事务成功提交后才投递。
+接收方把状态和 inbox 水位同一次 CAS 提交，源方再经 mailbox 保存完成结果。
+超时、断线、过载和迁移保留 pending，业务 reject/明确失败作为结果持久保存。
+
+```mermaid
+sequenceDiagram
+    participant A as 源实体
+    participant D as 共享 CAS 存储
+    participant W as 投递器
+    participant B as 目标实体当前 owner
+    A->>D: 状态 + outbox 同记录提交
+    W->>D: 从持久源索引发现待发消息
+    W->>B: 按逻辑实体路由，重复使用 ticket/序号
+    B->>D: 业务状态 + inbox 水位同记录提交
+    B-->>W: 成功或明确失败的持久确认
+    W->>A: 经 mailbox 提交完成结果
+```
+
+每源 FIFO，不保证跨源全序。完成结果由业务查询后显式清理；接收水位不采用普通回执的
+64 条淘汰窗口。源/目标 epoch 防止旧消息作用于删除重建的新实例。
+这不改变同步 call、客户端输入或外部支付/邮件的语义，详见 [ENTITY_DELIVERY.md](ENTITY_DELIVERY.md)。
 
 ## 所有权、接管和重试
 
@@ -95,7 +120,7 @@ ICE/STUN/TURN 直连与中继原语已实现并做本机验证；原始 IcePeer 
 
 - 文件后端支持本机多进程、持久化与崩溃恢复，不会把每台机器自己的目录自动复制成一致存储。跨机器 HA 需要具备相同 CAS/持久化语义的共享或复制后端，不能靠文件复制或健康检查假定一致性。
 - PostgreSQL 适配器已实现，使用单记录条件 INSERT/UPDATE/DELETE；TLS、跨连接 CAS、实体进程接管与数据库崩溃恢复已验证。主备复制/仲裁与跨机 HA 仍需单独部署验收，数据库不是实体运行时的必需条件。
-- 固定步长 tick、句柄代数、快照恢复和空闲卸载已实现。可部署启动器、指标、打包与本机多进程故障验收已交付；Native/Lua客户端SDK已交付；图形/浏览器适配、自动outbox与跨机长稳容量仍待完成。
+- 固定步长 tick、句柄代数、快照恢复和空闲卸载已实现。可部署启动器、指标、打包与本机多进程故障验收已交付；Native/Lua客户端SDK已交付；持久命令及重启补投已交付；图形/浏览器适配与跨机长稳容量仍待完成。
 - 整体仍在分阶段交付，尚未标为任意规模通用游戏的生产验收版本。当前测试证据见 VALIDATION.md。
 
 ## 服务端生命周期

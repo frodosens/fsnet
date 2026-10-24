@@ -62,7 +62,7 @@ std::string delivery_ticket(const DeliveryEnvelope& e){
 }
 std::string delivery_digest(const DeliveryEnvelope& e){return hash(encode_delivery(e));}
 std::string encode_delivery_ack(const std::string& ticket,const Result& value){if(ticket.size()!=64)throw std::invalid_argument("invalid delivery ACK");std::string out="FDA1";blob(out,ticket);result(out,value);return out;}
-std::pair<std::string,Result> decode_delivery_ack(std::string_view in){if(!in.starts_with("FDA1"))throw std::invalid_argument("invalid delivery ACK");in.remove_prefix(4);auto ticket=blob(in);auto value=result(in);end(in);if(ticket.size()!=64)throw std::invalid_argument("invalid ACK ticket");return {std::move(ticket),std::move(value)};}
+std::pair<std::string,Result> decode_delivery_ack(std::string_view in){if(!in.starts_with("FDA1") || in.size()>delivery_payload_limit+128)throw std::invalid_argument("invalid delivery ACK");in.remove_prefix(4);auto ticket=blob(in);auto value=result(in);end(in);if(ticket.size()!=64)throw std::invalid_argument("invalid ACK ticket");return {std::move(ticket),std::move(value)};}
 std::string encode_delivery_state(const EntityDeliveryState& s){
     if(!s.epoch||s.sent.size()>4096||s.inbox.size()>4096||s.outbox.size()>1024)throw std::invalid_argument("invalid delivery state");
     std::string out="FDS1";integer(out,s.epoch);number(out,s.sent.size());

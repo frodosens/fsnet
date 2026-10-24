@@ -62,3 +62,7 @@ SIGKILL、失去所有权、预算耗尽或进程直接 stop 不保证卸载 hoo
 `Class:transfer(id, target_node)` 将持久状态交给指定稳定节点，目标确认激活后返回状态。
 `on_deactivate` 收到 `transfer`，目标执行 `on_activate`；不能在目标自身 mailbox 中等待迁移。
 带目标的记录使用 FER3，普通提交继续保留 placement。详见[交接协议与升级约束](ENTITY_TRANSFER.md)。
+
+持久命令启用时，存在 pending outbox 会拒绝永久删除；销毁 hook 本次暂存的新命令也会使
+销毁回滚，不能一边接受发送意图一边删除它。需要发消息再删除时，先在普通业务事务中
+提交命令，确认完成后再删除。后台 delivery ACK 不触发激活/卸载，续租保留驻留临时状态。

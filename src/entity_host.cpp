@@ -115,6 +115,13 @@ struct EntityScriptHost::Impl : std::enable_shared_from_this<Impl> {
             slot.transient_revision = job->attributes->current.revision;
         } else counters.transient_bytes -= job->cache_growth;
         job->cache_growth = 0;
+        if(it!=slots.end() && result.status==Status::ok && job->metadata_only && job->previously_owned) {
+            // A protocol-only commit may renew this process's lease. Its state
+            // and local activation did not change; carry the cache across that
+            // renewal exactly as a normal state commit does.
+            if(it->second.transient_fence==job->previous_fence) it->second.transient_fence=job->fence;
+            if(it->second.activated && it->second.activation_fence==job->previous_fence) it->second.activation_fence=job->fence;
+        }
         if (it != slots.end()) { it->second.busy = false; it->second.touched = Clock::now();
             if (result.status == Status::ok && !job->metadata_only) { it->second.activated = true; it->second.activation_fence=job->fence; }
             else if ((!job->fence && !job->preserve_activation) || job->owner_lost) it->second.activated = false;
@@ -260,7 +267,7 @@ struct EntityScriptHost::Impl : std::enable_shared_from_this<Impl> {
         job->preserve_activation=job->request.incoming.has_value() || job->request.ack.has_value();
         active.emplace(entity, job);
         auto owner_id = owner; auto clock = now; auto settings = limits;
-        auto accepted = storage.submit(job->request.bytes + limits.state_bytes + limits.receipt_bytes,
+        auto accepted = storage.submit(job->request.bytes + limits.state_bytes + limits.receipt_bytes + limits.delivery_bytes,
             [job, owner_id, clock, settings](Database& db) {
                 for (int attempt = 0; attempt < 4; ++attempt) {
                     auto record = db.get(record_key(job->entity));
@@ -311,9 +318,9 @@ struct EntityScriptHost::Impl : std::enable_shared_from_this<Impl> {
                             if(m.sequence!=expected || (found==job->delivery.inbox.end() && job->delivery.inbox.size()>=settings.delivery_channels)) { job->status=Status::overloaded;return; }
                             auto source=db.get(entity_record_key(incoming.source_type,incoming.source_id));
                             if(!source) { job->status=Status::rejected;return; }
-                            auto state=decode_entity_record(source->value).snapshot.delivery;
+                            auto source_record=decode_entity_record(source->value);const auto& state=source_record.snapshot.delivery;
                             bool valid=false;
-                            if(state.epoch==incoming.source_epoch) for(const auto& pending:state.outbox)
+                            if(source_record.initialized && state.epoch==incoming.source_epoch) for(const auto& pending:state.outbox)
                                 if(!pending.done && pending.ticket==m.ticket && encode_delivery({incoming.source_type,incoming.source_id,incoming.source_epoch,pending})==encode_delivery(incoming)) { valid=true;break; }
                             if(!valid) { job->status=Status::rejected;return; }
                         }
@@ -327,7 +334,7 @@ struct EntityScriptHost::Impl : std::enable_shared_from_this<Impl> {
                         }
                     }
                     if(job->request.route==job->request.method->type+".$destroy")
-                        for(const auto& m:job->delivery.outbox) if(!m.done) {job->status=Status::overloaded;return;}
+                        for(const auto& m:job->delivery.outbox) if(!m.done) {job->preserve_activation=true;job->status=Status::overloaded;return;}
                     job->state = current.snapshot.state; job->receipts = current.snapshot.receipts;
                     job->previously_owned = current.owner == owner_id; job->previous_fence = current.fence;
                     if (!job->request.request_id.empty()) for (const auto& receipt : job->receipts) {
@@ -450,6 +457,7 @@ struct EntityScriptHost::Impl : std::enable_shared_from_this<Impl> {
                     }
                     auto next = parse_state_message(result.data);
                     if (!next) return owner->complete(job, {Status::internal, {}});
+                    std::string{}.swap(job->rollback);job->delivery_rollback.reset();
                     if (next->state.size() > owner->limits.state_bytes || next->payload.size() > owner->limits.queued_bytes)
                         return owner->complete(job, {Status::overloaded, {}});
                     if (job->attributes) {
@@ -478,11 +486,6 @@ struct EntityScriptHost::Impl : std::enable_shared_from_this<Impl> {
                     while (!job->receipts.empty() && (job->receipts.size() > owner->limits.receipts || receipt_bytes > owner->limits.receipt_bytes)) {
                         receipt_bytes -= job->receipts.front().bytes(); job->receipts.erase(job->receipts.begin());
                     }
-                    const auto retained = (job->attributes ? 4*attribute_image_bytes(job->attributes->current.values)+4*attribute_image_bytes(job->attributes->previous.values) : 0) + (job->attributes ? 5 : 1) * job->state.size() + job->transient.size() * 4 + job->output.size() + receipt_bytes + 12 + (job->delivery.epoch?2*encode_delivery_state(job->delivery).size():0);
-                    if (retained > owner->limits.resident_bytes - owner->counters.state_bytes + job->resident)
-                        return owner->complete(job, {Status::overloaded, {}});
-                    owner->counters.state_bytes = owner->counters.state_bytes - job->resident + retained;
-                    job->resident = retained;
                     if (job->attributes) {
                         auto found = owner->slots.find(job->entity);
                         if (found == owner->slots.end()) return owner->complete(job, {Status::disconnected, {}});
@@ -494,15 +497,28 @@ struct EntityScriptHost::Impl : std::enable_shared_from_this<Impl> {
                     }
                     if(job->request.incoming) {
                         const auto& incoming=*job->request.incoming;
-                        auto value=job->request.delivery_error.value_or(job->delivery_result.value_or(Result{Status::ok,job->output}));
-                        if(value.data.size()>delivery_payload_limit) return owner->complete(job,{Status::overloaded,{}});
+                        const auto* outcome=job->request.delivery_error?&*job->request.delivery_error:(job->delivery_result?&*job->delivery_result:nullptr);
+                        const auto& response=outcome?outcome->data:job->output;
+                        if(response.size()>delivery_payload_limit) return owner->complete(job,{Status::overloaded,{}});
+                        Result value{outcome?outcome->status:Status::ok,response};
                         job->delivery.inbox[delivery_channel(incoming.source_type,incoming.source_id,incoming.source_epoch)]={incoming.message.sequence,delivery_digest(incoming),value};
                         job->output=encode_delivery_ack(incoming.message.ticket,value);
                     }
+                    // Destruction hooks may have staged new commands since
+                    // acquisition. They must not be erased by the same destroy.
+                    if(job->request.route==job->request.method->type+".$destroy")
+                        for(const auto& m:job->delivery.outbox) if(!m.done) return owner->complete(job,{Status::overloaded,{}});
                     try {
                         if(job->delivery.epoch && (job->delivery.outbox.size()>owner->limits.delivery_messages || job->delivery.inbox.size()>owner->limits.delivery_channels ||
                            job->delivery.sent.size()>owner->limits.delivery_channels || delivery_charge(job->delivery)>owner->limits.delivery_bytes)) return owner->complete(job,{Status::overloaded,{}});
                     } catch(...) {return owner->complete(job,{Status::overloaded,{}});}
+                    // Count the new inbox/result and the encoded ACK, not just
+                    // the pre-delivery protocol image.
+                    const auto retained = (job->attributes ? 4*attribute_image_bytes(job->attributes->current.values)+4*attribute_image_bytes(job->attributes->previous.values) : 0) + (job->attributes ? 5 : 1) * job->state.size() + job->transient.size() * 4 + job->output.size() + receipt_bytes + 12 + (job->delivery.epoch?2*encode_delivery_state(job->delivery).size():0);
+                    if (retained > owner->limits.resident_bytes - owner->counters.state_bytes + job->resident)
+                        return owner->complete(job, {Status::overloaded, {}});
+                    owner->counters.state_bytes = owner->counters.state_bytes - job->resident + retained;
+                    job->resident = retained;
                     bool release=Impl::is_control(job->request.route,job->request.method->type);
                     job->persisted = encode_entity_record({release?std::string{}:owner->owner,release?0:job->expires,job->fence,
                         {std::move(job->state),std::move(job->receipts),std::move(job->delivery)},release?!job->created:true,

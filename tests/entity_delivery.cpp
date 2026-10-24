@@ -42,12 +42,19 @@ Receiver:register()
 local Source=fsnet.Entity:extend('Source',{owner='id'})
 Source:attr('issued',{type='int32',default=0,sync='owner'})
 Source:attr('activations',{type='int32',default=0,sync='owner'})
+Source:attr('destroy_sends',{type='bool',default=false,sync='none'})
+Source:attr('temporary',{type='int32',default=0,persist=false,sync='owner'})
 Source:attr('ticket',{type='string',default='',sync='owner'})
 function Source:on_activate() self.activations=self.activations+1 end
+function Source:on_destroy() if self.destroy_sends then Receiver:ref('bob'):send('reward','10000') end end
+Source:rpc('arm_destroy',{callers={'server'}})
+function Source:arm_destroy(data) self.destroy_sends=data~='no';return '' end
 Source:rpc('issue',{callers={'server'}})
 function Source:issue(data)
-    self.ticket=Receiver:ref('bob'):send('reward',data);self.issued=self.issued+1;return self.ticket
+    self.ticket=Receiver:ref('bob'):send('reward',data);self.issued=self.issued+1;self.temporary=self.temporary+1;return self.ticket
 end
+Source:rpc('temporary_value',{callers={'server'}})
+function Source:temporary_value() return tostring(self.temporary) end
 Source:rpc('abort',{callers={'server'}})
 function Source:abort(data) Receiver:ref('bob'):send('reward',data);self.issued=999;error('rollback') end
 Source:rpc('flood',{callers={'server'}})
@@ -94,9 +101,11 @@ int main(int argc,char** argv){try{
     auto directory=std::filesystem::temp_directory_path()/("fsnet-durable-"+std::to_string(std::chrono::steady_clock::now().time_since_epoch().count()));
     struct Cleanup{std::filesystem::path path;~Cleanup(){std::filesystem::remove_all(path);}}cleanup{directory};
     auto db=std::make_shared<FaultStorage>(fsnet::file_storage(directory.string()));fsnet::Node a("t"),b("t"),c("t"),admin("t");a.identify(identity);b.identify(identity);c.identify(identity);
-    auto ah=std::make_shared<fsnet::EntityScriptHost>(std::make_shared<fsnet::NodeScriptHost>(a),db,"a/boot");
-    auto bh=std::make_shared<fsnet::EntityScriptHost>(std::make_shared<fsnet::NodeScriptHost>(b),db,"b/boot");
-    auto ch=std::make_shared<fsnet::EntityScriptHost>(std::make_shared<fsnet::NodeScriptHost>(c),db,"c/boot");
+    std::atomic<std::int64_t> clock{std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count()};
+    auto now=[&]{return clock.load();};
+    auto ah=std::make_shared<fsnet::EntityScriptHost>(std::make_shared<fsnet::NodeScriptHost>(a),db,"a/boot",fsnet::EntityRuntimeLimits{},fsnet::StorageLimits{},now);
+    auto bh=std::make_shared<fsnet::EntityScriptHost>(std::make_shared<fsnet::NodeScriptHost>(b),db,"b/boot",fsnet::EntityRuntimeLimits{},fsnet::StorageLimits{},now);
+    auto ch=std::make_shared<fsnet::EntityScriptHost>(std::make_shared<fsnet::NodeScriptHost>(c),db,"c/boot",fsnet::EntityRuntimeLimits{},fsnet::StorageLimits{},now);
     auto ap=a.listen("127.0.0.1",0),bp=b.listen("127.0.0.1",0),cp=c.listen("127.0.0.1",0);
     std::vector<fsnet::EntityEndpoint> endpoints={{"a","127.0.0.1",ap,{"Source","Receiver"}},{"b","127.0.0.1",bp,{"Source","Receiver"}},{"c","127.0.0.1",cp,{"Source","Receiver"}}};
     fsnet::EntityDeliveryLimits dl;dl.retry=2ms;dl.refresh=5ms;dl.timeout=100ms;
@@ -126,11 +135,21 @@ int main(int argc,char** argv){try{
     auto issue=source("issue","7");CHECK(issue.status==fsnet::Status::ok && issue.data.size()==64 && pending()==1 && gold()==0);
     auto ticket=issue.data;auto stored=record("Source","alice").snapshot.delivery;auto original=fsnet::DeliveryEnvelope{"Source","alice",stored.epoch,stored.outbox.front()};
     CHECK(source("status").data=="pending:0:");CHECK(source("forget").data=="false");
+    auto before_destroy=fsnet::decode_attributes(record("Source","alice").snapshot.state).values.at("activations");
     CHECK(wait([&](auto cb){ah->control_entity("Source","alice",true,cb);}).status==fsnet::Status::overloaded);
+    CHECK(source("status").data=="pending:0:");
+    CHECK(fsnet::decode_attributes(record("Source","alice").snapshot.state).values.at("activations")==before_destroy);
     // Receiver migrates while its reward remains durably queued.
     CHECK(wait([&](auto cb){bt.transfer("Receiver","bob","c",cb);}).status==fsnet::Status::ok);
+    // Force the background source ACK to renew its lease. Protocol-only work
+    // must preserve activation and persist=false state on the resident source.
+    auto activation=fsnet::decode_attributes(record("Source","alice").snapshot.state).values.at("activations");
+    clock+=31000;
     db->fail_receiver=true;workers=true;until([&]{return pending()==0;});CHECK(gold()==7 && db->failed==2);
-    CHECK(source("status").data=="succeeded:0:7");CHECK(source("forget").data=="true");
+    CHECK(source("status").data=="succeeded:0:7");
+    CHECK(source("temporary_value").data=="1");
+    CHECK(fsnet::decode_attributes(record("Source","alice").snapshot.state).values.at("activations")==activation);
+    CHECK(source("forget").data=="true");
     auto mutated=original;mutated.message.payload="999";
     CHECK(rpc(peer_c,"system.delivery.receive",fsnet::encode_delivery(mutated)).status==fsnet::Status::rejected && gold()==7);
     mutated=original;mutated.message.sequence=2;mutated.message.ticket=fsnet::delivery_ticket(mutated);
@@ -145,6 +164,11 @@ int main(int argc,char** argv){try{
     CHECK(source("status").data.starts_with("failed:5:"));CHECK(record("Receiver","bob").snapshot.delivery.outbox.empty());CHECK(source("forget").data=="true");
     CHECK(source("wrong_policy").status==fsnet::Status::ok);until([&]{return pending()==0;});CHECK(gold()==77);CHECK(source("status").data.starts_with("failed:5:"));CHECK(source("forget").data=="true");
     CHECK(source("missing_method").status==fsnet::Status::ok);until([&]{return pending()==0;});CHECK(source("status").data.starts_with("failed:1:"));CHECK(source("forget").data=="true");
+    // A destruction hook cannot stage a command and erase it in the same CAS.
+    CHECK(source("arm_destroy").status==fsnet::Status::ok);
+    CHECK(wait([&](auto cb){ah->control_entity("Source","alice",true,cb);}).status==fsnet::Status::overloaded);
+    CHECK(pending()==0 && gold()==77);
+    CHECK(source("arm_destroy","no").status==fsnet::Status::ok);
     // Source migrates with its outbox. A replacement worker rediscovers it
     // from persisted registration, without replaying the original source RPC.
     workers=false;CHECK(source("issue","3").status==fsnet::Status::ok);

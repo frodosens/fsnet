@@ -298,3 +298,39 @@ Python语法、当前Markdown本地链接、git diff --check通过。未重跑�
 
 验证范围为本机进程。未验收跨机 HA、真实网络分区、长稳容量或迁移输入自动补发；
 也不表示脚本模块/在线 schema 迁移已实现。升级与失败恢复合同见 [ENTITY_TRANSFER.md](ENTITY_TRANSFER.md)。
+
+
+## 持久化实体命令收尾（2026-10-24）
+
+`811b03a` 已提交 outbox/inbox 初版；本阶段完成生命周期、内存预算和交付检查。
+使用仓库 `.dev` 固定工具链、Lua ON、PostgreSQL OFF：
+
+| 配置/检查 | 结果 |
+| --- | --- |
+| Debug | CTest 39/39 通过 |
+| ASan/UBSan，detect_leaks/halt_on_error | CTest 23/23 通过 |
+| Lua OFF 核心（复用 Debug 依赖，随后恢复 Lua ON） | CTest 13/13 通过 |
+| Python 夹具语法、本地 Markdown 链接、git diff --check | 通过 |
+
+`fsnet-delivery-codec` 原生检查 FSP1/FSP2 兼容、二进制消息/确认、全部截断位置、超大载荷、
+重复 ticket 和索引拒绝，不依赖 Lua。`fsnet-durable` 通过共享文件 CAS 与三个真实 Node 验证：
+
+- 源状态/outbox 同提交、失败回滚、源与目标最终 CAS 故障后不发布半份结果。
+- 容量耗尽明确拒绝、pending 不允许清理、成功及明确失败结果查询和显式清理。
+- 超过普通 64 条回执窗口后的重放隔离、内容篡改及伪造下一序号拒绝。
+- 业务 reject 时回滚其暂存的后续命令，保留失败确认并推进水位。
+- 接收方迁移、发送方携带 outbox 迁移、持久索引重新发现、删除重建 epoch 隔离。
+- 非 server 及不可信 server 拒绝；无 pending 时销毁 hook 新建命令也不得随销毁被抹掉。
+- 拒绝删除 pending 源实体不破坏激活标记；后台确认触发续租时保留 persist=false 属性与激活次数。
+
+`fsnet-durable-process` 在独立发送方/接收方进程上验证两种边界：源返回已提交 ticket 后
+SIGKILL，重启后自动补投；接收方奖励和 inbox 提交后故意丢弃确认并 SIGKILL，重启重放
+原确认且奖励不重复。临时共享 POSIX 存储和进程均在 finally 中清理。
+
+`fsnet-delivery` 保留原 mTLS/Gateway、故障接管、属性合批和指定目标往返检查，并新增
+服务端源实体创建标志与 outbox 同提交，经真实 owner 证书白名单投递到目标实体，客户端
+确认同步属性；重复发布不产生第二笔奖励。SDK 安装重定位随 Debug 全量测试通过。
+
+修正 ACK/新 inbox 生成后的驻留预算统计，并提前检查 Lua 参数和确认帧大小。
+上述结果不代表跨机 HA、数据库副本丢失恢复、无限消息容量或外部副作用 exactly-once。
+协议/API/升级约束见 [ENTITY_DELIVERY.md](ENTITY_DELIVERY.md)。

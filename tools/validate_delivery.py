@@ -74,7 +74,7 @@ with tempfile.TemporaryDirectory(prefix='fsnet-delivery-') as directory:
     (root/'gateways.tsv').write_text(f'{fingerprint("gateway")} gateway\n')
     (root/'owners.tsv').write_text(f'{fingerprint("ownera")} ownera\n{fingerprint("ownerb")} ownerb\n')
     (root/'clients.tsv').write_text(f'{fingerprint("alice")} alice\n')
-    (root/'routes.tsv').write_text('account login Actor\naccount travel Actor\nentity Actor move\n')
+    (root/'routes.tsv').write_text('account login Actor\naccount travel Actor\naccount publish Actor\nentity Actor move\n')
     base=dict(os.environ,FSNET_CLUSTER_TOKEN='',FSNET_STORAGE_URI='file:'+str(root/'state'),FSNET_BIND_ADDRESS='127.0.0.1',FSNET_ENTITY_LEASE_MS='2000')
     for key in ('FSNET_DATABASE_PATH','FSNET_TLS_CA','FSNET_TLS_CERTIFICATE','FSNET_TLS_KEY','FSNET_TLS_PEER_NAME','FSNET_METRICS_FILE','FSNET_ENTITY_ENDPOINTS','FSNET_OWNER_PINS'): base.pop(key,None)
     def environment(name,peer='',metric=None):
@@ -87,8 +87,11 @@ Actor:attr('position',{type='vec3',client='rw',sync='observers'})
 Actor:attr('payload',{type='string',default=string.rep('p',1024),sync='owner'})
 Actor:attr('activations',{type='int32',default=0,sync='owner'})
 Actor:attr('created',{type='int32',default=0,sync='owner'})
+Actor:attr('credits',{type='int32',default=0,sync='owner'})
 function Actor:on_create() self.created=self.created+1 end
 function Actor:on_activate() self.activations=self.activations+1 end
+Actor:rpc('award',{callers={'server'}})
+function Actor:award(data) assert(self.context.caller=='server');self.credits=self.credits+assert(tonumber(data));return tostring(self.credits) end
 Actor:rpc('move',{callers={'client'},access='owner'})
 function Actor:move(data) assert(self.context.subject==self.id and self.context.caller=='client'); self.position.x=self.position.x+assert(tonumber(data)); return self.id end
 function Actor:validate_write(values) return not values.position or math.abs(values.position.x)<1000000 end
@@ -97,6 +100,11 @@ Actor:define()
     server_script=root/'server.lua'
     server_script.write_text(shared+"""
 Actor:register()
+local Journal=fsnet.Entity:extend('Journal',{owner='id'})
+Journal:attr('ticket',{type='string',default='',sync='none'})
+function Journal:on_create() self.ticket=Actor:ref(self.id):send('award','5') end
+Journal:register()
+runtime.rpc('publish',{callers={'client'},handler=function(ctx) Journal:spawn_or_restore(ctx.subject);return 'accepted' end})
 runtime.rpc('login',{callers={'client'},handler=function(ctx,name)
     local actor=Actor:spawn_or_restore(ctx.subject)
     actor:show_to(ctx.peer);actor:possess(ctx.peer);return actor.id
@@ -118,7 +126,7 @@ end})
             rejected=subprocess.run([str(args.service),'owner',str(server_script),'0','ownera',str(root/'gateways.tsv')],env=invalid,capture_output=True,text=True,timeout=5)
             assert rejected.returncode!=0 and 'listening ' not in rejected.stdout,(rejected.stdout,rejected.stderr)
         a,ap=owner('ownera');b,bp=owner('ownerb')
-        (root/'endpoints.tsv').write_text(f'ownera 127.0.0.1 {ap} Actor ownera.fsnet\nownerb 127.0.0.1 {bp} Actor ownerb.fsnet\n')
+        (root/'endpoints.tsv').write_text(f'ownera 127.0.0.1 {ap} Actor,Journal ownera.fsnet\nownerb 127.0.0.1 {bp} Actor,Journal ownerb.fsnet\n')
         gateway_metric=root/'gateway.json';metrics_paths.append(gateway_metric)
         gateway=subprocess.Popen([str(args.service),'gateway','0',str(root/'endpoints.tsv'),str(root/'clients.tsv'),str(root/'routes.tsv')],env=environment('gateway',metric=gateway_metric),stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True)
         processes.append(gateway);text=line(gateway);assert text.startswith('listening '),text;gateway_port=int(text.split()[1])
@@ -220,12 +228,18 @@ runtime.start(function()
     assert(tonumber(result)==runtime.status.ok)
     while actor.activations<=previous do runtime.sleep(5) end
     assert(fsnet.entities:get('Actor',id).entity==actor and entered==1 and actor.position.x==value+1)
+    assert(runtime.server_request('publish','')=='accepted')
+    while actor.credits<5 do runtime.sleep(5) end
+    assert(actor.credits==5)
+    assert(runtime.server_request('publish','')=='accepted')
+    assert(actor.credits==5) -- source creation marker prevents a second command
+    print('durable_tls_complete')
     print('directed_complete')
     fsnet.entities:stop()
 end)
 """)
         third=run_client(directed,environment('alice','gateway.fsnet'))
-        assert third.returncode==0 and 'directed_complete' in third.stdout,(third.returncode,third.stdout,third.stderr)
+        assert third.returncode==0 and 'directed_complete' in third.stdout and 'durable_tls_complete' in third.stdout,(third.returncode,third.stdout,third.stderr)
         deadline=time.monotonic()+5
         while time.monotonic()<deadline:
             sample();value=json.loads(gateway_metric.read_text())
@@ -238,7 +252,7 @@ end)
             value=json.loads(metric.read_text())
             assert value['ready'] is False,value
             if value['mode']=='owner':assert value['entities']==0 and value['pending']==0,value
-        report={'checks':['unsafe launcher configuration rejected','mutual TLS','untrusted CA rejected','unmapped certificate rejected','authenticated account delegation','automatic subscription','SIGKILL takeover with confirmed state','same RPC ID replay across owners','shared field batch load','graceful owner handoff','directed owner handoff over mutual TLS','directed round trip preserves Lua object','stable frontend entity','resource cleanup','readiness and metrics'],
+        report={'checks':['unsafe launcher configuration rejected','mutual TLS','untrusted CA rejected','unmapped certificate rejected','authenticated account delegation','automatic subscription','SIGKILL takeover with confirmed state','same RPC ID replay across owners','shared field batch load','graceful owner handoff','directed owner handoff over mutual TLS','directed round trip preserves Lua object','durable command over mutual TLS with pinned owner roles','stable frontend entity','resource cleanup','readiness and metrics'],
                 'rounds':args.rounds,'batch_seconds':batch_seconds,'batch_rounds_per_second':args.rounds/batch_seconds,'batch_timing_scope':'parent observes recovered to load_done; one serial Lua vec3 batch per persistent commit, includes replication, no startup/crash recovery','recovery_seconds':recovery_seconds,'elapsed_seconds':time.monotonic()-started,'peaks':peaks,
                 'scope':'local processes, shared POSIX file storage, ephemeral PKI; not cross-machine HA or a production SLO',
                 'service_sha256':hashlib.sha256(args.service.read_bytes()).hexdigest(),'client_sha256':hashlib.sha256(args.client.read_bytes()).hexdigest()}

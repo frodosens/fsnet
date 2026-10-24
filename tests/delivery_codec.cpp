@@ -11,6 +11,9 @@ int main(){try{
     CHECK(decoded.message.payload==e.message.payload && decoded.message.ticket==e.message.ticket);
     for(std::size_t n=0;n<packet.size();++n)rejects([&]{fsnet::decode_delivery(std::string_view(packet).substr(0,n));});
     auto invalid=e;invalid.message.ticket[0]=invalid.message.ticket[0]=='a'?'b':'a';rejects([&]{fsnet::decode_delivery(fsnet::encode_delivery(invalid));});
+    invalid=e;invalid.message.payload.resize(fsnet::delivery_payload_limit+1);
+    rejects([&]{fsnet::encode_delivery(invalid);});
+    rejects([&]{fsnet::decode_delivery_ack(std::string("FDA1")+std::string(fsnet::delivery_payload_limit+128,'x'));});
     fsnet::EntitySnapshot snapshot;snapshot.state=std::string("state\0bytes",11);snapshot.receipts.push_back({"old-id","route","input","output"});
     auto old=fsnet::encode_snapshot(snapshot);CHECK(old.starts_with("FSP1"));CHECK(fsnet::decode_snapshot(old).state==snapshot.state);
     snapshot.delivery.epoch=e.source_epoch;snapshot.delivery.outbox.push_back(e.message);

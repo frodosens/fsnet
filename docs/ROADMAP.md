@@ -16,6 +16,7 @@
 | 2.4：共用差量与合批（已实现） | 客户端 batch、递归字段/容器差量、默认上下行共用生成器、候选补丁应用 | ATTRIBUTE_BATCHING.md、FIELD_PATH_DELTAS.md、SHARED_ATTRIBUTE_DELTAS.md；固定 ID 全值回退，无公共前缀树、定时帧合包或跨实体事务 |
 | 3：持久化与接管 | 异步存储执行器（已实现）、生产数据库适配器、单记录 CAS/幂等、fencing 与恢复编排 | 独立进程接管、旧 owner 写入拒绝、存储失败与重试边界 |
 | 3.1：生命周期与跨节点客户端接入（已实现） | create/activate/deactivate/destroy、drain；Gateway 可信账号委托、订阅转发、指定目标交接与 owner 迁移 | ENTITY_LIFECYCLE.md、CLIENT_GATEWAY.md、ENTITY_TRANSFER.md；默认只自动恢复账号所属实体，AOI 需可信策略 |
+| 3.2：持久实体命令（已实现） | 原子 outbox/inbox、每源 FIFO、持久水位去重、迁移/重启补投、结果查询与显式清理 | ENTITY_DELIVERY.md；有资源上限，普通 call/外部副作用不自动纳入，不承诺跨源顺序或跨实体事务 |
 | 4：安全与 P2P 集成 | 加密、客户端身份与授权、认证信令、NAT/中继接入及配额 | 恶意请求与重放检查；真实跨 NAT 测试需要相应网络环境；明确 UDP 禁用时的能力边界 |
 | 5：迁移与发布（部分交付） | 可重定位包、部署模板、readiness/指标、独立进程故障验证已实现；Native/Lua客户端SDK已交付；图形适配、跨机HA与长稳容量待完成 | PRODUCTION.md；本机 mTLS 故障/负载与安装包验收，不以回环吞吐推算在线人数 |
 

@@ -62,7 +62,8 @@ struct EntityDelivery::Impl:std::enable_shared_from_this<Impl> {
             for(auto& m:state.outbox)if(!m.done){*envelope=DeliveryEnvelope{source.first,source.second,state.epoch,std::move(m)};break;}
         },[weak=weak_from_this(),op,envelope](std::exception_ptr error){
             auto self=weak.lock();if(!self||self->stopped||op->done)return;
-            if(error||!*envelope)return self->finish(op,true);
+            if(error)return self->finish(op);
+            if(!*envelope)return self->finish(op,true);
             op->envelope=std::move(**envelope);self->deliver(op);
         }))finish(op);
     }
