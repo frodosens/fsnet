@@ -87,7 +87,8 @@ end})
 | `ref:unpossess(peer)` | 解除控制，保留可见性 |
 
 `sync='observers'` 不等于全服广播，必须有可信观察授权。账号归属与当前控制目标分开。
-可见性/控制是连接内状态，重连需要重建。Gateway 身份委托与订阅迁移尚未实现。
+可见性/控制是连接内状态，重连需要重建。通过 [ClientGateway](CLIENT_GATEWAY.md) 接入时，
+owner 迁移会保留前端订阅和表现对象；Gateway 断线后的重连仍由应用处理。
 
 ## 3. 客户端自动创建与 LocalPlayer/RemotePlayer
 
@@ -284,6 +285,7 @@ Node、宿主、引擎和 manager 在所属线程推进 poll；Node 必须比适
 
 服务端 create/activate/deactivate/destroy hook、卸载/删除与 drain 已实现，见 [生命周期](ENTITY_LIFECYCLE.md)。
 模块资源加载/热更新与状态迁移仍未实现；
-也没有自动几何 AOI、Gateway 身份委托/订阅迁移、跨实体事务、公共前缀树编码或自动输入重发。
+Gateway 身份委托/订阅迁移和可部署启动器见 [跨节点接入](CLIENT_GATEWAY.md)、[交付运行手册](PRODUCTION.md)。
+仍没有自动几何 AOI、跨实体事务、公共前缀树编码或自动输入重发。
 ICE/STUN/TURN 原语不等于完整认证/加密 P2P 链路。完整已实现/计划边界见
 [完成状态](ENGINE_COMPLETION.md)、[路线图](ROADMAP.md)、[验证记录](VALIDATION.md)。

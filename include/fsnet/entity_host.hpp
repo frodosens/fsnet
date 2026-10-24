@@ -51,6 +51,8 @@ public:
     // Runs only after a successful fenced storage CAS, on the owner thread.
     // A throwing listener cannot roll back an already committed entity.
     void on_attributes(AttributeListener);
+    using Closed = std::function<void(const std::string&,const std::string&,bool destroyed)>;
+    void on_closed(Closed);
     std::shared_ptr<const EntitySchema> schema(const std::string& type) const;
     std::string owner_subject(const std::string& type, const std::string& id) const;
     std::string entity_owner(const std::string& type, const std::string& id) const override { return owner_subject(type,id); }

@@ -246,10 +246,10 @@ provide trusted authentication. Lua client carriers use ClientScriptHost and the
 
 ## Remaining integration
 
-Gateway identity delegation, mandatory migration of legacy RPC
-registrations, automatic scene/AOI subscription discovery, and subscription migration
-between owner nodes remain pending. The current native client connects directly to the
-entity owner endpoint; a gateway does not yet proxy these streams. Reconnect requires
+[ClientGateway](CLIENT_GATEWAY.md) delegates authenticated accounts and proxies replication
+with stable frontend subscriptions across owner migration. Mandatory migration of legacy RPC
+registrations and automatic scene/AOI discovery remain pending. Clients can connect directly
+or through the gateway. Reconnect after frontend disconnection requires
 application connection establishment followed by a fresh watch. Browser/engine-specific
 client adapters are not implemented.
 

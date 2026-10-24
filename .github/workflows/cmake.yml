@@ -14,6 +14,20 @@ jobs:
       - run: cmake -S . -B build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DFSNET_WITH_LUA=${{ matrix.lua }}
       - run: cmake --build build -j4
       - run: ctest --test-dir build --output-on-failure
+      - name: Package and validate relocated release
+        if: matrix.build_type == 'Release' && matrix.lua == 'ON'
+        run: |
+          cpack --config build/CPackConfig.cmake -B packages
+          mkdir relocated
+          tar -xzf packages/*.tar.gz -C relocated --strip-components=1
+          python3 relocated/share/fsnet/tools/validate_delivery.py --service "$PWD/relocated/bin/fsnet-service" --client "$PWD/relocated/bin/fsnet-client" --rounds 1000 --output delivery-release.json
+      - uses: actions/upload-artifact@v4
+        if: matrix.build_type == 'Release' && matrix.lua == 'ON'
+        with:
+          name: fsnet-release
+          path: |
+            packages/*.tar.gz
+            delivery-release.json
   sanitize:
     runs-on: ubuntu-latest
     steps:

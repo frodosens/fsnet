@@ -25,6 +25,7 @@ struct Limits {
     std::size_t inflight_requests = 128;
     std::chrono::milliseconds idle_timeout{30000};
 };
+struct TransportStats { std::size_t connections=0,pending=0,inflight=0,queued_bytes=0; };
 // All Node methods/callbacks run on its owning thread. Separate nodes can run on
 // separate threads/processes. No user code runs on a networking worker thread.
 class Node {
@@ -67,6 +68,8 @@ public:
     void run();
     void stop();
     std::size_t pending() const;
+    TransportStats stats() const;
+    void set_ready(bool);
 private:
     struct Impl;
     std::shared_ptr<Impl> impl_;

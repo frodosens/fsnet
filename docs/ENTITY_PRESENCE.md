@@ -118,7 +118,7 @@ models/camera/input 只是图形引擎适配接口示意，不是 fsnet 内置�
 服务端撤销可见性。停止后当前管理器不能重新 start，重新加载需新的引擎。
 
 `runtime.server_request(route,bytes,timeout)` 发往 ClientScriptHost 配置的服务器连接。
-它和实体引用仍然直连当前 owner，不是 Gateway 路由或身份委托。生产连接仍需真实认证。
+该连接可指向 owner 或 [ClientGateway](CLIENT_GATEWAY.md)，后者负责可信委托和 owner 路由。生产连接仍需真实认证。
 
 ## 同步与资源边界
 
@@ -133,7 +133,7 @@ models/camera/input 只是图形引擎适配接口示意，不是 fsnet 内置�
 表现分发空闲时等待 16 ms，图形渲染/插值仍由引擎自身帧循环推进。
 
 服务端创建/激活/卸载和删除 hook 另见 [生命周期](ENTITY_LIFECYCLE.md)。尚未包含场景持久化、自动几何 AOI、
-断线会话的业务回收、跨 Gateway 属性转发/迁移、热更新或输入自动重发。
+断线会话的业务回收、热更新或输入自动重发。Gateway 属性转发与 owner 迁移已实现，见 CLIENT_GATEWAY.md。
 
 ## 验证
 

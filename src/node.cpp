@@ -55,7 +55,7 @@ struct Node::Impl : std::enable_shared_from_this<Node::Impl> {
     IdentityResolver identity_resolver;
     std::unordered_map<std::string, Notification> notifications;
     struct Route { RpcPolicy policy; ContextHandler handler; bool legacy = false; };
-    bool stopped = false;
+    bool stopped = false, ready = true;
     std::uint64_t peer_serial = 0, call_serial = 0;
     std::unordered_map<std::uint64_t, std::shared_ptr<Session>> sessions;
     std::unordered_map<std::uint64_t, Pending> calls;
@@ -296,7 +296,7 @@ void Node::Impl::accept() {
     });
 }
 Node::Node(std::string token, Limits limits, TlsConfig tls) : impl_(std::make_shared<Impl>(std::move(token), limits, std::move(tls))) {
-    bind("system.health", [](std::string, Reply reply) { reply({Status::ok, "ready"}); });
+    bind("system.health", [weak=std::weak_ptr(impl_)](std::string, Reply reply) { auto self=weak.lock(); reply(self&&self->ready?Result{Status::ok,"ready"}:Result{Status::overloaded,"draining"}); });
 }
 Node::~Node() { stop(); }
 std::uint16_t Node::listen(const std::string& address, std::uint16_t port) {
@@ -417,4 +417,6 @@ void Node::stop() {
     impl_->io.restart(); impl_->io.poll(); impl_->io.stop();
 }
 std::size_t Node::pending() const { return impl_->calls.size(); }
+TransportStats Node::stats() const { TransportStats result;result.connections=impl_->sessions.size();result.pending=impl_->calls.size();for(const auto& [id,s]:impl_->sessions){(void)id;result.inflight+=s->inflight;result.queued_bytes+=s->queued;}return result; }
+void Node::set_ready(bool value){impl_->ready=value;}
 }

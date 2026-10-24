@@ -1,0 +1,37 @@
+{
+  "checks": [
+    "unsafe launcher configuration rejected",
+    "mutual TLS",
+    "untrusted CA rejected",
+    "unmapped certificate rejected",
+    "authenticated account delegation",
+    "automatic subscription",
+    "SIGKILL takeover with confirmed state",
+    "same RPC ID replay across owners",
+    "shared field batch load",
+    "graceful owner handoff",
+    "stable frontend entity",
+    "resource cleanup",
+    "readiness and metrics"
+  ],
+  "rounds": 1000,
+  "recovery_seconds": 1.9664987940050196,
+  "elapsed_seconds": 9.325309628999094,
+  "peaks": {
+    "ownera.pending": 1,
+    "ownera.queued_bytes": 136,
+    "ownera.resident_bytes": 43322,
+    "ownera.lua_bytes": 1824338,
+    "ownerb.pending": 0,
+    "ownerb.queued_bytes": 0,
+    "ownerb.resident_bytes": 0,
+    "ownerb.lua_bytes": 478317,
+    "gateway.pending": 1,
+    "gateway.queued_bytes": 133,
+    "gateway.backend_pending": 1
+  },
+  "scope": "local processes, shared POSIX file storage, ephemeral PKI; not cross-machine HA or a production SLO",
+  "service_sha256": "3247f53906b21e8984f424655171c5404a48ac42854b3f21bdd4b20656ec18f8",
+  "client_sha256": "657e0cc4853295e03ea2b4755ca778efc817ff00afe26dc0211cdc701e5e16fb",
+  "library_sha256": "98a6d79515902aaf6c9761487a570a147c58bd966157ee222ce4fee30b41aed9"
+}

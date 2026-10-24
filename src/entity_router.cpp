@@ -18,6 +18,23 @@ std::uint64_t score(const std::string& input) {
     return hash;
 }
 }
+void validate_entity_endpoints(const std::vector<EntityEndpoint>& endpoints) {
+    if(endpoints.empty() || endpoints.size()>1024) throw std::invalid_argument("invalid entity endpoints");
+    std::unordered_set<std::string> ids;
+    for(const auto& e:endpoints) if(e.node.empty() || e.node.size()>127 || e.node.find_first_of("/\0",0,2)!=std::string::npos ||
+        e.address.empty() || !e.port || e.types.empty() || !ids.insert(e.node).second) throw std::invalid_argument("invalid entity endpoint");
+}
+std::optional<std::size_t> select_entity_endpoint(const std::vector<EntityEndpoint>& endpoints,const std::string& type,
+    const std::string& id,const std::optional<EntityLocation>& location,std::int64_t time,const std::function<bool(std::size_t)>& eligible) {
+    std::optional<std::size_t> selected; std::uint64_t best=0;
+    bool owned=location && location->expires_ms>time;
+    for(std::size_t i=0;i<endpoints.size();++i) {
+        const auto& e=endpoints[i]; if(std::find(e.types.begin(),e.types.end(),type)==e.types.end() || (eligible && !eligible(i))) continue;
+        if(owned) { if(location->owner==e.node || location->owner.starts_with(e.node+'/')) return i; }
+        else { auto rank=score(type+'\0'+id+'\0'+e.node); if(!selected || rank>best) {selected=i;best=rank;} }
+    }
+    return selected;
+}
 struct EntityRouter::Impl : std::enable_shared_from_this<Impl> {
     struct Member { EntityEndpoint endpoint; std::uint64_t peer = 0; Clock::time_point retry{}; };
     struct Call {
@@ -32,20 +49,17 @@ struct EntityRouter::Impl : std::enable_shared_from_this<Impl> {
     AsyncDatabase storage;
     EntityRouterLimits limits;
     std::vector<Member> members;
+    std::vector<EntityEndpoint> endpoints;
     std::unordered_map<std::uint64_t, std::shared_ptr<Call>> calls;
     std::size_t bytes = 0;
     std::uint64_t serial = 0;
     bool stopped = false, polling = false;
     Impl(Node& transport, std::shared_ptr<Database> database, std::vector<EntityEndpoint> endpoints, EntityRouterLimits settings)
       : node(transport), storage(std::move(database)), limits(settings) {
-        if (endpoints.empty() || endpoints.size() > 1024 || !limits.requests || !limits.bytes) throw std::invalid_argument("invalid entity router");
-        std::unordered_set<std::string> ids;
-        for (auto& endpoint : endpoints) {
-            if (endpoint.node.empty() || endpoint.node.size() > 127 || endpoint.node.find_first_of("/\0", 0, 2) != std::string::npos ||
-                endpoint.address.empty() || !endpoint.port || endpoint.types.empty() || !ids.insert(endpoint.node).second)
-                throw std::invalid_argument("invalid entity endpoint");
-            members.push_back({std::move(endpoint)});
-        }
+        validate_entity_endpoints(endpoints);
+        if(!limits.requests || !limits.bytes) throw std::invalid_argument("invalid entity router limits");
+        this->endpoints=endpoints;
+        for(auto& endpoint:endpoints) members.push_back({std::move(endpoint)});
     }
     void finish(const std::shared_ptr<Call>& call, Result result) {
         if (std::exchange(call->done, true)) return;
@@ -68,25 +82,13 @@ struct EntityRouter::Impl : std::enable_shared_from_this<Impl> {
             if (!self || self->stopped || call->done) return;
             if (Clock::now() >= call->deadline) return self->finish(call, {Status::timeout, {}});
             if (error) return self->finish(call, {Status::internal, {}});
-            std::optional<std::size_t> selected;
-            std::uint64_t best = 0;
-            const bool owned = *location && (*location)->expires_ms > wall_time();
-            for (std::size_t i = 0; i < self->members.size(); ++i) {
-                const auto& member = self->members[i]; const auto& endpoint = member.endpoint;
-                if (std::find(endpoint.types.begin(), endpoint.types.end(), call->type) == endpoint.types.end()) continue;
-                if (owned) {
-                    const auto& owner = (*location)->owner;
-                    if (owner == endpoint.node || owner.starts_with(endpoint.node + '/')) { selected = i; break; }
-                } else if (Clock::now() >= member.retry) {
-                    auto value = score(call->type + '\0' + call->entity + '\0' + endpoint.node);
-                    if (!selected || value > best) { selected = i; best = value; }
-                }
-            }
+            auto selected=select_entity_endpoint(self->endpoints,call->type,call->entity,*location,wall_time(),
+                [&](std::size_t i) {return Clock::now()>=self->members[i].retry;});
             if (!selected) return self->failed(call, Status::disconnected);
             auto& member = self->members[*selected];
             if (Clock::now() < member.retry) return self->failed(call, Status::disconnected);
             try {
-                if (!member.peer) member.peer = self->node.connect(member.endpoint.address, member.endpoint.port);
+                if (!member.peer) member.peer = self->node.connect(member.endpoint.address, member.endpoint.port, member.endpoint.tls_peer_name);
                 auto remaining = std::chrono::duration_cast<std::chrono::milliseconds>(call->deadline - Clock::now());
                 auto attempt_timeout = std::clamp(remaining, std::chrono::milliseconds(1), std::chrono::milliseconds(1000));
                 self->node.call(member.peer, call->route, call->message, attempt_timeout,

@@ -21,7 +21,8 @@ flowchart TB
     Storage --> PG[PostgreSQL: 可选适配器]
 ```
 
-上图的 Router 是可选路由组合；交付的 Lua 客户端当前直连配置的 owner 端点，不包含 Gateway 身份委托。
+上图的 Router 是可选服务间路由组合；客户端可直连 owner，或通过 ClientGateway 接入多个 owner。
+Gateway 使用独立后端连接委托可信账号，转发属性流并恢复迁移订阅，见 [跨节点接入](CLIENT_GATEWAY.md)。
 
 ## 公共引擎与各端边界
 
@@ -87,7 +88,7 @@ ICE/STUN/TURN 直连与中继原语已实现并做本机验证；原始 IcePeer 
 
 - 文件后端支持本机多进程、持久化与崩溃恢复，不会把每台机器自己的目录自动复制成一致存储。跨机器 HA 需要具备相同 CAS/持久化语义的共享或复制后端，不能靠文件复制或健康检查假定一致性。
 - PostgreSQL 适配器已实现，使用单记录条件 INSERT/UPDATE/DELETE；TLS、跨连接 CAS、实体进程接管与数据库崩溃恢复已验证。主备复制/仲裁与跨机 HA 仍需单独部署验收，数据库不是实体运行时的必需条件。
-- 固定步长 tick、句柄代数、快照恢复和空闲卸载已实现。完整客户端 SDK、自动 outbox、部署/观测与长期容量验证仍待完成。
+- 固定步长 tick、句柄代数、快照恢复和空闲卸载已实现。可部署启动器、指标、打包与本机多进程故障验收已交付；图形/浏览器 SDK、自动 outbox 与跨机长稳容量仍待完成。
 - 整体仍在分阶段交付，尚未标为任意规模通用游戏的生产验收版本。当前测试证据见 VALIDATION.md。
 
 ## 服务端生命周期
@@ -112,7 +113,7 @@ AttributeReplication 将连接/认证主体、实体代数与自动订阅绑定�
 快照，再发送属性增量；hide、身份变化或卸载撤销订阅。客户端按服务器确认的 owner
 选择 LocalPlayer/RemotePlayer 表现 prototype，控制目标另外同步，切换时先解除旧目标。
 表现类不改变服务器实体类型，也不参与服务器授权。场景/AOI 策略留在 Lua；本阶段只
-提供直连 owner 的存在性同步与单连接控制，不提供持久化场景或 Gateway 委托。详见
+提供直连或 Gateway 转发的存在性同步与跨 owner 单控制目标，不提供持久化场景。详见
 [ENTITY_PRESENCE.md](ENTITY_PRESENCE.md)。
 
 ## 属性、容器与状态载体

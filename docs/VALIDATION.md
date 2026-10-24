@@ -201,3 +201,27 @@ Release 链路 smoke 核对 10 轮：逐条 160 次写/提交、batch 10 次写/
 新增事务化 create/activate/deactivate/destroy、创建未完成 FER2 标记跨宿主重试、业务失败不重复激活、
 卸载失败无属性发布、idle 卸载、删除重建/旧句柄拒绝及 drain 检查；FER1 已初始化记录保持兼容。
 旧二进制不认识 FER2，升级需排空旧 owner，且 hook 外部副作用仍需幂等。详见 ENTITY_LIFECYCLE.md。
+
+## 2026-10-24：生命周期、跨节点客户端与交付验收
+
+当前源码配置：Lua ON、PostgreSQL OFF。Debug 普通 CTest **30/30** 通过，
+ASan/UBSan（detect_leaks=1、halt_on_error=1）原生 CTest **19/19** 通过。
+本轮未重跑可选 PostgreSQL 服务端及跨机环境，不将历史 PG 测试当作本轮执行结果。
+
+- `fsnet-lifecycle`：创建/激活顺序与提交、失败初始化重试、恢复、显式/空闲卸载、删除、drain 和权限/句柄边界。
+- `fsnet-gateway`：两 owner、Alice/Bob，认证账号委托及角色隔离、私有属性过滤、写权限/校验、
+  订阅 ID 重映射、跨 owner 单控制目标、自动与手动订阅迁移、删除不复活、身份变更撤销、readiness 与排空。
+- `fsnet-delivery`：真实独立进程和临时 mTLS PKI，拒绝不安全启动配置、不可信 CA、未映射证书；
+  SIGKILL owner 后保留确认值与唯一前端视图、持久回执跨 owner 去重、共享字段合批、重启节点、
+  SIGTERM 优雅交接、资源回收与最终 ready=false。普通测试使用 100 轮串行合批。
+
+Release 构建后执行 cmake install 和 CPack TGZ，解压到不同目录，使用包内启动器、客户端和
+验收脚本通过 **1000 轮**同一故障验收。`ldd` 确认从包内相对路径加载 libfsnet.so，其他依赖
+仅为系统 C/C++ 运行库；未依赖构建目录的私有 OpenSSL/libpq。原始采样和二进制哈希见
+[交付验收报告](validation/delivery-release-2026-10-24.json)。本机 2 秒测试租约的恢复耗时约
+2 秒；该数据是一次局部样本，不构成默认 60 秒租约、公网、并发玩家规模或生产 SLO 承诺。
+报告资源值为轮询采样峰值，不是严格的最大分配统计。
+
+Python 语法、文档本地链接和 git diff --check 通过。GitHub Actions 增加 Release 打包、
+可重定位验收及产物上传；这里只报告本机执行，未声称远端工作流已通过。
+部署、指标、停止时限、存储/协议升级限制和目标环境的剩余验收见 [运行手册](PRODUCTION.md)。

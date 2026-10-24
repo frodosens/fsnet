@@ -27,14 +27,16 @@ C++ 提供客户端/服务端共用的引擎机制，业务逻辑写在 Lua；�
 | 输入确认、校正、重放和效果处理 | [预测](PREDICTION.md) |
 | Lua 宿主、协程、预算、底层兼容接口 | [脚本宿主](SCRIPTING.md) |
 | CAS、存储后端、fencing 与恢复 | [存储](STORAGE.md) |
+| Gateway 委托、转发、迁移与资源边界 | [跨节点接入](CLIENT_GATEWAY.md) |
+| 部署模板、发行包、指标、故障验收 | [交付运行手册](PRODUCTION.md) |
 | TLS、可信身份、网络与 P2P 边界 | [安全](SECURITY.md) |
 
 ## 实现状态与证据
 
 - [完成状态](ENGINE_COMPLETION.md)：当前能力与尚未交付项。
 - [路线图](ROADMAP.md)：后续阶段，不将计划视为已实现 API。
-- [验证记录](VALIDATION.md)：各阶段配置、测试数量与未验证场景；最新代码检查为 Lua ON、PostgreSQL OFF，27 项普通测试和 17 项 sanitizer 测试。
+- [验证记录](VALIDATION.md)：各阶段配置、测试数量与未验证场景；最新配置为 Lua ON、PostgreSQL OFF；当前结果见验证记录末节。
 - [属性复制开销优化](ATTRIBUTE_PERFORMANCE.md)、[合批性能](CONTAINER_BATCHING_PERFORMANCE.md)：历史提交、测量方法与原始数据。
 - [字段字节样本](benchmarks/field-paths-2026-10-24.json)、[双向字节样本](benchmarks/shared-deltas-2026-10-24.json)：编码大小，不是网络延迟/在线人数结论。
 
-本次文档整理不修改运行时代码、不增加 CTest 项；上述数量来自最近实现阶段，文档示例 smoke 见验证记录。
+生命周期、Gateway、交付测试及发行包结果见验证记录；部署范围与未验证项在运行手册中单列。

@@ -1,0 +1,3 @@
+# Only explicitly listed routes are exposed.
+account login Player
+entity Player move

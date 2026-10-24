@@ -2,12 +2,14 @@
 #include "fsnet/lua_engine.hpp"
 #include "fsnet/client_script_host.hpp"
 #include <csignal>
+#include <cstdio>
 #include <fstream>
 #include <iostream>
 #include <thread>
 namespace { volatile std::sig_atomic_t running=1; void stop(int) { running=0; } }
 int main(int argc,char** argv) {
     try {
+        std::setvbuf(stdout,nullptr,_IOLBF,0);
         if(argc!=4) throw std::invalid_argument("usage: fsnet-client script.lua address port");
         auto* token=std::getenv("FSNET_CLUSTER_TOKEN");
         if(!token) throw std::runtime_error("set FSNET_CLUSTER_TOKEN");

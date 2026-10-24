@@ -1,0 +1,25 @@
+[Unit]
+Description=fsnet entity owner %i
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=fsnet
+Group=fsnet
+EnvironmentFile=/etc/fsnet/%i.env
+ExecStart=/opt/fsnet/bin/fsnet-service owner /etc/fsnet/server.lua 7001 %i /etc/fsnet/gateway-pins.tsv
+Restart=on-failure
+RestartSec=3
+TimeoutStopSec=45
+KillSignal=SIGTERM
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=/var/lib/fsnet
+UMask=0077
+LimitNOFILE=8192
+
+[Install]
+WantedBy=multi-user.target

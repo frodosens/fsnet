@@ -1,0 +1,4 @@
+# Replace placeholders with sha256:<64 lowercase hex digits> and trusted subject.
+# owner gateway-pins manifest: gateway cert fingerprint -> server subject
+# gateway clients manifest: client cert fingerprint -> account subject
+sha256:REPLACE_WITH_CERTIFICATE_FINGERPRINT alice

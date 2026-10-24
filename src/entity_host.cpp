@@ -61,6 +61,7 @@ struct EntityScriptHost::Impl : std::enable_shared_from_this<Impl> {
     WallClock now;
     OwnerResolver owner_resolver;
     AttributeListener attribute_listener;
+    Closed closed_listener;
     Visibility visibility;
     std::unordered_map<std::string, std::shared_ptr<const EntitySchema>> schemas;
     std::unordered_map<std::string, std::shared_ptr<Method>> methods;
@@ -117,6 +118,7 @@ struct EntityScriptHost::Impl : std::enable_shared_from_this<Impl> {
             auto found=slots.find(job->entity);
             if(found!=slots.end()) { counters.transient_bytes-=found->second.transient.size(); slots.erase(found); }
             std::erase(schedule,job->entity);
+            if(closed_listener) try { auto listener=closed_listener; auto split=job->entity.find('\0'); listener(job->entity.substr(0,split),job->entity.substr(split+1),job->request.route==job->request.method->type+".$destroy"); } catch(...) { ++counters.publication_failures; }
         }
         reply(std::move(result));
     }
@@ -502,6 +504,7 @@ void EntityScriptHost::write_attributes(std::string type, std::string id, CallId
     try { message = entity_message(id, proposal, request_id); } catch (...) { return reply({Status::rejected, {}}); }
     impl_->enqueue(type + ".$write", std::move(message), std::move(reply), false, std::move(who));
 }
+void EntityScriptHost::on_closed(Closed listener) { impl_->closed_listener=std::move(listener); }
 void EntityScriptHost::on_attributes(AttributeListener listener) { impl_->attribute_listener = std::move(listener); }
 void EntityScriptHost::ownership(OwnerResolver resolve) { impl_->owner_resolver = std::move(resolve); }
 void EntityScriptHost::bind_context(std::string route, RpcPolicy policy, ContextHandler handler) {
@@ -596,7 +599,7 @@ void EntityScriptHost::deactivate(const EntityHandle& handle, Reply reply) {
         auto owner = weak.lock();
         if (!owner || owner->stopped) return release->reply({Status::disconnected, {}});
         owner->releases.erase(entity);
-        if (!error && *status == Status::ok) { auto it = owner->slots.find(entity); if (it != owner->slots.end()) owner->counters.transient_bytes -= it->second.transient.size(); owner->slots.erase(entity); std::erase(owner->schedule, entity); }
+        if (!error && *status == Status::ok) { auto it = owner->slots.find(entity); if (it != owner->slots.end()) owner->counters.transient_bytes -= it->second.transient.size(); owner->slots.erase(entity); std::erase(owner->schedule, entity); if(owner->closed_listener) try { auto split=entity.find('\0'); owner->closed_listener(entity.substr(0,split),entity.substr(split+1),false); } catch(...) { ++owner->counters.publication_failures; } }
         else if (auto it = owner->slots.find(entity); it != owner->slots.end()) { it->second.busy = false; it->second.releasing = false; }
         release->reply({error ? Status::internal : *status, {}});
     };

@@ -1,5 +1,6 @@
 #pragma once
 #include "fsnet/async_database.hpp"
+#include "fsnet/entity_directory.hpp"
 #include "fsnet/script.hpp"
 #include <vector>
 
@@ -8,7 +9,12 @@ struct EntityEndpoint {
     std::string node, address;
     std::uint16_t port;
     std::vector<std::string> types;
+    std::string tls_peer_name{};
 };
+void validate_entity_endpoints(const std::vector<EntityEndpoint>&);
+std::optional<std::size_t> select_entity_endpoint(const std::vector<EntityEndpoint>&,const std::string& type,
+    const std::string& id,const std::optional<EntityLocation>&,std::int64_t now_ms,
+    const std::function<bool(std::size_t)>& eligible = {});
 struct EntityRouterLimits { std::size_t requests = 256, bytes = 4 * 1024 * 1024; };
 // Static membership + authoritative database ownership, not health-based exclusive
 // ownership. Owner IDs use "stable-node/unique-boot-id". Calls with a request ID

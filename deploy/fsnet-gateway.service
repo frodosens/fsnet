@@ -1,0 +1,25 @@
+[Unit]
+Description=fsnet authenticated client gateway
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=fsnet
+Group=fsnet
+EnvironmentFile=/etc/fsnet/gateway.env
+ExecStart=/opt/fsnet/bin/fsnet-service gateway 7000 /etc/fsnet/endpoints.tsv /etc/fsnet/clients.tsv /etc/fsnet/routes.tsv
+Restart=on-failure
+RestartSec=3
+TimeoutStopSec=10
+KillSignal=SIGTERM
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=/var/lib/fsnet
+UMask=0077
+LimitNOFILE=8192
+
+[Install]
+WantedBy=multi-user.target

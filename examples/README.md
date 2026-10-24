@@ -101,3 +101,9 @@ FSNET_CLUSTER_TOKEN=local-demo /path/to/build/fsnet-client /tmp/fsnet-struct-cli
 共享声明、服务端增删与客户端新增/修改/删除通知见
 [容器属性示例](../docs/CONTAINER_ATTRIBUTES.md#可运行示例与验证)。支持 list、字符串键 map 和标量 set，
 服务端成功提交后自动更新获准客户端副本。
+
+## 多 owner 与 Gateway 交付启动器
+
+`fsnet-service owner` / `fsnet-service gateway` 提供 mTLS 白名单账号认证、可信身份委托、
+订阅迁移、指标和信号排空。命令、清单和 systemd 模板见 [交付运行手册](../docs/PRODUCTION.md)。
+独立进程验收脚本为 `tools/validate_delivery.py`，可对构建目录或解压后的发行包运行。

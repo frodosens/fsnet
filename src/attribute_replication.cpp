@@ -1,4 +1,5 @@
 #include "fsnet/attribute_replication.hpp"
+#include "fsnet/replication_wire.hpp"
 #include <algorithm>
 #include <deque>
 #include <limits>
@@ -20,34 +21,8 @@ std::uint64_t read_uint(std::string_view& in, unsigned count) {
     std::uint64_t n=0; for (unsigned i=0; i<count; ++i) n=(n<<8)|static_cast<unsigned char>(in[i]);
     in.remove_prefix(count); return n;
 }
-std::string entity_key(const std::string& type, const std::string& id) {
-    if (type.empty() || type.size()>127 || type.find_first_of(".\0",0,2)!=std::string::npos || id.empty() || id.size()>256)
-        throw std::invalid_argument("invalid replication entity");
-    std::string out; put(out,type.size(),1); out+=type; put(out,id.size(),2); out+=id; return out;
-}
-std::pair<std::string,std::string> read_key(std::string_view& in) {
-    auto n=read_uint(in,1); if(n>in.size()) throw std::invalid_argument("truncated entity type");
-    std::string type(in.substr(0,n)); in.remove_prefix(n);
-    n=read_uint(in,2); if(n>in.size()) throw std::invalid_argument("truncated entity id");
-    std::string id(in.substr(0,n)); in.remove_prefix(n); (void)entity_key(type,id); return {type,id};
-}
 std::string token(std::uint64_t id) { std::string out; put(out,id,8); return out; }
-struct Packet { std::uint64_t subscription; std::string type,id; Status status; std::uint32_t lease_ms; std::optional<AttributeUpdate> update; };
-std::string packet(std::uint64_t subscription, const std::string& type, const std::string& id, Status status, const AttributeUpdate* update=nullptr, std::uint32_t lease_ms=0) {
-    std::string out="FSN1"; put(out,static_cast<unsigned>(status),1); put(out,subscription,8); put(out,lease_ms,4); out+=entity_key(type,id);
-    if(status==Status::ok) { if(!update) throw std::invalid_argument("missing property update"); out+=encode_attributes(*update); }
-    return out;
-}
-Packet parse(std::string_view in) {
-    if(in.size()>1024*1024 || !in.starts_with("FSN1")) throw std::invalid_argument("invalid replication packet");
-    in.remove_prefix(4); auto status=read_uint(in,1); if(status>static_cast<unsigned>(Status::internal)) throw std::invalid_argument("invalid replication status");
-    auto subscription=read_uint(in,8); if(!subscription) throw std::invalid_argument("invalid subscription");
-    auto lease_ms=static_cast<std::uint32_t>(read_uint(in,4));
-    auto [type,id]=read_key(in); Packet result{subscription,std::move(type),std::move(id),static_cast<Status>(status),lease_ms,{}};
-    if(result.status==Status::ok) result.update=decode_attributes(in);
-    else if(!in.empty()) throw std::invalid_argument("trailing revocation bytes");
-    return result;
-}
+
 }
 struct AttributeReplication::Impl : std::enable_shared_from_this<Impl> {
     struct Subscription {
@@ -95,24 +70,24 @@ struct AttributeReplication::Impl : std::enable_shared_from_this<Impl> {
     std::string presence(const Subscription& sub,EntityPresence::Kind kind,Status status=Status::ok) {
         auto owned=sub.owned;
         std::string out; out+=static_cast<char>(kind); out+=static_cast<char>((owned?1:0)|(sub.controlled?2:0));
-        out+=packet(sub.id,sub.type,sub.entity,status,status==Status::ok?&sub.last:nullptr,static_cast<std::uint32_t>(limits.lease.count()));
+        out+=encode_replication_packet(sub.id,sub.type,sub.entity,status,status==Status::ok?&sub.last:nullptr,static_cast<std::uint32_t>(limits.lease.count()));
         return out;
     }
     void remove(std::uint64_t id, Status status, bool notify=true) {
         auto it=subscriptions.find(id); if(it==subscriptions.end()) return;
         auto sub=it->second; subscriptions.erase(it); std::erase(schedule,id); bytes-=sub->bytes;
-        auto indexed=by_entity.find(entity_key(sub->type,sub->entity));
+        auto indexed=by_entity.find(encode_entity_key(sub->type,sub->entity));
         if(indexed!=by_entity.end()) { indexed->second.erase(id); if(indexed->second.empty()) by_entity.erase(indexed); }
         auto peers=peer_counts.find(sub->identity.peer); if(peers!=peer_counts.end() && --peers->second==0) peer_counts.erase(peers);
         if(sub->pending) { auto reply=std::exchange(sub->pending,{}); reply({status,{}}); }
         else if(notify && node.connected(sub->identity.peer)) {
-            auto data=sub->automatic?presence(*sub,EntityPresence::Kind::leave,status):packet(id,sub->type,sub->entity,status);
+            auto data=sub->automatic?presence(*sub,EntityPresence::Kind::leave,status):encode_replication_packet(id,sub->type,sub->entity,status);
             if(!node.notify(sub->identity.peer,sub->automatic?presence_channel:channel,std::move(data))) node.close(sub->identity.peer);
         }
     }
     void watch(const CallIdentity& identity, std::string input, Reply reply,bool automatic=false) {
         std::string type,id;
-        try { std::string_view view(input); auto key=read_key(view); if(!view.empty()) throw std::invalid_argument("trailing watch bytes"); type=std::move(key.first); id=std::move(key.second); }
+        try { std::string_view view(input); auto key=decode_entity_key(view); if(!view.empty()) throw std::invalid_argument("trailing watch bytes"); type=std::move(key.first); id=std::move(key.second); }
         catch(...) { return reply({Status::rejected,{}}); }
         if(stopped || identity.subject.empty()) return reply({Status::rejected,{}});
         std::size_t peers=peer_counts.contains(identity.peer)?peer_counts.at(identity.peer):0;
@@ -123,7 +98,7 @@ struct AttributeReplication::Impl : std::enable_shared_from_this<Impl> {
         try { (void)permission(Subscription{0,identity,type,id,{}, {}, {},0,{},0,automatic,false}); }
         catch(...) { return reply({Status::rejected,{}}); }
         auto sub=std::make_shared<Subscription>(Subscription{++serial,identity,std::move(type),std::move(id),Clock::now()+limits.pending_timeout,std::move(reply),{},0,{},0,automatic,false});
-        subscriptions.emplace(sub->id,sub); by_entity[entity_key(sub->type,sub->entity)].insert(sub->id); ++peer_counts[identity.peer]; schedule.push_back(sub->id);
+        subscriptions.emplace(sub->id,sub); by_entity[encode_entity_key(sub->type,sub->entity)].insert(sub->id); ++peer_counts[identity.peer]; schedule.push_back(sub->id);
         try {
             host->read_attributes(sub->type,sub->entity,[weak=weak_from_this(),id=sub->id,definition](Result result) {
                 auto self=weak.lock(); if(!self || self->stopped) return;
@@ -137,7 +112,7 @@ struct AttributeReplication::Impl : std::enable_shared_from_this<Impl> {
                     auto count=attribute_wire_size(next)+attribute_image_bytes(next.values);
                     if(count>512*1024) return self->remove(id,Status::overloaded,false);
                     if(count>self->limits.image_bytes-self->bytes) return self->remove(id,Status::overloaded,false);
-                    auto response=packet(id,sub->type,sub->entity,Status::ok,&next,static_cast<std::uint32_t>(self->limits.lease.count()));
+                    auto response=encode_replication_packet(id,sub->type,sub->entity,Status::ok,&next,static_cast<std::uint32_t>(self->limits.lease.count()));
                     auto handle=self->host->handle(sub->type,sub->entity); if(!handle) return self->remove(id,Status::rejected,false);
                     sub->owned=self->host->owner_subject(sub->type,sub->entity)==sub->identity.subject;
                     sub->generation=handle->generation; sub->permission=std::move(permission);
@@ -152,7 +127,7 @@ struct AttributeReplication::Impl : std::enable_shared_from_this<Impl> {
         auto who=node.identity(peer);
         if(!who || who->caller!=Caller::client || who->subject.empty()) return reply({Status::rejected,{}});
         std::string input;
-        try { input=entity_key(type,entity); } catch(...) { return reply({Status::rejected,{}}); }
+        try { input=encode_entity_key(type,entity); } catch(...) { return reply({Status::rejected,{}}); }
         std::shared_ptr<Subscription> target;
         auto indexed=by_entity.find(input);
         if(indexed!=by_entity.end()) for(auto id:indexed->second) {
@@ -174,7 +149,7 @@ struct AttributeReplication::Impl : std::enable_shared_from_this<Impl> {
             return watch(*who,std::move(input),[weak=weak_from_this(),peer,reply=std::move(reply)](Result result) mutable {
                 auto self=weak.lock(); if(!self || self->stopped) return reply({Status::disconnected,{}});
                 if(result.status!=Status::ok) return reply(std::move(result));
-                auto message=parse(result.data); auto it=self->subscriptions.find(message.subscription);
+                auto message=decode_replication_packet(result.data); auto it=self->subscriptions.find(message.subscription);
                 if(it==self->subscriptions.end()) return reply({Status::disconnected,{}});
                 if(!self->node.notify(peer,presence_channel,self->presence(*it->second,EntityPresence::Kind::enter))) {
                     self->node.close(peer); self->remove(message.subscription,Status::disconnected,false);
@@ -238,7 +213,7 @@ struct AttributeReplication::Impl : std::enable_shared_from_this<Impl> {
     }
     void committed(const EntityScriptHost::AttributeCommit& event) {
         std::vector<std::uint64_t> ids;
-        auto interested=by_entity.find(entity_key(event.type,event.id));
+        auto interested=by_entity.find(encode_entity_key(event.type,event.id));
         if(interested==by_entity.end()) return;
         ids.assign(interested->second.begin(),interested->second.end());
         for(auto id:ids) {
@@ -260,20 +235,20 @@ struct AttributeReplication::Impl : std::enable_shared_from_this<Impl> {
                 // revision after server-private changes. Observers may skip it.
                 auto count=attribute_wire_size(next)+attribute_image_bytes(next.values);
                 if(count>limits.image_bytes-bytes+sub->bytes) { remove(id,Status::overloaded); continue; }
-                if(!node.notify(sub->identity.peer,channel,packet(id,sub->type,sub->entity,Status::ok,&update))) { node.close(sub->identity.peer); remove(id,Status::disconnected,false); continue; }
+                if(!node.notify(sub->identity.peer,channel,encode_replication_packet(id,sub->type,sub->entity,Status::ok,&update))) { node.close(sub->identity.peer); remove(id,Status::disconnected,false); continue; }
                 bytes=bytes-sub->bytes+count; sub->bytes=count; sub->last=std::move(next); sub->permission=std::move(permission);
             } catch(...) { remove(id,Status::rejected); }
         }
     }
     void stop() {
         if(std::exchange(stopped,true)) return;
-        if(listener_owned) { host->on_attributes({}); host->on_visibility({}); }
+        if(listener_owned) { host->on_attributes({}); host->on_visibility({}); host->on_closed({}); }
         for(const auto& route:bound) node.unbind(route);
         bound.clear();
         auto previous=std::move(subscriptions); subscriptions.clear(); by_entity.clear(); peer_counts.clear(); schedule.clear(); bytes=0;
         for(auto& [id,sub]:previous) {
             if(sub->pending) { try { sub->pending({Status::disconnected,{}}); } catch(...) {} }
-            else { try { node.notify(sub->identity.peer,sub->automatic?presence_channel:channel,sub->automatic?presence(*sub,EntityPresence::Kind::leave,Status::disconnected):packet(id,sub->type,sub->entity,Status::disconnected)); } catch(...) {} }
+            else { try { node.notify(sub->identity.peer,sub->automatic?presence_channel:channel,sub->automatic?presence(*sub,EntityPresence::Kind::leave,Status::disconnected):encode_replication_packet(id,sub->type,sub->entity,Status::disconnected)); } catch(...) {} }
         }
     }
 };
@@ -288,6 +263,14 @@ AttributeReplication::AttributeReplication(Node& node,std::shared_ptr<EntityScri
         bind("system.attributes.unwatch",[weak=std::weak_ptr(impl_)](const CallIdentity& who,std::string data,Reply reply) { if(auto self=weak.lock()) self->control(who,std::move(data),std::move(reply),false); else reply({Status::disconnected,{}}); });
         bind("system.attributes.renew",[weak=std::weak_ptr(impl_)](const CallIdentity& who,std::string data,Reply reply) { if(auto self=weak.lock()) self->control(who,std::move(data),std::move(reply),true); else reply({Status::disconnected,{}}); });
         bind("system.attributes.write",[weak=std::weak_ptr(impl_)](const CallIdentity& who,std::string data,Reply reply) { if(auto self=weak.lock()) self->write(who,std::move(data),std::move(reply)); else reply({Status::disconnected,{}}); });
+        impl_->listener_owned=true;
+        impl_->host->on_closed([weak=std::weak_ptr(impl_)](const std::string& type,const std::string& entity,bool destroyed) {
+            if(auto self=weak.lock()) {
+                auto it=self->by_entity.find(encode_entity_key(type,entity)); if(it==self->by_entity.end()) return;
+                std::vector<std::uint64_t> ids(it->second.begin(),it->second.end());
+                for(auto id:ids) self->remove(id,destroyed?Status::not_found:Status::disconnected);
+            }
+        });
         impl_->host->on_attributes([weak=std::weak_ptr(impl_)](const auto& event) { if(auto self=weak.lock()) self->committed(event); });
         impl_->host->on_visibility([weak=std::weak_ptr(impl_)](std::uint64_t peer,std::string type,std::string id,unsigned action,Reply reply) {
             if(auto self=weak.lock()) self->visibility(peer,std::move(type),std::move(id),action,std::move(reply));
@@ -353,7 +336,7 @@ struct AttributeClient::Impl : std::enable_shared_from_this<Impl> {
         try {
             std::string_view in(data); auto kind=read_uint(in,1),flags=read_uint(in,1);
             if(kind<1 || kind>3 || flags>3 || ((flags&2) && !(flags&1))) throw std::invalid_argument("invalid entity presence");
-            auto message=parse(in); auto id=message.subscription;
+            auto message=decode_replication_packet(in); auto id=message.subscription;
             auto it=projections.find(id);
             if(kind==2) {
                 if(message.status==Status::ok) throw std::invalid_argument("invalid entity leave");
@@ -401,7 +384,7 @@ struct AttributeClient::Impl : std::enable_shared_from_this<Impl> {
     void receive(std::uint64_t from,std::string data) {
         if(stopped || from!=peer) return; // an unrelated authenticated peer cannot inject updates
         try {
-            auto message=parse(data); auto it=projections.find(message.subscription); if(it==projections.end()) return;
+            auto message=decode_replication_packet(data); auto it=projections.find(message.subscription); if(it==projections.end()) return;
             auto projection=it->second;
             if(message.type!=projection->type || message.id!=projection->entity) throw std::runtime_error("subscription identity mismatch");
             if(message.status!=Status::ok) return remove(message.subscription,message.status,false);
@@ -418,19 +401,19 @@ struct AttributeClient::Impl : std::enable_shared_from_this<Impl> {
         if(stopped) return ready_callback(ready,Status::disconnected,0);
         if(pending.size()+projections.size()>=256 || serial==UINT64_MAX) return ready_callback(ready,Status::overloaded,0);
         std::string input;
-        try { input=entity_key(type,id); } catch(...) { return ready_callback(ready,Status::rejected,0); }
+        try { input=encode_entity_key(type,id); } catch(...) { return ready_callback(ready,Status::rejected,0); }
         auto request=++serial; pending.emplace(request,Pending{std::move(type),std::move(id),std::move(ready)});
         node.call(peer,"system.attributes.watch",std::move(input),timeout,[self=shared_from_this(),request](Result result) {
             auto it=self->pending.find(request);
             if(it==self->pending.end()) {
-                if(result.status==Status::ok) try { self->remote_unwatch(parse(result.data).subscription); } catch(...) {}
+                if(result.status==Status::ok) try { self->remote_unwatch(decode_replication_packet(result.data).subscription); } catch(...) {}
                 return;
             }
             auto pending=std::move(it->second); self->pending.erase(it);
             if(result.status!=Status::ok) return ready_callback(pending.ready,result.status,0);
             std::uint64_t subscription=0;
             try {
-                auto message=parse(result.data); subscription=message.subscription;
+                auto message=decode_replication_packet(result.data); subscription=message.subscription;
                 if(message.status!=Status::ok || message.lease_ms<3000 || !message.update->snapshot || message.type!=pending.type || message.id!=pending.entity || self->projections.contains(subscription))
                     throw std::runtime_error("invalid watch response");
                 auto projection=std::make_shared<Projection>(Projection{std::move(pending.type),std::move(pending.entity),{},Clock::now(),std::chrono::milliseconds(message.lease_ms/3),0});
