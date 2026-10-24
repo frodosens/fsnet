@@ -189,6 +189,13 @@ local function lifecycle_control(class,id,destroy)
     local _,status=runtime._control_entity(data.name,id,destroy)
     assert(status==runtime.status.ok,'lifecycle operation failed: '..tostring(status))
 end
+function Class:transfer(id,target)
+    local data=record(self)
+    assert(data.registered,'transfer requires a registered server class')
+    local _,status=runtime._transfer_entity(data.name,id,target)
+    -- Return status so a timed-out handoff can be retried with the same target.
+    return status
+end
 function Class:deactivate(id) return lifecycle_control(self,id,false) end
 function Class:destroy(id) return lifecycle_control(self,id,true) end
 function Class:spawn_local(values,opts)

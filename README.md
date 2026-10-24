@@ -117,7 +117,7 @@ C++ 的 `ClusterClient` 支持静态成员健康探测、指数退避重连、�
 
 依赖与许可证见 [THIRD_PARTY.md](docs/THIRD_PARTY.md)。
 
-实体 RPC 权限、Lua 属性声明与原生客户端自动同步见 [ENTITY_SCHEMA.md](docs/ENTITY_SCHEMA.md)。支持直连 owner 或 [Gateway 委托、转发与迁移](docs/CLIENT_GATEWAY.md)。部署包和故障验收见 [运行手册](docs/PRODUCTION.md)。
+实体 RPC 权限、Lua 属性声明与原生客户端自动同步见 [ENTITY_SCHEMA.md](docs/ENTITY_SCHEMA.md)。支持直连 owner 或 [Gateway 委托、转发与迁移](docs/CLIENT_GATEWAY.md)。服务端 `Player:transfer(id, target_node)` 的指定目标交接见 [ENTITY_TRANSFER.md](docs/ENTITY_TRANSFER.md)。部署包和故障验收见 [运行手册](docs/PRODUCTION.md)。
 
 脚本业务推荐使用 [面向对象的 Lua 实体 API](docs/OBJECT_API.md)，示例为 [属性示例](examples/attributes/shared.lua)。
 

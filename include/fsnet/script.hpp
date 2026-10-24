@@ -29,6 +29,7 @@ public:
         throw std::logic_error("entity schemas require an entity host");
     }
     virtual void spawn_entity(std::string, std::string, EntityAttributes::Values, Reply reply) { reply({Status::rejected,{}}); }
+    virtual void transfer_entity(std::string, std::string, std::string, Reply reply) { reply({Status::rejected,{}}); }
     virtual void control_entity(std::string, std::string, bool, Reply reply) { reply({Status::rejected,{}}); }
     virtual void entity_visibility(std::uint64_t, std::string, std::string, unsigned, Reply reply) { reply({Status::rejected,{}}); }
     virtual std::optional<EntityPresence> pop_entity_event() { return {}; }

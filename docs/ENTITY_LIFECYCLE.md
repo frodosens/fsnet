@@ -10,7 +10,7 @@ Actor:attr('visits',{type='int32',default=0,sync='owner'})
 function Actor:on_create() self.created=true end
 function Actor:on_activate() self.visits=self.visits+1 end
 function Actor:on_deactivate(reason)
-    -- reason 为 explicit、idle 或 destroy。
+    -- reason 为 explicit、idle、transfer 或 destroy。
     -- 保存最后的业务属性；不要依赖必须执行的外部副作用。
 end
 function Actor:on_destroy(reason) end
@@ -19,6 +19,7 @@ Actor:register()
 -- Actor:spawn_or_restore('alice')
 -- Actor:deactivate('alice')
 -- Actor:destroy('alice')
+-- local status=Actor:transfer('alice','owner-b') -- 安装交接组件后可用
 ```
 
 ## 提交合同
@@ -55,3 +56,9 @@ SIGKILL、失去所有权、预算耗尽或进程直接 stop 不保证卸载 hoo
 原生 `deactivate(handle,reply)` 继续检查 owner/generation，旧句柄不能卸载新实例。
 
 `fsnet-lifecycle` 覆盖失败/重试、创建标志跨宿主恢复、激活次数、卸载失败回滚、空闲卸载、删除重建、句柄 fencing 和 drain。
+
+## 指定目标交接
+
+`Class:transfer(id, target_node)` 将持久状态交给指定稳定节点，目标确认激活后返回状态。
+`on_deactivate` 收到 `transfer`，目标执行 `on_activate`；不能在目标自身 mailbox 中等待迁移。
+带目标的记录使用 FER3，普通提交继续保留 placement。详见[交接协议与升级约束](ENTITY_TRANSFER.md)。

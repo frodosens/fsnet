@@ -65,6 +65,10 @@ serverAuth/clientAuth，玩家需 clientAuth。端点 TLS 名称必须匹配证�
 跨机必须使用所有节点可见、提供相同 CAS 合同的存储，例如可选 PostgreSQL；数据库的复制、
 仲裁、备份恢复和 TLS 验证由部署方另行验收。SQLite/网络文件系统不可直接据此推断跨机安全。
 
+指定目标交接可选配置 `FSNET_ENTITY_ENDPOINTS` 与 `FSNET_OWNER_PINS`，使 owner 能按独立的
+owner 证书白名单互连；与 Gateway pins 分开，owner 证书同时需要 clientAuth/serverAuth。
+启用前须升级全部 owner/Gateway 以读取 FER3，见[交接部署与升级合同](ENTITY_TRANSFER.md)。
+
 ## 健康、排空与升级
 
 `system.health` 正常返回 ok / ready，排空后返回 overloaded / draining。可选

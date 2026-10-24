@@ -65,6 +65,10 @@ unpossess/possess 元数据回调，表现 on_spawn 不重复。
 租约时应同步调整 GatewayLimits。正在执行的业务 RPC **不自动重放**，超时是结果未知；
 需要安全重试时由调用方保留 request_id，并遵守持久化回执的保留窗口。没有自动重发预测输入。
 
+指定目标的交接使用服务端 `Player:transfer(id, target_node)`，原生组合、持久目标与失败重试见
+[实体交接协议](ENTITY_TRANSFER.md)。Gateway 与 EntityRouter 共用 placement 路由，指定目标在
+租约过期后也不会回退到其他节点。
+
 ## 容量、停止与边界
 
 GatewayLimits 默认：256 客户端、1024 后端连接、1024 订阅、每客户端 32 订阅，

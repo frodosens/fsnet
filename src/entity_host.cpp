@@ -29,6 +29,8 @@ struct EntityScriptHost::Impl : std::enable_shared_from_this<Impl> {
         std::size_t bytes;
         bool tick = false;
         CallIdentity identity{Caller::server, {}};
+        std::string handoff_target;
+        std::uint64_t accept_transfer=0;
     };
     struct Slot {
         EntityHandle handle;
@@ -42,7 +44,7 @@ struct EntityScriptHost::Impl : std::enable_shared_from_this<Impl> {
     struct Job {
         std::string entity, state, output, persisted;
         std::vector<EntityReceipt> receipts;
-        bool replay = false, created = false, activating = false, owner_lost = false;
+        bool replay = false, created = false, activating = false, owner_lost = false, wrong_node = false, preserve_activation = false;
         std::size_t resident = 0;
         std::uint64_t fence = 0, version = 0;
         std::int64_t expires = 0;
@@ -51,7 +53,8 @@ struct EntityScriptHost::Impl : std::enable_shared_from_this<Impl> {
         bool responded = false, committing = false, previously_owned = false;
         std::uint64_t previous_fence = 0;
         std::optional<AttributeCommit> attributes;
-        std::string transient;
+        std::string transient, placement;
+        std::uint64_t transfer_id=0;
         std::size_t cache_growth = 0;
     };
     std::shared_ptr<ScriptHost> parent;
@@ -63,6 +66,7 @@ struct EntityScriptHost::Impl : std::enable_shared_from_this<Impl> {
     AttributeListener attribute_listener;
     Closed closed_listener;
     Visibility visibility;
+    Transfer transfer;
     std::unordered_map<std::string, std::shared_ptr<const EntitySchema>> schemas;
     std::unordered_map<std::string, std::shared_ptr<Method>> methods;
     std::unordered_map<std::string, Slot> slots;
@@ -79,7 +83,7 @@ struct EntityScriptHost::Impl : std::enable_shared_from_this<Impl> {
         now(time ? std::move(time) : WallClock(wall_time)) {
         if (!parent || owner.empty() || owner.size() > 256 || !limits.entities || !limits.requests ||
             !limits.queued_bytes || !limits.state_bytes || limits.state_bytes > 8 * 1024 * 1024 ||
-            !limits.resident_bytes || !limits.receipts || limits.receipts > 1024 || !limits.receipt_bytes || limits.receipt_bytes > 8 * 1024 * 1024 || limits.state_bytes + limits.receipt_bytes > 16 * 1024 * 1024 - 300 ||
+            !limits.resident_bytes || !limits.receipts || limits.receipts > 1024 || !limits.receipt_bytes || limits.receipt_bytes > 8 * 1024 * 1024 || limits.state_bytes + limits.receipt_bytes > 16 * 1024 * 1024 - 512 ||
             limits.request_timeout.count() <= 0 || limits.lease <= limits.request_timeout ||
             limits.lease > std::chrono::hours(24) || limits.tick_interval.count() <= 0 || limits.idle_timeout.count() <= 0)
             throw std::invalid_argument("invalid entity runtime settings");
@@ -102,7 +106,7 @@ struct EntityScriptHost::Impl : std::enable_shared_from_this<Impl> {
         job->cache_growth = 0;
         if (it != slots.end()) { it->second.busy = false; it->second.touched = Clock::now();
             if (result.status == Status::ok) { it->second.activated = true; it->second.activation_fence=job->fence; }
-            else if (!job->fence || job->owner_lost) it->second.activated = false;
+            else if ((!job->fence && !job->preserve_activation) || job->owner_lost) it->second.activated = false;
             it->second.releasing=false; }
         --counters.pending; counters.queued_bytes -= job->request.bytes; counters.state_bytes -= job->resident; job->resident = 0;
         if (result.status == Status::ok) ++counters.committed;
@@ -119,6 +123,13 @@ struct EntityScriptHost::Impl : std::enable_shared_from_this<Impl> {
             if(found!=slots.end()) { counters.transient_bytes-=found->second.transient.size(); slots.erase(found); }
             std::erase(schedule,job->entity);
             if(closed_listener) try { auto listener=closed_listener; auto split=job->entity.find('\0'); listener(job->entity.substr(0,split),job->entity.substr(split+1),job->request.route==job->request.method->type+".$destroy"); } catch(...) { ++counters.publication_failures; }
+        }
+        if(job->wrong_node) {
+            auto found=slots.find(job->entity);
+            if(found!=slots.end() && found->second.queue.empty()) {
+                counters.transient_bytes-=found->second.transient.size(); slots.erase(found); std::erase(schedule,job->entity);
+                if(closed_listener) try { auto split=job->entity.find('\0'); auto listener=closed_listener; listener(job->entity.substr(0,split),job->entity.substr(split+1),false); } catch(...) { ++counters.publication_failures; }
+            }
         }
         reply(std::move(result));
     }
@@ -172,7 +183,7 @@ struct EntityScriptHost::Impl : std::enable_shared_from_this<Impl> {
         };
         (*advance)();
     }
-    void enqueue(const std::string& route, std::string data, Reply reply, bool tick = false, CallIdentity identity = {Caller::server, {}}) {
+    void enqueue(const std::string& route, std::string data, Reply reply, bool tick = false, CallIdentity identity = {Caller::server, {}}, std::string handoff_target={}, std::uint64_t accept_transfer=0) {
         if (stopped) return reply({Status::disconnected, {}});
         auto method = methods.find(route);
         if (method == methods.end()) return reply({Status::not_found, {}});
@@ -220,7 +231,7 @@ struct EntityScriptHost::Impl : std::enable_shared_from_this<Impl> {
         if (it->second.releasing) return reply({Status::rejected, {}});
         auto bytes = data.size();
         it->second.queue.push_back({selected, std::move(message->payload), route, std::move(message->request_id), std::move(reply),
-            Clock::now() + limits.request_timeout, bytes, tick, std::move(identity)});
+            Clock::now() + limits.request_timeout, bytes, tick, std::move(identity), std::move(handoff_target), accept_transfer});
         ++counters.pending; counters.queued_bytes += bytes;
     }
     void acquire(const std::string& entity, Slot& slot) {
@@ -246,11 +257,22 @@ struct EntityScriptHost::Impl : std::enable_shared_from_this<Impl> {
                             current.snapshot.state=encode_attributes({0,initial.revision(),true,initial.persistent()});
                         }
                     }
+                    if (!current.placement.empty() && !entity_node_matches(owner_id,current.placement)) {
+                        job->owner_lost=true; job->wrong_node=true;
+                        job->status=(!job->request.accept_transfer && job->request.route==job->request.method->type+".$snapshot")?Status::overloaded:Status::rejected; return;
+                    }
+                    if (job->request.accept_transfer && (!record || current.transfer_id!=job->request.accept_transfer || current.placement.empty())) {
+                        job->preserve_activation=true; job->status=Status::rejected; return;
+                    }
+                    job->placement=current.placement; job->transfer_id=current.transfer_id;
                     job->created=!current.initialized;
                     auto time = clock();
                     if (time < 0 || time > std::numeric_limits<std::int64_t>::max() - settings.lease.count())
                         throw std::runtime_error("invalid lease clock");
-                    if (current.owner != owner_id && current.expires_ms > time) { job->status = Status::rejected; return; }
+                    if (current.owner != owner_id && current.expires_ms > time) {
+                        job->owner_lost=true; job->wrong_node=true;
+                        job->status=(!job->request.accept_transfer && job->request.route==job->request.method->type+".$snapshot")?Status::overloaded:Status::rejected; return;
+                    }
                     job->state = current.snapshot.state; job->receipts = current.snapshot.receipts;
                     job->previously_owned = current.owner == owner_id; job->previous_fence = current.fence;
                     if (!job->request.request_id.empty()) for (const auto& receipt : job->receipts) {
@@ -398,7 +420,10 @@ struct EntityScriptHost::Impl : std::enable_shared_from_this<Impl> {
                     }
                     bool release=Impl::is_control(job->request.route,job->request.method->type);
                     job->persisted = encode_entity_record({release?std::string{}:owner->owner,release?0:job->expires,job->fence,
-                        {std::move(job->state),std::move(job->receipts)},release?!job->created:true});
+                        {std::move(job->state),std::move(job->receipts)},release?!job->created:true,
+                        job->request.handoff_target.empty()?job->placement:job->request.handoff_target,
+                        job->request.handoff_target.empty()?job->transfer_id:job->version});
+                    if (!job->request.handoff_target.empty()) { job->output.clear(); entity_record_detail::integer(job->output,job->version); }
                     auto clock = owner->now;
                     bool accepted = owner->storage.submit(job->persisted.size() + job->output.size(),
                         [job, clock](Database& db) {
@@ -611,6 +636,37 @@ void EntityScriptHost::deactivate(const EntityHandle& handle, Reply reply) {
         value.owner.clear(); value.expires_ms = 0;
         if (db.compare_exchange(record_key(entity), record->version, encode_entity_record(value))) *status = Status::ok;
     }, done)) { it->second.busy = false; done(std::make_exception_ptr(std::runtime_error("storage overloaded"))); }
+}
+const std::string& EntityScriptHost::owner_id() const { return impl_->owner; }
+bool EntityScriptHost::accepts_handoff(const std::string& type,const std::string& id) const {
+    return !impl_->stopped && !impl_->draining && impl_->schemas.contains(type) &&
+        (impl_->slots.contains(key(type,id)) || impl_->slots.size()<impl_->limits.entities);
+}
+void EntityScriptHost::on_transfer(Transfer fn) { impl_->transfer=std::move(fn); }
+void EntityScriptHost::transfer_entity(std::string type,std::string id,std::string target,Reply reply) {
+    auto fn=impl_->transfer;
+    if(impl_->stopped || !fn) return reply({Status::rejected,{}});
+    fn(std::move(type),std::move(id),std::move(target),std::move(reply));
+}
+void EntityScriptHost::accept_handoff(std::string type,std::string id,std::uint64_t ticket,Reply reply) {
+    if(!ticket) return reply({Status::rejected,{}});
+    std::string message;
+    try { message=entity_message(id,""); } catch(...) { return reply({Status::rejected,{}}); }
+    impl_->enqueue(type+".$snapshot",std::move(message),[reply=std::move(reply)](Result r) mutable { r.data.clear(); reply(std::move(r)); },
+        false,{Caller::server,"framework:handoff"},{},ticket);
+}
+void EntityScriptHost::handoff(const EntityHandle& handle,std::string target,Reply reply) {
+    auto& self=*impl_; auto it=self.slots.find(key(handle.type,handle.id));
+    if(self.stopped) return reply({Status::disconnected,{}});
+    if(!valid_entity_node(target) || entity_node_matches(self.owner,target) || handle.owner!=self.owner ||
+       it==self.slots.end() || it->second.handle.generation!=handle.generation || it->second.busy ||
+       it->second.releasing || !it->second.queue.empty() || !self.methods.contains(handle.type+".$deactivate"))
+        return reply({Status::rejected,{}});
+    self.enqueue(handle.type+".$deactivate",entity_message(handle.id,"transfer"),std::move(reply),false,
+        {Caller::server,"framework:handoff"},std::move(target));
+    // enqueue can reject for capacity; never freeze a mailbox without a control request.
+    auto queued=self.slots.find(key(handle.type,handle.id));
+    if(queued!=self.slots.end() && !queued->second.queue.empty() && !queued->second.queue.back().handoff_target.empty()) queued->second.releasing=true;
 }
 void EntityScriptHost::control_entity(std::string type,std::string id,bool destroy,Reply reply) {
     auto handle=this->handle(type,id);

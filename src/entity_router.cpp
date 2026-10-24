@@ -21,7 +21,7 @@ std::uint64_t score(const std::string& input) {
 void validate_entity_endpoints(const std::vector<EntityEndpoint>& endpoints) {
     if(endpoints.empty() || endpoints.size()>1024) throw std::invalid_argument("invalid entity endpoints");
     std::unordered_set<std::string> ids;
-    for(const auto& e:endpoints) if(e.node.empty() || e.node.size()>127 || e.node.find_first_of("/\0",0,2)!=std::string::npos ||
+    for(const auto& e:endpoints) if(!valid_entity_node(e.node) ||
         e.address.empty() || !e.port || e.types.empty() || !ids.insert(e.node).second) throw std::invalid_argument("invalid entity endpoint");
 }
 std::optional<std::size_t> select_entity_endpoint(const std::vector<EntityEndpoint>& endpoints,const std::string& type,
@@ -30,7 +30,8 @@ std::optional<std::size_t> select_entity_endpoint(const std::vector<EntityEndpoi
     bool owned=location && location->expires_ms>time;
     for(std::size_t i=0;i<endpoints.size();++i) {
         const auto& e=endpoints[i]; if(std::find(e.types.begin(),e.types.end(),type)==e.types.end() || (eligible && !eligible(i))) continue;
-        if(owned) { if(location->owner==e.node || location->owner.starts_with(e.node+'/')) return i; }
+        if(owned) { if(entity_node_matches(location->owner,e.node)) return i; }
+        else if(location && !location->placement.empty()) { if(location->placement==e.node) return i; }
         else { auto rank=score(type+'\0'+id+'\0'+e.node); if(!selected || rank>best) {selected=i;best=rank;} }
     }
     return selected;

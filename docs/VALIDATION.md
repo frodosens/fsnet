@@ -270,3 +270,31 @@ Python 语法、文档本地链接和 git diff --check 通过。GitHub Actions �
 性能夹具移至benchmarks，命令名不变；未把历史性能数据当成本轮SDK性能承诺。
 Python语法、当前Markdown本地链接、git diff --check通过。未重跑可选PostgreSQL服务端、
 真实图形平台、跨机HA或公网NAT；C#/Unity/浏览器绑定仍不在本轮范围。
+
+## 指定目标节点交接阶段（2026-10-24）
+
+沿用仓库 `.dev` 工具链和固定依赖，Lua ON、PostgreSQL OFF：
+
+| 配置/检查 | 结果 |
+| --- | --- |
+| Debug | CTest 36/36 通过 |
+| ASan/UBSan，leak 检测、遇错终止 | CTest 21/21 通过 |
+| Lua OFF 核心（复用 Debug 依赖，随后恢复 Lua ON） | CTest 12/12 通过 |
+| Python 交付夹具语法、本地 Markdown 链接、git diff --check | 通过 |
+
+新增 `fsnet-transfer` 使用三个真实 TCP Node 和共享 CAS 存储，验证 Lua `Class:transfer`、
+源 mailbox 空闲检查与自身等待拒绝、目标名称预检、源卸载失败回滚、目标激活失败后恢复、
+交接确认超时与重试、同实体并发额度、租约到期后的目标约束、旧消息隔离、删除重建后的
+交接编号不复用、停止取消。交接编号采用源实体记录的存储版本，不复用可从零重建的租约 fence。
+
+`fsnet-gateway` 扩展为指定目标往返及当前控制实体迁移：保留前端订阅 ID，不发送离开，
+恢复状态和控制权，其他控制目标不受无关实体交接影响。迁移缓存竞态修复后，交接/Gateway
+专项曾各连续运行 20 次通过；最终全量回归也通过。
+
+`fsnet-delivery` 保留原 SIGKILL 接管、回执重放、100 轮属性合批与优雅排空检查，另外启动
+启用交接的独立 owner 进程，通过独立 owner/Gateway 证书白名单、mTLS 和共享 POSIX 文件
+存储验证指定目标往返。客户端确认同一 Lua 实例、单次 spawn、已提交状态和后续移动可用。
+安装重定位/SDK 独立消费者随 Debug 全量检查通过。
+
+验证范围为本机进程。未验收跨机 HA、真实网络分区、长稳容量或迁移输入自动补发；
+也不表示脚本模块/在线 schema 迁移已实现。升级与失败恢复合同见 [ENTITY_TRANSFER.md](ENTITY_TRANSFER.md)。

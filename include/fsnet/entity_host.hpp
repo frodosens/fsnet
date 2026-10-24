@@ -77,6 +77,15 @@ public:
     // Only an idle entity can deactivate. Releases its lease with a fenced CAS;
     // already-committed state remains durable. Stale local handles are rejected.
     void deactivate(const EntityHandle&, Reply);
+    // Trusted handoff primitive: idle mailbox, lifecycle hook and final snapshot
+    // commit atomically with a durable target reservation. Reply contains an 8-byte transfer ID.
+    void handoff(const EntityHandle&, std::string target, Reply);
+    void accept_handoff(std::string type,std::string id,std::uint64_t transfer_id,Reply);
+    bool accepts_handoff(const std::string& type,const std::string& id) const;
+    const std::string& owner_id() const;
+    using Transfer = std::function<void(std::string,std::string,std::string,Reply)>;
+    void on_transfer(Transfer);
+    void transfer_entity(std::string,std::string,std::string,Reply) override;
     void control_entity(std::string type,std::string id,bool destroy,Reply) override;
     // Drains resident idle entities through on_deactivate before callers stop Lua.
     void drain(Reply);

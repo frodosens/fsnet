@@ -25,6 +25,7 @@ flowchart TB
 
 上图的 Router 是可选服务间路由组合；客户端可直连 owner，或通过 ClientGateway 接入多个 owner。
 Gateway 使用独立后端连接委托可信账号，转发属性流并恢复迁移订阅，见 [跨节点接入](CLIENT_GATEWAY.md)。
+指定目标交接使用同记录 CAS 保存 placement 与交接编号，目标激活提交后 ACK，详见[交接协议](ENTITY_TRANSFER.md)。
 
 客户端SDK入口为 [CLIENT_SDK.md](CLIENT_SDK.md)。Client组合Node和ClientScriptHost，
 持有会话generation、实体元数据和控制事件；属性投影仍只有一份AttributeClient，Lua和Native
@@ -182,7 +183,7 @@ sequenceDiagram
 - FSA2：顶层 map 键编辑和序列连续区间 splice。
 - FSA3：有类型的扁平字段路径，可替换叶/子树或编辑嵌套容器。
 - FSN1：属性同步信封，携带订阅/实体身份、状态与租期；`system.attributes.update` 使用一向通知。
-- FER1：服务端存储的实体记录，包含租约/fencing、完整状态和有界回执，不用网络 patch 代替存储快照。
+- FER1/FER2/FER3：服务端存储的实体记录（FER2 标记未初始化，FER3 保存指定目标），包含租约/fencing、完整状态和有界回执，不用网络 patch 代替存储快照。
 
 `data.position.x`、`tasks['daily.1'].progress`、`items[64].count` 可只发送变化字段。
 路径中的字符串键和数字下标有类型，map 键中的点不拆层；线上数组下标从 0 开始，Lua 仍从 1 开始。

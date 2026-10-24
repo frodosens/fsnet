@@ -1,5 +1,6 @@
 #include "../common/config.hpp"
 #include "fsnet/client_gateway.hpp"
+#include "fsnet/entity_transfer.hpp"
 #include "fsnet/attribute_replication.hpp"
 #include "fsnet/lua_engine.hpp"
 #include <algorithm>
@@ -43,17 +44,33 @@ int main(int argc,char** argv){try{
     std::string mode=argv[1];auto next_metrics=std::chrono::steady_clock::now();
     if(mode=="owner"){
         if(argc!=6)throw std::runtime_error("usage: fsnet-service owner SCRIPT PORT NODE GATEWAY_PINS");
-        auto pins=identities(argv[5]);fsnet::Node node(token,{},security);
+        auto gateway_pins=identities(argv[5]),pins=gateway_pins;
+        auto endpoint_path=env("FSNET_ENTITY_ENDPOINTS"),owner_path=env("FSNET_OWNER_PINS");
+        if(endpoint_path.empty()!=owner_path.empty()) throw std::runtime_error("entity transfer requires both FSNET_ENTITY_ENDPOINTS and FSNET_OWNER_PINS");
+        std::unordered_map<std::string,std::string> owner_pins;
+        std::vector<fsnet::EntityEndpoint> transfer_endpoints;
+        if(!endpoint_path.empty()) {
+            owner_pins=identities(owner_path);
+            for(const auto& [cert,subject]:owner_pins) {
+                if(gateway_pins.contains(cert)) throw std::runtime_error("owner and gateway certificate pins must be separate");
+                pins.emplace(cert,subject);
+            }
+            for(auto& row:rows(endpoint_path,5)) transfer_endpoints.push_back({row[0],row[1],static_cast<std::uint16_t>(port(row[2])),split(row[3]),row[4]});
+        }
+        fsnet::Node node(token,{},security);
         node.authorize([pins](std::uint64_t,const std::string& cert,const std::string&){return pins.contains(cert);});
         auto base=[pins](std::uint64_t,const std::string& cert)->std::optional<fsnet::CallIdentity>{auto it=pins.find(cert);if(it==pins.end())return {};return fsnet::CallIdentity{fsnet::Caller::server,it->second};};
         fsnet::EntityRuntimeLimits limits;
         auto lease=std::stoll(env("FSNET_ENTITY_LEASE_MS","60000"));if(lease<500||lease>86400000)throw std::runtime_error("lease out of range");limits.lease=std::chrono::milliseconds(lease);limits.request_timeout=std::min(30000ms,limits.lease/2);
         auto host=std::make_shared<fsnet::EntityScriptHost>(std::make_shared<fsnet::NodeScriptHost>(node),database,incarnation(argv[4]),limits);
         fsnet::AttributeReplication replication(node,host);
-        fsnet::GatewayDelegation delegation(node,base,[pins](const fsnet::CallIdentity& who,const std::string& cert){auto it=pins.find(cert);return it!=pins.end()&&it->second==who.subject&&who.caller==fsnet::Caller::server;},host);
+        fsnet::GatewayDelegation delegation(node,base,[gateway_pins](const fsnet::CallIdentity& who,const std::string& cert){auto it=gateway_pins.find(cert);return it!=gateway_pins.end()&&it->second==who.subject&&who.caller==fsnet::Caller::server;},host);
+        std::unique_ptr<fsnet::EntityTransfer> transfer;
+        if(!transfer_endpoints.empty()) transfer=std::make_unique<fsnet::EntityTransfer>(node,host,database,std::move(transfer_endpoints),
+            [owner_pins,&node](const fsnet::CallIdentity& who) { auto it=owner_pins.find(node.peer_identity(who.peer)); return who.caller==fsnet::Caller::server && it!=owner_pins.end() && it->second==who.subject; });
         fsnet::LuaEngine engine(host);engine.load(script(argv[2]),argv[2]);
         auto listen_port=node.listen(bind_from_environment(),static_cast<std::uint16_t>(port(argv[3])));std::cout<<"listening "<<listen_port<<std::endl;
-        auto pump=[&]{node.poll();host->poll();engine.poll();delegation.poll();replication.poll();};
+        auto pump=[&]{node.poll();host->poll();engine.poll();delegation.poll();replication.poll();if(transfer)transfer->poll();};
         auto report=[&](bool ready){auto s=host->stats();metrics(mode,ready,node.stats(),",\"entities\":"+std::to_string(s.entities)+",\"pending\":"+std::to_string(s.pending)+",\"queued_bytes\":"+std::to_string(s.queued_bytes)+",\"resident_bytes\":"+std::to_string(s.state_bytes)+",\"transient_bytes\":"+std::to_string(s.transient_bytes)+",\"committed\":"+std::to_string(s.committed)+",\"rejected\":"+std::to_string(s.rejected)+",\"failed\":"+std::to_string(s.failed)+",\"publication_failures\":"+std::to_string(s.publication_failures)+",\"lua_active\":"+std::to_string(engine.active())+",\"lua_bytes\":"+std::to_string(engine.memory_used()));};
         while(running){pump();if(std::chrono::steady_clock::now()>=next_metrics){report(true);next_metrics=std::chrono::steady_clock::now()+100ms;}std::this_thread::sleep_for(1ms);}
         node.set_ready(false);report(false);auto deadline=std::chrono::steady_clock::now()+35s;bool drained=false;fsnet::Status status=fsnet::Status::overloaded;
@@ -66,7 +83,7 @@ int main(int argc,char** argv){try{
             if(!drained){pump();std::this_thread::sleep_for(1ms);}
         }
         auto flush=std::chrono::steady_clock::now()+250ms;while(std::chrono::steady_clock::now()<flush){pump();std::this_thread::sleep_for(1ms);}
-        report(false);engine.stop();replication.stop();delegation.stop();host->stop();node.stop();if(!drained)throw std::runtime_error("owner drain deadline exceeded");
+        report(false);engine.stop();if(transfer)transfer->stop();replication.stop();delegation.stop();host->stop();node.stop();if(!drained)throw std::runtime_error("owner drain deadline exceeded");
     }else if(mode=="gateway"){
         if(argc!=6)throw std::runtime_error("usage: fsnet-service gateway PORT ENDPOINTS CLIENT_IDENTITIES ROUTES");
         std::vector<fsnet::EntityEndpoint> endpoints;for(auto& row:rows(argv[3],5))endpoints.push_back({row[0],row[1],static_cast<std::uint16_t>(port(row[2])),split(row[3]),row[4]});

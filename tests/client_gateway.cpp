@@ -1,9 +1,11 @@
 #include "fsnet/client_gateway.hpp"
+#include "fsnet/entity_transfer.hpp"
 #include "fsnet/attribute_replication.hpp"
 #include "fsnet/lua_engine.hpp"
 #include "fsnet/entity_message.hpp"
 #include "fsnet/entity_record.hpp"
 #include <iostream>
+#include <source_location>
 #include <thread>
 #include <unordered_map>
 using namespace std::chrono_literals;
@@ -46,6 +48,9 @@ int main(){try{
     front.identify([&](std::uint64_t peer,const std::string&){if(!alice_front)alice_front=peer;return std::optional(fsnet::CallIdentity{fsnet::Caller::client,peer==alice_front?alice_subject:"bob"});});
     fsnet::GatewayLimits limits;limits.refresh=5ms;limits.migration_timeout=3s;
     fsnet::ClientGateway gateway(front,back,database,{{"a","127.0.0.1",ap,{"Actor","Pet"}},{"b","127.0.0.1",bp,{"Actor","Pet"}}},limits);
+    std::vector<fsnet::EntityEndpoint> owners={{"a","127.0.0.1",ap,{"Actor","Pet"}},{"b","127.0.0.1",bp,{"Actor","Pet"}}};
+    auto owner_trust=[](const fsnet::CallIdentity& who){return who.caller==fsnet::Caller::server&&who.subject=="gateway";};
+    fsnet::EntityTransfer at(a,ah,database,owners,owner_trust),bt(b,bh,database,owners,owner_trust);
     gateway.bind_entity("Actor",{"move","server_only"});gateway.bind_account("login","Actor");gateway.bind_account("pet_login","Pet");
     auto port=front.listen("127.0.0.1",0);auto alice_peer=alice.connect("127.0.0.1",port);
     std::uint64_t owned=0,pet=0;bool actor_controlled=false,pet_controlled=false;std::size_t leaves=0;
@@ -55,8 +60,8 @@ int main(){try{
         if(event.kind==fsnet::EntityPresence::Kind::leave)++leaves;
     });
     std::unique_ptr<fsnet::AttributeClient> bc;
-    auto pump=[&]{a.poll();b.poll();front.poll();back.poll();alice.poll();bob.poll();intruder.poll();ah->poll();bh->poll();ae.poll();be.poll();ad.poll();bd.poll();ar.poll();br.poll();gateway.poll();ac.poll();if(bc)bc->poll();};
-    auto until=[&](auto condition){auto end=std::chrono::steady_clock::now()+8s;while(!condition()){pump();if(std::chrono::steady_clock::now()>end)throw std::runtime_error("deadline: "+ae.last_error()+" / "+be.last_error());std::this_thread::sleep_for(1ms);}};
+    auto pump=[&]{a.poll();b.poll();front.poll();back.poll();alice.poll();bob.poll();intruder.poll();ah->poll();bh->poll();ae.poll();be.poll();ad.poll();bd.poll();ar.poll();br.poll();gateway.poll();at.poll();bt.poll();ac.poll();if(bc)bc->poll();};
+    auto until=[&](auto condition,std::source_location where=std::source_location::current()){auto end=std::chrono::steady_clock::now()+8s;while(!condition()){pump();if(std::chrono::steady_clock::now()>end)throw std::runtime_error("deadline at "+std::to_string(where.line())+": "+ae.last_error()+" / "+be.last_error());std::this_thread::sleep_for(1ms);}};
     auto call=[&](fsnet::Node& node,std::uint64_t peer,std::string route,std::string data){std::optional<fsnet::Result> result;node.call(peer,std::move(route),std::move(data),3s,[&](auto r){result=std::move(r);});until([&]{return result.has_value();});return *result;};
     std::optional<fsnet::Result> loaded;ah->read_attributes("Actor","alice",[&](auto r){loaded=std::move(r);});until([&]{return loaded.has_value();});CHECK(loaded->status==fsnet::Status::ok);loaded.reset();
     bh->read_attributes("Actor","bob",[&](auto r){loaded=std::move(r);});until([&]{return loaded.has_value();});CHECK(loaded->status==fsnet::Status::ok);
@@ -81,19 +86,31 @@ int main(){try{
     enrolling=false;auto direct=intruder.connect("127.0.0.1",ap);CHECK(call(intruder,direct,"system.gateway.delegate","alice").status==fsnet::Status::rejected);
     // Backend subscription IDs start at one on each owner; gateway IDs stay unique.
     CHECK(gateway.stats().subscriptions==4);
-    enrolling=true;auto handle=ah->handle("Actor","alice");CHECK(handle);std::optional<fsnet::Result> released;ah->drain([&](auto r){released=std::move(r);});until([&]{return released.has_value();});CHECK(released->status==fsnet::Status::ok);
+    enrolling=true;auto handle=ah->handle("Actor","alice");CHECK(handle);std::optional<fsnet::Result> released;at.transfer("Actor","alice","b",[&](auto r){released=std::move(r);});until([&]{return released.has_value();});CHECK(released->status==fsnet::Status::ok);
     until([&]{return gateway.stats().migrations>=2&&!gateway.stats().migrating&&bh->active("Actor","alice");});
     CHECK(owned==original&&ac.get(owned)&&bc->get(observer)&&leaves==0);CHECK(x(ac.get(owned))==7);
     CHECK(std::get<std::int64_t>(ac.get(owned)->values().at("activations"))==2);
     CHECK(move("2").status==fsnet::Status::ok);until([&]{return x(ac.get(owned))==9&&x(bc->get(observer))==9;});
-    std::optional<fsnet::Result> destroyed;bh->control_entity("Actor","alice",true,[&](auto r){destroyed=std::move(r);});until([&]{return destroyed.has_value();});CHECK(destroyed->status==fsnet::Status::ok);
+    // Return to a specified owner without disturbing the controlled Pet on b.
+    released.reset(); auto migrations=gateway.stats().migrations;
+    bt.transfer("Actor","alice","a",[&](auto r){released=std::move(r);});
+    until([&]{return released.has_value();});CHECK(released->status==fsnet::Status::ok);
+    until([&]{return gateway.stats().migrations>=migrations+2&&!gateway.stats().migrating&&ah->active("Actor","alice");});
+    CHECK(owned==original&&leaves==0&&x(ac.get(owned))==9&&pet_controlled&&!actor_controlled);
+    // The currently possessed entity migrates too: stable ID and restored control.
+    auto original_pet=pet; migrations=gateway.stats().migrations; released.reset();
+    bt.transfer("Pet","alice","a",[&](auto r){released=std::move(r);});
+    until([&]{return released.has_value();});CHECK(released->status==fsnet::Status::ok);
+    until([&]{return gateway.stats().migrations>=migrations+1&&!gateway.stats().migrating&&pet_controlled;});
+    CHECK(pet==original_pet&&leaves==0&&!actor_controlled&&ah->active("Pet","alice")&&!bh->active("Pet","alice"));
+    std::optional<fsnet::Result> destroyed;ah->control_entity("Actor","alice",true,[&](auto r){destroyed=std::move(r);});until([&]{return destroyed.has_value();});CHECK(destroyed->status==fsnet::Status::ok);
     until([&]{return !ac.get(owned)&&!bc->get(observer);});CHECK(!database->get(fsnet::entity_record_key("Actor","alice")));
-    for(int i=0;i<20;++i)pump();CHECK(!bh->handle("Actor","alice"));
+    for(int i=0;i<20;++i)pump();CHECK(!ah->handle("Actor","alice"));
     alice_subject="mallory";until([&]{return !ac.get(other);});CHECK(gateway.stats().clients==1);
     front.set_ready(false);CHECK(call(bob,bob_peer,"system.health","").status==fsnet::Status::overloaded);front.set_ready(true);
     CHECK(call(bob,bob_peer,"system.health","").data=="ready");
     gateway.drain();CHECK(call(bob,bob_peer,"Actor.move",fsnet::entity_message("bob","1")).status==fsnet::Status::overloaded);
-    gateway.stop();CHECK(back.pending()==0&&back.stats().connections==0);ac.stop();bc->stop();ae.stop();be.stop();ar.stop();br.stop();ad.stop();bd.stop();ah->stop();bh->stop();
+    at.stop();bt.stop();gateway.stop();CHECK(back.pending()==0&&back.stats().connections==0);ac.stop();bc->stop();ae.stop();be.stop();ar.stop();br.stop();ad.stop();bd.stop();ah->stop();bh->stop();
     CHECK(gateway.stats().pending==0&&gateway.stats().subscriptions==0);
     std::cout<<"PASS gateway: trusted client delegation, role/owner isolation, shared patches, ID remap, automatic/manual migration, deletion and identity revocation\n";
 }catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}}

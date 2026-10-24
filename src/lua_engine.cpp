@@ -21,9 +21,9 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
     using Clock = std::chrono::steady_clock;
     struct Await {
         std::uint64_t peer;
-        std::string route, data;
+        std::string route, data, target;
         std::chrono::milliseconds timeout;
-        enum class Kind { rpc, sleep, watch, write, spawn, control, visibility } kind = Kind::rpc;
+        enum class Kind { rpc, sleep, watch, write, spawn, control, transfer, visibility } kind = Kind::rpc;
         std::uint64_t subscription = 0;
         AttributeWriteOptions options;
         EntityAttributes::Values values;
@@ -1003,6 +1003,22 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
         } catch(const std::exception& e) { return luaL_error(L,"%s",e.what()); }
         return lua_yield(L,0);
     }
+    static int transfer_entity(lua_State* L) {
+        prediction_external(L); auto& engine=self(L);
+        std::size_t n,m,k; const char* kind=luaL_checklstring(L,1,&n); const char* id=luaL_checklstring(L,2,&m); const char* target=luaL_checklstring(L,3,&k);
+        if(!engine.threads.contains(L)) return luaL_error(L,"transfer requires an async server task");
+        try {
+            std::string type(kind,n),entity(id,m),destination(target,k);
+            if(!engine.server_schemas.contains(type) || !m || m>256 || !k || k>127 || destination.find_first_of("/\0",0,2)!=std::string::npos)
+                throw std::invalid_argument("registered server entity and stable target node required");
+            const auto& task=engine.tasks.at(engine.threads.at(L));
+            if(task.entity_type==type && task.entity_id==entity) throw std::logic_error("cannot await transfer of the current entity");
+            Await request{}; request.kind=Await::Kind::transfer; request.timeout=engine.limits.task_timeout;
+            request.route=std::move(type); request.data=std::move(entity); request.target=std::move(destination);
+            engine.tasks.at(engine.threads.at(L)).await=std::move(request);
+        } catch(const std::exception& e) { return luaL_error(L,"%s",e.what()); }
+        return lua_yield(L,0);
+    }
     static int entity_visibility(lua_State* L) {
         prediction_external(L);
         auto& engine=self(L);
@@ -1154,6 +1170,7 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
         lua_pushcfunction(L,write_attributes); lua_setfield(L,-2,"_write");
         lua_pushcfunction(L,spawn_entity); lua_setfield(L,-2,"_spawn_entity");
         lua_pushcfunction(L,control_entity); lua_setfield(L,-2,"_control_entity");
+        lua_pushcfunction(L,transfer_entity); lua_setfield(L,-2,"_transfer_entity");
         lua_pushcfunction(L,entity_visibility); lua_setfield(L,-2,"_entity_visibility");
         lua_pushcfunction(L,stop_entity_events); lua_setfield(L,-2,"_stop_entity_events");
         lua_pushcfunction(L,subscription_alive); lua_setfield(L,-2,"_subscription_alive");
@@ -1420,6 +1437,7 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
                     },request.timeout);
             } else if(request.kind==Await::Kind::write) host->write_attributes(request.subscription,std::move(request.values),std::move(completion),std::move(request.options),request.timeout);
             else if(request.kind==Await::Kind::spawn) host->spawn_entity(std::move(request.route),std::move(request.data),std::move(request.values),std::move(completion));
+            else if(request.kind==Await::Kind::transfer) host->transfer_entity(std::move(request.route),std::move(request.data),std::move(request.target),std::move(completion));
             else if(request.kind==Await::Kind::control) host->control_entity(std::move(request.route),std::move(request.data),request.action!=0,std::move(completion));
             else if(request.kind==Await::Kind::visibility) host->entity_visibility(request.peer,std::move(request.route),std::move(request.data),request.action,std::move(completion));
             else if (request.peer) host->call(request.peer, std::move(request.route), std::move(request.data), request.timeout, std::move(completion));

@@ -72,10 +72,11 @@ with tempfile.TemporaryDirectory(prefix='fsnet-delivery-') as directory:
         (root/(name+'.key')).chmod(0o600)
     def fingerprint(name): return 'sha256:'+openssl('x509','-in',name+'.pem','-noout','-fingerprint','-sha256').strip().split('=',1)[1].replace(':','').lower()
     (root/'gateways.tsv').write_text(f'{fingerprint("gateway")} gateway\n')
+    (root/'owners.tsv').write_text(f'{fingerprint("ownera")} ownera\n{fingerprint("ownerb")} ownerb\n')
     (root/'clients.tsv').write_text(f'{fingerprint("alice")} alice\n')
-    (root/'routes.tsv').write_text('account login Actor\nentity Actor move\n')
+    (root/'routes.tsv').write_text('account login Actor\naccount travel Actor\nentity Actor move\n')
     base=dict(os.environ,FSNET_CLUSTER_TOKEN='',FSNET_STORAGE_URI='file:'+str(root/'state'),FSNET_BIND_ADDRESS='127.0.0.1',FSNET_ENTITY_LEASE_MS='2000')
-    for key in ('FSNET_DATABASE_PATH','FSNET_TLS_CA','FSNET_TLS_CERTIFICATE','FSNET_TLS_KEY','FSNET_TLS_PEER_NAME','FSNET_METRICS_FILE'): base.pop(key,None)
+    for key in ('FSNET_DATABASE_PATH','FSNET_TLS_CA','FSNET_TLS_CERTIFICATE','FSNET_TLS_KEY','FSNET_TLS_PEER_NAME','FSNET_METRICS_FILE','FSNET_ENTITY_ENDPOINTS','FSNET_OWNER_PINS'): base.pop(key,None)
     def environment(name,peer='',metric=None):
         value=dict(base,FSNET_TLS_CA=str(root/'ca.pem'),FSNET_TLS_CERTIFICATE=str(root/(name+'.pem')),FSNET_TLS_KEY=str(root/(name+'.key')),FSNET_TLS_PEER_NAME=peer)
         if metric: value['FSNET_METRICS_FILE']=str(metric)
@@ -100,10 +101,16 @@ runtime.rpc('login',{callers={'client'},handler=function(ctx,name)
     local actor=Actor:spawn_or_restore(ctx.subject)
     actor:show_to(ctx.peer);actor:possess(ctx.peer);return actor.id
 end})
+runtime.rpc('travel',{callers={'client'},handler=function(ctx,target)
+    assert(target=='ownera' or target=='ownerb')
+    return tostring(Actor:transfer(ctx.subject,target))
+end})
 """)
-    def owner(name,port=0):
+    def owner(name,port=0,directed=False):
         metric=root/(name+'.json');metrics_paths.append(metric) if metric not in metrics_paths else None
-        process=subprocess.Popen([str(args.service),'owner',str(server_script),str(port),name,str(root/'gateways.tsv')],env=environment(name,metric=metric),stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True)
+        config=environment(name,metric=metric)
+        if directed:config.update(FSNET_ENTITY_ENDPOINTS=str(root/'endpoints.tsv'),FSNET_OWNER_PINS=str(root/'owners.tsv'))
+        process=subprocess.Popen([str(args.service),'owner',str(server_script),str(port),name,str(root/'gateways.tsv')],env=config,stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True)
         processes.append(process);text=line(process);assert text.startswith('listening '),text;return process,int(text.split()[1])
     try:
         for overrides in ({'FSNET_STORAGE_URI':'memory:'},{'FSNET_TLS_CA':''}):
@@ -186,6 +193,39 @@ end)
         processes.append(second);assert line(second)=='handoff_checkpoint'
         survivor=b if killed is a else a;stop(survivor);assert line(second)=='handoff_recovered'
         out,err=second.communicate(timeout=10);assert second.returncode==0,(out,err)
+        # Enable directed transfer on both owners, using distinct owner/Gateway
+        # certificate pins. Existing crash and graceful migration checks remain.
+        stop(replacement)
+        directed_a,_=owner('ownera',ap,directed=True)
+        directed_b,_=owner('ownerb',bp,directed=True)
+        directed=root/'directed.lua'
+        directed.write_text(shared+presentation+"""
+runtime.start(function()
+    local id=runtime.server_request('login','Alice')
+    while not fsnet.entities:get('Actor',id) do runtime.sleep(1) end
+    local actor=fsnet.entities:get('Actor',id).entity
+    local previous=actor.activations;local value=actor.position.x
+    local target='ownerb'
+    local result=runtime.server_request('travel',target)
+    if tonumber(result)~=runtime.status.ok then
+        target='ownera';result=runtime.server_request('travel',target)
+    end
+    assert(tonumber(result)==runtime.status.ok)
+    while actor.activations<=previous do runtime.sleep(5) end
+    assert(fsnet.entities:get('Actor',id).entity==actor and entered==1 and actor.created==1 and actor.position.x==value)
+    Actor:ref(id):move('1',{request_id='after-directed',timeout_ms=3000})
+    assert(actor.position.x==value+1)
+    previous=actor.activations
+    result=runtime.server_request('travel',target=='ownerb' and 'ownera' or 'ownerb')
+    assert(tonumber(result)==runtime.status.ok)
+    while actor.activations<=previous do runtime.sleep(5) end
+    assert(fsnet.entities:get('Actor',id).entity==actor and entered==1 and actor.position.x==value+1)
+    print('directed_complete')
+    fsnet.entities:stop()
+end)
+""")
+        third=run_client(directed,environment('alice','gateway.fsnet'))
+        assert third.returncode==0 and 'directed_complete' in third.stdout,(third.returncode,third.stdout,third.stderr)
         deadline=time.monotonic()+5
         while time.monotonic()<deadline:
             sample();value=json.loads(gateway_metric.read_text())
@@ -193,19 +233,19 @@ end)
             time.sleep(0.05)
         else:raise AssertionError('gateway resources did not drain')
         assert value['migrations']>=2,value
-        stop(replacement);stop(gateway)
+        stop(directed_a);stop(directed_b);stop(gateway)
         for metric in metrics_paths:
             value=json.loads(metric.read_text())
             assert value['ready'] is False,value
             if value['mode']=='owner':assert value['entities']==0 and value['pending']==0,value
-        report={'checks':['unsafe launcher configuration rejected','mutual TLS','untrusted CA rejected','unmapped certificate rejected','authenticated account delegation','automatic subscription','SIGKILL takeover with confirmed state','same RPC ID replay across owners','shared field batch load','graceful owner handoff','stable frontend entity','resource cleanup','readiness and metrics'],
+        report={'checks':['unsafe launcher configuration rejected','mutual TLS','untrusted CA rejected','unmapped certificate rejected','authenticated account delegation','automatic subscription','SIGKILL takeover with confirmed state','same RPC ID replay across owners','shared field batch load','graceful owner handoff','directed owner handoff over mutual TLS','directed round trip preserves Lua object','stable frontend entity','resource cleanup','readiness and metrics'],
                 'rounds':args.rounds,'batch_seconds':batch_seconds,'batch_rounds_per_second':args.rounds/batch_seconds,'batch_timing_scope':'parent observes recovered to load_done; one serial Lua vec3 batch per persistent commit, includes replication, no startup/crash recovery','recovery_seconds':recovery_seconds,'elapsed_seconds':time.monotonic()-started,'peaks':peaks,
                 'scope':'local processes, shared POSIX file storage, ephemeral PKI; not cross-machine HA or a production SLO',
                 'service_sha256':hashlib.sha256(args.service.read_bytes()).hexdigest(),'client_sha256':hashlib.sha256(args.client.read_bytes()).hexdigest()}
         library=next((p for p in (args.service.parent/'libfsnet.so',args.service.parent.parent/'lib'/'libfsnet.so') if p.is_file()),None)
         if library:report['library_sha256']=hashlib.sha256(library.read_bytes()).hexdigest()
         if args.output:args.output.parent.mkdir(parents=True,exist_ok=True);args.output.write_text(json.dumps(report,indent=2)+'\n')
-        print('PASS delivery: mTLS, account delegation, crash takeover, receipt replay, batch load, graceful handoff and resource cleanup')
+        print('PASS delivery: mTLS, account delegation, crash takeover, receipt replay, batch load, graceful/directed handoff and resource cleanup')
     finally:
         for process in reversed(processes):
             if process.poll() is None:
