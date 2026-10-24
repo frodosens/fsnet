@@ -161,7 +161,9 @@ end)
         assert selected,'owner discovery metrics'
         name,killed,listen=selected;killed.kill();killed.communicate(timeout=5)
         recovery_start=time.monotonic();assert line(client)=='recovered\t9.0';recovery_seconds=time.monotonic()-recovery_start
+        batch_start=time.monotonic()
         assert line(client,timeout=120)==f'load_done\t{args.rounds}'
+        batch_seconds=time.monotonic()-batch_start
         out,err=client.communicate(timeout=10);assert client.returncode==0,(out,err)
         # Restart killed member at the same endpoint, then gracefully drain the
         # surviving owner while a second client connection keeps its subscription.
@@ -197,7 +199,7 @@ end)
             assert value['ready'] is False,value
             if value['mode']=='owner':assert value['entities']==0 and value['pending']==0,value
         report={'checks':['unsafe launcher configuration rejected','mutual TLS','untrusted CA rejected','unmapped certificate rejected','authenticated account delegation','automatic subscription','SIGKILL takeover with confirmed state','same RPC ID replay across owners','shared field batch load','graceful owner handoff','stable frontend entity','resource cleanup','readiness and metrics'],
-                'rounds':args.rounds,'recovery_seconds':recovery_seconds,'elapsed_seconds':time.monotonic()-started,'peaks':peaks,
+                'rounds':args.rounds,'batch_seconds':batch_seconds,'batch_rounds_per_second':args.rounds/batch_seconds,'batch_timing_scope':'parent observes recovered to load_done; one serial Lua vec3 batch per persistent commit, includes replication, no startup/crash recovery','recovery_seconds':recovery_seconds,'elapsed_seconds':time.monotonic()-started,'peaks':peaks,
                 'scope':'local processes, shared POSIX file storage, ephemeral PKI; not cross-machine HA or a production SLO',
                 'service_sha256':hashlib.sha256(args.service.read_bytes()).hexdigest(),'client_sha256':hashlib.sha256(args.client.read_bytes()).hexdigest()}
         library=next((p for p in (args.service.parent/'libfsnet.so',args.service.parent.parent/'lib'/'libfsnet.so') if p.is_file()),None)
