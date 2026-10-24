@@ -289,3 +289,13 @@ Gateway 身份委托/订阅迁移和可部署启动器见 [跨节点接入](CLIE
 仍没有自动几何 AOI、跨实体事务、公共前缀树编码或自动输入重发。
 ICE/STUN/TURN 原语不等于完整认证/加密 P2P 链路。完整已实现/计划边界见
 [完成状态](ENGINE_COMPLETION.md)、[路线图](ROADMAP.md)、[验证记录](VALIDATION.md)。
+
+
+## 原生借用输入与确认版本
+
+`Node::call/notify` 同步读取 `string_view`，在返回前生成拥有数据的发送帧；调用方随后可销毁输入。
+`parse_entity_message_view` / `parse_state_message_view` 返回借用视图，使用期间必须保留原输入；
+要跨 await 或持有独立字符串时，使用原 owning parser 或自行持有原缓冲。
+`AttributeReplica::snapshot()` 返回可跨后续 apply/reset 存活的只读版本，旧版本保持不变；
+`values()` 的借用引用只保证到下一次成功更新。C++ 嵌入方需按新头文件全量重编，Lua API 和
+线上封包不变。实现与测量边界见 [Copy 优化记录](COPY_OPTIMIZATION.md)。

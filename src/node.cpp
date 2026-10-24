@@ -381,7 +381,7 @@ void Node::on_notification(std::string channel, Notification handler) {
     if (!impl_->notifications.emplace(std::move(channel), std::move(handler)).second) throw std::logic_error("duplicate notification channel");
 }
 void Node::off_notification(const std::string& channel) { impl_->notifications.erase(channel); }
-bool Node::notify(std::uint64_t peer, const std::string& channel, const std::string& data) {
+bool Node::notify(std::uint64_t peer, std::string_view channel, std::string_view data) {
     if (channel.empty() || channel.size() > 256 || channel.find('\0') != std::string::npos || channel.size() + data.size() > impl_->limits.frame_bytes - 14) return false;
     auto it = impl_->sessions.find(peer);
     if (impl_->stopped || it == impl_->sessions.end()) return false;

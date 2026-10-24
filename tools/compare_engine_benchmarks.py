@@ -24,6 +24,8 @@ def invoke(label,name,arguments):
  env=dict(os.environ);env['LD_LIBRARY_PATH']=str(directory)+((':'+env['LD_LIBRARY_PATH']) if env.get('LD_LIBRARY_PATH') else '')
  r=subprocess.run([str(directory/name),*arguments],env=env,capture_output=True,text=True,check=True,timeout=120)
  return {'build':label,'command':[name,*arguments],'rows':[json.loads(line) for line in r.stdout.splitlines()],'stderr':r.stderr}
+replication=not a.quick and (a.after.resolve()/'fsnet-replication-benchmark').exists()
+if replication:report['builds']['after']['sha256']['fsnet-replication-benchmark']=hashlib.sha256((a.after.resolve()/'fsnet-replication-benchmark').read_bytes()).hexdigest()
 # Untimed warmups exercise every path in both builds.
 for label in ('before','after'):
  for name,arguments in commands:invoke(label,name,arguments)
@@ -31,5 +33,7 @@ for repeat in range(a.runs):
  for name,arguments in commands:
   for label in (('before','after') if repeat%2==0 else ('after','before')):
    sample=invoke(label,name,arguments);sample['repeat']=repeat+1;report['samples'].append(sample)
+ if replication:
+  sample=invoke('after','fsnet-replication-benchmark',[]);sample['repeat']=repeat+1;report['samples'].append(sample)
  a.output.parent.mkdir(parents=True,exist_ok=True);a.output.write_text(json.dumps(report,indent=2)+'\n')
  print('completed pair',repeat+1,flush=True)

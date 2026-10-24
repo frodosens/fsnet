@@ -2,6 +2,7 @@
 #include "fsnet/entity_schema.hpp"
 #include <string_view>
 #include <optional>
+#include <utility>
 
 namespace fsnet {
 struct AttributeWriteOptions {
@@ -30,14 +31,24 @@ EntityAttributes::Mutation stage_attribute_proposal(const EntityAttributes&, con
 // false without mutation so the SDK can request resynchronization.
 class AttributeReplica {
 public:
+    AttributeReplica() = default;
+    AttributeReplica(const AttributeReplica&) = default;
+    AttributeReplica& operator=(const AttributeReplica&) = default;
+    AttributeReplica(AttributeReplica&& other) noexcept
+      : image_(std::move(other.image_)), revision_(std::exchange(other.revision_,0)), initialized_(std::exchange(other.initialized_,false)) {}
+    AttributeReplica& operator=(AttributeReplica&& other) noexcept {
+        if(this!=&other){image_=std::move(other.image_);revision_=std::exchange(other.revision_,0);initialized_=std::exchange(other.initialized_,false);}return *this;
+    }
     bool apply(const AttributeUpdate&);
     bool apply(std::string_view bytes) { return apply(decode_attributes(bytes)); }
-    const std::map<std::string, AttributeValue>& values() const { return values_; }
+    // Borrowed until the next successful apply/reset. Use snapshot() to retain a version.
+    const std::map<std::string, AttributeValue>& values() const { static const AttributeStruct empty; return image_?image_->values:empty; }
+    std::shared_ptr<const AttributeUpdate> snapshot() const { return initialized_ ? image_ : nullptr; }
     std::uint64_t revision() const { return revision_; }
     bool initialized() const { return initialized_; }
-    void reset() { values_.clear(); revision_ = 0; initialized_ = false; }
+    void reset() { image_.reset(); revision_ = 0; initialized_ = false; }
 private:
-    std::map<std::string, AttributeValue> values_;
+    std::shared_ptr<AttributeUpdate> image_;
     std::uint64_t revision_ = 0;
     bool initialized_ = false;
 };

@@ -152,7 +152,6 @@ struct ClientGateway::Impl:std::enable_shared_from_this<Impl>{
         }catch(...){link->opening=false;auto waiting=std::move(link->waiters);for(auto& done:waiting)done(Status::disconnected,{});}
     }
     std::size_t client_subscriptions(std::uint64_t client){std::size_t count=0;for(const auto& [id,s]:subscriptions){(void)id;if(s->client==client)++count;}return count;}
-    std::string packet(const Subscription& sub,const ReplicationPacket& message){return encode_replication_packet(sub.id,message.type,message.id,message.status,message.update?&*message.update:nullptr,message.lease_ms);}
     void remove(const std::shared_ptr<Subscription>& s,Status status,bool notify=true){
         if(!subscriptions.erase(s->id))return;
         std::erase(schedule,s->id);
@@ -191,11 +190,12 @@ struct ClientGateway::Impl:std::enable_shared_from_this<Impl>{
         select(type,entity,[weak=weak_from_this(),r,sub](Status status,std::optional<std::size_t> index,bool){auto self=weak.lock();if(!self||r->done)return;if(status!=Status::ok){self->remove(sub,status,false);return self->finish(r,{status,{}});}
             self->acquire(r->client,*index,[weak,r,sub](Status status,std::shared_ptr<Link> link){auto self=weak.lock();if(!self||r->done)return;if(status!=Status::ok){self->remove(sub,status,false);return self->finish(r,{status,{}});}
                 self->back.call(link->peer,"system.attributes.watch",r->data,self->remaining(r),[weak,r,sub,link](Result result){auto self=weak.lock();if(!self)return;
-                    if(r->done){if(result.status==Status::ok)try{auto late=decode_replication_packet(result.data);self->back.call(link->peer,"system.attributes.unwatch",token(late.subscription),std::chrono::seconds(1),[](Result){});}catch(...){} return;}
+                    if(r->done){if(result.status==Status::ok)try{auto late=decode_replication_packet_view(result.data);self->back.call(link->peer,"system.attributes.unwatch",token(late.subscription),std::chrono::seconds(1),[](Result){});}catch(...){} return;}
                     try{if(result.status!=Status::ok){self->remove(sub,result.status,false);return self->finish(r,std::move(result));}
-                        auto message=decode_replication_packet(result.data);if(message.status!=Status::ok||!message.update||!message.update->snapshot||message.type!=sub->type||message.id!=sub->entity)throw std::runtime_error("watch identity mismatch");
+                        auto message=decode_replication_packet_view(result.data);if(message.status!=Status::ok||!message.update||!message.update->snapshot||message.type!=sub->type||message.id!=sub->entity)throw std::runtime_error("watch identity mismatch");
                         sub->link=link;sub->remote=message.subscription;sub->revision=message.update->revision;sub->busy=false;sub->next=Clock::now()+self->limits.refresh;self->reverse[self->remote_key(link->peer,sub->remote)]=sub->id;
-                        self->finish(r,{Status::ok,self->packet(*sub,message)});
+                        remap_replication_subscription(result.data,sub->id);
+                        self->finish(r,{Status::ok,std::move(result.data)});
                     }catch(...){self->remove(sub,Status::rejected,false);self->finish(r,{Status::rejected,{}});}
                 });
             });
@@ -219,7 +219,7 @@ struct ClientGateway::Impl:std::enable_shared_from_this<Impl>{
         try{
             std::uint64_t kind=0,flags=0;std::string_view body(data);
             if(channel==presence){kind=get(body,1);flags=get(body,1);if(kind<1||kind>3||flags>3)throw std::invalid_argument("presence header");}
-            auto message=decode_replication_packet(body);std::shared_ptr<Subscription> sub;
+            auto message=decode_replication_packet_view(body);std::shared_ptr<Subscription> sub;
             auto reverse_it=reverse.find(remote_key(peer,message.subscription));
             if(reverse_it!=reverse.end()&&subscriptions.contains(reverse_it->second))sub=subscriptions.at(reverse_it->second);
             if(!sub&&channel==presence&&kind==1&&message.status==Status::ok){
@@ -229,7 +229,7 @@ struct ClientGateway::Impl:std::enable_shared_from_this<Impl>{
                 if(!message.update||!message.update->snapshot||message.update->revision<sub->revision||sub->owned!=bool(flags&1))return remove(sub,Status::rejected);
                 if(sub->link)reverse.erase(remote_key(sub->link->peer,sub->remote));
                 sub->link=link;sub->remote=message.subscription;sub->revision=message.update->revision;sub->controlled=flags&2;sub->migrating=false;sub->busy=false;sub->next=Clock::now()+limits.refresh;reverse[remote_key(peer,sub->remote)]=sub->id;
-                if(restoring){++counters.migrations;if(!front.notify(sub->client,attributes,packet(*sub,message)))return front.close(sub->client);}
+                if(restoring){++counters.migrations;remap_replication_subscription(data,sub->id,2);if(!front.notify(sub->client,attributes,body))return front.close(sub->client);}
             }
             if(!sub)return;
             if(message.type!=sub->type||message.id!=sub->entity)throw std::invalid_argument("notification entity mismatch");
@@ -250,8 +250,8 @@ struct ClientGateway::Impl:std::enable_shared_from_this<Impl>{
                 }else if(session->second.controlled==sub->id)session->second.controlled=0;
                 sub->controlled=flags&2;
             }
-            auto output=packet(*sub,message);if(channel==presence)output=std::string{char(kind),char(flags)}+output;
-            if(!front.notify(sub->client,channel,output))front.close(sub->client);
+            remap_replication_subscription(data,sub->id,channel==presence?2:0);
+            if(!front.notify(sub->client,channel,data))front.close(sub->client);
         }catch(...){front.close(link->client);}
     }
     void refresh(const std::shared_ptr<Subscription>& sub){
@@ -269,10 +269,11 @@ struct ClientGateway::Impl:std::enable_shared_from_this<Impl>{
                     sub->busy=false;sub->next=Clock::now()+self->limits.refresh;
                     if(result.status!=Status::ok){if(result.status==Status::overloaded||result.status==Status::disconnected||result.status==Status::timeout)self->retry[link->index]=Clock::now()+std::chrono::milliseconds(250);if(result.status==Status::rejected||result.status==Status::not_found)self->remove(sub,result.status);return;}
                     if(sub->automatic)return; // creation notification installs the fresh snapshot
-                    try{auto message=decode_replication_packet(result.data);if(!message.update||!message.update->snapshot||message.type!=sub->type||message.id!=sub->entity||message.update->revision<sub->revision)throw std::invalid_argument("migration snapshot");
+                    try{auto message=decode_replication_packet_view(result.data);if(!message.update||!message.update->snapshot||message.type!=sub->type||message.id!=sub->entity||message.update->revision<sub->revision)throw std::invalid_argument("migration snapshot");
                         if(sub->link){self->reverse.erase(self->remote_key(sub->link->peer,sub->remote));if(self->back.connected(sub->link->peer))self->back.call(sub->link->peer,"system.attributes.unwatch",token(sub->remote),std::chrono::seconds(1),[](Result){});}
                         sub->link=link;sub->remote=message.subscription;sub->revision=message.update->revision;sub->migrating=false;self->reverse[self->remote_key(link->peer,sub->remote)]=sub->id;++self->counters.migrations;
-                        if(!self->front.notify(sub->client,attributes,self->packet(*sub,message)))self->front.close(sub->client);
+                        remap_replication_subscription(result.data,sub->id);
+                        if(!self->front.notify(sub->client,attributes,result.data))self->front.close(sub->client);
                     }catch(...){self->remove(sub,Status::rejected);}
                 });
             });

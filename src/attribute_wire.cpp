@@ -419,7 +419,7 @@ bool AttributeReplica::apply(const AttributeUpdate& update) {
         AttributeUpdate materialized{update.base,update.revision,false,update.values};
         for(const auto& patch:update.patches) {
             auto current=materialized.values.find(patch.property);
-            if(current==materialized.values.end()) current=materialized.values.emplace(patch.property,values_.at(patch.property)).first;
+            if(current==materialized.values.end()) current=materialized.values.emplace(patch.property,values().at(patch.property)).first;
             auto* target=&current->second;
             for(const auto& part:patch.path) {
                 if(auto key=std::get_if<std::string>(&part)) {
@@ -443,19 +443,26 @@ bool AttributeReplica::apply(const AttributeUpdate& update) {
         }
         return apply(materialized);
     }
+    const auto next_revision=update.revision;
     if (update.snapshot) {
-        auto next=update.values; values_.swap(next);
+        auto next=std::make_shared<AttributeUpdate>(AttributeUpdate{0,next_revision,true,update.values});
+        image_=std::move(next);
     } else {
-        validate_overlay(values_,update.values);
+        validate_overlay(values(),update.values);
         // Allocate before mutation; transfer new map nodes without allocation.
         static_assert(std::is_nothrow_swappable_v<AttributeValue>);
         auto prepared=update.values;
+        // Retained snapshots and copied replicas share immutable old versions.
+        // Detach only when a reader holds the current version; otherwise mutate
+        // the existing carrier after all fallible preparation has succeeded.
+        if(image_.use_count()!=1)image_=std::make_shared<AttributeUpdate>(*image_);
+        auto& values_=image_->values;
         while (!prepared.empty()) {
             auto field=prepared.begin(); auto existing=values_.find(field->first);
             if (existing==values_.end()) values_.insert(prepared.extract(field));
             else { existing->second.swap(field->second); prepared.erase(field); }
         }
     }
-    revision_ = update.revision; initialized_ = true; return true;
+    image_->revision=next_revision; revision_ = next_revision; initialized_ = true; return true;
 }
 }

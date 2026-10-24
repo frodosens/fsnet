@@ -1,0 +1,40 @@
+{
+  "checks": [
+    "unsafe launcher configuration rejected",
+    "mutual TLS",
+    "untrusted CA rejected",
+    "unmapped certificate rejected",
+    "authenticated account delegation",
+    "automatic subscription",
+    "SIGKILL takeover with confirmed state",
+    "same RPC ID replay across owners",
+    "shared field batch load",
+    "graceful owner handoff",
+    "stable frontend entity",
+    "resource cleanup",
+    "readiness and metrics"
+  ],
+  "rounds": 1000,
+  "batch_seconds": 5.916843476996291,
+  "batch_rounds_per_second": 169.0090339363944,
+  "batch_timing_scope": "parent observes recovered to load_done; one serial Lua vec3 batch per persistent commit, includes replication, no startup/crash recovery",
+  "recovery_seconds": 1.960333189999801,
+  "elapsed_seconds": 9.566560007006046,
+  "peaks": {
+    "ownera.pending": 1,
+    "ownera.queued_bytes": 136,
+    "ownera.resident_bytes": 43322,
+    "ownera.lua_bytes": 1935959,
+    "ownerb.pending": 0,
+    "ownerb.queued_bytes": 0,
+    "ownerb.resident_bytes": 0,
+    "ownerb.lua_bytes": 478317,
+    "gateway.pending": 1,
+    "gateway.queued_bytes": 133,
+    "gateway.backend_pending": 1
+  },
+  "scope": "local processes, shared POSIX file storage, ephemeral PKI; not cross-machine HA or a production SLO",
+  "service_sha256": "1f48de42de400f022f08e0368a49f7218dfe100b9394ab2a76ccd8f575741c6b",
+  "client_sha256": "fb6db2d7d6413b5c48ce1820bf51f116c2e706a6300c5b98a8b05fb0449c8d6f",
+  "library_sha256": "d0b3e50b1bd840a3688bccf3b75bfb70257bd9226613d574b1d84c3aedd87aa4"
+}

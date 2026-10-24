@@ -62,7 +62,7 @@ public:
     void off_notification(const std::string& channel);
     // Bounded one-way frame: no request ID, reply or pending-RPC slot. True means
     // queued, not delivered. Receivers must authenticate the expected sender.
-    bool notify(std::uint64_t peer, const std::string& channel, const std::string& data);
+    bool notify(std::uint64_t peer, std::string_view channel, std::string_view data);
     bool connected(std::uint64_t peer) const;
     std::optional<CallIdentity> identity(std::uint64_t peer) const;
     void close(std::uint64_t peer);

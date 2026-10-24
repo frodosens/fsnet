@@ -1,4 +1,5 @@
 #include "fsnet/attribute_wire.hpp"
+#include "fsnet/replication_wire.hpp"
 #include <iostream>
 #include <random>
 #define CHECK(x) do { if(!(x)) throw std::runtime_error(#x); } while(false)
@@ -16,6 +17,38 @@ int main() {
         auto field_bytes=encode_attributes(field); CHECK(field_bytes.starts_with("FSA3") && field_bytes.size()<100);
         CHECK(field_bytes.find(std::string(64,'p'))==std::string::npos);
         CHECK(field_bytes.size()==attribute_wire_size(field));
+        // Retained versions/copies stay immutable through edits, errors and reset.
+        AttributeReplica versioned; CHECK(!versioned.snapshot()); CHECK(versioned.apply(large));
+        auto retained=versioned.snapshot(); CHECK(retained==versioned.snapshot());
+        auto independent=versioned; CHECK(versioned.apply(field));
+        CHECK(retained->values==large.values && retained->revision==1);
+        CHECK(independent.values()==large.values && versioned.values()==changed.values);
+        auto moved=std::move(independent); CHECK(!independent.snapshot() && !independent.initialized());
+        CHECK(moved.values()==large.values); independent=std::move(moved);
+        CHECK(!moved.apply({1,2,false,{{"counter",std::int64_t(1)}}}));
+        auto current_version=versioned.snapshot();
+        auto failed=field;failed.base=2;failed.revision=3;failed.patches.front().path[0]=std::string("absent");
+        denied([&]{versioned.apply(failed);}); CHECK(versioned.snapshot()==current_version);
+        CHECK(!versioned.apply({999,1000,false,{}})); CHECK(versioned.snapshot()==current_version);
+        versioned.reset(); CHECK(!versioned.snapshot() && current_version->values==changed.values);
+        AttributeUpdate splice{2,3,false,{}};
+        AttributePatch wire_splice;wire_splice.property="items";wire_splice.insert={std::int64_t(3)};splice.patches.push_back(wire_splice);
+        for(const auto& update:{large,field,splice}) {
+            auto wire=encode_replication_packet(7,"Actor","alice",Status::ok,&update,30000);
+            auto view=decode_replication_packet_view(wire);auto owned=decode_replication_packet(wire);
+            CHECK(view.type==owned.type && view.id==owned.id && view.subscription==7 && view.update->revision==update.revision);
+            for(std::size_t n=0;n<wire.size();++n)denied([&]{decode_replication_packet_view(std::string_view(wire).substr(0,n));});
+            auto original=wire;remap_replication_subscription(wire,999);
+            CHECK(decode_replication_packet(wire).subscription==999 && wire.substr(13)==original.substr(13) && wire.substr(0,5)==original.substr(0,5));
+            auto presence=std::string{char(1),char(3)}+original;
+            remap_replication_subscription(presence,1000,2);CHECK(presence.substr(15)==original.substr(13));
+            CHECK(decode_replication_packet_view(std::string_view(presence).substr(2)).subscription==1000);
+            auto corrupt=original;corrupt.back()=char(255);corrupt+='x';denied([&]{decode_replication_packet_view(corrupt);});
+        }
+        auto revoked=encode_replication_packet(7,"Actor","alice",Status::rejected);
+        CHECK(!decode_replication_packet_view(revoked).update);
+        denied([&]{remap_replication_subscription(revoked,0);});
+        denied([&]{decode_replication_packet_view(revoked+"x");});
         AttributeReplica fields; CHECK(fields.apply(large)); CHECK(fields.apply(field_bytes)); CHECK(fields.values()==changed.values);
         std::cout<<"nested_struct_1kb full="<<encode_attributes({1,2,false,changed.values}).size()<<" field="<<field_bytes.size()<<'\n';
         for(std::size_t n=0;n<field_bytes.size();++n) denied([&]{decode_attributes(std::string_view(field_bytes).substr(0,n));});

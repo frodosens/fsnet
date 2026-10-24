@@ -225,3 +225,15 @@ Release 构建后执行 cmake install 和 CPack TGZ，解压到不同目录，�
 Python 语法、文档本地链接和 git diff --check 通过。GitHub Actions 增加 Release 打包、
 可重定位验收及产物上传；这里只报告本机执行，未声称远端工作流已通过。
 部署、指标、停止时限、存储/协议升级限制和目标环境的剩余验收见 [运行手册](PRODUCTION.md)。
+
+## 2026-10-24：Copy 优化后检查
+
+最终源码 Debug 普通 CTest **30/30**、ASan/UBSan **19/19** 通过；Lua ON、PostgreSQL OFF。
+本轮没有重跑可选 PostgreSQL 服务端或跨机部署。新增/扩充检查包括：Node借用输入在返回后
+立即覆盖/销毁仍正确发送；借用/拥有封包的二进制内容和边界；FSA1/FSA2/FSA3转发只修改
+订阅ID而保留属性字节；截断、尾随、非法撤销拒绝；确认版本在复制、移动、更新失败及reset后
+保持旧版本不变。原有预测、权限、生命周期、持久回执、自动/手动迁移和独立进程检查继续通过。
+
+性能数据、编译兼容边界与尚未消除的复制见 [Copy 优化记录](COPY_OPTIMIZATION.md)。
+优化后的可重定位Release包另通过1000轮mTLS+文件持久化交付验收，包含崩溃接管、回执重放、
+优雅交接和资源清理；[报告](validation/copy-optimized-delivery-2026-10-24.json)。

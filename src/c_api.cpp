@@ -34,10 +34,11 @@ fsnet::Database& database(void* db) {
     if (!db) throw std::invalid_argument("null database");
     return **static_cast<std::shared_ptr<fsnet::Database>*>(db);
 }
-std::string bytes(const char* data, size_t length) {
+std::string_view byte_view(const char* data,size_t length) {
     if (length > 16 * 1024 * 1024 || (!data && length)) throw std::invalid_argument("invalid bytes");
-    return length ? std::string(data, length) : std::string{};
+    return length ? std::string_view(data,length) : std::string_view{};
 }
+std::string bytes(const char* data, size_t length) { return std::string(byte_view(data,length)); }
 const char* text(const char* value) { if (!value) throw std::invalid_argument("null text"); return value; }
 void port_check(int port) { if (port < 0 || port > 65535) throw std::invalid_argument("invalid port"); }
 }
@@ -101,7 +102,7 @@ int fsnet_respond(void* pointer, uint64_t id, int status, const char* data, size
 int fsnet_call(void* pointer, uint64_t peer, const char* route, const char* data, size_t length, int timeout, fsnet_completion callback) {
     return guard([&] {
         if (!callback) throw std::invalid_argument("null completion");
-        runtime(pointer).node.call(peer, text(route), bytes(data, length), std::chrono::milliseconds(timeout),
+        runtime(pointer).node.call(peer, text(route), byte_view(data, length), std::chrono::milliseconds(timeout),
           [callback](fsnet::Result result) { callback(static_cast<int>(result.status), result.data.data(), result.data.size()); });
         return 0;
     });
