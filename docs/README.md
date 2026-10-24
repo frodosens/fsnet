@@ -1,0 +1,39 @@
+# 文档导航
+
+当前实现快照：2026-10-24，`refactor/script-runtime`。
+C++ 提供客户端/服务端共用的引擎机制，业务逻辑写在 Lua；文档中的“已实现”不代表完成生产容量或公网验收。
+
+## 开始使用
+
+1. [当前架构](ARCHITECTURE.md)：模块边界、状态载体、提交时间、双向差量、协议与未完成范围。
+2. [API 使用指南](API_GUIDE.md)：共享类 → 服务端注册/登录 → 客户端实体 → 字段/容器修改 → 合批 → 预测，以及原生入口。
+3. [示例启动说明](../examples/README.md)：仓库内交付的可运行程序与脚本组合。
+4. [构建与启动](../README.md)：依赖、CMake、存储与本地启动入口。
+
+## API 合同
+
+| 主题 | 文档 |
+| --- | --- |
+| 类、继承、本地方法、RPC、作用域 | [面向对象 API](OBJECT_API.md) |
+| 本地/确认/预测实例、执行域 | [共享实体](SHARED_ENTITIES.md) |
+| 身份、RPC/属性权限、原生同步与提案 | [实体 schema](ENTITY_SCHEMA.md) |
+| 登录、spawn/restore、可见性、控制与表现 | [实体存在性](ENTITY_PRESENCE.md) |
+| struct、vec3、矩阵、固定数组与字段视图 | [结构属性](STRUCTURED_ATTRIBUTES.md) |
+| 变长 list/map/set、Item/Task 示例 | [容器属性](CONTAINER_ATTRIBUTES.md) |
+| batch 边界、草稿、失败与副作用限制 | [合批](ATTRIBUTE_BATCHING.md) |
+| 字段路径、FSA3、大小选择与接收应用 | [字段差量](FIELD_PATH_DELTAS.md) |
+| 默认上下行共用差量、固定 ID 回退 | [共用差量](SHARED_ATTRIBUTE_DELTAS.md) |
+| 输入确认、校正、重放和效果处理 | [预测](PREDICTION.md) |
+| Lua 宿主、协程、预算、底层兼容接口 | [脚本宿主](SCRIPTING.md) |
+| CAS、存储后端、fencing 与恢复 | [存储](STORAGE.md) |
+| TLS、可信身份、网络与 P2P 边界 | [安全](SECURITY.md) |
+
+## 实现状态与证据
+
+- [完成状态](ENGINE_COMPLETION.md)：当前能力与尚未交付项。
+- [路线图](ROADMAP.md)：后续阶段，不将计划视为已实现 API。
+- [验证记录](VALIDATION.md)：各阶段配置、测试数量与未验证场景；最新代码检查为 Lua ON、PostgreSQL OFF，27 项普通测试和 17 项 sanitizer 测试。
+- [属性复制开销优化](ATTRIBUTE_PERFORMANCE.md)、[合批性能](CONTAINER_BATCHING_PERFORMANCE.md)：历史提交、测量方法与原始数据。
+- [字段字节样本](benchmarks/field-paths-2026-10-24.json)、[双向字节样本](benchmarks/shared-deltas-2026-10-24.json)：编码大小，不是网络延迟/在线人数结论。
+
+本次文档整理不修改运行时代码、不增加 CTest 项；上述数量来自最近实现阶段，文档示例 smoke 见验证记录。

@@ -6,6 +6,8 @@ C++20 网络核心与 Lua 5.4 脚本宿主。当前版本提供有界 TCP RPC、
 
 **当前是可运行的重构基础，不是已经验收的生产级 MMO 框架。** 已实现能力、测试和未完成的高可用/安全工作见 [架构与验收](docs/ARCHITECTURE.md)；旧实现的严重缺陷见 [代码审查](docs/REVIEW.md)。旧源码和原始文档保存在 [原始版本](https://github.com/frodosens/fsnet/tree/69a4b62e52ff1874d25f7e64cdb176829f2024be)。
 
+阅读当前设计与使用方法：[文档导航](docs/README.md) · [当前架构](docs/ARCHITECTURE.md) · [API 使用指南](docs/API_GUIDE.md) · [可运行示例](examples/README.md)。
+
 ## 构建和测试
 
 需要 C/C++20 编译器、CMake 3.24+、make 或 Ninja。已在 Linux/GCC 14 上验证。

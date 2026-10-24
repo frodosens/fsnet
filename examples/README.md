@@ -1,5 +1,7 @@
 # 示例入口
 
+当前设计见 [架构](../docs/ARCHITECTURE.md)，端到端接口组合见 [API 使用指南](../docs/API_GUIDE.md)。
+
 | 文件 | 状态与用途 |
 | --- | --- |
 | [lua/attributes.lua](lua/attributes.lua) | 推荐实体 API：属性权限、同步范围、客户端写入校验、显式 RPC |
@@ -91,7 +93,7 @@ FSNET_CLUSTER_TOKEN=local-demo /path/to/build/fsnet-client /tmp/fsnet-struct-cli
 ```
 
 示例依次整值写 position、修改 position.x、矩阵行/元素及嵌套 pose 字段，隐式提交服务器
-校验后读取确认值；最后展示被服务器拒绝的写入。见 [结构属性](../docs/STRUCTURED_ATTRIBUTES.md)。
+校验后读取确认值；随后展示被服务器拒绝的写入，以及四次字段赋值一次 batch 提交。见 [结构属性](../docs/STRUCTURED_ATTRIBUTES.md)。
 
 
 ## 变长背包与任务

@@ -1,6 +1,7 @@
 # 引擎补齐验收
 
-本轮按以下顺序交付；每项以实现和测试为准，不把设计草案计为完成。
+实现状态快照：2026-10-24。每项以代码和验证记录为准，不把设计草案计为完成。
+统一入口为 [文档导航](README.md)、[架构](ARCHITECTURE.md) 与 [API 指南](API_GUIDE.md)。
 
 | 工作项 | 状态 | 证据/边界 |
 | --- | --- | --- |
@@ -9,6 +10,9 @@
 | 预测、服务器校正、回滚与效果去重 | 已实现显式输入初版 | PREDICTION.md；独立预测载体、有界历史、显式累计确认与重放；不含自动输入协议或完整世界回滚 |
 | 服务端 spawn/restore、自动副本、客户端表现与控制绑定 | 已实现连接内初版 | ENTITY_PRESENCE.md；fsnet-presence、fsnet-presence-process；可见性由服务端脚本显式管理 |
 | 类型化结构/固定数组与嵌套赋值 | 已实现 | STRUCTURED_ATTRIBUTES.md；vec3/mat4x4、整值与字段提案/同步、预测与序列化 |
+| 变长 list/map/set 与 Item/Task 同步 | 已实现 | CONTAINER_ATTRIBUTES.md；类型/容量/唯一性预算，非逐笔操作日志 |
+| 显式合批与递归字段路径差量 | 已实现 | ATTRIBUTE_BATCHING.md、FIELD_PATH_DELTAS.md；候选状态原子应用、按大小回退，无定时窗口/公共前缀树编码 |
+| 默认上下行共用差量生成与应用 | 已实现 | SHARED_ATTRIBUTE_DELTAS.md；独立服务端权限/类型/业务校验，固定请求 ID 保留全值重试表示 |
 | 资源模块加载、服务端生命周期 hook | 待交付 | 客户端表现 hook 已实现；完整服务端创建/激活/卸载 hook 仍待补齐，保留 mailbox/fencing 合同 |
 | 版本迁移与安全热更新 | 待交付 | 必须明确 drain、失败回滚及状态兼容规则 |
 | Gateway 身份委托与属性流转发/迁移 | 待交付 | 客户端当前直接连接 owner |

@@ -1,5 +1,7 @@
 # 面向对象的 Lua 实体 API
 
+端到端组合与当前能力总览见 [API 使用指南](API_GUIDE.md)；本文保留类/RPC/作用域的详细合同。
+
 这是业务脚本的推荐入口。`fsnet.Entity` 随 Lua 适配器内置，不依赖本地 Lua
 库、`require` 或运行时文件系统。C++ 负责调度、网络、权限和持久化，游戏规则写在 Lua。
 旧的 `runtime.entity` / `runtime.rpc` 注册接口继续作为底层及兼容接口。
@@ -144,3 +146,6 @@ end
 [实体存在性与表现](ENTITY_PRESENCE.md)。它们不代替服务端 on_create/on_activate/on_deactivate。
 
 结构属性、固定数组、整值与嵌套赋值自动同步见 [STRUCTURED_ATTRIBUTES.md](STRUCTURED_ATTRIBUTES.md)。
+
+客户端 `:batch()`、动态容器与默认双向字段差量的当前合同见 [合批](ATTRIBUTE_BATCHING.md)、
+[容器](CONTAINER_ATTRIBUTES.md)、[上下行共用差量](SHARED_ATTRIBUTE_DELTAS.md)。

@@ -85,7 +85,7 @@ client visibility (`none`, `owner`, `observers`), persistence, and RPC policies.
 `EntityAttributes` owns values and monotonic revisions on the runtime thread.
 
 * Integer values are signed 64-bit; numbers are finite doubles; booleans, strings,
-  typed structures and fixed arrays are supported. Schemas contain at most 256 properties and 256 methods. Each string
+  typed structures, fixed arrays and bounded dynamic list/map/scalar-set containers are supported. Schemas contain at most 256 properties and 256 methods. Each string
   is bounded to 64 KiB. Unknown names and type mismatches fail closed.
 * Client writes require both explicit write permission and the authenticated entity
   owner's subject. Business validation remains the script's responsibility. A write
@@ -127,7 +127,7 @@ runtime.entity('Player', {
 Attribute handlers receive `(self, ctx, payload)` and return response bytes. They
 require explicit caller declarations and cannot also declare opaque `initial` state.
 Supported types are `int32`, `uint32`, `int64`, `number`/`double`, `bool`/`boolean`, and
-`string`, plus typed structures/fixed arrays. Integer ranges and strict Lua value types are enforced. The native userdata
+`string`, plus typed structures/fixed arrays and bounded dynamic containers. Integer ranges and strict Lua value types are enforced. The native userdata
 checks server read/write access and accounts native carrier memory against the Lua
 memory budget. Undeclared properties fail closed. `tick` receives the same attribute
 object and runs as an internal server operation.
@@ -146,7 +146,7 @@ their exceptions increment `publication_failures` and cannot undo a committed st
 Events contain private properties for trusted framework filtering and must never be
 forwarded wholesale to clients. This callback is currently single-listener.
 
-`encode_attributes`/`decode_attributes` provide a bounded FSA1 wire format, reject
+`encode_attributes`/`decode_attributes` support bounded FSA1 full values, FSA2 container edits, and FSA3 typed field paths; they reject
 truncation, duplicates, non-finite numbers and trailing bytes. `AttributeReplica` is the
 native client projection: the first update must be a snapshot, deltas must bridge the
 current revision, late updates cannot rewind it, and replacement snapshots remove
@@ -195,7 +195,7 @@ and are renewed by the client manager at one third of the advertised lease. Serv
 configuration accepts leases of at least 3 seconds. Individual initial projections
 are limited to 512 KiB. The native client permits at most 256 subscriptions plus
 pending watches and 16 MiB of projection data. Replica updates cannot accumulate more
-than 256 named properties or exceed the FSA1 record limit. Subscriber lookup is indexed
+than 256 named properties or exceed the merged image depth/node/byte limits. Subscriber lookup is indexed
 by entity, so a commit visits only interested subscribers.
 
 ## Client property proposals
@@ -210,8 +210,17 @@ revision. Server-authoritative properties such as `hp` cannot be overwritten by 
 client. After acceptance, normal single-record CAS and filtered notifications apply.
 There is no client-side optimistic mutation before acceptance.
 
+Default SDK writes use `attribute_write_delta` and the same `attribute_delta` generator as server broadcasts.
+The authoritative host stages patches with `stage_attribute_proposal`: authorize all roots, apply to a candidate
+using the shared replica applicator, and validate final typed values before publication. Unknown/stale baselines
+fall back to full values. Explicit request-ID SDK writes retain stable FSA1 full-value encoding for existing retry semantics.
+Explicitly submitted unchanged roots still undergo authorization and business validation. See
+[shared deltas](SHARED_ATTRIBUTE_DELTAS.md) and the [API guide](API_GUIDE.md).
+
 An optional Lua `validate_write(self, ctx, proposal)` hook can apply business rules;
-it must return true to accept. Treat it as a read-only validator. The framework
+it must return true to accept. This signature is for the low-level `runtime.entity` interface;
+the OO API uses `function Class:validate_write(proposal)`. Both receive complete final values for the submitted roots,
+not a patch syntax tree. Treat the hook as a read-only validator. The framework
 checks permissions again when applying the original proposal, so changing its Lua
 copy does not widen the accepted write. `runtime.reject()` aborts an RPC with
 `Status::rejected`; rejection remains effective even if caught with `pcall`. Failed
