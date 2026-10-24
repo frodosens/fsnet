@@ -23,7 +23,11 @@ struct CountingHost final:fsnet::ScriptHost {
     void unwatch_attributes(std::uint64_t id) override {client->unwatch_attributes(id);}
     void write_attributes(std::uint64_t id,fsnet::EntityAttributes::Values values,fsnet::Reply reply,fsnet::AttributeWriteOptions options,std::chrono::milliseconds timeout) override {
         ++writes; auto revision=options.expected_revision.value_or(0);
-        proposal_bytes+=fsnet::attribute_wire_size(fsnet::AttributeUpdate{revision,revision,false,values});
+        auto confirmed=client->attribute_snapshot(id);
+        auto proposal=options.request_id.empty() && confirmed?
+            fsnet::attribute_write_delta(confirmed->values,confirmed->revision,values,revision):
+            fsnet::AttributeUpdate{revision,revision,false,values};
+        proposal_bytes+=fsnet::attribute_wire_size(proposal);
         client->write_attributes(id,std::move(values),std::move(reply),std::move(options),timeout);
     }
 };
@@ -69,15 +73,17 @@ void wire() {
         auto after=before; after.revision=2;
         std::get<AttributeStruct>(std::get<AttributeStruct>(after.values.at("data")).at("position")).at("x")=1.0;
         auto full=encode_attributes({1,2,false,after.values}); auto update=attribute_delta(before,after); auto delta=encode_attributes(update);
+        auto uplink=encode_attributes(fsnet::attribute_write_delta(before.values,before.revision,after.values,before.revision));
         AttributeReplica replica; require(replica.apply(before) && replica.apply(delta) && replica.values()==after.values,"field equivalence");
-        std::cout<<"{\"scenario\":\"nested_struct_1kb\",\"full_fsa_bytes\":"<<full.size()<<",\"patch_fsa_bytes\":"<<delta.size()<<",\"patches\":"<<update.patches.size()<<"}\n";
+        std::cout<<"{\"scenario\":\"nested_struct_1kb\",\"full_fsa_bytes\":"<<full.size()<<",\"patch_fsa_bytes\":"<<delta.size()<<",\"uplink_fsa_bytes\":"<<uplink.size()<<",\"patches\":"<<update.patches.size()<<"}\n";
     }
     {
         AttributeUpdate before{0,1,true,{{"position",AttributeStruct{{"x",0.0},{"y",0.0},{"z",0.0}}}}};
         auto after=before; after.revision=2; std::get<AttributeStruct>(after.values.at("position")).at("x")=1.0;
         auto full=encode_attributes({1,2,false,after.values}); auto update=attribute_delta(before,after); auto delta=encode_attributes(update);
+        auto uplink=encode_attributes(fsnet::attribute_write_delta(before.values,before.revision,after.values,before.revision));
         AttributeReplica replica; require(replica.apply(before) && replica.apply(delta) && replica.values()==after.values,"position equivalence");
-        std::cout<<"{\"scenario\":\"position_x\",\"full_fsa_bytes\":"<<full.size()<<",\"patch_fsa_bytes\":"<<delta.size()<<",\"patches\":"<<update.patches.size()<<"}\n";
+        std::cout<<"{\"scenario\":\"position_x\",\"full_fsa_bytes\":"<<full.size()<<",\"patch_fsa_bytes\":"<<delta.size()<<",\"uplink_fsa_bytes\":"<<uplink.size()<<",\"patches\":"<<update.patches.size()<<"}\n";
     }
     for(auto name:{"list_replace","list_append16","map_add16","map_erase16"}) {
         AttributeUpdate before{0,1,true,{{"items",std::string(name).starts_with("map")?AttributeValue(map):AttributeValue(list)}}};
@@ -88,8 +94,9 @@ void wire() {
         if(mode=="map_add16") for(int i=0;i<16;++i) std::get<AttributeMap>(after.values.at("items"))["added-"+std::to_string(i)]=AttributeStruct{{"id",std::string("added-")+std::to_string(i)},{"count",std::int64_t(1)}};
         if(mode=="map_erase16") for(int i=0;i<16;++i) std::get<AttributeMap>(after.values.at("items")).erase(std::to_string(i));
         auto old=encode_attributes({1,2,false,after.values}); auto update=attribute_delta(before,after); auto compressed=encode_attributes(update);
+        auto uplink=encode_attributes(attribute_write_delta(before.values,before.revision,after.values,before.revision));
         AttributeReplica replica; require(replica.apply(before) && replica.apply(compressed) && replica.values()==after.values,"wire equivalence");
-        std::cout<<"{\"scenario\":\""<<mode<<"\",\"full_fsa_bytes\":"<<old.size()<<",\"patch_fsa_bytes\":"<<compressed.size()<<",\"patches\":"<<update.patches.size()<<"}\n";
+        std::cout<<"{\"scenario\":\""<<mode<<"\",\"full_fsa_bytes\":"<<old.size()<<",\"patch_fsa_bytes\":"<<compressed.size()<<",\"uplink_fsa_bytes\":"<<uplink.size()<<",\"patches\":"<<update.patches.size()<<"}\n";
     }
 }
 int main(int argc,char** argv) {

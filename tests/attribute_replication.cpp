@@ -113,6 +113,7 @@ int main() {
         until([&] { return std::get<std::string>(ac.get(aid)->values().at("input"))=="hello"; });
         CHECK(bob_changes==b_count); // owner-only changes need no observer packet
         CHECK(write(ac,aid,{{"hp",std::int64_t(999)}})==fsnet::Status::rejected);
+        CHECK(write(ac,aid,{{"hp",std::get<std::int64_t>(ac.get(aid)->values().at("hp"))}})==fsnet::Status::rejected);
         CHECK(write(ac,aid,{{"secret",std::string("overwrite")}})==fsnet::Status::rejected);
         CHECK(write(ac,aid,{{"unknown",std::string("bad")}})==fsnet::Status::rejected);
         CHECK(write(ac,aid,{{"input",std::int64_t(1)}})==fsnet::Status::rejected);

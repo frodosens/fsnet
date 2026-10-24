@@ -730,9 +730,9 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
         try {
             auto& engine = self(L); auto& object = attribute_object(L, 1);
             auto proposal = decode_attributes(std::string_view(input,size));
-            if (!engine.threads.contains(L) || proposal.snapshot || !proposal.patches.empty() || proposal.base != object.model.revision() || proposal.revision != proposal.base)
+            if (!engine.threads.contains(L) || proposal.snapshot || proposal.base != object.model.revision() || proposal.revision != proposal.base)
                 throw std::invalid_argument("invalid or stale client proposal");
-            auto mutation = object.model.stage(proposal.values, engine.tasks.at(engine.threads.at(L)).identity);
+            auto mutation = stage_attribute_proposal(object.model,proposal,engine.tasks.at(engine.threads.at(L)).identity);
             lua_createtable(L, 0, static_cast<int>(mutation.values.size()));
             for (const auto& [name,value] : mutation.values) {
                 lua_pushlstring(L,name.data(),name.size()); push_attribute(L,value); lua_settable(L,-3);
@@ -746,9 +746,9 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
         try {
             auto& engine = self(L); auto& object = attribute_object(L, 1);
             auto proposal = decode_attributes(std::string_view(input,size));
-            if (!engine.threads.contains(L) || proposal.snapshot || !proposal.patches.empty() || proposal.base != object.model.revision() || proposal.revision != proposal.base)
+            if (!engine.threads.contains(L) || proposal.snapshot || proposal.base != object.model.revision() || proposal.revision != proposal.base)
                 throw std::invalid_argument("invalid or stale client proposal");
-            auto mutation = object.model.stage(proposal.values, engine.tasks.at(engine.threads.at(L)).identity);
+            auto mutation = stage_attribute_proposal(object.model,proposal,engine.tasks.at(engine.threads.at(L)).identity);
             auto projected = object.model.all_values();
             for (const auto& [name,value] : mutation.values) projected.at(name) = value;
             (void)attribute_wire_size(projected);

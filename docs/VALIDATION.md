@@ -173,3 +173,13 @@ FSA2 用于下行，FSA1 用于快照、存储及上行最终值提案；旧读�
 Release 编码大小检查：1024 字节未变 payload 的结构只改 position.x，整属性 1111 字节，字段更新 54 字节；
 vec3 单 x 更新 67→48 字节，128 个 Item 中改单个 count 为 4146→52 字节。
 这里是编码字节对比，不是端到端速度或容量结论；详见 [字段路径增量与原始样本](FIELD_PATH_DELTAS.md)。
+
+## 上下行共用差量生成
+
+2026-10-24，Lua 开启、PostgreSQL 关闭：Debug CTest 27/27，ASan/UBSan（含泄漏检测）17/17 通过。
+默认客户端 write/字段赋值/batch 与广播共用 attribute_delta，服务端原生入口和 Lua validator/apply 共用提案 staging。
+新增相同前后状态的双向补丁一致性、候选不提前发布、跨 owner/只读/类型/路径/版本拒绝、未变化只读属性仍拒写；
+既有固定 ID 重试、真实 TCP 两客户端和独立交付示例通过。固定 ID SDK 写入保留 FSA1 表示，保持原有去重语义。
+Release 字节验证：1 KB 结构单叶更新，上下行均为 54 字节；vec3 单 x 为 48 字节，Item count 为 52 字节。
+Release 链路 smoke 核对 10 轮：逐条 160 次写/提交、batch 10 次写/提交，没有确认应用再次写入。
+这是字节与功能验证，未把并行构建期间的 smoke 计时用于速度结论。见 [共用差量与原始样本](SHARED_ATTRIBUTE_DELTAS.md)。

@@ -375,6 +375,41 @@ AttributeUpdate attribute_delta(const AttributeUpdate& previous,const AttributeU
     catch(const std::length_error&) {} // dense edits can exceed record/node bounds
     return best;
 }
+AttributeUpdate attribute_write_delta(const AttributeStruct& confirmed,std::uint64_t confirmed_revision,
+                                     const AttributeStruct& values,std::uint64_t expected_revision) {
+    if(expected_revision!=confirmed_revision) return {expected_revision,expected_revision,false,values};
+    AttributeUpdate before{0,expected_revision,true,{}},after{0,expected_revision,true,values};
+    for(const auto& [key,value]:values) {
+        (void)value; auto it=confirmed.find(key);
+        if(it!=confirmed.end()) before.values.emplace(key,it->second);
+    }
+    auto update=attribute_delta(before,after);
+    for(const auto& [key,value]:values) {
+        auto it=confirmed.find(key);
+        if(it!=confirmed.end() && it->second==value) update.values.emplace(key,value);
+    }
+    // Restoring explicit no-op roots can make a sparse record larger.
+    AttributeUpdate full{expected_revision,expected_revision,false,values};
+    auto full_size=attribute_wire_size(full);
+    try { if(attribute_wire_size(update)<full_size) return update; }
+    catch(const std::length_error&) {}
+    return full;
+}
+EntityAttributes::Mutation stage_attribute_proposal(const EntityAttributes& model,const AttributeUpdate& proposal,const CallIdentity& who) {
+    (void)attribute_wire_size(proposal);
+    if(proposal.snapshot || proposal.base!=model.revision() || proposal.revision!=proposal.base)
+        throw std::invalid_argument("invalid or stale client proposal");
+    if(proposal.patches.empty()) return model.stage(proposal.values,who);
+    // Check all root permissions before resolving any client-supplied path.
+    EntityAttributes::Values roots=proposal.values;
+    for(const auto& patch:proposal.patches) roots.try_emplace(patch.property,model.all_values().at(patch.property));
+    (void)model.stage(roots,who);
+    AttributeReplica candidate;
+    candidate.apply({0,model.revision(),true,model.all_values()});
+    if(!candidate.apply(proposal)) throw std::invalid_argument("unapplicable client proposal");
+    for(auto& [name,value]:roots) value=candidate.values().at(name);
+    return model.stage(roots,who);
+}
 bool AttributeReplica::apply(const AttributeUpdate& update) {
     // Validate programmatic updates too; never apply partially on validation or allocation failure.
     (void)attribute_wire_size(update);

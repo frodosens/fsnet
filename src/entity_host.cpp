@@ -270,11 +270,9 @@ struct EntityScriptHost::Impl : std::enable_shared_from_this<Impl> {
                 if (job->attributes && job->request.route == job->attributes->type + ".$write") {
                     try {
                         auto proposal = decode_attributes(job->request.payload);
-                        if (proposal.snapshot || !proposal.patches.empty() || proposal.base != job->attributes->previous.revision || proposal.revision != proposal.base)
-                            throw std::invalid_argument("stale property write proposal");
                         EntityAttributes model(*job->attributes->schema, job->attributes->owner);
                         model.restore_full(job->attributes->previous.values, job->attributes->previous.revision);
-                        (void)model.stage(proposal.values, job->request.identity);
+                        (void)stage_attribute_proposal(model,proposal,job->request.identity);
                     } catch (...) { return self->complete(job, {Status::rejected, {}}); }
                 }
                 auto current_slot = self->slots.find(job->entity);

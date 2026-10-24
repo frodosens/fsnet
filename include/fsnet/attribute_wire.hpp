@@ -19,6 +19,13 @@ AttributeUpdate decode_attributes(std::string_view);
 // Adaptive recursive field/container delta; falls back to FSA1 properties when
 // that is smaller. Snapshots/durable images remain FSA1.
 AttributeUpdate attribute_delta(const AttributeUpdate& previous, const AttributeUpdate& next);
+// Client write proposals reuse attribute_delta, but retain explicitly submitted
+// no-op roots for authorization/validation. Missing/stale baselines use FSA1.
+AttributeUpdate attribute_write_delta(const AttributeStruct& confirmed, std::uint64_t confirmed_revision,
+                                     const AttributeStruct& values, std::uint64_t expected_revision);
+// Shared server-side staging: authorize roots, materialize using the replica
+// patch applicator, then validate final values against the authoritative schema.
+EntityAttributes::Mutation stage_attribute_proposal(const EntityAttributes&, const AttributeUpdate&, const CallIdentity&);
 // Client-side projection. A fresh subscription requires a snapshot. Gaps return
 // false without mutation so the SDK can request resynchronization.
 class AttributeReplica {

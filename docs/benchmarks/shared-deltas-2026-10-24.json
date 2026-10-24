@@ -1,0 +1,52 @@
+{
+  "timestamp_utc": "2026-10-24T00:37:36.168870+00:00",
+  "source_base": "08a6e01",
+  "build": "Release GCC 14.2 -O3 -DNDEBUG, Lua ON, PostgreSQL OFF",
+  "measurement": "same attribute_delta generator for confirmed downlink and default uplink proposals; FSA bytes only, not latency or NIC bytes",
+  "binary_sha256": "f1a8e2f48da05f083707f166525c3bd0b38c9d07f8d703628a078b9531cbc36a",
+  "libfsnet_sha256": "508941f9672369210daf02842ba54bc0c783d59b90ce5dcac97525353c7c529d",
+  "samples": [
+    {
+      "scenario": "nested_struct_1kb",
+      "full_fsa_bytes": 1111,
+      "patch_fsa_bytes": 54,
+      "uplink_fsa_bytes": 54,
+      "patches": 1
+    },
+    {
+      "scenario": "position_x",
+      "full_fsa_bytes": 67,
+      "patch_fsa_bytes": 48,
+      "uplink_fsa_bytes": 48,
+      "patches": 1
+    },
+    {
+      "scenario": "list_replace",
+      "full_fsa_bytes": 4146,
+      "patch_fsa_bytes": 52,
+      "uplink_fsa_bytes": 52,
+      "patches": 1
+    },
+    {
+      "scenario": "list_append16",
+      "full_fsa_bytes": 4664,
+      "patch_fsa_bytes": 556,
+      "uplink_fsa_bytes": 556,
+      "patches": 1
+    },
+    {
+      "scenario": "map_add16",
+      "full_fsa_bytes": 5200,
+      "patch_fsa_bytes": 805,
+      "uplink_fsa_bytes": 805,
+      "patches": 16
+    },
+    {
+      "scenario": "map_erase16",
+      "full_fsa_bytes": 4008,
+      "patch_fsa_bytes": 191,
+      "uplink_fsa_bytes": 191,
+      "patches": 16
+    }
+  ]
+}

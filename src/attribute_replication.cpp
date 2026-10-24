@@ -223,7 +223,7 @@ struct AttributeReplication::Impl : std::enable_shared_from_this<Impl> {
             if(!length || length>128 || length>in.size()) throw std::invalid_argument("invalid write request ID");
             request=std::string(in.substr(0,length)); in.remove_prefix(length);
             auto update=decode_attributes(in);
-            if(update.snapshot || !update.patches.empty() || update.base!=update.revision) throw std::invalid_argument("invalid write proposal");
+            if(update.snapshot || update.base!=update.revision) throw std::invalid_argument("invalid write proposal");
             proposal=std::string(in);
         } catch(...) { return reply({Status::rejected,{}}); }
         auto it=subscriptions.find(id); if(it==subscriptions.end()) return reply({Status::not_found,{}});
@@ -456,11 +456,16 @@ struct AttributeClient::Impl : std::enable_shared_from_this<Impl> {
         if(writes.size()>=256 || serial==UINT64_MAX) return written_callback(callback,Status::overloaded);
         auto request=++serial; std::string input;
         try {
+            bool stable_request=!options.request_id.empty();
             if(options.request_id.empty()) options.request_id=request_prefix+std::to_string(request);
             if(options.request_id.size()>128) throw std::invalid_argument("property request ID limit");
             auto expected=options.expected_revision.value_or(it->second->replica.revision());
             input=token(subscription); put(input,options.request_id.size(),2); input+=options.request_id;
-            input+=encode_attributes({expected,expected,false,std::move(values)});
+            // Explicit IDs may be retried after the confirmed baseline advances.
+            // Preserve their existing byte-stable representation for deduplication.
+            auto proposal=stable_request?AttributeUpdate{expected,expected,false,std::move(values)}:
+                attribute_write_delta(it->second->replica.values(),it->second->replica.revision(),values,expected);
+            input+=encode_attributes(proposal);
         } catch(...) { return written_callback(callback,Status::rejected); }
         writes.emplace(request,std::move(callback));
         node.call(peer,"system.attributes.write",std::move(input),timeout,[self=shared_from_this(),request](Result result) {
