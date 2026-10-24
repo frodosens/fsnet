@@ -174,7 +174,7 @@ struct ClientGateway::Impl:std::enable_shared_from_this<Impl>{
     }
     void routed(const CallIdentity& who,std::string type,std::string route,std::string input,bool account,Reply reply){
         std::string entity;
-        try{if(account)entity=who.subject;else{auto parsed=parse_entity_message(input);if(!parsed)throw std::invalid_argument("invalid entity request");entity=parsed->id;}}catch(...){return reply({Status::rejected,{}});}
+        try{if(account)entity=who.subject;else{auto parsed=parse_entity_message_view(input);if(!parsed)throw std::invalid_argument("invalid entity request");entity=parsed->id;}}catch(...){return reply({Status::rejected,{}});}
         auto r=request(who,std::move(input),std::move(reply));if(!r)return;
         select(std::move(type),std::move(entity),[weak=weak_from_this(),r,route](Status status,std::optional<std::size_t> index,bool){auto self=weak.lock();if(!self||r->done)return;if(status!=Status::ok)return self->finish(r,{status,{}});
             self->acquire(r->client,*index,[weak,r,route](Status status,std::shared_ptr<Link> link){auto self=weak.lock();if(!self||r->done)return;if(status!=Status::ok)return self->finish(r,{status,{}});++self->counters.forwarded;

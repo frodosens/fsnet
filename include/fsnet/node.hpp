@@ -6,6 +6,7 @@
 #include <functional>
 #include <memory>
 #include <string>
+#include <string_view>
 
 namespace fsnet {
 enum class Status : std::uint8_t { ok, not_found, overloaded, timeout, disconnected, rejected, internal };
@@ -53,7 +54,8 @@ public:
     void bind(std::string route, Handler handler);
     bool has_route(const std::string& route) const;
     bool unbind(const std::string& route);
-    void call(std::uint64_t peer, std::string route, std::string data,
+    // Copies borrowed input into an owned frame synchronously before returning.
+    void call(std::uint64_t peer, std::string_view route, std::string_view data,
               std::chrono::milliseconds timeout, Reply reply);
     using Notification = std::function<void(std::uint64_t, const std::string& certificate, std::string)>;
     void on_notification(std::string channel, Notification);

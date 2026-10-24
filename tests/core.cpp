@@ -104,6 +104,17 @@ void node_tests() {
     socket.close(); guarded.stop();
     std::cout << "PASS RPC: binary payload, allowlist, exceptions, timeout, admission, bad auth, disconnect, hostile length\n";
 }
+void borrowed_call_lifetime() {
+    fsnet::Node server("borrowed-input"),client("borrowed-input");
+    server.bind("echo",[](std::string data,fsnet::Reply reply){reply({fsnet::Status::ok,std::move(data)});});
+    auto peer=client.connect("127.0.0.1",server.listen("127.0.0.1",0));bool done=false;
+    {
+        std::string route="echo",payload(65536,'x');
+        client.call(peer,std::string_view(route),std::string_view(payload),2s,[&](auto result){CHECK(result.status==fsnet::Status::ok && result.data==std::string(65536,'x'));done=true;});
+        route.assign("invalid");payload.assign(65536,'y');
+    }
+    until([&]{server.poll();client.poll();},[&]{return done;});
+}
 void c_api_lifetime_test() {
     static void* runtime = nullptr;
     runtime = fsnet_create("native-lifetime-token"); CHECK(runtime);
@@ -196,6 +207,6 @@ void ice_test(bool relayed) {
     std::cout << "PASS ICE " << (relayed ? "forced authenticated TURN relay" : "direct peer connectivity") << ": game datagram received\n";
 }
 int main() {
-    try { database_tests(); fencing_test(fsnet::memory_database()); fencing_test(fsnet::sqlite_database(":memory:")); node_tests(); c_api_lifetime_test(); directory_tests(); cluster_tests(); ice_test(false); ice_test(true); }
+    try { database_tests(); fencing_test(fsnet::memory_database()); fencing_test(fsnet::sqlite_database(":memory:")); node_tests(); borrowed_call_lifetime(); c_api_lifetime_test(); directory_tests(); cluster_tests(); ice_test(false); ice_test(true); }
     catch (const std::exception& error) { std::cerr << error.what() << '\n'; return 1; }
 }

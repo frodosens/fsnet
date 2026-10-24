@@ -22,7 +22,7 @@ std::uint64_t get(const char* in, unsigned bytes) {
     for (unsigned i = 0; i < bytes; ++i) value = (value << 8) | static_cast<unsigned char>(in[i]);
     return value;
 }
-std::string frame(unsigned kind, Status status, std::uint64_t id, const std::string& route, const std::string& data) {
+std::string frame(unsigned kind, Status status, std::uint64_t id, std::string_view route, std::string_view data) {
     std::string out;
     out.reserve(18 + route.size() + data.size());
     put(out, 14 + route.size() + data.size(), 4);
@@ -243,7 +243,8 @@ struct Node::Impl::Session : std::enable_shared_from_this<Session> {
             return;
         }
         auto registered = it->second;
-        CallIdentity principal{Caller::client, identity};
+        CallIdentity principal{Caller::client, {}};
+        if(registered.legacy || !node->identity_resolver) principal.subject=identity;
         if (!registered.legacy) {
             try {
                 if (node->identity_resolver) {
@@ -353,7 +354,7 @@ void Node::bind(std::string route, Handler handler) {
     if (!impl_->handlers.emplace(std::move(route), Impl::Route{{true, true, false},
         [handler = std::move(handler)](const CallIdentity&, std::string data, Reply reply) { handler(std::move(data), std::move(reply)); }, true}).second) throw std::logic_error("duplicate RPC route");
 }
-void Node::call(std::uint64_t peer, std::string route, std::string data, std::chrono::milliseconds timeout, Reply reply) {
+void Node::call(std::uint64_t peer, std::string_view route, std::string_view data, std::chrono::milliseconds timeout, Reply reply) {
     if (!reply) throw std::invalid_argument("missing reply callback");
     if (route.empty() || route.size() > 256 || route.find('\0') != std::string::npos || route.size() + data.size() > impl_->limits.frame_bytes - 14 || timeout.count() <= 0 || timeout > std::chrono::seconds(30))
         return reply({Status::rejected, {}});
@@ -395,8 +396,9 @@ std::optional<CallIdentity> Node::identity(std::uint64_t peer) const {
     auto it = impl_->sessions.find(peer);
     auto session = it->second;
     try {
-        std::optional<CallIdentity> principal = CallIdentity{Caller::client, session->identity, peer};
+        std::optional<CallIdentity> principal;
         if (impl_->identity_resolver) { auto resolve = impl_->identity_resolver; principal = resolve(peer, session->identity); }
+        else principal=CallIdentity{Caller::client, session->identity, peer};
         if (!principal || principal->subject.size() > 256 || (principal->caller != Caller::client && principal->caller != Caller::server) || !connected(peer)) return {};
         principal->peer = peer; return principal;
     } catch (...) { return {}; }

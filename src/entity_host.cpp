@@ -130,7 +130,7 @@ struct EntityScriptHost::Impl : std::enable_shared_from_this<Impl> {
     }
     void execute(const std::shared_ptr<Job>& job,Reply done) {
         struct Chain { std::vector<std::shared_ptr<Method>> steps; std::size_t index=0; std::string state; Reply done; };
-        auto chain=std::make_shared<Chain>(); chain->state=job->state; chain->done=std::move(done);
+        auto chain=std::make_shared<Chain>(); chain->state=std::move(job->state); chain->done=std::move(done);
         auto type=job->request.method->type;
         if(!is_control(job->request.route,type)) {
             if(job->created && methods.contains(type+".$create")) chain->steps.push_back(methods.at(type+".$create"));
@@ -140,7 +140,7 @@ struct EntityScriptHost::Impl : std::enable_shared_from_this<Impl> {
         if(is_control(job->request.route,type) && slot!=slots.end() && !slot->second.activated) {
             auto noop=std::make_shared<Method>(*job->request.method);
             noop->logic=[](const CallIdentity&,std::string input,Reply reply) {
-                auto entity=parse_entity_message(input); auto state=entity?parse_state_message(entity->payload):std::nullopt;
+                auto entity=parse_entity_message_view(input); auto state=entity?parse_state_message_view(entity->payload):std::nullopt;
                 if(!state) return reply({Status::internal,{}});
                 reply({Status::ok,state_message(state->state,"")});
             };
@@ -155,7 +155,7 @@ struct EntityScriptHost::Impl : std::enable_shared_from_this<Impl> {
             auto method=chain->steps[chain->index++];
             auto identity=last?job->request.identity:CallIdentity{Caller::server,"framework:lifecycle"};
             auto slot=self->slots.find(job->entity); if(slot==self->slots.end()) return chain->done({Status::disconnected,{}});
-            auto input=entity_message(slot->second.handle.id,state_message(chain->state,last?job->request.payload:std::string{}));
+            auto input=entity_message(slot->second.handle.id,state_message(chain->state,last?std::string_view(job->request.payload):std::string_view{}));
             auto once=std::make_shared<bool>(false);
             auto complete=[weak,job,chain,keep,last,once](Result result) {
                 if(std::exchange(*once,true)) return;
@@ -460,8 +460,8 @@ void EntityScriptHost::define_schema(std::string type, EntitySchema schema) {
     try {
         auto method = std::make_shared<Impl::Method>(Impl::Method{type, std::move(initial),
             [](const CallIdentity&, std::string input, Reply reply) {
-                auto entity = parse_entity_message(input);
-                auto state = entity ? parse_state_message(entity->payload) : std::nullopt;
+                auto entity = parse_entity_message_view(input);
+                auto state = entity ? parse_state_message_view(entity->payload) : std::nullopt;
                 if (!state) return reply({Status::internal, {}});
                 reply({Status::ok, state_message(state->state, state->state)});
             }, RpcPolicy{false, true, false}, std::move(definition)});

@@ -172,7 +172,22 @@ void owner_recheck() {
     until(runtime,[&] { return result.has_value(); }); CHECK(result->data=="authenticated");
     std::cout << "PASS ownership rechecks: suspended commit and queued private receipt replay reject revoked owners\n";
 }
+void borrowed_envelopes() {
+    std::string payload("a\0b",3);
+    for(const auto& request: {std::string{},std::string("token")}) {
+        auto wire=fsnet::entity_message("alice",payload,request);
+        auto borrowed=fsnet::parse_entity_message_view(wire); auto owned=fsnet::parse_entity_message(wire);
+        CHECK(borrowed && owned && borrowed->id==owned->id && borrowed->payload==payload && borrowed->request_id==request);
+        CHECK(borrowed->payload.data()>=wire.data() && borrowed->payload.data()+payload.size()<=wire.data()+wire.size());
+        wire.back()='z'; CHECK(borrowed->payload.back()=='z' && owned->payload==payload);
+    }
+    for(auto wire: {std::string{},std::string("FSE1"),std::string("FSE1\0\0",6),std::string("FSE2\0\1a\0\0",9)}) CHECK(!fsnet::parse_entity_message_view(wire));
+    auto state=fsnet::state_message(payload,"result");auto view=fsnet::parse_state_message_view(state);
+    CHECK(view && view->state==payload && view->payload=="result");
+    CHECK(!fsnet::parse_state_message_view(std::string("FSS1\xff\xff\xff\xff",8)));
+    std::cout<<"PASS borrowed envelopes: binary payload, independent owned parse, invalid bounds\n";
+}
 int main() {
-    try { ownership(); fencing(); receipts(); ticks_and_limits(); owner_recheck(); }
+    try { borrowed_envelopes(); ownership(); fencing(); receipts(); ticks_and_limits(); owner_recheck(); }
     catch (const std::exception& error) { std::cerr << error.what() << '\n'; return 1; }
 }
