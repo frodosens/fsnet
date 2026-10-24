@@ -1,0 +1,13 @@
+{
+  "baseline_git_head": "9de32185f6c684b4e3dd4f1dae9efbc7889f8dc9",
+  "date_utc": "2026-10-24T16:15:19.914146+00:00",
+  "compiler": "g++ (Debian 14.2.0-19) 14.2.0",
+  "library_sha256": "e4083b6884fa18af039050dbb43e4e425d408f0c34ff85c88cc9de9011fa7bb4",
+  "note": "Existing Release library; no production edits or shared preset rebuilds. Probe output is local-only observation, not deployment throughput.",
+  "gateway_retention_source_sha256": "f4e5bdd483904a8a1d3a43161c49dc3ab87c537974ea2b09126050172705a043",
+  "gateway_retention_binary_sha256": "0073d3ce9858a0c086bab9c5f249bdb0486952e6c04fdb4ce443abc676347b41",
+  "replica_cow_source_sha256": "eca6adf491f8b6c942730969537541c96c33140edd8e3594cac1a82fa5f090be",
+  "replica_cow_binary_sha256": "68d2791fdf3e8c5fb23f24b5e957cee18d6d0470436918c5e8eb877d43f69102",
+  "entity_burst_source_sha256": "98dfd7f9cd63a31aead13944eb4ef4b616d0fc1ef5892ad1e4886df534ca6219",
+  "entity_burst_binary_sha256": "4e1f4c9acb5604edf8abc46ed4bab770c6059550427d8c7282e096ad38d6e4c6"
+}

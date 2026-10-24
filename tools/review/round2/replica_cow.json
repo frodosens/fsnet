@@ -1,0 +1,239 @@
+[
+  {
+    "run": 1,
+    "returncode": 0,
+    "observations": [
+      {
+        "scenario": "direct_apply",
+        "unchanged_items": 0,
+        "iterations": 1000,
+        "ns_per_op": 148.163,
+        "allocations_per_op": 2,
+        "allocated_bytes_per_op": 240
+      },
+      {
+        "scenario": "receive_candidate_pattern",
+        "unchanged_items": 0,
+        "iterations": 1000,
+        "ns_per_op": 203.951,
+        "allocations_per_op": 5,
+        "allocated_bytes_per_op": 592
+      },
+      {
+        "scenario": "native_attribute_client_receive",
+        "unchanged_items": 0,
+        "iterations": 1000,
+        "ns_per_op": 4781.62,
+        "allocations_per_op": 9,
+        "allocated_bytes_per_op": 807
+      },
+      {
+        "scenario": "direct_apply",
+        "unchanged_items": 16,
+        "iterations": 1000,
+        "ns_per_op": 161.086,
+        "allocations_per_op": 2,
+        "allocated_bytes_per_op": 240
+      },
+      {
+        "scenario": "receive_candidate_pattern",
+        "unchanged_items": 16,
+        "iterations": 1000,
+        "ns_per_op": 625.436,
+        "allocations_per_op": 22,
+        "allocated_bytes_per_op": 9696
+      },
+      {
+        "scenario": "native_attribute_client_receive",
+        "unchanged_items": 16,
+        "iterations": 1000,
+        "ns_per_op": 3443.41,
+        "allocations_per_op": 26,
+        "allocated_bytes_per_op": 9911
+      },
+      {
+        "scenario": "direct_apply",
+        "unchanged_items": 256,
+        "iterations": 1000,
+        "ns_per_op": 1937.57,
+        "allocations_per_op": 2,
+        "allocated_bytes_per_op": 240
+      },
+      {
+        "scenario": "receive_candidate_pattern",
+        "unchanged_items": 256,
+        "iterations": 1000,
+        "ns_per_op": 14609,
+        "allocations_per_op": 262,
+        "allocated_bytes_per_op": 146256
+      },
+      {
+        "scenario": "native_attribute_client_receive",
+        "unchanged_items": 256,
+        "iterations": 1000,
+        "ns_per_op": 16103.5,
+        "allocations_per_op": 266,
+        "allocated_bytes_per_op": 146471
+      }
+    ],
+    "stderr": ""
+  },
+  {
+    "run": 2,
+    "returncode": 0,
+    "observations": [
+      {
+        "scenario": "direct_apply",
+        "unchanged_items": 0,
+        "iterations": 1000,
+        "ns_per_op": 146.642,
+        "allocations_per_op": 2,
+        "allocated_bytes_per_op": 240
+      },
+      {
+        "scenario": "receive_candidate_pattern",
+        "unchanged_items": 0,
+        "iterations": 1000,
+        "ns_per_op": 207.003,
+        "allocations_per_op": 5,
+        "allocated_bytes_per_op": 592
+      },
+      {
+        "scenario": "native_attribute_client_receive",
+        "unchanged_items": 0,
+        "iterations": 1000,
+        "ns_per_op": 4135.15,
+        "allocations_per_op": 9,
+        "allocated_bytes_per_op": 807
+      },
+      {
+        "scenario": "direct_apply",
+        "unchanged_items": 16,
+        "iterations": 1000,
+        "ns_per_op": 1036.66,
+        "allocations_per_op": 2,
+        "allocated_bytes_per_op": 240
+      },
+      {
+        "scenario": "receive_candidate_pattern",
+        "unchanged_items": 16,
+        "iterations": 1000,
+        "ns_per_op": 1929.51,
+        "allocations_per_op": 22,
+        "allocated_bytes_per_op": 9696
+      },
+      {
+        "scenario": "native_attribute_client_receive",
+        "unchanged_items": 16,
+        "iterations": 1000,
+        "ns_per_op": 5649.89,
+        "allocations_per_op": 26,
+        "allocated_bytes_per_op": 9911
+      },
+      {
+        "scenario": "direct_apply",
+        "unchanged_items": 256,
+        "iterations": 1000,
+        "ns_per_op": 959.173,
+        "allocations_per_op": 2,
+        "allocated_bytes_per_op": 240
+      },
+      {
+        "scenario": "receive_candidate_pattern",
+        "unchanged_items": 256,
+        "iterations": 1000,
+        "ns_per_op": 14102.2,
+        "allocations_per_op": 262,
+        "allocated_bytes_per_op": 146256
+      },
+      {
+        "scenario": "native_attribute_client_receive",
+        "unchanged_items": 256,
+        "iterations": 1000,
+        "ns_per_op": 20418.8,
+        "allocations_per_op": 266,
+        "allocated_bytes_per_op": 146471
+      }
+    ],
+    "stderr": ""
+  },
+  {
+    "run": 3,
+    "returncode": 0,
+    "observations": [
+      {
+        "scenario": "direct_apply",
+        "unchanged_items": 0,
+        "iterations": 1000,
+        "ns_per_op": 238.945,
+        "allocations_per_op": 2,
+        "allocated_bytes_per_op": 240
+      },
+      {
+        "scenario": "receive_candidate_pattern",
+        "unchanged_items": 0,
+        "iterations": 1000,
+        "ns_per_op": 181.122,
+        "allocations_per_op": 5,
+        "allocated_bytes_per_op": 592
+      },
+      {
+        "scenario": "native_attribute_client_receive",
+        "unchanged_items": 0,
+        "iterations": 1000,
+        "ns_per_op": 3140.09,
+        "allocations_per_op": 9,
+        "allocated_bytes_per_op": 807
+      },
+      {
+        "scenario": "direct_apply",
+        "unchanged_items": 16,
+        "iterations": 1000,
+        "ns_per_op": 166.108,
+        "allocations_per_op": 2,
+        "allocated_bytes_per_op": 240
+      },
+      {
+        "scenario": "receive_candidate_pattern",
+        "unchanged_items": 16,
+        "iterations": 1000,
+        "ns_per_op": 652.907,
+        "allocations_per_op": 22,
+        "allocated_bytes_per_op": 9696
+      },
+      {
+        "scenario": "native_attribute_client_receive",
+        "unchanged_items": 16,
+        "iterations": 1000,
+        "ns_per_op": 3597.97,
+        "allocations_per_op": 26,
+        "allocated_bytes_per_op": 9911
+      },
+      {
+        "scenario": "direct_apply",
+        "unchanged_items": 256,
+        "iterations": 1000,
+        "ns_per_op": 989.959,
+        "allocations_per_op": 2,
+        "allocated_bytes_per_op": 240
+      },
+      {
+        "scenario": "receive_candidate_pattern",
+        "unchanged_items": 256,
+        "iterations": 1000,
+        "ns_per_op": 10825.8,
+        "allocations_per_op": 262,
+        "allocated_bytes_per_op": 146256
+      },
+      {
+        "scenario": "native_attribute_client_receive",
+        "unchanged_items": 256,
+        "iterations": 1000,
+        "ns_per_op": 16272.3,
+        "allocations_per_op": 266,
+        "allocated_bytes_per_op": 146471
+      }
+    ],
+    "stderr": ""
+  }
+]

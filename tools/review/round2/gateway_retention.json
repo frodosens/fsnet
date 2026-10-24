@@ -1,0 +1,131 @@
+[
+  {
+    "run": 1,
+    "returncode": 0,
+    "observations": [
+      {
+        "round": 1,
+        "completed": 4,
+        "timeouts": 4,
+        "pending": 0,
+        "queued_bytes": 0,
+        "rss_kib": 7248,
+        "rss_delta_kib": 1832
+      },
+      {
+        "round": 10,
+        "completed": 40,
+        "timeouts": 40,
+        "pending": 0,
+        "queued_bytes": 0,
+        "rss_kib": 15892,
+        "rss_delta_kib": 10476
+      },
+      {
+        "round": 20,
+        "completed": 80,
+        "timeouts": 80,
+        "pending": 0,
+        "queued_bytes": 0,
+        "rss_kib": 25492,
+        "rss_delta_kib": 20076
+      },
+      {
+        "round": 30,
+        "completed": 120,
+        "timeouts": 120,
+        "pending": 0,
+        "queued_bytes": 0,
+        "rss_kib": 35096,
+        "rss_delta_kib": 29680
+      }
+    ],
+    "stderr": ""
+  },
+  {
+    "run": 2,
+    "returncode": 0,
+    "observations": [
+      {
+        "round": 1,
+        "completed": 4,
+        "timeouts": 4,
+        "pending": 0,
+        "queued_bytes": 0,
+        "rss_kib": 7024,
+        "rss_delta_kib": 1896
+      },
+      {
+        "round": 10,
+        "completed": 40,
+        "timeouts": 40,
+        "pending": 0,
+        "queued_bytes": 0,
+        "rss_kib": 15668,
+        "rss_delta_kib": 10540
+      },
+      {
+        "round": 20,
+        "completed": 80,
+        "timeouts": 80,
+        "pending": 0,
+        "queued_bytes": 0,
+        "rss_kib": 25268,
+        "rss_delta_kib": 20140
+      },
+      {
+        "round": 30,
+        "completed": 120,
+        "timeouts": 120,
+        "pending": 0,
+        "queued_bytes": 0,
+        "rss_kib": 34872,
+        "rss_delta_kib": 29744
+      }
+    ],
+    "stderr": ""
+  },
+  {
+    "run": 3,
+    "returncode": 0,
+    "observations": [
+      {
+        "round": 1,
+        "completed": 4,
+        "timeouts": 4,
+        "pending": 0,
+        "queued_bytes": 0,
+        "rss_kib": 7100,
+        "rss_delta_kib": 1896
+      },
+      {
+        "round": 10,
+        "completed": 40,
+        "timeouts": 40,
+        "pending": 0,
+        "queued_bytes": 0,
+        "rss_kib": 15744,
+        "rss_delta_kib": 10540
+      },
+      {
+        "round": 20,
+        "completed": 80,
+        "timeouts": 80,
+        "pending": 0,
+        "queued_bytes": 0,
+        "rss_kib": 25344,
+        "rss_delta_kib": 20140
+      },
+      {
+        "round": 30,
+        "completed": 120,
+        "timeouts": 120,
+        "pending": 0,
+        "queued_bytes": 0,
+        "rss_kib": 34948,
+        "rss_delta_kib": 29744
+      }
+    ],
+    "stderr": ""
+  }
+]
