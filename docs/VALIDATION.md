@@ -193,3 +193,11 @@ Release 链路 smoke 核对 10 轮：逐条 160 次写/提交、batch 10 次写/
 独立进程完成一次 smoke：登录创建、自动表现、隐式字段提案、batch、服务端奖励 RPC、背包任务读取、
 重复领取不重发奖励和清理通过。此检查不新增 CTest 项，也未重跑普通/sanitizer 全套；最近运行时结果仍为 27/27、17/17。
 本次另检查更新文档的本地链接/章节锚点、代码围栏和 git diff --check。
+
+
+## 服务端生命周期阶段
+
+2026-10-24，Lua ON / PostgreSQL OFF：普通 CTest 28/28、ASan/UBSan（含泄漏检查）18/18 通过。
+新增事务化 create/activate/deactivate/destroy、创建未完成 FER2 标记跨宿主重试、业务失败不重复激活、
+卸载失败无属性发布、idle 卸载、删除重建/旧句柄拒绝及 drain 检查；FER1 已初始化记录保持兼容。
+旧二进制不认识 FER2，升级需排空旧 owner，且 hook 外部副作用仍需幂等。详见 ENTITY_LIFECYCLE.md。

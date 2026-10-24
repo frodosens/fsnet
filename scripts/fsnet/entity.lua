@@ -8,8 +8,9 @@ local reserved = {id=true, type=true, context=true, reject=true, attr=true, rpc=
                   private=true, extend=true, register=true, ref=true, reference=true,
                   define=true, spawn_local=true, watch=true, write=true, close=true,
                   revision=true, mode=true, method=true, batch=true, prediction=true, spawn_or_restore=true,
-                  show_to=true, hide_from=true, possess=true, unpossess=true}
-local unsupported_hooks = {new=true, init=true, on_create=true, on_activate=true, on_deactivate=true}
+                  deactivate=true, destroy=true, show_to=true, hide_from=true, possess=true, unpossess=true}
+local unsupported_hooks = {new=true, init=true}
+local lifecycle_hooks = {on_create=true,on_activate=true,on_deactivate=true,on_destroy=true}
 local function name(value)
     assert(type(value)=='string' and #value>0 and #value<=127 and not value:find('[%.%z]') and value:sub(1,1)~='$', 'invalid entity/member name')
     return value
@@ -67,7 +68,7 @@ function Class:extend(kind, opts)
 end
 function Class:attr(key, definition)
     local data=editable(self); name(key)
-    assert(not reserved[key] and not unsupported_hooks[key] and key~='on_tick' and key~='validate_write', 'reserved property name')
+    assert(not reserved[key] and not unsupported_hooks[key] and not lifecycle_hooks[key] and key~='on_tick' and key~='validate_write', 'reserved property name')
     assert(data.attrs[key]==nil and type(definition)=='table', 'duplicate or invalid property')
     local allowed={type=true, default=true, server=true, client=true, sync=true, persist=true, authority=true}
     for option in pairs(definition) do assert(allowed[option], 'unknown property option: '..tostring(option)) end
@@ -85,7 +86,7 @@ function Class:method(key,definition)
 end
 function Class:rpc(key, definition)
     local data=editable(self); name(key)
-    assert(not reserved[key] and key~='on_tick' and key~='validate_write' and not unsupported_hooks[key], 'reserved RPC name')
+    assert(not reserved[key] and not lifecycle_hooks[key] and key~='on_tick' and key~='validate_write' and not unsupported_hooks[key], 'reserved RPC name')
     assert(data.rpcs[key]==nil, 'duplicate RPC declaration')
     data.rpcs[key]=policy(definition)
     return self
@@ -182,6 +183,14 @@ function Class:spawn_or_restore(id,values)
     assert(status==runtime.status.ok,'entity spawn failed: '..tostring(status))
     return self:ref(id)
 end
+local function lifecycle_control(class,id,destroy)
+    local data=record(class)
+    assert(data.registered,'lifecycle requires a registered server class')
+    local _,status=runtime._control_entity(data.name,id,destroy)
+    assert(status==runtime.status.ok,'lifecycle operation failed: '..tostring(status))
+end
+function Class:deactivate(id) return lifecycle_control(self,id,false) end
+function Class:destroy(id) return lifecycle_control(self,id,true) end
 function Class:spawn_local(values,opts)
     opts=copy(opts or {})
     for key in pairs(opts) do assert(key=='id','unknown local option') end
@@ -221,6 +230,22 @@ function Class:register()
         definition.methods[key]={callers=p.callers,access=p.access,handler=function(object,ctx,payload)
             return invoke(attach(object,ctx),fn,payload)
         end}
+    end
+    definition.lifecycle={}
+    for _,hook in ipairs({'create','activate'}) do
+        local fn=members['on_'..hook]
+        if fn then definition.lifecycle[hook]=function(object,ctx,payload) return invoke(attach(object,ctx),fn,payload) end end
+    end
+    definition.lifecycle.deactivate=function(object,ctx,reason)
+        return invoke(attach(object,ctx),function(self)
+            if members.on_deactivate then return members.on_deactivate(self,reason) end
+        end,'')
+    end
+    definition.lifecycle.destroy=function(object,ctx,reason)
+        return invoke(attach(object,ctx),function(self)
+            if members.on_deactivate then members.on_deactivate(self,reason) end
+            if members.on_destroy then return members.on_destroy(self,reason) end
+        end,'')
     end
     if flat.methods.on_tick then
         definition.tick=function(object,ctx,step)

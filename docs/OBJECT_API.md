@@ -134,16 +134,15 @@ function Player:validate_write(proposal)
 end
 ```
 
-构造、激活和卸载不是每次 RPC 创建 Lua 门面的同一件事。因此目前不提供 `new`、`init`、
-`on_create`、`on_activate`、`on_deactivate` 这些伪生命周期 hook；声明时明确报错，避免
-误以为执行了一次性的持久化初始化或可靠卸载回调。
+服务端已提供事务化 create/activate/deactivate/destroy hook，以及显式卸载/删除和 drain；
+签名、提交/重试与宕机边界见 [生命周期](ENTITY_LIFECYCLE.md)。`new`/`init` 仍不作为持久实体构造 hook。
 
 客户端/服务端共享类、本地实例与确认副本见 [共享实体](SHARED_ENTITIES.md)。
 
 完整例子见 [attributes.lua](../examples/lua/attributes.lua)。
 
 服务端 `spawn_or_restore`、连接可见性与客户端表现生命周期见
-[实体存在性与表现](ENTITY_PRESENCE.md)。它们不代替服务端 on_create/on_activate/on_deactivate。
+[实体存在性与表现](ENTITY_PRESENCE.md)。客户端表现 hook 不代替服务端实体生命周期。
 
 结构属性、固定数组、整值与嵌套赋值自动同步见 [STRUCTURED_ATTRIBUTES.md](STRUCTURED_ATTRIBUTES.md)。
 

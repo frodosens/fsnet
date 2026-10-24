@@ -146,7 +146,7 @@ void invalid_definitions() {
         "local A=fsnet.Entity:extend('A'); A:rpc('missing',{callers={'server'}}); A:register()",
         "local A=fsnet.Entity:extend('A'); A:attr('hp',{type='int32',default=1}); function A:hp() end; A:register()",
         "local A=fsnet.Entity:extend('A'); A:attr('secret',{type='string',default='',clinet='none'})",
-        "local A=fsnet.Entity:extend('A'); function A:on_create() end",
+        "local A=fsnet.Entity:extend('A'); function A:init() end",
         "local A=fsnet.Entity:extend('A'); A:private('typo'); A:register()",
         "local A=fsnet.Entity:extend('A'); A:rpc('hit',{callers={'client','client'}})",
         "local A=fsnet.Entity:extend('A'); function A:hit() end; A:register(); function A:another() end",

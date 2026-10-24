@@ -282,7 +282,8 @@ Node、宿主、引擎和 manager 在所属线程推进 poll；Node 必须比适
 | 背包与任务增删、客户端状态 diff | [容器运行说明](CONTAINER_ATTRIBUTES.md#可运行示例与验证) |
 | 输入确认与重放 | [运行说明](../examples/README.md#客户端预测与服务器校正) |
 
-服务端尚无 on_create/on_activate/on_deactivate 脚本 hook、可靠永久删除、模块资源加载/热更新与状态迁移；
+服务端 create/activate/deactivate/destroy hook、卸载/删除与 drain 已实现，见 [生命周期](ENTITY_LIFECYCLE.md)。
+模块资源加载/热更新与状态迁移仍未实现；
 也没有自动几何 AOI、Gateway 身份委托/订阅迁移、跨实体事务、公共前缀树编码或自动输入重发。
 ICE/STUN/TURN 原语不等于完整认证/加密 P2P 链路。完整已实现/计划边界见
 [完成状态](ENGINE_COMPLETION.md)、[路线图](ROADMAP.md)、[验证记录](VALIDATION.md)。

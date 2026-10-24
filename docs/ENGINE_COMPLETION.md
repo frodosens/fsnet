@@ -13,7 +13,8 @@
 | 变长 list/map/set 与 Item/Task 同步 | 已实现 | CONTAINER_ATTRIBUTES.md；类型/容量/唯一性预算，非逐笔操作日志 |
 | 显式合批与递归字段路径差量 | 已实现 | ATTRIBUTE_BATCHING.md、FIELD_PATH_DELTAS.md；候选状态原子应用、按大小回退，无定时窗口/公共前缀树编码 |
 | 默认上下行共用差量生成与应用 | 已实现 | SHARED_ATTRIBUTE_DELTAS.md；独立服务端权限/类型/业务校验，固定请求 ID 保留全值重试表示 |
-| 资源模块加载、服务端生命周期 hook | 待交付 | 客户端表现 hook 已实现；完整服务端创建/激活/卸载 hook 仍待补齐，保留 mailbox/fencing 合同 |
+| 服务端生命周期、卸载/删除与 drain | 已实现 | ENTITY_LIFECYCLE.md；初始化标记、单记录提交、失败重试、句柄 fencing、空闲卸载 |
+| 资源模块加载 | 待交付 | 仍为脚本块加载，尚无模块资源管理 |
 | 版本迁移与安全热更新 | 待交付 | 必须明确 drain、失败回滚及状态兼容规则 |
 | Gateway 身份委托与属性流转发/迁移 | 待交付 | 客户端当前直接连接 owner |
 | 加密 P2P、认证信令和 TLS 后备 | 待交付 | ICE/TURN 原语已有；不能以本机测试宣称公网验收 |

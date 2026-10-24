@@ -10,6 +10,7 @@ struct EntityRecord {
     std::int64_t expires_ms = 0;
     std::uint64_t fence = 0;
     EntitySnapshot snapshot;
+    bool initialized = true; // FER1 records are already initialized
 };
 namespace entity_record_detail {
 inline void integer(std::string& out, std::uint64_t value) {
@@ -28,15 +29,16 @@ inline std::string entity_record_key(const std::string& type, const std::string&
 inline std::string encode_entity_record(const EntityRecord& record) {
     if (record.owner.size() > 256 || record.expires_ms < 0 || record.fence >= static_cast<std::uint64_t>(INT64_MAX))
         throw std::invalid_argument("invalid entity record");
-    std::string result = "FER1";
+    std::string result = record.initialized ? "FER1" : "FER2";
     snapshot_detail::blob(result, record.owner);
     entity_record_detail::integer(result, static_cast<std::uint64_t>(record.expires_ms));
     entity_record_detail::integer(result, record.fence);
     result += encode_snapshot(record.snapshot); return result;
 }
 inline EntityRecord decode_entity_record(std::string_view input) {
-    if (!input.starts_with("FER1")) throw std::runtime_error("unknown entity record version");
-    input.remove_prefix(4); EntityRecord record; record.owner = snapshot_detail::blob(input);
+    bool pending=input.starts_with("FER2");
+    if (!pending && !input.starts_with("FER1")) throw std::runtime_error("unknown entity record version");
+    input.remove_prefix(4); EntityRecord record; record.initialized=!pending; record.owner = snapshot_detail::blob(input);
     auto expires = entity_record_detail::integer(input); record.fence = entity_record_detail::integer(input);
     if (record.owner.size() > 256 || expires > static_cast<std::uint64_t>(INT64_MAX) || record.fence >= static_cast<std::uint64_t>(INT64_MAX))
         throw std::runtime_error("invalid entity record metadata");

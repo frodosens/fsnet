@@ -23,7 +23,7 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
         std::uint64_t peer;
         std::string route, data;
         std::chrono::milliseconds timeout;
-        enum class Kind { rpc, sleep, watch, write, spawn, visibility } kind = Kind::rpc;
+        enum class Kind { rpc, sleep, watch, write, spawn, control, visibility } kind = Kind::rpc;
         std::uint64_t subscription = 0;
         AttributeWriteOptions options;
         EntityAttributes::Values values;
@@ -987,6 +987,22 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
         } catch(const std::exception& e) { return luaL_error(L,"%s",e.what()); }
         return lua_yield(L,0);
     }
+    static int control_entity(lua_State* L) {
+        prediction_external(L); auto& engine=self(L);
+        std::size_t n,m; const char* kind=luaL_checklstring(L,1,&n); const char* id=luaL_checklstring(L,2,&m);
+        bool destroy=lua_toboolean(L,3);
+        if(!engine.threads.contains(L)) return luaL_error(L,"lifecycle operation requires an async server task");
+        try {
+            std::string type(kind,n),entity(id,m);
+            if(!engine.server_schemas.contains(type) || !m || m>256) throw std::invalid_argument("registered server entity required");
+            const auto& task=engine.tasks.at(engine.threads.at(L));
+            if(task.entity_type==type && task.entity_id==entity) throw std::logic_error("cannot await lifecycle of the current entity");
+            Await request{}; request.kind=Await::Kind::control; request.timeout=engine.limits.task_timeout;
+            request.route=std::move(type); request.data=std::move(entity); request.action=destroy?1:0;
+            engine.tasks.at(engine.threads.at(L)).await=std::move(request);
+        } catch(const std::exception& e) { return luaL_error(L,"%s",e.what()); }
+        return lua_yield(L,0);
+    }
     static int entity_visibility(lua_State* L) {
         prediction_external(L);
         auto& engine=self(L);
@@ -1137,6 +1153,7 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
         lua_pushcfunction(L,unwatch_attributes); lua_setfield(L,-2,"_unwatch");
         lua_pushcfunction(L,write_attributes); lua_setfield(L,-2,"_write");
         lua_pushcfunction(L,spawn_entity); lua_setfield(L,-2,"_spawn_entity");
+        lua_pushcfunction(L,control_entity); lua_setfield(L,-2,"_control_entity");
         lua_pushcfunction(L,entity_visibility); lua_setfield(L,-2,"_entity_visibility");
         lua_pushcfunction(L,stop_entity_events); lua_setfield(L,-2,"_stop_entity_events");
         lua_pushcfunction(L,subscription_alive); lua_setfield(L,-2,"_subscription_alive");
@@ -1252,6 +1269,14 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
                         runtime._attributes_apply(self, payload)
                         return ''
                     end})
+                end
+                if definition.lifecycle then
+                    assert(definition.attrs and type(definition.lifecycle)=='table','lifecycle requires attribute entities')
+                    for hook,fn in pairs(definition.lifecycle) do
+                        assert(hook=='create' or hook=='activate' or hook=='deactivate' or hook=='destroy','unknown lifecycle hook')
+                        assert(type(fn)=='function','lifecycle handler required')
+                        register('$'..hook,{callers={'server'},handler=fn})
+                    end
                 end
                 if definition.tick then register('$tick', definition.attrs and {callers={'server'}, handler=definition.tick} or definition.tick) end
             end
@@ -1395,6 +1420,7 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
                     },request.timeout);
             } else if(request.kind==Await::Kind::write) host->write_attributes(request.subscription,std::move(request.values),std::move(completion),std::move(request.options),request.timeout);
             else if(request.kind==Await::Kind::spawn) host->spawn_entity(std::move(request.route),std::move(request.data),std::move(request.values),std::move(completion));
+            else if(request.kind==Await::Kind::control) host->control_entity(std::move(request.route),std::move(request.data),request.action!=0,std::move(completion));
             else if(request.kind==Await::Kind::visibility) host->entity_visibility(request.peer,std::move(request.route),std::move(request.data),request.action,std::move(completion));
             else if (request.peer) host->call(request.peer, std::move(request.route), std::move(request.data), request.timeout, std::move(completion));
             else host->call_entity(std::move(request.route), std::move(request.data), request.timeout, std::move(completion));

@@ -42,6 +42,7 @@ public:
     void spawn_entity(std::string t,std::string id,EntityAttributes::Values values,Reply reply) override {
         parent_->spawn_entity(std::move(t),std::move(id),std::move(values),std::move(reply));
     }
+    void control_entity(std::string t,std::string id,bool destroy,Reply reply) override { parent_->control_entity(std::move(t),std::move(id),destroy,std::move(reply)); }
     void entity_visibility(std::uint64_t peer,std::string t,std::string id,unsigned action,Reply reply) override {
         parent_->entity_visibility(peer,std::move(t),std::move(id),action,std::move(reply));
     }

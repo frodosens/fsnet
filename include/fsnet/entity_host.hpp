@@ -75,6 +75,9 @@ public:
     // Only an idle entity can deactivate. Releases its lease with a fenced CAS;
     // already-committed state remains durable. Stale local handles are rejected.
     void deactivate(const EntityHandle&, Reply);
+    void control_entity(std::string type,std::string id,bool destroy,Reply) override;
+    // Drains resident idle entities through on_deactivate before callers stop Lua.
+    void drain(Reply);
     EntityRuntimeStats stats() const;
     void stop();
 private:

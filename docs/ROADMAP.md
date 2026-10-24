@@ -10,7 +10,7 @@
 | 1：脚本宿主（已实现初版） | 已实现通用宿主接口、Lua 适配器、消息/错误/协程边界 | 不加载脚本时核心独立运行；示例业务全部在脚本；Lua 适配器执行宿主合同 |
 | 1.1：旧文件清理 | 原始版本已推送归档标签；旧 C/旧 SDK、脚本、压缩依赖和构建产物退出主线 | 删除后从干净构建目录重建并执行现有测试 |
 | 2：场景与实体载体（初版已实现） | 单写者 mailbox、固定步长 tick、含宿主身份/代数的句柄、不透明状态快照与恢复、执行/内存预算 | C++ 不含玩法规则；并发、销毁、超时和脚本异常有测试 |
-| 2.1：客户端实体（初版已实现） | 共享类、本地/确认/预测载体、服务端 spawn/restore、连接可见性、LocalPlayer/RemotePlayer 表现与控制目标同步 | PREDICTION.md 与 ENTITY_PRESENCE.md；场景/AOI 策略由 Lua 显式管理，不含完整服务端生命周期或自动空间发现 |
+| 2.1：客户端实体（初版已实现） | 共享类、本地/确认/预测载体、服务端 spawn/restore、连接可见性、LocalPlayer/RemotePlayer 表现与控制目标同步 | PREDICTION.md 与 ENTITY_PRESENCE.md；场景/AOI 策略由 Lua 显式管理，服务端生命周期已另行补齐，仍无自动空间发现 |
 | 2.2：结构属性（已实现） | 通用 struct、固定数组、vec3/mat4x4、整值/嵌套赋值、自动客户端提案与服务器提交后同步 | STRUCTURED_ATTRIBUTES.md；路径 delta 由 2.4 补齐，仍不含字段级 ACL、自动冲突合并或在线结构迁移 |
 | 2.3：变长容器（已实现） | list、字符串键 map、标量 set，结构/容器嵌套、增删改同步 | CONTAINER_ATTRIBUTES.md；有类型/容量/总预算，不是逐笔业务操作日志 |
 | 2.4：共用差量与合批（已实现） | 客户端 batch、递归字段/容器差量、默认上下行共用生成器、候选补丁应用 | ATTRIBUTE_BATCHING.md、FIELD_PATH_DELTAS.md、SHARED_ATTRIBUTE_DELTAS.md；固定 ID 全值回退，无公共前缀树、定时帧合包或跨实体事务 |
