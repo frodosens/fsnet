@@ -6,6 +6,62 @@ template<class F> void denied(F f) { bool caught=false; try { f(); } catch(const
 int main() {
     using namespace fsnet;
     try {
+        // A 1 KiB payload must stay out of a one-field delta.
+        AttributeStruct data{{"payload",std::string(1024,'p')},{"position",AttributeStruct{{"x",0.0},{"y",0.0},{"z",0.0}}}};
+        AttributeUpdate large{0,1,true,{{"data",data}}}, changed=large; changed.revision=2;
+        std::get<AttributeStruct>(std::get<AttributeStruct>(changed.values.at("data")).at("position")).at("x")=10.0;
+        auto field=attribute_delta(large,changed); CHECK(field.values.empty() && field.patches.size()==1);
+        CHECK(field.patches[0].replace && field.patches[0].path.size()==2);
+        CHECK(std::get<std::string>(field.patches[0].path[0])=="position" && std::get<std::string>(field.patches[0].path[1])=="x");
+        auto field_bytes=encode_attributes(field); CHECK(field_bytes.starts_with("FSA3") && field_bytes.size()<100);
+        CHECK(field_bytes.find(std::string(64,'p'))==std::string::npos);
+        CHECK(field_bytes.size()==attribute_wire_size(field));
+        AttributeReplica fields; CHECK(fields.apply(large)); CHECK(fields.apply(field_bytes)); CHECK(fields.values()==changed.values);
+        std::cout<<"nested_struct_1kb full="<<encode_attributes({1,2,false,changed.values}).size()<<" field="<<field_bytes.size()<<'\n';
+        for(std::size_t n=0;n<field_bytes.size();++n) denied([&]{decode_attributes(std::string_view(field_bytes).substr(0,n));});
+        auto invalid=field; invalid.base=2; invalid.revision=3;
+        invalid.patches.push_back(invalid.patches.front()); invalid.patches.back().path[1]=std::string("missing");
+        denied([&]{fields.apply(invalid);}); CHECK(fields.values()==changed.values && fields.revision()==2);
+        invalid=field; invalid.base=2; invalid.revision=3; invalid.patches[0].path[0]=std::size_t(0);
+        denied([&]{fields.apply(invalid);}); CHECK(fields.values()==changed.values && fields.revision()==2);
+        invalid=field; invalid.patches[0].path.assign(9,std::string("child")); denied([&]{encode_attributes(invalid);});
+        invalid=field; invalid.patches[0].path[0]=std::size_t(256); denied([&]{encode_attributes(invalid);});
+        invalid=field; invalid.patches[0].value.reset(); denied([&]{encode_attributes(invalid);});
+        // Invalid depth/component tags/indices are rejected while decoding too.
+        auto malformed=field_bytes; auto path_offset=25+1+std::string("data").size();
+        malformed[path_offset]=9; denied([&]{decode_attributes(malformed);});
+        malformed=field_bytes; malformed[path_offset+1]=2; denied([&]{decode_attributes(malformed);});
+        malformed=field_bytes; malformed[path_offset+1]=0; malformed[path_offset+2]=1; malformed[path_offset+3]=0;
+        denied([&]{decode_attributes(malformed);});
+        // A map key containing a dot is one component; sequence indices are
+        // numeric components. Keep stable values outside the edited leaf.
+        AttributeUpdate mixed{0,1,true,{{"tasks",AttributeMap{{"daily.1",AttributeArray{data}}}}}};
+        auto mixed_next=mixed; mixed_next.revision=2;
+        auto& entry=std::get<AttributeArray>(std::get<AttributeMap>(mixed_next.values.at("tasks")).at("daily.1"))[0];
+        std::get<AttributeStruct>(std::get<AttributeStruct>(entry).at("position")).at("z")=7.0;
+        auto nested=attribute_delta(mixed,mixed_next); CHECK(nested.patches.size()==1 && nested.patches[0].path.size()==4);
+        CHECK(std::get<std::string>(nested.patches[0].path[0])=="daily.1" && std::get<std::size_t>(nested.patches[0].path[1])==0);
+        AttributeReplica mixed_replica; CHECK(mixed_replica.apply(mixed)); CHECK(mixed_replica.apply(encode_attributes(nested))); CHECK(mixed_replica.values()==mixed_next.values);
+        // Maximum depth remains eight, including containers inside replacement values.
+        AttributeValue deep_before=0.0,deep_after=1.0;
+        for(int i=0;i<8;++i) {deep_before=AttributeStruct{{"child",deep_before},{"payload",std::string(64,'p')}}; deep_after=AttributeStruct{{"child",deep_after},{"payload",std::string(64,'p')}};}
+        // The payload sibling at the last level is within the same depth budget.
+        AttributeUpdate deepest{0,1,true,{{"deep",deep_before}}},deepest_next{0,2,true,{{"deep",deep_after}}};
+        auto deep_delta=attribute_delta(deepest,deepest_next); CHECK(deep_delta.patches.size()==1 && deep_delta.patches[0].path.size()==8);
+        AttributeReplica deep_replica; CHECK(deep_replica.apply(deepest)); CHECK(deep_replica.apply(encode_attributes(deep_delta))); CHECK(deep_replica.values()==deepest_next.values);
+        invalid=deep_delta; invalid.patches[0].value=AttributeArray{0.0}; denied([&]{encode_attributes(invalid);});
+        // Dense/small structures may cost less as one replacement.
+        AttributeUpdate tiny{0,1,true,{{"v",AttributeStruct{{"x",0.0},{"y",0.0},{"z",0.0}}}}},tiny_next=tiny;
+        tiny_next.revision=2; tiny_next.values.at("v")=AttributeStruct{{"x",1.0},{"y",2.0},{"z",3.0}};
+        CHECK(attribute_delta(tiny,tiny_next).patches.empty());
+        tiny_next=tiny; tiny_next.revision=2;
+        std::get<AttributeStruct>(tiny_next.values.at("v")).at("x")=1.0;
+        auto one_axis=attribute_delta(tiny,tiny_next);
+        CHECK(one_axis.patches.size()==1 && one_axis.patches[0].replace && one_axis.patches[0].path.size()==1);
+        // Old FSA2 append/splice remains readable and encodes identically.
+        AttributePatch append; append.property="list"; append.index=0; append.insert={true};
+        AttributeUpdate legacy{1,2,false,{},{append}}; auto legacy_bytes=encode_attributes(legacy);
+        CHECK(legacy_bytes.starts_with("FSA2") && encode_attributes(decode_attributes(legacy_bytes))==legacy_bytes);
         AttributeArray items; AttributeMap tasks;
         for(int i=0;i<128;++i) { items.emplace_back(AttributeStruct{{"id",std::to_string(i)},{"count",std::int64_t(1)}}); tasks.emplace(std::to_string(i),items.back()); }
         AttributeUpdate previous{0,1,true,{{"items",items},{"tasks",tasks},{"scalar",false}}};
@@ -15,7 +71,7 @@ int main() {
         std::get<AttributeMap>(next.values.at("tasks"))["new"]=AttributeStruct{{"id",std::string("new")},{"count",std::int64_t(2)}};
         next.values.at("scalar")=true;
         auto delta=attribute_delta(previous,next); CHECK(delta.patches.size()==3 && delta.values.size()==1);
-        auto bytes=encode_attributes(delta); CHECK(bytes.starts_with("FSA2") && bytes.size()==attribute_wire_size(delta));
+        auto bytes=encode_attributes(delta); CHECK(bytes.starts_with("FSA3") && bytes.size()==attribute_wire_size(delta));
         auto decoded=decode_attributes(bytes); CHECK(encode_attributes(decoded)==bytes);
         AttributeReplica replica; CHECK(replica.apply(previous)); CHECK(replica.apply(decoded)); CHECK(replica.values()==next.values);
         CHECK(!replica.apply(decoded)); CHECK(replica.values()==next.values);

@@ -120,30 +120,56 @@ template<class Output> void encode_image(Output& out, const AttributeStruct& val
         if (out.size() > limit) throw std::length_error("attribute image too large");
     }
 }
+bool field_paths(const AttributeUpdate& update) {
+    for(const auto& patch:update.patches) if(patch.replace || !patch.path.empty()) return true;
+    return false;
+}
+void check_key(const std::string& key) {
+    if(key.empty() || key.size()>127 || key.find('\0')!=std::string::npos) throw std::invalid_argument("invalid patch key");
+}
+template<class Output> void encode_patch(Output& out,const AttributePatch& patch,bool paths,std::size_t& remaining) {
+    check_name(patch.property);
+    put(out,patch.property.size(),1); out+=patch.property;
+    if(patch.path.size()>8) throw std::length_error("patch path depth limit");
+    if(paths) {
+        put(out,patch.path.size(),1);
+        for(const auto& part:patch.path) {
+            if(auto key=std::get_if<std::string>(&part)) {
+                check_key(*key); put(out,1,1); put(out,key->size(),1); out+=*key;
+            } else {
+                auto index=std::get<std::size_t>(part);
+                if(index>=256) throw std::invalid_argument("invalid patch path index");
+                put(out,0,1); put(out,index,2);
+            }
+        }
+    }
+    put(out,patch.replace?2:patch.map?1:0,1);
+    if(patch.replace) {
+        if(patch.map || !patch.value || !patch.key.empty() || !patch.insert.empty() || patch.index || patch.remove)
+            throw std::invalid_argument("invalid field replacement");
+        encode_value(out,*patch.value,static_cast<unsigned>(patch.path.size()),remaining);
+    } else if(patch.map) {
+        check_key(patch.key);
+        if(!patch.insert.empty() || patch.index || patch.remove) throw std::invalid_argument("invalid map patch");
+        put(out,patch.key.size(),1); out+=patch.key; put(out,patch.value.has_value(),1);
+        if(patch.value) encode_value(out,*patch.value,static_cast<unsigned>(patch.path.size()+1),remaining);
+    } else {
+        if(patch.index>256 || patch.remove>256 || patch.insert.size()>256 || !patch.key.empty() || patch.value)
+            throw std::invalid_argument("invalid sequence patch");
+        put(out,patch.index,2); put(out,patch.remove,2); put(out,patch.insert.size(),2);
+        for(const auto& child:patch.insert) encode_value(out,child,static_cast<unsigned>(patch.path.size()+1),remaining);
+    }
+    if(out.size()>limit) throw std::length_error("attribute image too large");
+}
 template<class Output> void encode_update(Output& out,const AttributeUpdate& update) {
     std::size_t remaining=4096;
     encode_image(out,update.values,update.base,update.revision,update.snapshot,&remaining);
     if(update.patches.empty()) return;
     if(update.snapshot || update.patches.size()>256) throw std::invalid_argument("invalid container patches");
-    // FSA2 has the FSA1 layout followed by a bounded edit list.
-    put(out,update.patches.size(),2);
+    bool paths=field_paths(update); put(out,update.patches.size(),2);
     for(const auto& patch:update.patches) {
-        check_name(patch.property);
         if(update.values.contains(patch.property)) throw std::invalid_argument("replacement and patch overlap");
-        put(out,patch.property.size(),1); out+=patch.property;
-        put(out,patch.map?1:0,1);
-        if(patch.map) {
-            if(patch.key.empty() || patch.key.size()>127 || patch.key.find('\0')!=std::string::npos || !patch.insert.empty() || patch.index || patch.remove)
-                throw std::invalid_argument("invalid map patch");
-            put(out,patch.key.size(),1); out+=patch.key; put(out,patch.value.has_value(),1);
-            if(patch.value) encode_value(out,*patch.value,1,remaining);
-        } else {
-            if(patch.index>256 || patch.remove>256 || patch.insert.size()>256 || !patch.key.empty() || patch.value)
-                throw std::invalid_argument("invalid sequence patch");
-            put(out,patch.index,2); put(out,patch.remove,2); put(out,patch.insert.size(),2);
-            for(const auto& child:patch.insert) encode_value(out,child,1,remaining);
-        }
-        if(out.size()>limit) throw std::length_error("attribute image too large");
+        encode_patch(out,patch,paths,remaining);
     }
 }
 // Validate the merged image without copying unchanged values. Limits apply to
@@ -168,7 +194,7 @@ void validate_overlay(const AttributeStruct& current, const AttributeStruct& del
 std::string encode_attributes(const AttributeUpdate& update) {
     std::string out;
     encode_update(out,update);
-    if(!update.patches.empty()) out[3]='2';
+    if(!update.patches.empty()) out[3]=field_paths(update)?'3':'2';
     return out;
 }
 std::size_t attribute_wire_size(const AttributeUpdate& update) {
@@ -178,7 +204,8 @@ std::size_t attribute_wire_size(const AttributeStruct& values) {
     SizeOnly out; encode_image(out,values,0,0,true); return out.size();
 }
 AttributeUpdate decode_attributes(std::string_view in) {
-    bool patched=in.starts_with("FSA2");
+    bool paths=in.starts_with("FSA3");
+    bool patched=paths || in.starts_with("FSA2");
     if (in.size() > limit || (!patched && !in.starts_with("FSA1"))) throw std::invalid_argument("invalid attribute record");
     in.remove_prefix(4); auto flag = get(in, 1);
     if (flag > 1) throw std::invalid_argument("invalid snapshot flag");
@@ -201,17 +228,32 @@ AttributeUpdate decode_attributes(std::string_view in) {
             auto n=get(in,1); if(n>in.size()) throw std::invalid_argument("truncated patch property");
             patch.property=std::string(in.substr(0,n)); in.remove_prefix(n); check_name(patch.property);
             if(result.values.contains(patch.property)) throw std::invalid_argument("replacement and patch overlap");
-            auto kind=get(in,1); if(kind>1) throw std::invalid_argument("invalid patch kind"); patch.map=kind;
-            if(patch.map) {
+            if(paths) {
+                auto depth=get(in,1); if(depth>8) throw std::length_error("patch path depth limit");
+                for(std::uint64_t j=0;j<depth;++j) {
+                    auto tag=get(in,1);
+                    if(tag==0) {
+                        auto index=get(in,2); if(index>=256) throw std::invalid_argument("invalid patch path index");
+                        patch.path.emplace_back(static_cast<std::size_t>(index));
+                    } else if(tag==1) {
+                        n=get(in,1); if(!n || n>127 || n>in.size()) throw std::invalid_argument("invalid path key");
+                        std::string key(in.substr(0,n)); in.remove_prefix(n); check_key(key); patch.path.emplace_back(std::move(key));
+                    } else throw std::invalid_argument("invalid path component");
+                }
+            }
+            auto kind=get(in,1); if(kind>(paths?2u:1u)) throw std::invalid_argument("invalid patch kind");
+            patch.map=kind==1; patch.replace=kind==2;
+            if(patch.replace) patch.value=decode_value(in,static_cast<unsigned>(patch.path.size()),remaining);
+            else if(patch.map) {
                 n=get(in,1); if(!n || n>127 || n>in.size()) throw std::invalid_argument("invalid patch key");
                 patch.key=std::string(in.substr(0,n)); in.remove_prefix(n);
                 if(patch.key.find('\0')!=std::string::npos) throw std::invalid_argument("invalid patch key");
                 auto present=get(in,1); if(present>1) throw std::invalid_argument("invalid patch presence");
-                if(present) patch.value=decode_value(in,1,remaining);
+                if(present) patch.value=decode_value(in,static_cast<unsigned>(patch.path.size()+1),remaining);
             } else {
                 patch.index=get(in,2); patch.remove=get(in,2); n=get(in,2);
                 if(patch.index>256 || patch.remove>256 || n>256) throw std::invalid_argument("invalid splice bounds");
-                for(std::uint64_t j=0;j<n;++j) patch.insert.push_back(decode_value(in,1,remaining));
+                for(std::uint64_t j=0;j<n;++j) patch.insert.push_back(decode_value(in,static_cast<unsigned>(patch.path.size()+1),remaining));
             }
             result.patches.push_back(std::move(patch));
         }
@@ -219,7 +261,7 @@ AttributeUpdate decode_attributes(std::string_view in) {
     if (!in.empty()) throw std::invalid_argument("trailing attribute bytes");
     return result;
 }
-AttributeUpdate attribute_delta(const AttributeUpdate& previous,const AttributeUpdate& next) {
+static AttributeUpdate container_delta(const AttributeUpdate& previous,const AttributeUpdate& next) {
     if(!previous.snapshot || !next.snapshot || !previous.patches.empty() || !next.patches.empty()) throw std::invalid_argument("delta requires full images");
     for(const auto& [name,value]:previous.values) { (void)value; if(!next.values.contains(name)) return next; }
     if(next.revision<previous.revision) return next;
@@ -259,6 +301,80 @@ AttributeUpdate attribute_delta(const AttributeUpdate& previous,const AttributeU
     catch(const std::length_error&) {} // a dense edit can exceed patch bounds
     return full;
 }
+namespace {
+std::size_t patch_cost(const AttributePatch& patch) {
+    SizeOnly out; std::size_t remaining=4096; encode_patch(out,patch,true,remaining); return out.size();
+}
+// At each subtree choose among a replacement, recursive field edits, and a
+// sequence splice. Bounded to the existing schema depth/node and patch limits.
+std::vector<AttributePatch> diff_fields(const std::string& property,
+        std::vector<std::variant<std::string,std::size_t>> path,
+        const AttributeValue& before,const AttributeValue& after) {
+    if(before==after) return {};
+    AttributePatch replacement; replacement.property=property; replacement.path=path;
+    replacement.replace=true; replacement.value=after;
+    std::vector<AttributePatch> edits;
+    auto append=[&](auto part,const AttributeValue& old,const AttributeValue& value) {
+        auto child_path=path; child_path.emplace_back(std::move(part));
+        auto children=diff_fields(property,std::move(child_path),old,value);
+        for(auto& child:children) edits.push_back(std::move(child));
+    };
+    if(path.size()<8) {
+        if(auto old=std::get_if<AttributeStruct>(&before)) {
+            if(auto value=std::get_if<AttributeStruct>(&after); value && old->size()==value->size()) {
+                bool same_keys=true;
+                for(const auto& [key,child]:*old) { (void)child; if(!value->contains(key)) {same_keys=false; break;} }
+                if(same_keys) for(const auto& [key,child]:*value) { append(key,old->at(key),child); if(edits.size()>256) break; }
+            }
+        } else if(auto old=std::get_if<AttributeMap>(&before)) {
+            if(auto value=std::get_if<AttributeMap>(&after)) {
+                for(const auto& [key,child]:*old) if(!value->contains(key)) {
+                    (void)child; AttributePatch edit; edit.property=property; edit.path=path; edit.map=true; edit.key=key; edits.push_back(std::move(edit));
+                }
+                for(const auto& [key,child]:*value) {
+                    if(edits.size()>256) break;
+                    if(old->contains(key)) append(key,old->at(key),child);
+                    else { AttributePatch edit; edit.property=property; edit.path=path; edit.map=true; edit.key=key; edit.value=child; edits.push_back(std::move(edit)); }
+                }
+            }
+        } else if(auto old=std::get_if<AttributeArray>(&before)) {
+            if(auto value=std::get_if<AttributeArray>(&after)) {
+                std::size_t prefix=0,suffix=0;
+                while(prefix<old->size() && prefix<value->size() && (*old)[prefix]==(*value)[prefix]) ++prefix;
+                while(suffix<old->size()-prefix && suffix<value->size()-prefix && (*old)[old->size()-1-suffix]==(*value)[value->size()-1-suffix]) ++suffix;
+                AttributePatch splice; splice.property=property; splice.path=path; splice.index=prefix; splice.remove=old->size()-prefix-suffix;
+                splice.insert.assign(value->begin()+prefix,value->end()-suffix);
+                if(old->size()==value->size()) {
+                    for(std::size_t i=prefix;i<value->size()-suffix;++i) { append(i,(*old)[i],(*value)[i]); if(edits.size()>256) break; }
+                }
+                std::size_t cost=0; for(const auto& edit:edits) cost+=patch_cost(edit);
+                if(edits.empty() || edits.size()>256 || patch_cost(splice)<=cost) edits={std::move(splice)};
+            }
+        }
+    }
+    std::size_t cost=0; for(const auto& edit:edits) cost+=patch_cost(edit);
+    if(edits.empty() || edits.size()>256 || patch_cost(replacement)<=cost) return {std::move(replacement)};
+    return edits;
+}
+}
+AttributeUpdate attribute_delta(const AttributeUpdate& previous,const AttributeUpdate& next) {
+    auto best=container_delta(previous,next);
+    if(best.snapshot) return best;
+    AttributeUpdate fields{previous.revision,next.revision,false,{}};
+    for(const auto& [name,value]:next.values) {
+        auto old=previous.values.find(name);
+        if(old==previous.values.end()) { fields.values.emplace(name,value); continue; }
+        if(old->second==value) continue;
+        auto edits=diff_fields(name,{},old->second,value);
+        if(edits.size()==1 && edits.front().replace && edits.front().path.empty()) fields.values.emplace(name,value);
+        else for(auto& edit:edits) fields.patches.push_back(std::move(edit));
+        if(fields.patches.size()>256) return best;
+    }
+    if(fields.patches.empty()) return best;
+    try { if(attribute_wire_size(fields)<attribute_wire_size(best)) return fields; }
+    catch(const std::length_error&) {} // dense edits can exceed record/node bounds
+    return best;
+}
 bool AttributeReplica::apply(const AttributeUpdate& update) {
     // Validate programmatic updates too; never apply partially on validation or allocation failure.
     (void)attribute_wire_size(update);
@@ -269,13 +385,21 @@ bool AttributeReplica::apply(const AttributeUpdate& update) {
         for(const auto& patch:update.patches) {
             auto current=materialized.values.find(patch.property);
             if(current==materialized.values.end()) current=materialized.values.emplace(patch.property,values_.at(patch.property)).first;
-            if(patch.map) {
-                auto& entries=std::get<AttributeMap>(current->second);
+            auto* target=&current->second;
+            for(const auto& part:patch.path) {
+                if(auto key=std::get_if<std::string>(&part)) {
+                    if(auto fields=std::get_if<AttributeStruct>(target)) target=&fields->at(*key);
+                    else target=&std::get<AttributeMap>(*target).at(*key);
+                } else target=&std::get<AttributeArray>(*target).at(std::get<std::size_t>(part));
+            }
+            if(patch.replace) *target=*patch.value;
+            else if(patch.map) {
+                auto& entries=std::get<AttributeMap>(*target);
                 if(patch.value) entries.insert_or_assign(patch.key,*patch.value);
                 else if(!entries.erase(patch.key)) throw std::invalid_argument("missing map patch key");
                 if(entries.size()>256) throw std::length_error("map patch size limit");
             } else {
-                auto& items=std::get<AttributeArray>(current->second);
+                auto& items=std::get<AttributeArray>(*target);
                 if(patch.index>items.size() || patch.remove>items.size()-patch.index || items.size()-patch.remove+patch.insert.size()>256)
                     throw std::invalid_argument("splice outside sequence");
                 auto at=items.erase(items.begin()+patch.index,items.begin()+patch.index+patch.remove);

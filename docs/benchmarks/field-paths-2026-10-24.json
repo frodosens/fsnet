@@ -1,0 +1,47 @@
+{
+  "timestamp_utc": "2026-10-24T00:19:07.988468+00:00",
+  "source_base": "0ed30ae",
+  "measurement": "deterministic FSA1 whole-property bytes versus adaptive field/container delta; decoded result checked against target image",
+  "build": "Release GCC 14.2 -O3 -DNDEBUG, Lua ON, PostgreSQL OFF",
+  "platform": "Linux-6.18.55-x86_64-with-glibc2.41",
+  "binary_sha256": "dc1bc877c33a5213baee71e72b7ff51555cf1a10ff6a2f313814d78220b56c91",
+  "libfsnet_sha256": "8abecc6a46ecc592a0d71592738808f3c729694a7148f90516328d0a60696646",
+  "samples": [
+    {
+      "scenario": "nested_struct_1kb",
+      "full_fsa_bytes": 1111,
+      "patch_fsa_bytes": 54,
+      "patches": 1
+    },
+    {
+      "scenario": "position_x",
+      "full_fsa_bytes": 67,
+      "patch_fsa_bytes": 48,
+      "patches": 1
+    },
+    {
+      "scenario": "list_replace",
+      "full_fsa_bytes": 4146,
+      "patch_fsa_bytes": 52,
+      "patches": 1
+    },
+    {
+      "scenario": "list_append16",
+      "full_fsa_bytes": 4664,
+      "patch_fsa_bytes": 556,
+      "patches": 1
+    },
+    {
+      "scenario": "map_add16",
+      "full_fsa_bytes": 5200,
+      "patch_fsa_bytes": 805,
+      "patches": 16
+    },
+    {
+      "scenario": "map_erase16",
+      "full_fsa_bytes": 4008,
+      "patch_fsa_bytes": 191,
+      "patches": 16
+    }
+  ]
+}

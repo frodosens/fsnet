@@ -64,6 +64,21 @@ void wire() {
     using namespace fsnet;
     AttributeArray list; AttributeMap map;
     for(int i=0;i<128;++i) { auto value=AttributeStruct{{"id",std::string("item-")+std::to_string(i)},{"count",std::int64_t(1)}}; list.emplace_back(value); map.emplace(std::to_string(i),value); }
+    {
+        AttributeUpdate before{0,1,true,{{"data",AttributeStruct{{"payload",std::string(1024,'p')},{"position",AttributeStruct{{"x",0.0},{"y",0.0},{"z",0.0}}}}}}};
+        auto after=before; after.revision=2;
+        std::get<AttributeStruct>(std::get<AttributeStruct>(after.values.at("data")).at("position")).at("x")=1.0;
+        auto full=encode_attributes({1,2,false,after.values}); auto update=attribute_delta(before,after); auto delta=encode_attributes(update);
+        AttributeReplica replica; require(replica.apply(before) && replica.apply(delta) && replica.values()==after.values,"field equivalence");
+        std::cout<<"{\"scenario\":\"nested_struct_1kb\",\"full_fsa_bytes\":"<<full.size()<<",\"patch_fsa_bytes\":"<<delta.size()<<",\"patches\":"<<update.patches.size()<<"}\n";
+    }
+    {
+        AttributeUpdate before{0,1,true,{{"position",AttributeStruct{{"x",0.0},{"y",0.0},{"z",0.0}}}}};
+        auto after=before; after.revision=2; std::get<AttributeStruct>(after.values.at("position")).at("x")=1.0;
+        auto full=encode_attributes({1,2,false,after.values}); auto update=attribute_delta(before,after); auto delta=encode_attributes(update);
+        AttributeReplica replica; require(replica.apply(before) && replica.apply(delta) && replica.values()==after.values,"position equivalence");
+        std::cout<<"{\"scenario\":\"position_x\",\"full_fsa_bytes\":"<<full.size()<<",\"patch_fsa_bytes\":"<<delta.size()<<",\"patches\":"<<update.patches.size()<<"}\n";
+    }
     for(auto name:{"list_replace","list_append16","map_add16","map_erase16"}) {
         AttributeUpdate before{0,1,true,{{"items",std::string(name).starts_with("map")?AttributeValue(map):AttributeValue(list)}}};
         auto after=before; after.revision=2;

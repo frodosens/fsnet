@@ -60,8 +60,8 @@ struct AttributeView {
     std::string subject;
     bool observer = false;
 };
-// One bounded edit of a top-level container. Map edits replace/erase one key;
-// sequence edits splice a range (also used for fixed arrays/sets on the wire).
+// Bounded edits below a top-level property. Paths contain exact string keys
+// or zero-based sequence indices; replacements address an existing value.
 struct AttributePatch {
     std::string property;
     bool map = false;
@@ -69,6 +69,8 @@ struct AttributePatch {
     std::optional<AttributeValue> value; // map replacement; absent means erase
     std::size_t index = 0, remove = 0;
     AttributeArray insert;
+    std::vector<std::variant<std::string,std::size_t>> path{};
+    bool replace = false;
 };
 struct AttributeUpdate {
     std::uint64_t base = 0, revision = 0;
