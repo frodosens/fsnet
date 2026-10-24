@@ -117,3 +117,8 @@ runtime.entity('counter', {
 
 服务端 `Class:spawn_or_restore`、连接可见性和客户端自动表现工厂见
 [ENTITY_PRESENCE.md](ENTITY_PRESENCE.md)。本阶段新增客户端表现 hook，不包含完整服务端生命周期或模块热更新。
+
+服务端托管实体可用 `ref:send(method,payload)` 提交持久命令，随后在源实体事务中以
+`runtime.delivery_status(ticket)` 查询并以 `runtime.delivery_forget(ticket)` 清理完成结果。
+它与源状态共同提交，重启/迁移后补投，接收方持久水位去重；同步 call 的语义不变。
+安装、升级、容量与当前验证进度见 [ENTITY_DELIVERY.md](ENTITY_DELIVERY.md)。

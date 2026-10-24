@@ -48,6 +48,9 @@ public:
     void spawn_entity(std::string t,std::string id,EntityAttributes::Values values,Reply reply) override {
         parent_->spawn_entity(std::move(t),std::move(id),std::move(values),std::move(reply));
     }
+    void send_entity(std::string st,std::string sid,std::string t,std::string id,std::string m,std::string p,Reply r) override { parent_->send_entity(std::move(st),std::move(sid),std::move(t),std::move(id),std::move(m),std::move(p),std::move(r)); }
+    std::optional<DeliveryMessage> delivery_status(const std::string& t,const std::string& id,const std::string& ticket) const override { return parent_->delivery_status(t,id,ticket); }
+    bool forget_delivery(const std::string& t,const std::string& id,const std::string& ticket) override { return parent_->forget_delivery(t,id,ticket); }
     void transfer_entity(std::string t,std::string id,std::string target,Reply reply) override { parent_->transfer_entity(std::move(t),std::move(id),std::move(target),std::move(reply)); }
     void control_entity(std::string t,std::string id,bool destroy,Reply reply) override { parent_->control_entity(std::move(t),std::move(id),destroy,std::move(reply)); }
     void entity_visibility(std::uint64_t peer,std::string t,std::string id,unsigned action,Reply reply) override {

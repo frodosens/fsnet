@@ -4,13 +4,14 @@
 #include <string>
 #include <string_view>
 #include <vector>
+#include "fsnet/entity_delivery_state.hpp"
 
 namespace fsnet {
 struct EntityReceipt {
     std::string id, route, request, response;
     std::size_t bytes() const { return 16 + id.size() + route.size() + request.size() + response.size(); }
 };
-struct EntitySnapshot { std::string state; std::vector<EntityReceipt> receipts; };
+struct EntitySnapshot { std::string state; std::vector<EntityReceipt> receipts; EntityDeliveryState delivery{}; };
 namespace snapshot_detail {
 inline void number(std::string& out, std::uint32_t value) {
     for (int shift = 24; shift >= 0; shift -= 8) out.push_back(static_cast<char>(value >> shift));
@@ -32,22 +33,27 @@ inline std::string blob(std::string_view& input) {
 }
 }
 inline std::string encode_snapshot(const EntitySnapshot& snapshot) {
-    std::string result = "FSP1"; snapshot_detail::blob(result, snapshot.state);
+    if(!snapshot.delivery.epoch && (!snapshot.delivery.sent.empty() || !snapshot.delivery.inbox.empty() || !snapshot.delivery.outbox.empty()))
+        throw std::invalid_argument("delivery metadata requires an epoch");
+    std::string result = snapshot.delivery.epoch ? "FSP2" : "FSP1"; snapshot_detail::blob(result, snapshot.state);
     if (snapshot.receipts.size() > 1024) throw std::length_error("too many entity receipts");
     snapshot_detail::number(result, static_cast<std::uint32_t>(snapshot.receipts.size()));
     for (const auto& receipt : snapshot.receipts) {
         snapshot_detail::blob(result, receipt.id); snapshot_detail::blob(result, receipt.route);
         snapshot_detail::blob(result, receipt.request); snapshot_detail::blob(result, receipt.response);
     }
+    if(snapshot.delivery.epoch) snapshot_detail::blob(result,encode_delivery_state(snapshot.delivery));
     return result;
 }
 inline EntitySnapshot decode_snapshot(std::string_view input) {
-    if (!input.starts_with("FSP1")) throw std::runtime_error("unknown entity snapshot version");
+    bool delivery=input.starts_with("FSP2");
+    if (!delivery && !input.starts_with("FSP1")) throw std::runtime_error("unknown entity snapshot version");
     input.remove_prefix(4); EntitySnapshot result; result.state = snapshot_detail::blob(input);
     auto count = snapshot_detail::number(input);
     if (count > 1024) throw std::runtime_error("invalid entity receipt count");
     for (std::uint32_t i = 0; i < count; ++i) result.receipts.push_back({snapshot_detail::blob(input),
         snapshot_detail::blob(input), snapshot_detail::blob(input), snapshot_detail::blob(input)});
+    if(delivery) result.delivery=decode_delivery_state(snapshot_detail::blob(input));
     if (!input.empty()) throw std::runtime_error("trailing entity snapshot bytes");
     return result;
 }

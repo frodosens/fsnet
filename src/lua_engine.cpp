@@ -21,9 +21,9 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
     using Clock = std::chrono::steady_clock;
     struct Await {
         std::uint64_t peer;
-        std::string route, data, target;
+        std::string route, data, target, entity_id, source_type, source_id;
         std::chrono::milliseconds timeout;
-        enum class Kind { rpc, sleep, watch, write, spawn, control, transfer, visibility } kind = Kind::rpc;
+        enum class Kind { rpc, sleep, watch, write, spawn, control, transfer, send, visibility } kind = Kind::rpc;
         std::uint64_t subscription = 0;
         AttributeWriteOptions options;
         EntityAttributes::Values values;
@@ -1003,6 +1003,39 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
         } catch(const std::exception& e) { return luaL_error(L,"%s",e.what()); }
         return lua_yield(L,0);
     }
+    static int send_entity(lua_State* L) {
+        prediction_external(L);auto& engine=self(L);
+        std::size_t n,m,k,p;const char* type=luaL_checklstring(L,1,&n);const char* id=luaL_checklstring(L,2,&m);
+        const char* method=luaL_checklstring(L,3,&k);const char* payload=luaL_checklstring(L,4,&p);
+        if(!engine.threads.contains(L)) return luaL_error(L,"durable send requires an entity task");
+        try {
+            const auto& task=engine.tasks.at(engine.threads.at(L));
+            if(task.entity_type.empty() || !engine.server_schemas.contains(task.entity_type)) throw std::logic_error("durable send requires a managed server entity transaction");
+            Await request{};request.kind=Await::Kind::send;request.timeout=engine.limits.task_timeout;
+            request.route=std::string(type,n);request.entity_id=std::string(id,m);request.target=std::string(method,k);request.data=std::string(payload,p);
+            request.source_type=task.entity_type;request.source_id=task.entity_id;
+            engine.tasks.at(engine.threads.at(L)).await=std::move(request);
+        } catch(const std::exception& e){return luaL_error(L,"%s",e.what());}
+        return lua_yield(L,0);
+    }
+    static int delivery_status(lua_State* L) {
+        prediction_external(L);auto& engine=self(L);std::size_t n;const char* ticket=luaL_checklstring(L,1,&n);
+        if(!engine.threads.contains(L)) return luaL_error(L,"delivery query requires an entity task");
+        try {
+            const auto& task=engine.tasks.at(engine.threads.at(L));if(task.entity_type.empty())throw std::logic_error("delivery query requires an entity transaction");
+            auto value=engine.host->delivery_status(task.entity_type,task.entity_id,std::string(ticket,n));
+            lua_pushstring(L,!value?"missing":!value->done?"pending":value->result.status==Status::ok?"succeeded":"failed");
+            lua_pushinteger(L,static_cast<unsigned>(value?value->result.status:Status::not_found));
+            if(value)lua_pushlstring(L,value->result.data.data(),value->result.data.size());else lua_pushliteral(L,"");
+            return 3;
+        }catch(const std::exception& e){return luaL_error(L,"%s",e.what());}
+    }
+    static int forget_delivery(lua_State* L) {
+        prediction_external(L);auto& engine=self(L);std::size_t n;const char* ticket=luaL_checklstring(L,1,&n);
+        if(!engine.threads.contains(L)) return luaL_error(L,"delivery cleanup requires an entity task");
+        try {const auto& task=engine.tasks.at(engine.threads.at(L));lua_pushboolean(L,engine.host->forget_delivery(task.entity_type,task.entity_id,std::string(ticket,n)));return 1;}
+        catch(const std::exception& e){return luaL_error(L,"%s",e.what());}
+    }
     static int transfer_entity(lua_State* L) {
         prediction_external(L); auto& engine=self(L);
         std::size_t n,m,k; const char* kind=luaL_checklstring(L,1,&n); const char* id=luaL_checklstring(L,2,&m); const char* target=luaL_checklstring(L,3,&k);
@@ -1171,6 +1204,9 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
         lua_pushcfunction(L,spawn_entity); lua_setfield(L,-2,"_spawn_entity");
         lua_pushcfunction(L,control_entity); lua_setfield(L,-2,"_control_entity");
         lua_pushcfunction(L,transfer_entity); lua_setfield(L,-2,"_transfer_entity");
+        lua_pushcfunction(L,send_entity); lua_setfield(L,-2,"_send_entity");
+        lua_pushcfunction(L,delivery_status); lua_setfield(L,-2,"delivery_status");
+        lua_pushcfunction(L,forget_delivery); lua_setfield(L,-2,"delivery_forget");
         lua_pushcfunction(L,entity_visibility); lua_setfield(L,-2,"_entity_visibility");
         lua_pushcfunction(L,stop_entity_events); lua_setfield(L,-2,"_stop_entity_events");
         lua_pushcfunction(L,subscription_alive); lua_setfield(L,-2,"_subscription_alive");
@@ -1437,6 +1473,7 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
                     },request.timeout);
             } else if(request.kind==Await::Kind::write) host->write_attributes(request.subscription,std::move(request.values),std::move(completion),std::move(request.options),request.timeout);
             else if(request.kind==Await::Kind::spawn) host->spawn_entity(std::move(request.route),std::move(request.data),std::move(request.values),std::move(completion));
+            else if(request.kind==Await::Kind::send) host->send_entity(std::move(request.source_type),std::move(request.source_id),std::move(request.route),std::move(request.entity_id),std::move(request.target),std::move(request.data),std::move(completion));
             else if(request.kind==Await::Kind::transfer) host->transfer_entity(std::move(request.route),std::move(request.data),std::move(request.target),std::move(completion));
             else if(request.kind==Await::Kind::control) host->control_entity(std::move(request.route),std::move(request.data),request.action!=0,std::move(completion));
             else if(request.kind==Await::Kind::visibility) host->entity_visibility(request.peer,std::move(request.route),std::move(request.data),request.action,std::move(completion));

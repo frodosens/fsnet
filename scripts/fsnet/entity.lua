@@ -307,6 +307,17 @@ local function call(ref,method,payload,opts)
     if data.defaults.peer then return runtime.entity_request(data.defaults.peer,data.type,data.id,method,payload,timeout,request_id) end
     return runtime.entity_call(data.type,data.id,method,payload,timeout,request_id)
 end
+local function send(ref,method,payload)
+    local data=assert(refs[ref],'expected an entity reference');name(method)
+    assert(not data.exported or data.exported[method],'method is not an exported RPC: '..method)
+    assert(type(payload)=='string' and not data.defaults.peer,'durable send requires bytes and a logical entity reference')
+    return runtime.entity_send(data.type,data.id,method,payload)
+end
+runtime.entity_send=function(kind,id,method,payload)
+    local ticket,status=runtime._send_entity(kind,id,method,payload)
+    assert(status==runtime.status.ok,'durable send rejected: '..tostring(status))
+    return ticket
+end
 local visibility_actions={show_to=1,hide_from=2,possess=3,unpossess=4}
 local function visibility(ref,peer,action)
     local data=assert(refs[ref],'expected an entity reference')
@@ -318,6 +329,7 @@ ref_mt.__index=function(ref,key)
     if visibility_actions[key] then return function(object,peer) return visibility(object,peer,visibility_actions[key]) end end
     if key=='id' or key=='type' then return data[key] end
     if key=='call' then return call end
+    if key=='send' then return send end
     if data.exported and data.exported[key] then
         return function(object,payload,opts) return call(object,key,payload,opts) end
     end

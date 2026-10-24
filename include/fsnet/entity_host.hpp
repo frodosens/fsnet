@@ -12,6 +12,8 @@ struct EntityRuntimeLimits {
     std::size_t resident_bytes = 32 * 1024 * 1024;
     std::size_t receipts = 64;
     std::size_t receipt_bytes = 4 * 1024 * 1024;
+    std::size_t delivery_messages = 64, delivery_channels = 256, delivery_sources = 4096;
+    std::size_t delivery_bytes = 2 * 1024 * 1024;
     std::size_t state_bytes = 1024 * 1024;
     std::chrono::milliseconds lease{60000};
     std::chrono::milliseconds request_timeout{30000};
@@ -85,6 +87,13 @@ public:
     const std::string& owner_id() const;
     using Transfer = std::function<void(std::string,std::string,std::string,Reply)>;
     void on_transfer(Transfer);
+    void enable_delivery(bool);
+    void send_entity(std::string source_type,std::string source_id,std::string type,std::string id,std::string method,std::string payload,Reply) override;
+    std::optional<DeliveryMessage> delivery_status(const std::string&,const std::string&,const std::string&) const override;
+    bool forget_delivery(const std::string&,const std::string&,const std::string&) override;
+    // Only called by the authenticated delivery adapter; serialized in entity mailboxes.
+    void receive_delivery(CallIdentity,DeliveryEnvelope,Reply);
+    void acknowledge_delivery(std::string type,std::string id,std::uint64_t epoch,std::string ticket,Result,Reply);
     void transfer_entity(std::string,std::string,std::string,Reply) override;
     void control_entity(std::string type,std::string id,bool destroy,Reply) override;
     // Drains resident idle entities through on_deactivate before callers stop Lua.

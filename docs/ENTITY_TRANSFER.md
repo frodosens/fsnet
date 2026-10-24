@@ -112,3 +112,6 @@ unpossess/possess 回调，表现 spawn 不重复。尚无迁移期间输入自�
 过期租约、旧编号与权限隔离；`fsnet-gateway` 覆盖指定目标往返、订阅与控制保持；
 `fsnet-delivery` 使用临时 mTLS 证书、独立 owner/Gateway 进程和共享 POSIX 存储，验证往返后
 客户端 Lua 对象保持同一实例。均为本机验证，不代表跨机 HA 或公网延迟指标。
+
+服务端持久命令已新增 outbox/inbox 协议，使用 `ref:send(...)`，随实体迁移保留，
+详见 [ENTITY_DELIVERY.md](ENTITY_DELIVERY.md)。普通同步 call 和客户端预测输入仍保留原语义。
