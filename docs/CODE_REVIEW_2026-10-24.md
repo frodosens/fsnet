@@ -158,3 +158,5 @@ python3 tools/review/run_runtime_review.py --build .dev/build/debug --include-de
 ```
 
 Node 的公开 Limits/TransportStats 新增字段，C++ 使用方应与库一起重新编译。Lua 不提供敌对代码进程隔离；历史去重水位的安全回收、大记录存储拆分及公网交付验证仍为独立后续工作。
+
+后续 Actions 的 Release 配置暴露了 show/possess 中间通知提前完成恢复及重复恢复缺少确认的问题，另有独立进程夹具的目录清理次序竞争。已改为最终快照/控制状态确认，并先回收子进程再删目录；详见 [Actions 修复验证](VALIDATION.md#actions-迁移恢复与进程清理修复2026-10-24)。

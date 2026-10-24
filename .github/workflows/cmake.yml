@@ -4,6 +4,7 @@ jobs:
   test:
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         include:
           - {build_type: Debug, lua: 'ON'}
@@ -28,6 +29,13 @@ jobs:
           path: |
             packages/*.tar.gz
             delivery-release.json
+      - name: Preserve test diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cmake-tests-${{ matrix.build_type }}-lua-${{ matrix.lua }}
+          path: build/Testing/Temporary/
+          if-no-files-found: ignore
   sanitize:
     runs-on: ubuntu-latest
     steps:
@@ -35,6 +43,13 @@ jobs:
       - run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug -DFSNET_SANITIZERS=ON
       - run: cmake --build build -j4
       - run: ctest --test-dir build --output-on-failure
+      - name: Preserve test diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cmake-tests-sanitize
+          path: build/Testing/Temporary/
+          if-no-files-found: ignore
 
   postgres:
     runs-on: ubuntu-latest
@@ -44,3 +59,10 @@ jobs:
       - run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DFSNET_WITH_POSTGRES=ON -DFSNET_POSTGRES_TEST_SERVER=ON
       - run: cmake --build build -j4
       - run: ctest --test-dir build --output-on-failure
+      - name: Preserve test diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cmake-tests-postgres
+          path: build/Testing/Temporary/
+          if-no-files-found: ignore

@@ -342,3 +342,19 @@ SIGKILL，重启后自动补投；接收方奖励和 inbox 提交后故意丢弃
 最终验证：Debug 39/39，ASAN/UBSAN 23/23，Lua OFF 13/13；Gateway 与 mTLS 投递恢复各连续三次通过。正式回归覆盖权限撤销后的排队/挂起/持久化调用、commit-then-throw、订阅重建、回调重入销毁、接收额度回收、Lua pcall/模式匹配超限，以及租约到期前禁止接管和慢轮询后的恢复。原诊断工具保留观测输出，输入容量释放通过 Debug RSS 探针复核；构建输出均留在忽略目录 `.dev/review/`。
 
 复现命令与架构限制见审查报告的“修复后验证”。这些结果不等于历史去重索引自动回收、可抢占的敌对脚本沙箱或公网生产验收。
+
+## Actions 迁移恢复与进程清理修复（2026-10-24）
+
+Actions 运行 `40089723284` 的 Debug Lua 作业在 SIGKILL 恢复断言全部通过后失败：
+TemporaryDirectory 先退出，仍运行的子进程继续写共享目录，触发 `Directory not empty`。
+夹具现在先终止、回收所有子进程并关闭客户端，再清理目录，不忽略删除错误；专项连续五次通过。
+
+运行 `40091262353` 的 Release 与 PostgreSQL 作业均失败在 `fsnet-gateway` 的受控 Pet 交接；
+PostgreSQL 专项测试本身通过。本地 Release 也复现同一恢复超时。根因是 Gateway 将 show
+产生的中间 enter 当成恢复完成；重试已可见的副本又不会产生新通知，控制状态和完成信号可能丢失。
+恢复 RPC 现在返回最终快照及控制状态，重复调用也明确确认；Gateway 以确认结束迁移。
+新增重复恢复无新通知的确定性回归，同时验证显式取消控制。owner 与 Gateway 须一起升级。
+
+本地修复后 Debug 39/39、Release 39/39、ASAN/UBSAN 23/23 通过；受控迁移专项在 Release 连续十次通过。
+Release 归档解包后，运行 `validate_delivery.py --rounds 1000` 通过 mTLS、故障接管与交接验收。
+GitHub 矩阵关闭 fail-fast，失败也保留 CTest 日志，避免一个配置失败取消其他配置的检查。

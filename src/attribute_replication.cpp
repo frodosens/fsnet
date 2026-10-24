@@ -142,7 +142,8 @@ struct AttributeReplication::Impl : std::enable_shared_from_this<Impl> {
         } catch(...) { remove(target->id,Status::rejected); target.reset(); }
         if(stopped) return reply({Status::disconnected,{}});
         if(action==1) {
-            if(target) return reply({target->pending?Status::overloaded:Status::ok,{}});
+            if(target) return reply({target->pending?Status::overloaded:Status::ok,
+                target->pending?std::string{}:presence(*target,EntityPresence::Kind::enter)});
             // show only publishes an already committed/resident entity. It must
             // not create default entities merely by granting scene visibility.
             if(!host->active(type,entity)) return reply({Status::not_found,{}});
@@ -155,7 +156,7 @@ struct AttributeReplication::Impl : std::enable_shared_from_this<Impl> {
                     self->node.close(peer); self->remove(message.subscription,Status::disconnected,false);
                     return reply({Status::disconnected,{}});
                 }
-                reply({Status::ok,{}});
+                reply({Status::ok,self->presence(*it->second,EntityPresence::Kind::enter)});
             },true);
         }
         if(action==2) { if(target) remove(target->id,Status::disconnected); return reply({Status::ok,{}}); }
@@ -176,7 +177,7 @@ struct AttributeReplication::Impl : std::enable_shared_from_this<Impl> {
                 if(!set_control(sub,false)) return reply({Status::disconnected,{}});
         }
         if(!set_control(target,action==3)) return reply({Status::disconnected,{}});
-        reply({Status::ok,{}});
+        reply({Status::ok,presence(*target,EntityPresence::Kind::enter)});
     }
     void control(const CallIdentity& identity,std::string input,Reply reply,bool renew) {
         std::uint64_t id;

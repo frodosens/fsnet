@@ -4,6 +4,7 @@
 #include "fsnet/lua_engine.hpp"
 #include "fsnet/entity_message.hpp"
 #include "fsnet/entity_record.hpp"
+#include "fsnet/replication_wire.hpp"
 #include <iostream>
 #include <source_location>
 #include <thread>
@@ -29,6 +30,27 @@ const char* model=R"(
         actor:show_to(ctx.peer); actor:possess(ctx.peer); return actor.id
     end})
 )";
+void idempotent_restore_confirmation(){
+    fsnet::Node owner("restore"),client("restore");auto database=fsnet::memory_database();
+    auto host=std::make_shared<fsnet::EntityScriptHost>(std::make_shared<fsnet::NodeScriptHost>(owner),database,"owner/boot");
+    fsnet::LuaEngine engine(host);engine.load(model);fsnet::AttributeReplication replication(owner,host);
+    auto base=[](std::uint64_t,const std::string&)->std::optional<fsnet::CallIdentity>{return fsnet::CallIdentity{fsnet::Caller::server,"gateway"};};
+    fsnet::GatewayDelegation delegation(owner,base,[](const auto& who,const std::string&){return who.caller==fsnet::Caller::server&&who.subject=="gateway";},host);
+    auto peer=client.connect("127.0.0.1",owner.listen("127.0.0.1",0));unsigned notifications=0;
+    client.on_notification("system.entities.presence",[&](auto,const auto&,auto){++notifications;});
+    auto pump=[&]{owner.poll();client.poll();host->poll();engine.poll();delegation.poll();replication.poll();};
+    auto until=[&](auto done){auto end=std::chrono::steady_clock::now()+3s;while(!done()){pump();CHECK(std::chrono::steady_clock::now()<end);std::this_thread::sleep_for(1ms);}};
+    std::optional<fsnet::Result> result;host->read_attributes("Actor","alice",[&](auto r){result=std::move(r);});until([&]{return result.has_value();});CHECK(result->status==fsnet::Status::ok);
+    auto call=[&](std::string route,std::string data){result.reset();client.call(peer,route,data,2s,[&](auto r){result=std::move(r);});until([&]{return result.has_value();});CHECK(result->status==fsnet::Status::ok);return result->data;};
+    CHECK(call("system.gateway.delegate","alice").empty());
+    auto restore=[&](bool controlled){return call("system.gateway.restore",fsnet::encode_entity_key("Actor","alice")+char(controlled));};
+    auto first=restore(true);CHECK(first.size()>2&&first[0]==1&&first[1]==3);
+    auto initial=fsnet::decode_replication_packet_view(std::string_view(first).substr(2));CHECK(initial.update&&initial.update->snapshot);
+    auto count=notifications;auto repeated=restore(true);
+    CHECK(repeated==first&&notifications==count); // retry must confirm even with no new presence events
+    auto unpossessed=restore(false);CHECK(unpossessed.size()>2&&unpossessed[0]==1&&unpossessed[1]==1);
+    count=notifications;CHECK(restore(false)==unpossessed&&notifications==count);
+}
 void restored_route_expires_old_lookup(){
     auto database=fsnet::memory_database();fsnet::Node a("internal"),b("internal"),front("clients"),back("internal"),client("clients");
     fsnet::EntityRuntimeLimits runtime;runtime.lease=500ms;runtime.request_timeout=50ms;
@@ -67,6 +89,7 @@ void restored_route_expires_old_lookup(){
     CHECK(result->status==fsnet::Status::ok);
 }
 int main(){try{
+    idempotent_restore_confirmation();
     restored_route_expires_old_lookup();
     auto database=fsnet::memory_database();fsnet::Node a("internal"),b("internal"),front("clients"),back("internal"),alice("clients"),bob("clients"),intruder("internal");
     auto ah=std::make_shared<fsnet::EntityScriptHost>(std::make_shared<fsnet::NodeScriptHost>(a),database,"a/boot");

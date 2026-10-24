@@ -53,8 +53,10 @@ GatewayDelegation::GatewayDelegation(Node& node,Node::IdentityResolver base,Trus
                     auto identity=self->node.identity(who.peer);if(!identity||identity->caller!=Caller::client||identity->subject!=who.subject)return reply({Status::rejected,{}});
                     self->host->entity_visibility(who.peer,type,id,1,[weak,who,type,id,control,reply=std::move(reply)](Result result)mutable{
                         auto self=weak.lock();if(!self||self->stopped)return reply({Status::disconnected,{}});
-                        if(result.status!=Status::ok||!control)return reply(std::move(result));
-                        self->host->entity_visibility(who.peer,type,id,3,std::move(reply));
+                        if(result.status!=Status::ok)return reply(std::move(result));
+                        // The reply is the final snapshot AND control state,
+                        // including when a previous attempt already made it visible.
+                        self->host->entity_visibility(who.peer,type,id,control?3:4,std::move(reply));
                     });
                 });
             }catch(...){reply({Status::rejected,{}});}
@@ -232,7 +234,7 @@ struct ClientGateway::Impl:std::enable_shared_from_this<Impl>{
         auto translated=token(sub->remote)+r->data.substr(8);++counters.forwarded;
         back.call(sub->link->peer,route,std::move(translated),remaining(r),[weak=weak_from_this(),r](Result result){if(auto self=weak.lock())self->finish(r,std::move(result));});
     }
-    void notice(std::uint64_t peer,const std::string& channel,std::string data){
+    void notice(std::uint64_t peer,const std::string& channel,std::string data,bool confirmed=false){
         auto found=links.find(peer);if(found==links.end()||!found->second->ready)return;auto link=found->second;
         auto session=sessions.find(link->client);if(session==sessions.end()||!authenticated(link->client,session->second.subject))return;
         try{
@@ -241,9 +243,12 @@ struct ClientGateway::Impl:std::enable_shared_from_this<Impl>{
             auto message=decode_replication_packet_view(body);std::shared_ptr<Subscription> sub;
             auto reverse_it=reverse.find(remote_key(peer,message.subscription));
             if(reverse_it!=reverse.end()&&subscriptions.contains(reverse_it->second))sub=subscriptions.at(reverse_it->second);
-            if(!sub&&channel==presence&&kind==1&&message.status==Status::ok){
-                for(const auto& [id,s]:subscriptions){(void)id;if(s->automatic&&s->migrating&&s->client==link->client&&s->type==message.type&&s->entity==message.id){sub=s;break;}}
-                bool restoring=bool(sub);
+            if(channel==presence&&kind==1&&message.status==Status::ok&&(!sub||sub->migrating)){
+                if(!sub)for(const auto& [id,s]:subscriptions){(void)id;if(s->automatic&&s->migrating&&s->client==link->client&&s->type==message.type&&s->entity==message.id){sub=s;break;}}
+                bool restoring=sub&&sub->migrating;
+                // show precedes possess/unpossess. Intermediate notifications
+                // cannot complete a restore or overwrite its control intent.
+                if(restoring&&!confirmed)return;
                 if(!sub){if(subscriptions.size()>=limits.subscriptions||client_subscriptions(link->client)>=limits.per_client)throw std::length_error("gateway subscription limit");sub=std::make_shared<Subscription>();sub->id=++serial;sub->client=link->client;sub->type=message.type;sub->entity=message.id;sub->automatic=true;sub->owned=flags&1;sub->controlled=flags&2;subscriptions[sub->id]=sub;schedule.push_back(sub->id);}
                 if(!message.update||!message.update->snapshot||message.update->revision<sub->revision||sub->owned!=bool(flags&1))return remove(sub,Status::rejected);
                 if(sub->link)reverse.erase(remote_key(sub->link->peer,sub->remote));
@@ -293,7 +298,17 @@ struct ClientGateway::Impl:std::enable_shared_from_this<Impl>{
                 self->back.call(link->peer,route,std::move(input),self->limits.request_timeout,[weak,sub,link](Result result){auto self=weak.lock();if(!self||!self->subscriptions.contains(sub->id))return;
                     sub->busy=false;sub->next=Clock::now()+self->limits.refresh;
                     if(result.status!=Status::ok){if(result.status==Status::overloaded||result.status==Status::disconnected||result.status==Status::timeout){self->retry[link->index]=Clock::now()+std::chrono::milliseconds(250);sub->failed.insert(link->index);}if(result.status==Status::rejected||result.status==Status::not_found)self->remove(sub,result.status);else self->retry_migration(sub);return;}
-                    if(sub->automatic)return; // creation notification installs the fresh snapshot
+                    if(sub->automatic){
+                        try{
+                            std::string_view body(result.data);auto kind=get(body,1),flags=get(body,1);
+                            auto message=decode_replication_packet_view(body);
+                            if(kind!=1||flags>3||bool(flags&2)!=sub->controlled||message.type!=sub->type||message.id!=sub->entity||
+                               message.status!=Status::ok||!message.update||!message.update->snapshot)
+                                throw std::invalid_argument("restore confirmation");
+                            self->notice(link->peer,presence,std::move(result.data),true);
+                        }catch(...){self->remove(sub,Status::rejected);}
+                        return;
+                    }
                     try{auto message=decode_replication_packet_view(result.data);if(!message.update||!message.update->snapshot||message.type!=sub->type||message.id!=sub->entity||message.update->revision<sub->revision)throw std::invalid_argument("migration snapshot");
                         if(sub->link){self->reverse.erase(self->remote_key(sub->link->peer,sub->remote));if(self->back.connected(sub->link->peer))self->back.call(sub->link->peer,"system.attributes.unwatch",token(sub->remote),std::chrono::seconds(1),[](Result){});}
                         sub->link=link;sub->remote=message.subscription;sub->revision=message.update->revision;sub->migrating=false;sub->failed.clear();self->reverse[self->remote_key(link->peer,sub->remote)]=sub->id;++self->counters.migrations;

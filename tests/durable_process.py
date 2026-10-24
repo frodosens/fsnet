@@ -1,5 +1,6 @@
 """SIGKILL recovery of durable commands across independent source/receiver processes."""
 import ctypes
+from contextlib import ExitStack
 import os
 from pathlib import Path
 import select
@@ -97,8 +98,25 @@ def kill(process):
     process.communicate(timeout=5)
 
 
-try:
-    with tempfile.TemporaryDirectory(prefix='fsnet-durable-process-') as directory:
+def stop_resources():
+    # Stop every writer before deleting their shared storage. Register each
+    # wait separately so one cleanup error still reaps the other children.
+    with ExitStack() as reaper:
+        for process in children:
+            reaper.callback(process.communicate, timeout=5)
+            if process.poll() is None:
+                try:
+                    process.kill()
+                except ProcessLookupError:
+                    pass  # It exited between poll and kill.
+        native.fsnet_destroy(client)
+        for sock in reservations:
+            sock.close()
+
+
+with tempfile.TemporaryDirectory(prefix='fsnet-durable-process-') as directory:
+    with ExitStack() as resources:
+        resources.callback(stop_resources)
         reservations[1].close()
         receiver, b = start(directory, 'b')
         assert invoke(b, 'init_target') == (0, b'ok')
@@ -131,11 +149,3 @@ try:
             assert invoke(b, 'Receiver.read', entity('bob')) == (0, b'12:2')
         assert invoke(a, 'Source.forget', entity('alice', second)) == (0, b'true')
         print('PASS durable processes: sender SIGKILL after accepted outbox, receiver SIGKILL after committed inbox/lost ACK, automatic recovery and no duplicate rewards')
-finally:
-    native.fsnet_destroy(client)
-    for sock in reservations:
-        sock.close()
-    for process in children:
-        if process.poll() is None:
-            process.kill()
-        process.communicate(timeout=5)

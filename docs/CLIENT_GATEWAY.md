@@ -68,7 +68,13 @@ unpossess/possess 元数据回调，表现 on_spawn 不重复。
 恢复重试间隔最多 100ms，不受较长的常规目录刷新间隔拖慢。每个迁移订阅记住本轮失败的
 候选节点；对无有效租约、无指定 placement 的实体，尝试其他兼容节点后才开始下一轮。
 因此 owner 线程短暂停顿超过节点健康退避时间，也不会反复选择同一个失联节点。
-恢复通知安装新快照后立即使旧目录缓存过期，紧接着的客户端 RPC 会重新读取已提交 owner。
+恢复确认安装新快照后立即使旧目录缓存过期，紧接着的客户端 RPC 会重新读取已提交 owner。
+
+恢复完成以 `system.gateway.restore` 的明确确认回复为准：回复包含该后端订阅的完整快照、
+owned 和 controlled 状态。后端先 show 再恢复控制时发出的中间 enter/control 通知不会提前
+结束迁移。重复恢复已有的可见副本时，即使没有新通知，也会返回相同的最终状态；请求
+controlled=false 会显式取消该副本的控制权。owner 与 Gateway 需要一起升级，新的 Gateway
+会拒绝旧版本的空成功回复，避免假报恢复完成。
 
 指定目标的交接使用服务端 `Player:transfer(id, target_node)`，原生组合、持久目标与失败重试见
 [实体交接协议](ENTITY_TRANSFER.md)。Gateway 与 EntityRouter 共用 placement 路由，指定目标在
