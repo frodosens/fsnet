@@ -15,6 +15,7 @@ C++ 提供客户端/服务端共用的引擎机制，业务逻辑写在 Lua；�
 
 | 主题 | 文档 |
 | --- | --- |
+| C++客户端连接、实体句柄、Lua桥接与安装 | [客户端 SDK](CLIENT_SDK.md) |
 | 类、继承、本地方法、RPC、作用域 | [面向对象 API](OBJECT_API.md) |
 | 本地/确认/预测实例、执行域 | [共享实体](SHARED_ENTITIES.md) |
 | 身份、RPC/属性权限、原生同步与提案 | [实体 schema](ENTITY_SCHEMA.md) |

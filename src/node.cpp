@@ -391,6 +391,10 @@ bool Node::connected(std::uint64_t peer) const {
     auto it = impl_->sessions.find(peer);
     return !impl_->stopped && it != impl_->sessions.end() && it->second->authenticated && !it->second->closed;
 }
+bool Node::connecting(std::uint64_t peer) const {
+    auto it=impl_->sessions.find(peer);
+    return !impl_->stopped && it!=impl_->sessions.end() && !it->second->closed && !it->second->authenticated;
+}
 std::optional<CallIdentity> Node::identity(std::uint64_t peer) const {
     if (!connected(peer)) return {};
     auto it = impl_->sessions.find(peer);

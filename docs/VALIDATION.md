@@ -249,3 +249,11 @@ Python 语法、文档本地链接和 git diff --check 通过。GitHub Actions �
 
 当前环境入口见 [开发环境](DEV_ENVIRONMENT.md)；历史记录中的旧绝对路径保持原样，仅代表
 当时测量位置。旧目录未删除，后续开发可使用仓库内配置重建而不依赖它。
+
+## 客户端SDK阶段
+
+增加fsnet::Client、连接generation句柄、原生实体/控制事件、共用确认版本与脚本宿主接入。
+当前Debug CTest **32/32**通过：新增无Lua依赖的SDK检查（握手、权限、二进制RPC、旧句柄、
+断线清理、回调重连/销毁/异常、握手超时）及SDK安装后重定位的独立CMake消费者检查。
+导出fsnet::client与可选fsnet::lua，验证静态Lua依赖随安装包完整交付。ASan和示例重写的
+最终集成结果在后续阶段另记，本段不代替尚未执行的检查。

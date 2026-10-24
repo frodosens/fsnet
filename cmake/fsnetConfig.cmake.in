@@ -1,0 +1,6 @@
+@PACKAGE_INIT@
+set(fsnet_core_FOUND TRUE)
+set(fsnet_client_FOUND TRUE)
+set(fsnet_lua_FOUND @FSNET_WITH_LUA@)
+include("${CMAKE_CURRENT_LIST_DIR}/fsnetTargets.cmake")
+check_required_components(fsnet)

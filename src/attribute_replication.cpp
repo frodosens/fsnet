@@ -488,6 +488,15 @@ void AttributeClient::stop_entities() {
     for(auto id:ids) self->remove(id,Status::disconnected,true);
 }
 void AttributeClient::unwatch(std::uint64_t id) { auto self=impl_; self->remove(id,Status::disconnected,true); }
+std::optional<AttributeProjectionInfo> AttributeClient::projection_info(std::uint64_t id) const {
+    auto it=impl_->projections.find(id);if(it==impl_->projections.end())return {};
+    const auto& p=*it->second;return AttributeProjectionInfo{id,p.type,p.entity,p.automatic,p.owned,p.controlled};
+}
+std::vector<AttributeProjectionInfo> AttributeClient::projection_infos() const {
+    std::vector<AttributeProjectionInfo> out;out.reserve(impl_->projections.size());
+    for(const auto& [id,p]:impl_->projections)out.push_back({id,p->type,p->entity,p->automatic,p->owned,p->controlled});
+    return out;
+}
 const AttributeReplica* AttributeClient::get(std::uint64_t id) const { auto it=impl_->projections.find(id); return it==impl_->projections.end()?nullptr:&it->second->replica; }
 void AttributeClient::stop() { impl_->stop(); }
 void AttributeClient::poll() {

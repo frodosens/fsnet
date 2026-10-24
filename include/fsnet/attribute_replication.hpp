@@ -24,6 +24,11 @@ private:
 };
 // One client projection manager per Node. The expected server peer must be an
 // authenticated connection (TLS outside loopback). Poll renews bounded leases.
+struct AttributeProjectionInfo {
+    std::uint64_t subscription;
+    std::string type,id;
+    bool automatic,owned,controlled;
+};
 class AttributeClient {
 public:
     using Ready = std::function<void(Status, std::uint64_t subscription)>;
@@ -38,6 +43,8 @@ public:
     void unwatch(std::uint64_t subscription);
     void stop_entities(); // release auto projections; retain ordinary manual watches
     const AttributeReplica* get(std::uint64_t subscription) const;
+    std::optional<AttributeProjectionInfo> projection_info(std::uint64_t) const;
+    std::vector<AttributeProjectionInfo> projection_infos() const;
     void poll();
     void stop();
 private:

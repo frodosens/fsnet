@@ -115,15 +115,15 @@ void EntityRouter::call(std::string type, std::string id, std::string method, st
     auto& self = *impl_;
     if (!reply) throw std::invalid_argument("reply required");
     if (self.stopped) return reply({Status::disconnected, {}});
-    if (type.empty() || type.size() > 127 || method.empty() || method.size() > 127 ||
-        type.find_first_of(".\0", 0, 2) != std::string::npos || method.find_first_of(".\0", 0, 2) != std::string::npos ||
-        id.empty() || id.size() > 256 || request_id.size() > 128 || timeout.count() <= 0 || timeout > std::chrono::minutes(5))
-        return reply({Status::rejected, {}});
+    std::string route;
+    try { route=entity_route(type,method); } catch(...) { return reply({Status::rejected,{}}); }
+    if(id.empty() || id.size()>256 || request_id.size()>128 || timeout.count()<=0 || timeout>std::chrono::minutes(5))
+        return reply({Status::rejected,{}});
     auto bytes = type.size() + id.size() + method.size() + payload.size() + request_id.size() + 8;
     if (self.serial == UINT64_MAX || self.calls.size() >= self.limits.requests || bytes > self.limits.bytes - self.bytes)
         return reply({Status::overloaded, {}});
     auto call = std::make_shared<Impl::Call>(); call->id = ++self.serial;
-    call->type = std::move(type); call->entity = std::move(id); call->route = call->type + '.' + method;
+    call->type = std::move(type); call->entity = std::move(id); call->route = std::move(route);
     call->message = entity_message(call->entity, payload, request_id); call->request_id = std::move(request_id);
     call->reply = std::move(reply); call->deadline = Clock::now() + timeout; call->bytes = bytes;
     self.calls.emplace(call->id, call); self.bytes += bytes;

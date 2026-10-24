@@ -64,6 +64,7 @@ public:
     // queued, not delivered. Receivers must authenticate the expected sender.
     bool notify(std::uint64_t peer, std::string_view channel, std::string_view data);
     bool connected(std::uint64_t peer) const;
+    bool connecting(std::uint64_t peer) const;
     std::optional<CallIdentity> identity(std::uint64_t peer) const;
     void close(std::uint64_t peer);
     void poll();

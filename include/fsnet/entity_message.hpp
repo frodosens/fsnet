@@ -6,6 +6,12 @@
 #include <cstdint>
 
 namespace fsnet {
+// Shared route validation for native clients and inter-node entity routing.
+inline std::string entity_route(std::string_view type,std::string_view method) {
+    for(auto part:{type,method})if(part.empty()||part.size()>127||part.find_first_of(".\0",0,2)!=std::string_view::npos)
+        throw std::invalid_argument("invalid entity route");
+    std::string out;out.reserve(type.size()+1+method.size());out.append(type);out+='.';out.append(method);return out;
+}
 // Entity RPC wire envelope: FSE1, big-endian uint16 ID length, ID, opaque payload.
 inline std::string entity_message(std::string_view id, std::string_view payload, std::string_view request_id = {}) {
     if (id.empty() || id.size() > 256) throw std::invalid_argument("invalid entity ID");
