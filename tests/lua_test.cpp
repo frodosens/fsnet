@@ -106,6 +106,51 @@ void failed_load() {
     }
     std::cout << "PASS Lua load: syntax, startup exception, startup loop and duplicate routes leave no partial registrations\n";
 }
+void pattern_budgets() {
+    auto host = std::make_shared<Host>();
+    fsnet::ScriptLimits limits; limits.instructions_per_resume = 1000;
+    fsnet::LuaEngine engine(host, limits);
+    engine.load(R"(
+        runtime.rpc('find', function(s) return tostring(s:find('a*a*a*a*b')) end)
+        runtime.rpc('match', function(s) return tostring(s:match('a*a*a*a*b')) end)
+        runtime.rpc('gmatch', function(s)
+            for _ in s:gmatch('a*a*a*a*b') do end
+            return ''
+        end)
+        runtime.rpc('gsub', function(s) return (s:gsub('a*a*a*a*b', 'c')) end)
+        runtime.rpc('catch', function(s)
+            pcall(string.find, s, 'a*a*a*a*b')
+            return 'caught'
+        end)
+        runtime.rpc('catch_loop', function(s)
+            while true do pcall(string.find, s, 'a*a*a*a*b') end
+        end)
+        runtime.rpc('healthy', function(s)
+            local a,b = s:match('^(%a+):(%d+)$')
+            assert(a == 'item' and b == '42')
+            assert(s:find('42', 1, true) == 6)
+            return (s:gsub('%d+', '7'))
+        end)
+    )");
+    for (const auto* method : {"find", "match", "gmatch", "gsub", "catch", "catch_loop"}) {
+        const auto start = std::chrono::steady_clock::now();
+        CHECK(invoke(*host, engine, method, std::string(200, 'a')).status == fsnet::Status::overloaded);
+        // The original C matcher takes seconds/minutes for this input. Keep a
+        // broad wall limit so this checks interruption without timing tiny ops.
+        CHECK(std::chrono::steady_clock::now() - start < 2s);
+    }
+    CHECK(invoke(*host, engine, "healthy", "item:42").data == "item:7");
+    auto deadline_host = std::make_shared<Host>();
+    limits.instructions_per_resume = 1000000000; limits.task_timeout = 1ms;
+    fsnet::LuaEngine deadline_engine(deadline_host, limits);
+    deadline_engine.load(R"(
+        runtime.rpc('slow',function(s) pcall(string.find,s,'a*a*a*a*b');return '' end)
+        runtime.rpc('slow_loop',function(s) while true do pcall(string.find,s,'a*a*a*a*b') end end)
+    )");
+    CHECK(invoke(*deadline_host, deadline_engine, "slow", std::string(200, 'a')).status == fsnet::Status::timeout);
+    CHECK(invoke(*deadline_host, deadline_engine, "slow_loop", std::string(200, 'a')).status == fsnet::Status::timeout);
+    std::cout << "PASS Lua patterns: bounded C backtracking, gmatch/gsub, pcall, deadline and recovery\n";
+}
 void task_deadline() {
     auto host = std::make_shared<Host>();
     fsnet::ScriptLimits limits; limits.task_timeout = 5ms;
@@ -354,6 +399,6 @@ void rpc_policies() {
     std::cout << "PASS Lua explicit RPC caller policies through persistent host and TCP transport, invalid policy rollback\n";
 }
 int main() {
-    try { lifecycle(); budgets(); failed_load(); task_deadline(); callback_shutdown(); entity_serialization(); persistent_lua(); lua_routing(); tcp(); rpc_policies(); context_suspension(); }
+    try { lifecycle(); budgets(); failed_load(); pattern_budgets(); task_deadline(); callback_shutdown(); entity_serialization(); persistent_lua(); lua_routing(); tcp(); rpc_policies(); context_suspension(); }
     catch (const std::exception& error) { std::cerr << error.what() << '\n'; return 1; }
 }

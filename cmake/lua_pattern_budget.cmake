@@ -1,0 +1,30 @@
+# Generate only the pinned upstream string translation unit. Every replacement
+# is checked so a Lua upgrade cannot silently remove a resource guard.
+file(READ "${lua_SOURCE_DIR}/lstrlib.c" fsnet_lstrlib)
+macro(fsnet_patch_lstrlib before after)
+  string(FIND "${fsnet_lstrlib}" "${before}" fsnet_patch_position)
+  if(fsnet_patch_position EQUAL -1)
+    message(FATAL_ERROR "Lua pattern-budget patch no longer matches pinned source: ${before}")
+  endif()
+  string(REPLACE "${before}" "${after}" fsnet_lstrlib "${fsnet_lstrlib}")
+endmacro()
+fsnet_patch_lstrlib("#include \"lualib.h\"" "#include \"lualib.h\"\n#include \"lua_work_budget.hpp\"")
+fsnet_patch_lstrlib("const char *ep) {\n  if (s >= ms->src_end)" "const char *ep) {\n  fsnet_lua_pattern_step(ms->L);\n  if (s >= ms->src_end)")
+fsnet_patch_lstrlib("init: /* using goto to optimize tail recursion */" "init: /* using goto to optimize tail recursion */\n  fsnet_lua_pattern_step(ms->L);")
+fsnet_patch_lstrlib("while (++s < ms->src_end) {" "while (++s < ms->src_end) {\n      fsnet_lua_pattern_step(ms->L);")
+fsnet_patch_lstrlib("do {  /* look for a ']' */" "do {  /* look for a ']' */\n        fsnet_lua_pattern_step(ms->L);")
+fsnet_patch_lstrlib("matchbracketclass (int c," "matchbracketclass (MatchState *ms, int c,")
+fsnet_patch_lstrlib("while (++p < ec) {" "while (++p < ec) {\n    fsnet_lua_pattern_step(ms->L);")
+fsnet_patch_lstrlib("matchbracketclass(c, p," "matchbracketclass(ms, c, p,")
+fsnet_patch_lstrlib("matchbracketclass(uchar(previous)," "matchbracketclass(ms, uchar(previous),")
+fsnet_patch_lstrlib("matchbracketclass(uchar(*s)," "matchbracketclass(ms, uchar(*s),")
+fsnet_patch_lstrlib("len = ms->capture[l].len;" "len = ms->capture[l].len;\n  fsnet_lua_pattern_step(ms->L, len);")
+# Plain search uses libc memchr/memcmp; reserve its conservative worst-case work
+# without multiplication overflow. This can reject a large plain search early.
+fsnet_patch_lstrlib("const char *s2 = lmemfind(s + init, ls - init, p, lp);" "if (lp && ls - init >= lp) {\n      size_t candidates = ls - init - lp + 1;\n      if (candidates > ((size_t)-1) / lp)\n        fsnet_lua_pattern_step(L, (size_t)-1);\n      else fsnet_lua_pattern_step(L, candidates * lp);\n    }\n    const char *s2 = lmemfind(s + init, ls - init, p, lp);")
+fsnet_patch_lstrlib("/* explicit request or no special characters? */" "fsnet_lua_pattern_step(L, lp);\n  /* explicit request or no special characters? */")
+# gmatch/gsub also charge input pattern scanning before the first match.
+fsnet_patch_lstrlib("ms->L = L;" "fsnet_lua_pattern_step(L, lp);\n  ms->L = L;")
+file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/generated/fsnet_lstrlib.cpp" "${fsnet_lstrlib}")
+list(FILTER lua_sources EXCLUDE REGEX "/lstrlib\\.c$")
+list(APPEND lua_sources "${CMAKE_CURRENT_BINARY_DIR}/generated/fsnet_lstrlib.cpp")

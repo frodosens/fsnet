@@ -10,6 +10,10 @@
 
 Lua 实体 RPC 已提供 C++ 调度的单写者 mailbox；`runtime.entity` 进一步提供不透明状态、持久化、tick、带代数/宿主身份的句柄和卸载交接。
 
+Lua 的 `instructions_per_resume` 同时计入 VM 指令和字符串模式匹配的原生工作量。固定版本 Lua 的 `find/match/gmatch/gsub` 在回溯、重复、字符类和扫描循环中检查共享预算与任务 deadline，超额会终止当前 RPC（overloaded/timeout）；`pcall` 不能把超额任务变成成功。普通字符串查找按保守的最坏工作量预扣预算，因此大输入/长模式可能提前拒绝。一次 resume 的多个模式调用共用预算，gmatch 迭代不会重置预算。任务返回后还会复查 deadline。输入复制到 Lua 后释放原生排队缓冲容量，挂起任务不会再持有这份重复输入。
+
+这些约束用于可信业务脚本的故障隔离，不提供敌对代码的进程安全边界。其他 C 库操作（如字符串构造、排序）仍受内存与返回后的 deadline 检查约束，不能在任意 C 调用中强制抢占；敌对脚本需要独立进程隔离。
+
 ## Lua API
 
 ```lua

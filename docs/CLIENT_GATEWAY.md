@@ -65,6 +65,11 @@ unpossess/possess 元数据回调，表现 on_spawn 不重复。
 租约时应同步调整 GatewayLimits。正在执行的业务 RPC **不自动重放**，超时是结果未知；
 需要安全重试时由调用方保留 request_id，并遵守持久化回执的保留窗口。没有自动重发预测输入。
 
+恢复重试间隔最多 100ms，不受较长的常规目录刷新间隔拖慢。每个迁移订阅记住本轮失败的
+候选节点；对无有效租约、无指定 placement 的实体，尝试其他兼容节点后才开始下一轮。
+因此 owner 线程短暂停顿超过节点健康退避时间，也不会反复选择同一个失联节点。
+恢复通知安装新快照后立即使旧目录缓存过期，紧接着的客户端 RPC 会重新读取已提交 owner。
+
 指定目标的交接使用服务端 `Player:transfer(id, target_node)`，原生组合、持久目标与失败重试见
 [实体交接协议](ENTITY_TRANSFER.md)。Gateway 与 EntityRouter 共用 placement 路由，指定目标在
 租约过期后也不会回退到其他节点。

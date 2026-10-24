@@ -55,7 +55,8 @@ struct Node::Impl : std::enable_shared_from_this<Node::Impl> {
     IdentityResolver identity_resolver;
     std::unordered_map<std::string, Notification> notifications;
     struct Route { RpcPolicy policy; ContextHandler handler; bool legacy = false; };
-    bool stopped = false, ready = true;
+    bool stopped = false, ready = true, driving = false;
+    std::size_t receive_bytes = 0;
     std::uint64_t peer_serial = 0, call_serial = 0;
     std::unordered_map<std::uint64_t, std::shared_ptr<Session>> sessions;
     std::unordered_map<std::uint64_t, Pending> calls;
@@ -63,7 +64,8 @@ struct Node::Impl : std::enable_shared_from_this<Node::Impl> {
     Impl(std::string auth, Limits settings, TlsConfig security) : token(std::move(auth)), limits(settings), tls_config(std::move(security)) {
         if ((token.empty() && tls_config.ca_file.empty()) || token.size() > 4096 || limits.frame_bytes < token.size() + 14 ||
             limits.frame_bytes > 16 * 1024 * 1024 || limits.queued_bytes < limits.frame_bytes + 4 ||
-            !limits.connections || !limits.pending_calls || !limits.inflight_requests || limits.idle_timeout.count() <= 0)
+            !limits.connections || !limits.pending_calls || !limits.inflight_requests || limits.idle_timeout.count() <= 0 ||
+            limits.receive_bytes < limits.frame_bytes)
             throw std::invalid_argument("invalid token or node limits");
         if (!tls_config.ca_file.empty() || !tls_config.certificate_file.empty() || !tls_config.private_key_file.empty()) {
             if (tls_config.ca_file.empty() || tls_config.certificate_file.empty() || tls_config.private_key_file.empty())
@@ -80,6 +82,20 @@ struct Node::Impl : std::enable_shared_from_this<Node::Impl> {
         } else if (!tls_config.peer_name.empty()) throw std::invalid_argument("peer name requires TLS");
     }
     void accept();
+    void drain() {
+        // Called only outside a running io_context operation. restart() while
+        // run/poll is still on the stack is not supported by Asio.
+        io.restart(); io.poll(); io.stop();
+    }
+    void drive(bool blocking) {
+        if (stopped) return;
+        if (driving) throw std::logic_error("recursive node poll/run");
+        driving = true;
+        try { io.restart(); if (blocking) io.run(); else io.poll(); }
+        catch (...) { driving = false; if (stopped) drain(); throw; }
+        driving = false;
+        if (stopped) drain();
+    }
     void finish(std::uint64_t id, Result result) {
         auto it = calls.find(id);
         if (it == calls.end()) return;
@@ -106,11 +122,18 @@ struct Node::Impl::Session : std::enable_shared_from_this<Session> {
     std::size_t queued = 0, inflight = 0;
     std::array<char, 4> header{};
     std::string body;
+    std::size_t receive_reserved = 0;
     std::deque<std::shared_ptr<std::string>> output;
     Session(std::shared_ptr<Impl> node, std::uint64_t serial)
       : owner(node), socket(node->io), idle(node->io), id(serial) {
         if (node->tls) tls = std::make_unique<asio::ssl::stream<Tcp::socket&>>(socket, *node->tls);
         enqueue(frame(0, Status::ok, 0, {}, node->token));
+    }
+    ~Session() { release_body(); }
+    void release_body() {
+        if (auto node = owner.lock()) node->receive_bytes -= receive_reserved;
+        receive_reserved = 0;
+        std::string{}.swap(body);
     }
     void close() {
         if (std::exchange(closed, true)) return;
@@ -181,13 +204,19 @@ struct Node::Impl::Session : std::enable_shared_from_this<Session> {
             if (self->closed) return;
             auto node = self->owner.lock();
             auto size = get(self->header.data(), 4);
-            if (error || !node || size < 14 || size > node->limits.frame_bytes) return self->close();
-            self->body.resize(size);
+            if (error || !node || size < 14 || size > node->limits.frame_bytes ||
+                (!self->authenticated && size != 14 + node->token.size()) ||
+                size > node->limits.receive_bytes - node->receive_bytes) return self->close();
+            node->receive_bytes += size; self->receive_reserved = size;
+            try { self->body.resize(size); }
+            catch (...) { self->release_body(); self->close(); return; }
             self->read(asio::buffer(self->body),
               [self](asio::error_code read_error, std::size_t) {
-                if (self->closed) return;
-                if (read_error) return self->close();
-                self->deadline(); self->receive();
+                // A canceled read still owns its buffer until this handler.
+                if (self->closed || read_error) { self->release_body(); return self->close(); }
+                try { self->deadline(); self->receive(); }
+                catch (...) { self->release_body(); self->close(); throw; }
+                self->release_body();
                 if (!self->closed) self->read_header();
               });
           });
@@ -355,6 +384,7 @@ void Node::bind(std::string route, Handler handler) {
         [handler = std::move(handler)](const CallIdentity&, std::string data, Reply reply) { handler(std::move(data), std::move(reply)); }, true}).second) throw std::logic_error("duplicate RPC route");
 }
 void Node::call(std::uint64_t peer, std::string_view route, std::string_view data, std::chrono::milliseconds timeout, Reply reply) {
+    auto keep = impl_;
     if (!reply) throw std::invalid_argument("missing reply callback");
     if (route.empty() || route.size() > 256 || route.find('\0') != std::string::npos || route.size() + data.size() > impl_->limits.frame_bytes - 14 || timeout.count() <= 0 || timeout > std::chrono::seconds(30))
         return reply({Status::rejected, {}});
@@ -396,33 +426,36 @@ bool Node::connecting(std::uint64_t peer) const {
     return !impl_->stopped && it!=impl_->sessions.end() && !it->second->closed && !it->second->authenticated;
 }
 std::optional<CallIdentity> Node::identity(std::uint64_t peer) const {
-    if (!connected(peer)) return {};
-    auto it = impl_->sessions.find(peer);
+    auto keep = impl_;
+    auto it = keep->sessions.find(peer);
+    if (keep->stopped || it == keep->sessions.end() || !it->second->authenticated || it->second->closed) return {};
     auto session = it->second;
     try {
         std::optional<CallIdentity> principal;
-        if (impl_->identity_resolver) { auto resolve = impl_->identity_resolver; principal = resolve(peer, session->identity); }
+        if (keep->identity_resolver) { auto resolve = keep->identity_resolver; principal = resolve(peer, session->identity); }
         else principal=CallIdentity{Caller::client, session->identity, peer};
-        if (!principal || principal->subject.size() > 256 || (principal->caller != Caller::client && principal->caller != Caller::server) || !connected(peer)) return {};
+        if (!principal || principal->subject.size() > 256 || (principal->caller != Caller::client && principal->caller != Caller::server) || keep->stopped || session->closed) return {};
         principal->peer = peer; return principal;
     } catch (...) { return {}; }
 }
 void Node::close(std::uint64_t peer) {
-    auto it = impl_->sessions.find(peer);
-    if (it != impl_->sessions.end()) { auto session = it->second; session->close(); }
+    auto keep = impl_;
+    auto it = keep->sessions.find(peer);
+    if (it != keep->sessions.end()) { auto session = it->second; session->close(); }
 }
-void Node::poll() { if (!impl_->stopped) { impl_->io.restart(); impl_->io.poll(); } }
-void Node::run() { if (!impl_->stopped) { impl_->io.restart(); impl_->io.run(); } }
+void Node::poll() { auto keep = impl_; keep->drive(false); }
+void Node::run() { auto keep = impl_; keep->drive(true); }
 void Node::stop() {
-    if (!impl_ || std::exchange(impl_->stopped, true)) return;
-    asio::error_code ignored; impl_->acceptor.close(ignored);
-    auto sessions = impl_->sessions;
+    auto keep = impl_;
+    if (!keep || std::exchange(keep->stopped, true)) return;
+    asio::error_code ignored; keep->acceptor.close(ignored);
+    auto sessions = keep->sessions;
     for (auto& [id, session] : sessions) session->close();
-    impl_->io.stop();
+    keep->io.stop();
     // Drain canceled handlers to release shared ownership cycles before teardown.
-    impl_->io.restart(); impl_->io.poll(); impl_->io.stop();
+    if (!keep->driving) keep->drain();
 }
 std::size_t Node::pending() const { return impl_->calls.size(); }
-TransportStats Node::stats() const { TransportStats result;result.connections=impl_->sessions.size();result.pending=impl_->calls.size();for(const auto& [id,s]:impl_->sessions){(void)id;result.inflight+=s->inflight;result.queued_bytes+=s->queued;}return result; }
+TransportStats Node::stats() const { TransportStats result;result.connections=impl_->sessions.size();result.pending=impl_->calls.size();result.receive_bytes=impl_->receive_bytes;for(const auto& [id,s]:impl_->sessions){(void)id;result.inflight+=s->inflight;result.queued_bytes+=s->queued;}return result; }
 void Node::set_ready(bool value){impl_->ready=value;}
 }

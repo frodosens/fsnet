@@ -115,6 +115,78 @@ void borrowed_call_lifetime() {
     }
     until([&]{server.poll();client.poll();},[&]{return done;});
 }
+void node_callback_lifetime() {
+    // Destroy either endpoint in each callback context. ASAN catches service
+    // lifetime errors after the callback returns into the active io_context.
+    for (auto mode : {0, 1, 2, 3, 4, 5}) {
+        auto server = std::make_unique<fsnet::Node>("callback-lifetime");
+        auto client = std::make_unique<fsnet::Node>("callback-lifetime");
+        server->bind("echo", [&](std::string data, fsnet::Reply reply) {
+            if (mode == 1 || mode == 5) server.reset();
+            else if (mode == 2) server->stop();
+            else reply({fsnet::Status::ok, std::move(data)});
+        });
+        auto peer = client->connect("127.0.0.1", server->listen("127.0.0.1", 0));
+        bool done = false;
+        client->call(peer, "echo", "x", 1s, [&](auto result) {
+            CHECK(result.status == (mode ? fsnet::Status::disconnected : fsnet::Status::ok));
+            if (mode == 0 || mode == 3 || mode == 4) client.reset();
+            done = true;
+        });
+        if (mode == 3) client->close(peer); // destruction from a synchronous close callback
+        if (mode == 4) client->stop(); // destruction while stop is already on the stack
+        if (mode == 5) {
+            // Outbound frames are queued independently of receiving the token.
+            for (int i = 0; i < 4; ++i) { client->poll(); std::this_thread::sleep_for(1ms); }
+            server->run(); // handler destroys the Node driving this blocking call
+        }
+        until([&] { if (server) server->poll(); if (client) client->poll(); }, [&] { return done; });
+    }
+    std::cout << "PASS Node lifetime: callback destruction, close and stop reentry\n";
+}
+void node_receive_budget() {
+    fsnet::Limits limits;
+    limits.frame_bytes = 4096; limits.receive_bytes = 8192;
+    fsnet::Node server("budget", limits);
+    auto port = server.listen("127.0.0.1", 0);
+    asio::io_context io;
+    auto connect = [&] {
+        auto socket = std::make_unique<asio::ip::tcp::socket>(io);
+        socket->connect({asio::ip::make_address("127.0.0.1"), port});
+        return socket;
+    };
+    std::array<unsigned char, 4> length{0, 0, 16, 0};
+    auto hostile = connect();
+    asio::write(*hostile, asio::buffer(length));
+    for (int i = 0; i < 4; ++i) { server.poll(); std::this_thread::sleep_for(1ms); }
+    until([&] { server.poll(); }, [&] { return server.stats().connections == 0; });
+    // Authentication accepts only its exact frame length, before reserving body.
+    CHECK(server.stats().receive_bytes == 0);
+    hostile->close();
+    auto authenticate = [&](auto& socket) {
+        std::string frame(18, '\0'); frame[3] = 20; frame[4] = 1;
+        frame += "budget";
+        asio::write(*socket, asio::buffer(frame));
+        for (int i = 0; i < 4; ++i) { server.poll(); std::this_thread::sleep_for(1ms); }
+    };
+    auto first = connect(); authenticate(first);
+    asio::write(*first, asio::buffer(length));
+    until([&] { server.poll(); }, [&] { return server.stats().receive_bytes == 4096; });
+    auto second = connect(); authenticate(second);
+    asio::write(*second, asio::buffer(length));
+    until([&] { server.poll(); }, [&] { return server.stats().receive_bytes == 8192; });
+    auto excess = connect(); authenticate(excess);
+    for (int i = 0; i < 4; ++i) { server.poll(); std::this_thread::sleep_for(1ms); }
+    CHECK(server.stats().receive_bytes == 8192);
+    CHECK(server.stats().connections == 2);
+    first->close();
+    until([&] { server.poll(); }, [&] { return server.stats().receive_bytes == 4096; });
+    auto replacement = connect(); authenticate(replacement);
+    asio::write(*replacement, asio::buffer(length));
+    until([&] { server.poll(); }, [&] { return server.stats().receive_bytes == 8192; });
+    server.stop(); CHECK(server.stats().receive_bytes == 0);
+    std::cout << "PASS receive admission: exact auth length, aggregate reservations and canceled-read release\n";
+}
 void c_api_lifetime_test() {
     static void* runtime = nullptr;
     runtime = fsnet_create("native-lifetime-token"); CHECK(runtime);
@@ -207,6 +279,6 @@ void ice_test(bool relayed) {
     std::cout << "PASS ICE " << (relayed ? "forced authenticated TURN relay" : "direct peer connectivity") << ": game datagram received\n";
 }
 int main() {
-    try { database_tests(); fencing_test(fsnet::memory_database()); fencing_test(fsnet::sqlite_database(":memory:")); node_tests(); borrowed_call_lifetime(); c_api_lifetime_test(); directory_tests(); cluster_tests(); ice_test(false); ice_test(true); }
+    try { database_tests(); fencing_test(fsnet::memory_database()); fencing_test(fsnet::sqlite_database(":memory:")); node_tests(); borrowed_call_lifetime(); node_callback_lifetime(); node_receive_budget(); c_api_lifetime_test(); directory_tests(); cluster_tests(); ice_test(false); ice_test(true); }
     catch (const std::exception& error) { std::cerr << error.what() << '\n'; return 1; }
 }

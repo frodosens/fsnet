@@ -4,6 +4,7 @@
 #include "lua.h"
 #include "lauxlib.h"
 #include "lualib.h"
+#include "lua_work_budget.hpp"
 #include <algorithm>
 #include <cstdlib>
 #include <cmath>
@@ -51,7 +52,10 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
     std::size_t completed_bytes = 0;
     bool stopped = false, loaded = false, loading = false, polling = false, stop_requested = false;
     bool exhausted = false;
+    bool timed_out = false;
     unsigned budget = 0;
+    Clock::time_point running_deadline{};
+    FsnetLuaWorkBudget work_budget{this, charge_pattern};
     std::uint64_t serial = 0;
     std::unordered_map<std::string, int> routes;
     std::unordered_map<std::string, std::string> entity_routes, stateful_routes;
@@ -69,7 +73,19 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
     int compiled = LUA_NOREF;
     std::vector<int> starts;
 
-    static Impl& self(lua_State* L) { return **static_cast<Impl**>(lua_getextraspace(L)); }
+    static Impl& self(lua_State* L) { return *static_cast<Impl*>((*static_cast<FsnetLuaWorkBudget**>(lua_getextraspace(L)))->context); }
+    static void charge_pattern(lua_State* L, void* context, std::size_t units) {
+        auto& owner = *static_cast<Impl*>(context);
+        if (owner.timed_out || Clock::now() >= owner.running_deadline) {
+            owner.timed_out = true;
+            luaL_error(L, "Lua task deadline exceeded");
+        }
+        if (owner.exhausted || units > owner.budget) {
+            owner.exhausted = true; owner.budget = 0;
+            luaL_error(L, "Lua pattern work budget exceeded");
+        }
+        owner.budget -= static_cast<unsigned>(units);
+    }
     static void* allocate(void* opaque, void* pointer, std::size_t old_size, std::size_t new_size) {
         auto& owner = *static_cast<Impl*>(opaque);
         const auto old = pointer ? old_size : 0;
@@ -1185,6 +1201,11 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
     }
     static void hook(lua_State* L, lua_Debug*) {
         auto& owner = self(L);
+        if (owner.timed_out || Clock::now() >= owner.running_deadline) {
+            owner.timed_out = true;
+            lua_yield(L, 0);
+            return;
+        }
         if (owner.budget <= 1000) {
             owner.exhausted = true;
             // A yield cannot be swallowed by a script pcall error handler.
@@ -1401,7 +1422,11 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
             throw std::invalid_argument("invalid script host or limits");
         state = lua_newstate(allocate, this);
         if (!state) throw std::runtime_error("Lua VM allocation failed");
-        *static_cast<Impl**>(lua_getextraspace(state)) = this;
+        *static_cast<FsnetLuaWorkBudget**>(lua_getextraspace(state)) = &work_budget;
+        // Loading the engine's own API is separate from a user task's deadline.
+        // Its source is fixed, but it also uses the instrumented pattern library.
+        budget = 100000;
+        running_deadline = Clock::now() + std::chrono::seconds(30);
         if (protect(initialize) != LUA_OK) {
             auto detail = message(state); lua_close(state); state = nullptr;
             throw std::runtime_error("Lua initialization: " + detail);
@@ -1409,7 +1434,8 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
     }
     ~Impl() { if (state) lua_close(state); }
     int resume(Task& task, int arguments, int& results) {
-        exhausted = false; budget = limits.instructions_per_resume;
+        exhausted = false; timed_out = false; budget = limits.instructions_per_resume;
+        running_deadline = task.startup ? Clock::now() + limits.task_timeout : task.deadline;
         lua_sethook(task.thread, hook, LUA_MASKCOUNT, 1000);
         return lua_resume(task.thread, state, arguments, &results);
     }
@@ -1429,6 +1455,7 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
         auto& task = it->second;
         int results = 0;
         int status = resume(task, arguments, results);
+        if (timed_out || Clock::now() >= task.deadline) { error = "Lua task deadline exceeded"; return finish(id, {Status::timeout, {}}); }
         if (task.rejected) { error = "script rejected RPC"; return finish(id, {Status::rejected, {}}); }
         if (exhausted) { error = "Lua instruction budget exceeded"; return finish(id, {Status::overloaded, {}}); }
         if (status == LUA_OK) {
@@ -1516,6 +1543,7 @@ void LuaEngine::load(std::string_view source, const std::string& name) {
         int prepared = owner.protect(Impl::prepare);
         if (prepared != LUA_OK) throw std::runtime_error(owner.message(owner.state));
         int results = 0; int status = owner.resume(startup, 0, results);
+        if (owner.timed_out || Impl::Clock::now() >= owner.running_deadline) throw std::runtime_error("Lua load deadline exceeded");
         if (owner.exhausted) throw std::runtime_error("Lua load instruction budget exceeded");
         if (status != LUA_OK) throw std::runtime_error(owner.message(startup.thread));
         luaL_unref(owner.state, LUA_REGISTRYINDEX, startup.reference);
@@ -1637,7 +1665,7 @@ std::size_t LuaEngine::poll(std::size_t work_limit) {
                 auto id = ++owner.serial; owner.threads.emplace(task.thread, id);
                 const auto arguments = (task.mailbox.empty() ? 1 : 2) + (task.contextual ? 1 : 0);
                 if (!task.mailbox.empty()) owner.busy.insert(task.mailbox);
-                task.data.clear(); owner.tasks.emplace(id, std::move(task)); owner.advance(id, arguments);
+                std::string{}.swap(task.data); owner.tasks.emplace(id, std::move(task)); owner.advance(id, arguments);
             }
         } else break;
         ++work;

@@ -1,5 +1,5 @@
-// Review probes for baseline 130ef7a; intentionally exercise known defects.
-// Build/run via tools/review/run_runtime_review.py; not part of passing CTest.
+// Review diagnostics, originally reproducing defects on baseline 130ef7a.
+// Build/run via tools/review/run_runtime_review.py; regressions live in CTest.
 #include "fsnet/lua_engine.hpp"
 #include "fsnet/entity_host.hpp"
 #include "fsnet/entity_record.hpp"
@@ -48,7 +48,14 @@ int main(int argc,char**argv){try{
   auto db=std::make_shared<Store>();auto parent=std::make_shared<Host>();auto host=std::make_shared<fsnet::EntityScriptHost>(parent,db,"owner/boot");host->enable_delivery(true);fsnet::LuaEngine engine(host);engine.load("local P=fsnet.Entity:extend('Player',{owner='id'});P:attr('gold',{type='int32',default=0,sync='owner'});P:rpc('reward',{callers={'server'}});function P:reward()self.gold=self.gold+1;return tostring(self.gold)end;P:register()");
   auto wait=[&](auto start){std::optional<fsnet::Result> result;start([&](auto r){result=std::move(r);});pump([&]{host->poll();engine.poll();},[&]{return result.has_value();});return *result;};wait([&](auto cb){host->read_attributes("Player","bob",cb);});unsigned events=0;host->on_attributes([&](const auto&){++events;});auto target=fsnet::decode_entity_record(db->get(fsnet::entity_record_key("Player","bob"))->value);
   fsnet::DeliveryEnvelope e;e.source_type="Quest";e.source_id="alice";e.source_epoch=123;e.message.type="Player";e.message.id="bob";e.message.method="reward";e.message.target_epoch=target.snapshot.delivery.epoch;e.message.sequence=1;e.message.ticket=fsnet::delivery_ticket(e);fsnet::EntityRecord source;source.snapshot.delivery.epoch=123;source.snapshot.delivery.outbox.push_back(e.message);source.snapshot.delivery.sent[fsnet::delivery_channel("Player","bob",e.message.target_epoch)]=1;db->compare_exchange(fsnet::entity_record_key("Quest","alice"),0,fsnet::encode_entity_record(source));db->armed=true;
-  auto first=wait([&](auto cb){host->receive_delivery({fsnet::Caller::server,"service"},e,cb);});auto retry=wait([&](auto cb){host->receive_delivery({fsnet::Caller::server,"service"},e,cb);});auto read=wait([&](auto cb){host->read_attributes("Player","bob",cb);});auto gold=std::get<std::int64_t>(fsnet::decode_attributes(read.data).values.at("gold"));std::cout<<"first_status="<<static_cast<int>(first.status)<<" retry_status="<<static_cast<int>(retry.status)<<" stored_gold="<<gold<<" attribute_events="<<events<<'\n';
+  unsigned invalidations=0;
+  host->on_closed([&](const auto&,const auto&,bool){++invalidations;});
+  auto first=wait([&](auto cb){host->receive_delivery({fsnet::Caller::server,"service"},e,cb);});
+  auto retry=wait([&](auto cb){host->receive_delivery({fsnet::Caller::server,"service"},e,cb);});
+  auto read=wait([&](auto cb){host->read_attributes("Player","bob",cb);});
+  auto gold=std::get<std::int64_t>(fsnet::decode_attributes(read.data).values.at("gold"));
+  std::cout<<"first_status="<<static_cast<int>(first.status)<<" retry_status="<<static_cast<int>(retry.status)
+    <<" stored_gold="<<gold<<" attribute_events="<<events<<" invalidations="<<invalidations<<'\n';
  }else if(mode=="destroy"){
   fsnet::Node server("token");auto client=std::make_unique<fsnet::Node>("token");auto port=server.listen("127.0.0.1",0);server.bind("echo",[](std::string data,auto reply){reply({fsnet::Status::ok,std::move(data)});});auto peer=client->connect("127.0.0.1",port);bool done=false;client->call(peer,"echo","x",1s,[&](auto){client.reset();done=true;});pump([&]{server.poll();if(client)client->poll();},[&]{return done;});std::cout<<"destroy_callback_completed="<<done<<'\n';
  }else if(mode=="replay"){

@@ -1,6 +1,8 @@
 #include "fsnet/attribute_replication.hpp"
 #include "fsnet/lua_engine.hpp"
 #include "fsnet/entity_message.hpp"
+#include "fsnet/entity_record.hpp"
+#include <atomic>
 #include <chrono>
 #include <iostream>
 #include <optional>
@@ -8,11 +10,27 @@
 #include <unordered_map>
 using namespace std::chrono_literals;
 #define CHECK(x) do { if (!(x)) throw std::runtime_error(std::string(__FILE__) + ':' + std::to_string(__LINE__) + " " #x); } while (false)
+struct CommitThenThrow final : fsnet::Storage {
+    std::shared_ptr<fsnet::Storage> base=fsnet::memory_database();
+    std::atomic<bool> armed{false};
+    std::optional<fsnet::Record> get(std::string_view key) override { return base->get(key); }
+    bool erase(std::string_view key,std::uint64_t version) override { return base->erase(key,version); }
+    bool compare_exchange(std::string_view key,std::uint64_t version,std::string_view value) override {
+        bool committed=base->compare_exchange(key,version,value);
+        if (committed && armed && key==fsnet::entity_record_key("player","42")) {
+            auto state=fsnet::decode_attributes(fsnet::decode_entity_record(value).snapshot.state);
+            if (std::get<std::int64_t>(state.values.at("hp"))==70 && armed.exchange(false))
+                throw std::runtime_error("commit visible; storage completion lost");
+        }
+        return committed;
+    }
+};
 int main() {
     try {
         fsnet::Node server("test"), alice("test"), bob("test"), logic("test"), stranger("test");
         auto transport=std::make_shared<fsnet::NodeScriptHost>(server);
-        auto entities=std::make_shared<fsnet::EntityScriptHost>(transport,fsnet::memory_database(),"replication/boot");
+        auto storage=std::make_shared<CommitThenThrow>();
+        auto entities=std::make_shared<fsnet::EntityScriptHost>(transport,storage,"replication/boot");
         std::string owner="alice";
         entities->ownership([&](const std::string&,const std::string&) { return owner; });
         fsnet::LuaEngine engine(entities);
@@ -154,6 +172,17 @@ int main() {
         bool released=false; entities->deactivate(*handle,[&](fsnet::Result r) { CHECK(r.status==fsnet::Status::ok); released=true; });
         until([&] { return released && !ac.get(aid); });
         auto reactivated=watch(ac); CHECK(reactivated.first==fsnet::Status::ok);
+        CHECK(std::get<std::int64_t>(ac.get(reactivated.second)->values().at("temporary"))==0);
+        auto before_uncertain=*entities->handle("player","42");
+        storage->armed=true;
+        CHECK(damage(logic,logic_peer,"uncertain-damage")==fsnet::Status::internal);
+        until([&] { return !ac.get(reactivated.second); });
+        CHECK(!storage->armed && !entities->active("player","42"));
+        CHECK(entities->handle("player","42")->generation!=before_uncertain.generation);
+        // Retry returns the durable receipt without applying damage twice.
+        CHECK(damage(logic,logic_peer,"uncertain-damage")==fsnet::Status::ok);
+        reactivated=watch(ac); CHECK(reactivated.first==fsnet::Status::ok);
+        CHECK(std::get<std::int64_t>(ac.get(reactivated.second)->values().at("hp"))==70);
         CHECK(std::get<std::int64_t>(ac.get(reactivated.second)->values().at("temporary"))==0);
         owner="bob"; until([&] { return !ac.get(reactivated.second); });
         CHECK(callbacks_valid);

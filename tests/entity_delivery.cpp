@@ -80,6 +80,29 @@ runtime.rpc('init_target',{callers={'server'},handler=function() Receiver:spawn_
 )";
 std::optional<fsnet::CallIdentity> identity(std::uint64_t,const std::string&){return fsnet::CallIdentity{fsnet::Caller::server,"owner"};}
 bool trust(const fsnet::CallIdentity& who){return who.caller==fsnet::Caller::server&&who.subject=="owner";}
+void scan_large_idle_registry(){
+    struct CountingStorage final:fsnet::Storage {
+        std::shared_ptr<fsnet::Storage> base=fsnet::memory_database();
+        std::atomic<unsigned> reads{0};
+        std::optional<fsnet::Record> get(std::string_view key)override{if(key!=fsnet::delivery_registry_key)++reads;return base->get(key);}
+        bool erase(std::string_view key,std::uint64_t version)override{return base->erase(key,version);}
+        bool compare_exchange(std::string_view key,std::uint64_t version,std::string_view bytes)override{return base->compare_exchange(key,version,bytes);}
+    };
+    auto database=std::make_shared<CountingStorage>();
+    std::vector<std::pair<std::string,std::string>> sources;
+    for(unsigned i=0;i<256;++i)sources.emplace_back("Source",std::to_string(i));
+    CHECK(database->compare_exchange(fsnet::delivery_registry_key,0,fsnet::encode_delivery_sources(sources)));
+    fsnet::Node node("idle-registry");
+    auto host=std::make_shared<fsnet::EntityScriptHost>(std::make_shared<fsnet::NodeScriptHost>(node),database,"owner/boot");
+    fsnet::EntityDeliveryLimits limits;limits.requests=4;limits.retry=3s;
+    fsnet::EntityDelivery worker(node,host,database,{{"owner","127.0.0.1",1,{"Source"}}},trust,limits);
+    auto deadline=std::chrono::steady_clock::now()+2s;
+    while(database->reads<sources.size()&&std::chrono::steady_clock::now()<deadline){worker.poll(8);std::this_thread::sleep_for(1ms);}
+    CHECK(database->reads==sources.size());
+    // Finishing a sweep applies backoff even when every source was empty.
+    for(unsigned i=0;i<10;++i){worker.poll(8);std::this_thread::sleep_for(1ms);}
+    CHECK(database->reads==sources.size());
+}
 void process_server(int argc,char** argv){
     CHECK(argc==6);auto db=fsnet::file_storage(argv[2]);fsnet::Node node("durable");node.identify(identity);
     fsnet::EntityRuntimeLimits limits;limits.lease=600ms;limits.request_timeout=200ms;
@@ -98,6 +121,7 @@ void process_server(int argc,char** argv){
 }
 int main(int argc,char** argv){try{
     if(argc>1){process_server(argc,argv);return 0;}
+    scan_large_idle_registry();
     auto directory=std::filesystem::temp_directory_path()/("fsnet-durable-"+std::to_string(std::chrono::steady_clock::now().time_since_epoch().count()));
     struct Cleanup{std::filesystem::path path;~Cleanup(){std::filesystem::remove_all(path);}}cleanup{directory};
     auto db=std::make_shared<FaultStorage>(fsnet::file_storage(directory.string()));fsnet::Node a("t"),b("t"),c("t"),admin("t");a.identify(identity);b.identify(identity);c.identify(identity);

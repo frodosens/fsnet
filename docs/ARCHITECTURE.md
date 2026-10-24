@@ -27,6 +27,11 @@ flowchart TB
 Gateway 使用独立后端连接委托可信账号，转发属性流并恢复迁移订阅，见 [跨节点接入](CLIENT_GATEWAY.md)。
 指定目标交接使用同记录 CAS 保存 placement 与交接编号，目标激活提交后 ACK，详见[交接协议](ENTITY_TRANSFER.md)。
 
+目录查询使用公共 `decode_entity_record_view` 读取 owner、租约和 placement；它以
+`string_view` 校验记录头与快照封装，不复制实体状态、RPC 收据或构造投递映射。
+完整状态及投递内容的语义校验仍由实体执行前的 `decode_entity_record` 负责。
+底层 Storage.get 仍读取完整原子记录，此优化减少解码与分配，不减少存储读取字节。
+
 客户端SDK入口为 [CLIENT_SDK.md](CLIENT_SDK.md)。Client组合Node和ClientScriptHost，
 持有会话generation、实体元数据和控制事件；属性投影仍只有一份AttributeClient，Lua和Native
 共享确认版本/codec。重连不重放业务RPC，旧宿主释放其路由和额外连接，不复用旧句柄。

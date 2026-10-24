@@ -4,6 +4,8 @@
 namespace fsnet {
 struct EntityDeliveryLimits {
     std::size_t requests=32;
+    // retry is the pause between complete registry sweeps; bounded chunks of
+    // the same sweep continue as soon as async capacity becomes available.
     std::chrono::milliseconds retry{100},refresh{1000},timeout{3000};
 };
 struct EntityDeliveryStats {

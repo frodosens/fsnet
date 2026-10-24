@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-"""Build/run bounded defect probes. Observations are not passing regression tests.
+"""Build/run bounded review diagnostics. Regressions are covered by CTest.
 
 Linux only. frame/destroy use loopback TCP. --asan requires an ASAN CMake build;
---include-crash intentionally reproduces a memory error in a child process.
+--include-destroy exercises callback destruction in a child process. On the old
+review baseline this intentionally triggers a sanitizer error.
 """
 import argparse
 import json
@@ -16,7 +17,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--build', default='.dev/build/debug')
     parser.add_argument('--asan', action='store_true')
-    parser.add_argument('--include-crash', action='store_true')
+    parser.add_argument('--include-destroy', '--include-crash', dest='include_destroy', action='store_true')
     args = parser.parse_args()
     root = Path(__file__).resolve().parents[2]
     build = (root / args.build).resolve()
@@ -35,13 +36,13 @@ def main():
                           "return tostring(s:find('a*a*a*a*b')) end)\n")
         cases = [(name, []) for name in ('policy', 'replay', 'uncertain', 'memory', 'frame')]
         cases.append(('lua', [str(script)]))
-        if args.include_crash:
+        if args.include_destroy:
             cases.append(('destroy', []))
         for name, extra in cases:
             try:
                 result = subprocess.run([executable, name, *extra], capture_output=True,
                                         text=True, timeout=8, cwd=root)
-                # Bound sanitizer output while keeping the complete log in the caller's redirect.
+                # Preserve child sanitizer output in the caller's redirected log.
                 print(json.dumps({'case': name, 'returncode': result.returncode,
                                   'stdout': result.stdout, 'stderr': result.stderr}, ensure_ascii=False), flush=True)
             except subprocess.TimeoutExpired:

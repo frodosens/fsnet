@@ -74,11 +74,12 @@ if(FSNET_WITH_LUA)
   FetchContent_MakeAvailable(lua)
   file(GLOB lua_sources CONFIGURE_DEPENDS ${lua_SOURCE_DIR}/*.c)
   list(FILTER lua_sources EXCLUDE REGEX "/(lua|luac|onelua|ltests|linit|liolib|loslib|ldblib|lcorolib|loadlib)\\.c$")
+  include(cmake/lua_pattern_budget.cmake)
   # Upstream supports C++ compilation: exceptions unwind C++ objects instead of
   # longjmp crossing host frames. Lua symbols remain private to this adapter.
   set_source_files_properties(${lua_sources} PROPERTIES LANGUAGE CXX)
   add_library(fsnet-lua-vm STATIC ${lua_sources})
-  target_include_directories(fsnet-lua-vm PRIVATE ${lua_SOURCE_DIR})
+  target_include_directories(fsnet-lua-vm PRIVATE ${lua_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/src)
   set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/scripts/fsnet/entity.lua")
   file(READ "${CMAKE_CURRENT_SOURCE_DIR}/scripts/fsnet/entity.lua" FSNET_LUA_OBJECT_SOURCE)
   configure_file(cmake/lua_object_api.hpp.in generated/fsnet_lua_object_api.hpp @ONLY)

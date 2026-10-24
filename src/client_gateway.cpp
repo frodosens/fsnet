@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <deque>
 #include <unordered_map>
+#include <unordered_set>
 #include <utility>
 namespace fsnet {
 namespace {
@@ -81,6 +82,7 @@ struct ClientGateway::Impl:std::enable_shared_from_this<Impl>{
     struct Subscription{
         std::uint64_t id,client,remote=0,revision=0;std::string type,entity;std::shared_ptr<Link> link;
         bool automatic=false,owned=false,controlled=false,migrating=false,busy=false;
+        std::unordered_set<std::size_t> failed;
         Clock::time_point next{},deadline{};
     };
     struct Request{std::uint64_t id,client;std::string subject,data;Reply reply;Clock::time_point deadline;std::size_t bytes;bool done=false;std::function<void()> cancel{};};
@@ -90,7 +92,7 @@ struct ClientGateway::Impl:std::enable_shared_from_this<Impl>{
     std::unordered_map<std::uint64_t,std::shared_ptr<Subscription>> subscriptions;
     std::unordered_map<std::string,std::uint64_t> reverse;
     std::unordered_map<std::uint64_t,std::shared_ptr<Request>> requests;
-    struct Lookup { bool busy=false; Clock::time_point expires{}; std::optional<EntityLocation> location; std::vector<std::function<void(Status,std::optional<std::size_t>,bool)>> waiters; };
+    struct Lookup { bool busy=false; Clock::time_point expires{}; std::optional<EntityLocation> location; std::vector<std::function<void(Status,const std::optional<EntityLocation>&)>> waiters; };
     std::unordered_map<std::string,std::shared_ptr<Lookup>> lookups;
     std::deque<std::uint64_t> schedule;
     bool owns_attributes=false,owns_presence=false;
@@ -114,26 +116,37 @@ struct ClientGateway::Impl:std::enable_shared_from_this<Impl>{
         if(found->second.subject!=who.subject){front.close(who.peer);reply({Status::rejected,{}});return {};}
         auto r=std::make_shared<Request>(Request{++serial,who.peer,who.subject,std::move(data),std::move(reply),Clock::now()+limits.request_timeout,0});r->bytes=r->data.size();counters.queued_bytes+=r->bytes;requests.emplace(r->id,r);return r;
     }
-    void select(std::string type,std::string entity,std::function<void(Status,std::optional<std::size_t>,bool)> done){
+    void select(std::string type,std::string entity,std::function<void(Status,std::optional<std::size_t>,bool)> done,std::unordered_set<std::size_t> failed={}){
+        auto ready=[weak=weak_from_this(),type,entity,done=std::move(done),failed=std::move(failed)](Status status,const std::optional<EntityLocation>& location){
+            auto self=weak.lock();if(!self||self->stopped)return done(Status::disconnected,{},false);
+            if(status!=Status::ok)return done(status,{},location.has_value());
+            auto time=wall();
+            // Live leases and directed placement remain authoritative. Only
+            // unplaced failover tries other endpoints before retrying failures.
+            bool fixed=location&&(location->expires_ms>time||!location->placement.empty());
+            auto index=select_entity_endpoint(self->endpoints,type,entity,location,time,[&](std::size_t i){return Clock::now()>=self->retry[i]&&(fixed||!failed.contains(i));});
+            bool untried=false;
+            if(!index&&!fixed&&!failed.empty())for(std::size_t i=0;i<self->endpoints.size();++i){const auto& types=self->endpoints[i].types;if(!failed.contains(i)&&std::find(types.begin(),types.end(),type)!=types.end()){untried=true;break;}}
+            if(!index&&!fixed&&!failed.empty()&&!untried)index=select_entity_endpoint(self->endpoints,type,entity,location,time,[&](std::size_t i){return Clock::now()>=self->retry[i];});
+            done(index?Status::ok:Status::disconnected,index,location.has_value());
+        };
         auto key=encode_entity_key(type,entity);auto found=lookups.find(key);
         // A login may create the entity immediately after its routing lookup.
         // Do not let that negative cache revoke the newly announced subscription.
         if(found!=lookups.end()&&!found->second->busy&&found->second->location.has_value()&&Clock::now()<found->second->expires){
-            auto index=select_entity_endpoint(endpoints,type,entity,found->second->location,wall(),[&](std::size_t i){return Clock::now()>=retry[i];});
-            return done(index?Status::ok:Status::disconnected,index,found->second->location.has_value());
+            return ready(Status::ok,found->second->location);
         }
-        if(found!=lookups.end()&&found->second->busy){found->second->waiters.push_back(std::move(done));return;}
+        if(found!=lookups.end()&&found->second->busy){found->second->waiters.push_back(std::move(ready));return;}
         if(lookups.size()>=limits.subscriptions+limits.requests){for(auto it=lookups.begin();it!=lookups.end();){if(!it->second->busy&&Clock::now()>=it->second->expires)it=lookups.erase(it);else ++it;}}
-        if(!lookups.contains(key)&&lookups.size()>=limits.subscriptions+limits.requests)return done(Status::overloaded,{},false);
-        auto lookup=std::make_shared<Lookup>();lookup->busy=true;lookup->waiters.push_back(std::move(done));lookups[key]=lookup;
+        if(!lookups.contains(key)&&lookups.size()>=limits.subscriptions+limits.requests)return ready(Status::overloaded,{});
+        auto lookup=std::make_shared<Lookup>();lookup->busy=true;lookup->waiters.push_back(std::move(ready));lookups[key]=lookup;
         auto location=std::make_shared<std::optional<EntityLocation>>();
         auto complete=[weak=weak_from_this(),lookup,location,type,entity](std::exception_ptr error){
             auto self=weak.lock();lookup->busy=false;auto waiting=std::move(lookup->waiters);
-            if(!self||self->stopped){for(auto& cb:waiting)cb(Status::disconnected,{},false);return;}
+            if(!self||self->stopped){for(auto& cb:waiting)cb(Status::disconnected,{});return;}
             lookup->location=*location;lookup->expires=Clock::now()+self->limits.refresh;
-            if(error){lookup->expires=Clock::now();for(auto& cb:waiting)cb(Status::internal,{},false);return;}
-            auto index=select_entity_endpoint(self->endpoints,type,entity,*location,wall(),[&](std::size_t i){return Clock::now()>=self->retry[i];});
-            for(auto& cb:waiting)cb(index?Status::ok:Status::disconnected,index,location->has_value());
+            if(error){lookup->expires=Clock::now();for(auto& cb:waiting)cb(Status::internal,*location);return;}
+            for(auto& cb:waiting)cb(Status::ok,*location);
         };
         if(!storage.submit(type.size()+entity.size(),[location,type,entity](Database& db){*location=entity_location(db,type,entity);},complete))complete(std::make_exception_ptr(std::runtime_error("gateway lookup overloaded")));
     }
@@ -169,7 +182,13 @@ struct ClientGateway::Impl:std::enable_shared_from_this<Impl>{
         if(s->migrating)return;
         s->migrating=true;s->deadline=Clock::now()+limits.migration_timeout;
         s->next=Clock::time_point{};
-        if(unavailable&&s->link)retry[s->link->index]=Clock::now()+std::chrono::milliseconds(250);
+        if(unavailable&&s->link){retry[s->link->index]=Clock::now()+std::chrono::milliseconds(250);s->failed.insert(s->link->index);}
+    }
+    void retry_migration(const std::shared_ptr<Subscription>& sub){
+        // Recovery cadence is independent of a long ordinary refresh interval.
+        // The failed endpoint set additionally preserves fairness across stalls
+        // longer than the transport health backoff.
+        sub->next=Clock::now()+std::min(limits.refresh,std::chrono::milliseconds(100));
     }
     void routed(const CallIdentity& who,std::string type,std::string route,std::string input,bool account,Reply reply){
         std::string entity;
@@ -228,7 +247,12 @@ struct ClientGateway::Impl:std::enable_shared_from_this<Impl>{
                 if(!sub){if(subscriptions.size()>=limits.subscriptions||client_subscriptions(link->client)>=limits.per_client)throw std::length_error("gateway subscription limit");sub=std::make_shared<Subscription>();sub->id=++serial;sub->client=link->client;sub->type=message.type;sub->entity=message.id;sub->automatic=true;sub->owned=flags&1;sub->controlled=flags&2;subscriptions[sub->id]=sub;schedule.push_back(sub->id);}
                 if(!message.update||!message.update->snapshot||message.update->revision<sub->revision||sub->owned!=bool(flags&1))return remove(sub,Status::rejected);
                 if(sub->link)reverse.erase(remote_key(sub->link->peer,sub->remote));
-                sub->link=link;sub->remote=message.subscription;sub->revision=message.update->revision;sub->controlled=flags&2;sub->migrating=false;sub->busy=false;sub->next=Clock::now()+limits.refresh;reverse[remote_key(peer,sub->remote)]=sub->id;
+                sub->link=link;sub->remote=message.subscription;sub->revision=message.update->revision;sub->controlled=flags&2;sub->migrating=false;sub->busy=false;sub->failed.clear();sub->next=Clock::now()+limits.refresh;reverse[remote_key(peer,sub->remote)]=sub->id;
+                // Restoring may have acquired an expired lease on a new owner.
+                // The lookup that selected it can still contain the old owner;
+                // expire it before the client sends an immediate follow-up RPC.
+                auto cached=lookups.find(encode_entity_key(sub->type,sub->entity));
+                if(cached!=lookups.end())cached->second->expires=Clock::time_point{};
                 if(restoring){++counters.migrations;remap_replication_subscription(data,sub->id,2);if(!front.notify(sub->client,attributes,body))return front.close(sub->client);}
             }
             if(!sub)return;
@@ -259,25 +283,26 @@ struct ClientGateway::Impl:std::enable_shared_from_this<Impl>{
         sub->busy=true;sub->next=Clock::now()+limits.refresh;
         select(sub->type,sub->entity,[weak=weak_from_this(),sub](Status status,std::optional<std::size_t> index,bool exists){auto self=weak.lock();if(!self||!self->subscriptions.contains(sub->id))return;
             if(!exists&&status!=Status::internal&&status!=Status::overloaded){sub->busy=false;return self->remove(sub,Status::not_found);}
-            if(status!=Status::ok){sub->busy=false;self->migrating(sub);sub->next=Clock::now()+self->limits.refresh;return;}
+            if(status!=Status::ok){sub->busy=false;self->migrating(sub);self->retry_migration(sub);return;}
             if(sub->link&&sub->link->index==*index&&self->back.connected(sub->link->peer)&&!sub->migrating){sub->busy=false;return;}
             self->migrating(sub);
-            self->acquire(sub->client,*index,[weak,sub](Status status,std::shared_ptr<Link> link){auto self=weak.lock();if(!self||!self->subscriptions.contains(sub->id))return;
-                if(status!=Status::ok){sub->busy=false;sub->next=Clock::now()+self->limits.refresh;return;}
+            if(sub->failed.contains(*index))sub->failed.clear(); // every compatible endpoint was tried; begin another round
+            self->acquire(sub->client,*index,[weak,sub,index](Status status,std::shared_ptr<Link> link){auto self=weak.lock();if(!self||!self->subscriptions.contains(sub->id))return;
+                if(status!=Status::ok){sub->busy=false;sub->failed.insert(*index);self->retry_migration(sub);return;}
                 std::string route=sub->automatic?"system.gateway.restore":"system.attributes.watch";auto input=encode_entity_key(sub->type,sub->entity);if(sub->automatic)put(input,sub->controlled,1);
                 self->back.call(link->peer,route,std::move(input),self->limits.request_timeout,[weak,sub,link](Result result){auto self=weak.lock();if(!self||!self->subscriptions.contains(sub->id))return;
                     sub->busy=false;sub->next=Clock::now()+self->limits.refresh;
-                    if(result.status!=Status::ok){if(result.status==Status::overloaded||result.status==Status::disconnected||result.status==Status::timeout)self->retry[link->index]=Clock::now()+std::chrono::milliseconds(250);if(result.status==Status::rejected||result.status==Status::not_found)self->remove(sub,result.status);return;}
+                    if(result.status!=Status::ok){if(result.status==Status::overloaded||result.status==Status::disconnected||result.status==Status::timeout){self->retry[link->index]=Clock::now()+std::chrono::milliseconds(250);sub->failed.insert(link->index);}if(result.status==Status::rejected||result.status==Status::not_found)self->remove(sub,result.status);else self->retry_migration(sub);return;}
                     if(sub->automatic)return; // creation notification installs the fresh snapshot
                     try{auto message=decode_replication_packet_view(result.data);if(!message.update||!message.update->snapshot||message.type!=sub->type||message.id!=sub->entity||message.update->revision<sub->revision)throw std::invalid_argument("migration snapshot");
                         if(sub->link){self->reverse.erase(self->remote_key(sub->link->peer,sub->remote));if(self->back.connected(sub->link->peer))self->back.call(sub->link->peer,"system.attributes.unwatch",token(sub->remote),std::chrono::seconds(1),[](Result){});}
-                        sub->link=link;sub->remote=message.subscription;sub->revision=message.update->revision;sub->migrating=false;self->reverse[self->remote_key(link->peer,sub->remote)]=sub->id;++self->counters.migrations;
+                        sub->link=link;sub->remote=message.subscription;sub->revision=message.update->revision;sub->migrating=false;sub->failed.clear();self->reverse[self->remote_key(link->peer,sub->remote)]=sub->id;++self->counters.migrations;
                         remap_replication_subscription(result.data,sub->id);
                         if(!self->front.notify(sub->client,attributes,result.data))self->front.close(sub->client);
                     }catch(...){self->remove(sub,Status::rejected);}
                 });
             });
-        });
+        },sub->failed);
     }
     void stop(){if(std::exchange(stopped,true))return;for(const auto& r:bound)front.unbind(r);if(owns_attributes)back.off_notification(attributes);if(owns_presence)back.off_notification(presence);
         auto req=requests;for(auto& [id,r]:req){(void)id;finish(r,{Status::disconnected,{}});}auto subs=subscriptions;for(auto& [id,s]:subs){(void)id;remove(s,Status::disconnected);}

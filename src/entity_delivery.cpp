@@ -17,7 +17,7 @@ struct EntityDelivery::Impl:std::enable_shared_from_this<Impl> {
     Trust trust;EntityDeliveryLimits limits;EntityDeliveryStats counters;
     std::vector<std::pair<std::string,std::string>> sources;
     std::unordered_map<std::string,std::shared_ptr<Attempt>> active;
-    std::size_t cursor=0;Clock::time_point next{},refresh{};bool stopped=false,loading=false,polling=false;
+    std::size_t cursor=0,remaining=0;Clock::time_point next{},refresh{};bool stopped=false,loading=false,polling=false;
     Impl(Node& n,std::shared_ptr<EntityScriptHost> h,std::shared_ptr<Database> db,std::vector<EntityEndpoint> e,Trust t,EntityDeliveryLimits l)
         :node(n),host(std::move(h)),storage(std::move(db)),endpoints(std::move(e)),trust(std::move(t)),limits(l) {
         validate_entity_endpoints(endpoints);
@@ -70,7 +70,7 @@ struct EntityDelivery::Impl:std::enable_shared_from_this<Impl> {
     void load(){
         loading=true;auto value=std::make_shared<std::vector<std::pair<std::string,std::string>>>();
         if(!storage.submit(1024,[value](Database& db){if(auto record=db.get(delivery_registry_key))*value=decode_delivery_sources(record->value);},
-            [weak=weak_from_this(),value](std::exception_ptr error){auto self=weak.lock();if(!self||self->stopped)return;self->loading=false;self->refresh=Clock::now()+self->limits.refresh;if(!error){self->sources=std::move(*value);self->cursor=self->sources.empty()?0:self->cursor%self->sources.size();}else ++self->counters.failures;})) {loading=false;refresh=Clock::now()+limits.refresh;++counters.failures;}
+            [weak=weak_from_this(),value](std::exception_ptr error){auto self=weak.lock();if(!self||self->stopped)return;self->loading=false;self->refresh=Clock::now()+self->limits.refresh;if(!error){self->sources=std::move(*value);self->cursor=self->sources.empty()?0:self->cursor%self->sources.size();self->remaining=std::min(self->remaining,self->sources.size());}else ++self->counters.failures;})) {loading=false;refresh=Clock::now()+limits.refresh;++counters.failures;}
     }
 };
 EntityDelivery::EntityDelivery(Node& node,std::shared_ptr<EntityScriptHost> host,std::shared_ptr<Database> database,std::vector<EntityEndpoint> endpoints,Trust trust,EntityDeliveryLimits limits)
@@ -102,10 +102,14 @@ void EntityDelivery::poll(std::size_t budget){
     auto work=self.storage.poll(budget);auto now=Clock::now();
     if(self.stopped)return;
     if(!self.loading&&now>=self.refresh)self.load();
-    if(now<self.next||self.sources.empty())return;
-    self.next=now+self.limits.retry;
-    auto count=std::min(self.sources.size(),budget>work?budget-work:0);
-    while(count--&&self.active.size()<self.limits.requests){const auto source=self.sources[self.cursor++%self.sources.size()];self.scan(source);}
+    if(self.sources.empty())return;
+    // Rate-limit complete sweeps, not individual request-sized chunks. A large
+    // mostly empty registry must not wait retry between every batch of reads.
+    // Async completion and the caller's budget still bound each poll's work.
+    if(!self.remaining){if(now<self.next)return;self.remaining=self.sources.size();}
+    auto count=std::min(self.remaining,budget>work?budget-work:0);
+    while(count--&&self.active.size()<self.limits.requests){const auto source=self.sources[self.cursor++%self.sources.size()];--self.remaining;self.scan(source);}
+    if(!self.remaining)self.next=now+self.limits.retry;
 }
 EntityDeliveryStats EntityDelivery::stats() const{auto value=impl_->counters;value.sources=impl_->sources.size();value.pending=impl_->active.size();return value;}
 void EntityDelivery::stop(){auto keep=impl_;auto& self=*keep;if(std::exchange(self.stopped,true))return;self.host->enable_delivery(false);self.node.unbind(receive_route);self.node.unbind(ack_route);for(auto& [key,op]:self.active){(void)key;op->done=true;}self.active.clear();for(auto peer:self.peers)if(peer)self.node.close(peer);self.storage.stop();}

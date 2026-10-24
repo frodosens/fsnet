@@ -26,11 +26,28 @@ inline std::uint32_t number(std::string_view& input) {
     for (int i = 0; i < 4; ++i) result = (result << 8) | static_cast<unsigned char>(input[i]);
     input.remove_prefix(4); return result;
 }
-inline std::string blob(std::string_view& input) {
+inline std::string_view blob_view(std::string_view& input) {
     auto size = number(input);
     if (size > input.size()) throw std::runtime_error("truncated entity snapshot field");
-    std::string result(input.substr(0, size)); input.remove_prefix(size); return result;
+    auto result = input.substr(0, size); input.remove_prefix(size); return result;
 }
+inline std::string blob(std::string_view& input) {
+    return std::string(blob_view(input));
+}
+}
+// Routing needs only the record header. Check the snapshot envelope without
+// allocating state, receipts, or delivery maps; opaque payload semantics remain
+// the responsibility of decode_snapshot before an entity transition executes.
+inline void validate_snapshot_framing(std::string_view input) {
+    bool delivery = input.starts_with("FSP2");
+    if (!delivery && !input.starts_with("FSP1")) throw std::runtime_error("unknown entity snapshot version");
+    input.remove_prefix(4); snapshot_detail::blob_view(input);
+    auto count = snapshot_detail::number(input);
+    if (count > 1024) throw std::runtime_error("invalid entity receipt count");
+    for (std::uint32_t i = 0; i < count; ++i)
+        for (unsigned field = 0; field < 4; ++field) snapshot_detail::blob_view(input);
+    if (delivery) snapshot_detail::blob_view(input);
+    if (!input.empty()) throw std::runtime_error("trailing entity snapshot bytes");
 }
 inline std::string encode_snapshot(const EntitySnapshot& snapshot) {
     if(!snapshot.delivery.epoch && (!snapshot.delivery.sent.empty() || !snapshot.delivery.inbox.empty() || !snapshot.delivery.outbox.empty()))

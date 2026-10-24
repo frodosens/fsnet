@@ -16,6 +16,10 @@ TLS 最低版本 1.3，双向验证证书链；出站校验目标证书名称，
 
 无 TLS 时只允许 loopback 监听/连接。跨机器、容器网络或公开监听必须显式提供 TLS。C ABI 提供 fsnet_create_tls/fsnet_authorize。
 
+Node 在首次 token 握手前仅接受恰好 `14 + token.size()` 字节的帧体，避免只发大长度头就预分配应用帧。所有连接共享 `Limits::receive_bytes` 接收帧体预算（默认 16MiB，必须不小于 `frame_bytes`）；认证后的未完成大帧也会计费，额度不足时关闭该连接。`TransportStats::receive_bytes` 表示当前保留的帧体字节，读取完成或取消后释放；不包含 TLS、socket 和已进入应用处理的请求。应用仍应按证书/账号限制连接和请求速率。
+
+原生 Node 支持在自身回调中 stop 或销毁。运行中的 poll/run 保留内部实现，取消回调在最外层驱动退出后排空；递归 poll/run 会抛出 logic_error。Node 的调用及析构仍必须在所属线程进行。
+
 示例可配置 FSNET_TLS_CA、FSNET_TLS_CERTIFICATE、FSNET_TLS_KEY、FSNET_TLS_PEER_NAME；FSNET_BIND_ADDRESS 默认 127.0.0.1，公开地址需要有效 TLS 配置。示例内部节点仍从 FSNET_CLUSTER_TOKEN 读取额外 token；客户端接入服务可在自身启动器中选择证书认证。
 
 原始 IcePeer 是未加密 UDP 传输原语，不能直接把敏感业务字节发到公网。ICE 描述/候选本身也需要身份校验的信令。TURN 的凭据和配额只控制中继资源，不替代业务消息的加密与授权。

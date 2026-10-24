@@ -1,6 +1,24 @@
 # Runtime code review — 2026-10-24
 
-审查基线：`130ef7a`，分支 `refactor/script-runtime`。本次提交仅增加审查报告和独立复现工具，**以下缺陷尚未修复**。
+审查基线：`130ef7a`，分支 `refactor/script-runtime`。原审查提交 `d6decc2` 记录问题；下面的复现数据保留为修复前证据。
+
+## 修复状态
+
+七项已确认缺陷均已修复，关键路径补上正式回归测试，输入缓冲释放另以原探针复核；验证结果见文末。
+
+| 问题 | 处理方式 |
+| --- | --- |
+| Node 回调内销毁 | poll/run 保留 Impl 生命周期；停止后的取消回调在外层驱动退出后排空，禁止递归驱动 |
+| RPC 策略不一致 | transport 更新成功后更新共享 Method；排队、挂起及持久化入口执行前/提交前检查当前权限；缺少调用者上下文的 legacy 路由拒绝动态设置策略 |
+| 收据重放漏激活 | 重放归为协议操作，不能把新 owner 标记为已激活 |
+| 不确定提交丢通知 | 使订阅失效、提升 handle generation、清除临时缓存及激活标志；重订阅从存储恢复，重试仍走收据/inbox 去重 |
+| Lua 耗时模式匹配 | 固定版本 Lua 字符串库在匹配循环内计费，find/match/gmatch/gsub 共用每次 resume 的预算；pcall 不能掩盖超限，返回后也检查 deadline |
+| Lua 输入容量保留 | 输入复制入 VM 后释放 native string capacity |
+| 收帧内存放大 | token 握手帧严格限长；所有连接共享默认 16MiB 接收帧体预算并提供统计，读取完成或取消后释放 |
+
+另外修复 `send_entity` 回调抛异常时可能二次调用的问题，以及 Gateway 恢复订阅后旧路由缓存影响紧随其后的 RPC 的问题。Gateway 对已过期、无指定 placement 的实体记录本轮失败端点，避免慢轮询时反复选择同一离线节点；有效租约及指定交接目标仍须遵守。投递扫描改为一整轮结束后退避，槽位释放后立即继续本轮，避免每个 32-source 批次都等待 100ms；目录路径共享只读视图，避免复制实体状态和解码投递映射。
+
+仍保留的架构限制：历史 registry/channel 水位暂无自动退休协议；Storage.get 仍读取完整记录，实体事务仍持久化整份快照；Lua 的模式匹配已有工作预算，其他 C 原语不构成可抢占的敌对脚本沙箱。以上不应解读为无限容量、恒定尾延迟或公网生产验收已完成。
 
 范围：重点追踪 Node/C API、客户端与 Gateway、属性订阅、实体事务/路由/迁移/持久化投递、存储异常、Lua 调度与属性代理/预测的关键路径；同时检查 ICE/TURN 的交付边界。属于静态审查加定向故障复现，不是完整形式验证或公网压力测试。P1 表示建议在生产交付前修复；P2 表示明确的资源约束缺口。
 
@@ -120,3 +138,23 @@ python3 tools/review/run_runtime_review.py --build .dev/build/asan --asan --incl
 工具输出每个 case 的 JSON 观测（stdout、stderr、退出码），每项外部超时 8 秒。`returncode=0` 仅表示探针运行完成，**不表示不存在缺陷**。未接入默认 CTest，避免把“缺陷仍可复现”误记为通过的回归测试。工具只写临时构建文件，不修改业务存储或生产服务；frame 最多建立 64 个本地连接。
 
 建议修复顺序：Node 生命周期安全 → RPC 权限一致性 → 重放/不确定提交恢复 → Lua 可用性与资源预算 → 全局收帧预算 → 投递索引与高频同步性能。每个修复应将相应探针转换为断言正确行为的正式回归测试。
+
+## 修复后验证（2026-10-24）
+
+最终 Debug **39/39**、ASAN/UBSAN **23/23**、Lua OFF **13/13** 全部通过。Gateway 与真实 mTLS 投递恢复测试各连续运行三次通过；不能据此承诺所有部署环境都不会出现恢复失败，但已补上慢轮询时的确定性回归。Python 夹具语法和 `git diff --check` 通过。
+
+原探针再次运行的 Debug 观测：权限撤销后 `handler_executed=0`；收据重放后 `active_after_replay=0, next=2`；不确定提交得到 `stored_gold=1, invalidations=1`，真实 AttributeClient 回归确认旧副本移除、重新订阅后恢复新值，重试不重复扣血。64 个挂起 Lua 请求的 RSS 增量约 **1.05MiB**（原约 17MiB）；64 个仅长度头连接全部关闭，RSS 增量约 **196KiB**。同一回溯模式约 **1.22ms** 返回 overloaded，回调中销毁正常完成，ASAN 独立探针也未再报告 UAF。RSS 与时间仅为本机观测，ASAN 隔离区会影响 RSS，不能直接与普通构建比较。
+
+```sh
+. tools/dev/activate.sh
+cmake --build --preset debug
+ctest --preset debug
+cmake --build --preset asan
+ctest --preset asan
+cmake --build --preset core
+ctest --preset core
+ctest --preset debug -R '^fsnet-(gateway|delivery)$' --repeat until-fail:3
+python3 tools/review/run_runtime_review.py --build .dev/build/debug --include-destroy
+```
+
+Node 的公开 Limits/TransportStats 新增字段，C++ 使用方应与库一起重新编译。Lua 不提供敌对代码进程隔离；历史去重水位的安全回收、大记录存储拆分及公网交付验证仍为独立后续工作。

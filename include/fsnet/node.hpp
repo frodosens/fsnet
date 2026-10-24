@@ -25,8 +25,11 @@ struct Limits {
     std::size_t pending_calls = 4096;
     std::size_t inflight_requests = 128;
     std::chrono::milliseconds idle_timeout{30000};
+    // Aggregate frame-body reservations, including incomplete reads. Exhaustion
+    // closes the incoming connection; authentication frames have an exact cap.
+    std::size_t receive_bytes = 16 * 1024 * 1024;
 };
-struct TransportStats { std::size_t connections=0,pending=0,inflight=0,queued_bytes=0; };
+struct TransportStats { std::size_t connections=0,pending=0,inflight=0,queued_bytes=0,receive_bytes=0; };
 // All Node methods/callbacks run on its owning thread. Separate nodes can run on
 // separate threads/processes. No user code runs on a networking worker thread.
 class Node {

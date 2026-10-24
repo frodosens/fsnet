@@ -20,6 +20,55 @@ template<class Pump, class Predicate> void until(Pump pump, Predicate done) {
     auto deadline = std::chrono::steady_clock::now() + 5s;
     while (!done()) { pump(); CHECK(std::chrono::steady_clock::now() < deadline); std::this_thread::sleep_for(1ms); }
 }
+void metadata_views() {
+    auto db = fsnet::memory_database();
+    fsnet::EntityRecord record;
+    record.owner = "a/boot-1"; record.expires_ms = 123456; record.fence = 17;
+    record.snapshot.state.assign(2 * 1024 * 1024, 's');
+    record.snapshot.receipts.push_back({"request", "Actor.method", std::string(65536, 'q'), std::string(65536, 'r')});
+    for (bool delivery : {false, true}) {
+        record.snapshot.delivery.epoch = delivery ? 99 : 0;
+        for (unsigned version = 1; version <= 3; ++version) {
+            record.initialized = version != 2;
+            record.placement = version == 3 ? "b" : "";
+            record.transfer_id = version == 3 ? 41 : 0;
+            auto bytes = fsnet::encode_entity_record(record);
+            auto view = fsnet::decode_entity_record_view(bytes);
+            CHECK(view.owner == record.owner && view.fence == record.fence && view.expires_ms == record.expires_ms);
+            CHECK(view.initialized == record.initialized && view.placement == record.placement && view.transfer_id == record.transfer_id);
+            // The view refers directly to the source, including the multi-MiB
+            // snapshot. Only the final location's small strings need copying.
+            CHECK(view.owner.data() >= bytes.data() && view.owner.data() + view.owner.size() <= bytes.data() + bytes.size());
+            CHECK(view.snapshot.data() >= bytes.data() && view.snapshot.data() + view.snapshot.size() == bytes.data() + bytes.size());
+            auto full = fsnet::decode_entity_record(bytes);
+            CHECK(full.snapshot.state == record.snapshot.state && full.snapshot.receipts.at(0).response == record.snapshot.receipts.at(0).response);
+            auto key = fsnet::entity_record_key("Actor", "large");
+            auto previous = db->get(key);
+            CHECK(db->compare_exchange(key, previous ? previous->version : 0, bytes));
+            auto location = fsnet::entity_location(*db, "Actor", "large");
+            CHECK(location && location->owner == record.owner && location->placement == record.placement && location->transfer_id == record.transfer_id);
+            auto rejected = [](std::string_view value) {
+                try { fsnet::decode_entity_record_view(value); }
+                catch (const std::exception&) { return true; }
+                return false;
+            };
+            for (std::size_t cut = 0; cut < 96; ++cut) CHECK(rejected(std::string_view(bytes).substr(0, cut)));
+            CHECK(rejected(std::string_view(bytes).substr(0, bytes.size() - 1)));
+            CHECK(rejected(bytes + "trailing"));
+            auto invalid = bytes; invalid[0] = 'X'; CHECK(rejected(invalid));
+            auto metadata_end = std::size_t(4 + 4 + record.owner.size() + 8 + 8);
+            invalid = bytes;
+            invalid[metadata_end - 8] = static_cast<char>(0xff); CHECK(rejected(invalid)); // fence range
+            if (version == 3) {
+                invalid = bytes; invalid[metadata_end] = 2; CHECK(rejected(invalid));
+                invalid = bytes; invalid[metadata_end + 1 + 4] = '/'; CHECK(rejected(invalid));
+            }
+            invalid = bytes; invalid[static_cast<std::size_t>(view.snapshot.data() - bytes.data())] = 'X'; CHECK(rejected(invalid));
+        }
+    }
+    CHECK(!fsnet::entity_location(*db, "Actor", "missing"));
+    std::cout << "PASS entity metadata views: FER1/2/3, FSP1/2, large payload and malformed envelopes\n";
+}
 void failover() {
     auto db = fsnet::memory_database(); fsnet::Node a("token"), b("token"), client("token");
     auto pa = std::make_shared<fsnet::NodeScriptHost>(a), pb = std::make_shared<fsnet::NodeScriptHost>(b);
@@ -78,6 +127,6 @@ void lost_reply() {
     std::cout << "PASS entity retry: lost acknowledgement replays committed response without repeating the state transition\n";
 }
 int main() {
-    try { failover(); lost_reply(); }
+    try { metadata_views(); failover(); lost_reply(); }
     catch (const std::exception& error) { std::cerr << error.what() << '\n'; return 1; }
 }

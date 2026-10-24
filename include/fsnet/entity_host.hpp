@@ -54,6 +54,8 @@ public:
     // A throwing listener cannot roll back an already committed entity.
     void on_attributes(AttributeListener);
     using Closed = std::function<void(const std::string&,const std::string&,bool destroyed)>;
+    // Also invalidates projections after an uncertain storage commit. The
+    // entity's handle generation changes; clients must acquire a new snapshot.
     void on_closed(Closed);
     std::shared_ptr<const EntitySchema> schema(const std::string& type) const;
     std::string owner_subject(const std::string& type, const std::string& id) const;
@@ -68,6 +70,8 @@ public:
     // Trusted application mapping from entity identity to account subject. Empty
     // results deny owner-only calls; the default resolver denies all such calls.
     void ownership(OwnerResolver);
+    // Updates existing contextual RPCs. Legacy bind_stateful handlers do not
+    // receive authenticated caller identity and cannot acquire a policy here.
     void rpc_policy(const std::string&, RpcPolicy) override;
     void unbind(const std::string&) override;
     void call_entity(std::string, std::string, std::chrono::milliseconds, Reply) override;
