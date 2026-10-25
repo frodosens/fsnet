@@ -335,6 +335,36 @@ SIGKILL，重启后自动补投；接收方奖励和 inbox 提交后故意丢弃
 上述结果不代表跨机 HA、数据库副本丢失恢复、无限消息容量或外部副作用 exactly-once。
 协议/API/升级约束见 [ENTITY_DELIVERY.md](ENTITY_DELIVERY.md)。
 
+## 逻辑连接授权与持久计时器（2026-10-25）
+
+`refactor/global-entities` 上的 `4a94d55`、`14be2e3`、`d9c958c` 接入逻辑连接身份、
+全局实体 owner 换绑，以及持久实体计时器。使用仓库 `.dev` 固定工具链，PostgreSQL OFF。
+
+| 配置/检查 | 结果 |
+| --- | --- |
+| Debug，Lua ON | CTest 48/48 通过 |
+| Release，Lua ON | CTest 48/48 通过 |
+| ASan/UBSan，detect_leaks/halt_on_error | CTest 31/31 通过 |
+| Debug，Lua OFF 核心 | CTest 17/17 通过 |
+| 持久计时器专项 `fsnet-timers` | 连续 10 次通过 |
+| SIGKILL/重启专项 `fsnet-timer-process` | 连续 3 次通过 |
+
+连接检查包括同账号不同连接隔离、可信 Gateway 保留原始连接、断线后旧上下文失效、
+跨节点换绑与旧投影撤销、远端创建后向原连接 show/possess。
+计时器检查包括三种周期推进、有限次数、取消/替换、失败回滚与重试、容量拒绝、卸载唤醒、
+目标节点迁移后触发，以及索引/实体两个提交边界的 ACK 丢失。
+真实进程测试在注册任务后 SIGKILL，过期后重启继续执行；第二次重启验证已完成任务不再推进状态。
+
+ASan 配置不运行独立进程夹具；这些由普通构建覆盖。以上为本机共享存储和故障注入检查，
+不表示已完成跨机分区、时钟异常、生产容量或外部副作用 exactly-once 验收。
+API 与恢复合同见 [CONNECTION_AUTHORITY_AND_TIMERS.md](CONNECTION_AUTHORITY_AND_TIMERS.md)
+和 [ENTITY_TIMERS.md](ENTITY_TIMERS.md)。
+
+复现时先 `. tools/dev/activate.sh`，分别对 `debug`、`release`、`asan`、`core` 执行
+`cmake --preset <配置>`、`cmake --build --preset <配置>`、`ctest --preset <配置>`。
+重复专项使用 `ctest --preset debug -R '^fsnet-timers$' --repeat until-fail:10` 和
+`ctest --preset debug -R '^fsnet-timer-process$' --repeat until-fail:3`。
+
 ## Runtime 审查修复（2026-10-24）
 
 针对 [代码审查报告](CODE_REVIEW_2026-10-24.md) 的七项缺陷补齐修复：Node 回调生命周期与接收预算、实体运行时权限更新与重放激活、不确定提交后的订阅失效恢复、Lua 模式匹配工作预算与输入容量释放。同时优化持久投递扫描、目录解码，并修复 Gateway 慢轮询时的候选重试和恢复后的旧缓存。
