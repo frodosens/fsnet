@@ -336,6 +336,7 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
         if (!engine.loading) return luaL_error(L, "declare attributes only during load");
         std::size_t n; const char* type = luaL_checklstring(L, 1, &n);
         luaL_checktype(L, 2, LUA_TTABLE);
+        const bool server=!lua_toboolean(L,4);
         try {
             std::string kind(type, n);
             if (kind.empty() || kind.size() > 127 || kind.find_first_of(".\0", 0, 2) != std::string::npos || engine.schemas.size() >= 256)
@@ -376,13 +377,17 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
             auto initial = encode_attributes({0, 0, true, model.persistent()});
             auto charge=schema_charge(schema);
             engine.reserve_external(L,charge,"schema memory budget");
+            // Prepare the Lua result before publishing native ownership: an
+            // allocation failure must leave the name available for retry.
+            lua_pushlstring(L,initial.data(),initial.size());
+            engine.reserve_external(L,charge,"schema memory budget");
             if (!engine.schemas.emplace(kind, std::move(schema)).second) throw std::invalid_argument("duplicate entity attributes");
             try {
                 engine.schema_charges.emplace(kind,charge);
-                if(!lua_toboolean(L,4)) engine.server_schemas.insert(kind);
+                if(server) engine.server_schemas.insert(kind);
             }catch(...){engine.schemas.erase(kind);engine.schema_charges.erase(kind);throw;}
             engine.used+=charge;
-            lua_pushlstring(L, initial.data(), initial.size()); return 1;
+            return 1;
         } catch (const std::exception& e) { return luaL_error(L, "%s", e.what()); }
     }
     static AttributeObject& attribute_object(lua_State* L, int index) {

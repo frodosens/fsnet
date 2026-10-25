@@ -8,7 +8,7 @@
   "source_sha256": {
     "src/entity_host.cpp": "55d748a8dc75ced72bc19962cc9bc538b91e518a4beb8c3821daf5d726bb9b21",
     "src/client_gateway.cpp": "e40879a943940ecc5a10e9eadc407a9012e1eef98c5cbba585a970acd8ba6599",
-    "src/lua_engine.cpp": "21a9aa75d16f441a226357296a9c405c4312249856dbd87f4c9982fdff2e4606",
+    "src/lua_engine.cpp": "e5a0c35c70795e3dbc827d5817cc683e0b591f3d7b306afeef88b4fa832f92f2",
     "src/attribute_wire.cpp": "df8346cb0c99884b032c6870525533d475c190e135cec9b3f29d72985078210a",
     "src/entity_schema.cpp": "b79a0af8bc127dec16c84741f7b72dae1bc254fc1257b3f5a0e8f5f054a09509",
     "src/attribute_replication.cpp": "2b21d6c73982fe266cdbef1bf837fc9e32227b5884ce2d1dccd83d24b5bb9c3a",
@@ -33,7 +33,7 @@
           "scenario": "direct_apply",
           "unchanged_items": 0,
           "iterations": 1000,
-          "ns_per_op": 186.085,
+          "ns_per_op": 156.376,
           "allocations_per_op": 2,
           "allocated_bytes_per_op": 240
         },
@@ -41,7 +41,7 @@
           "scenario": "receive_candidate_pattern",
           "unchanged_items": 0,
           "iterations": 1000,
-          "ns_per_op": 238.519,
+          "ns_per_op": 250.831,
           "allocations_per_op": 5,
           "allocated_bytes_per_op": 592
         },
@@ -49,7 +49,7 @@
           "scenario": "native_attribute_client_receive",
           "unchanged_items": 0,
           "iterations": 1000,
-          "ns_per_op": 5326.8,
+          "ns_per_op": 2747.84,
           "allocations_per_op": 6,
           "allocated_bytes_per_op": 455
         },
@@ -57,7 +57,7 @@
           "scenario": "direct_apply",
           "unchanged_items": 16,
           "iterations": 1000,
-          "ns_per_op": 212.405,
+          "ns_per_op": 183.436,
           "allocations_per_op": 2,
           "allocated_bytes_per_op": 240
         },
@@ -65,7 +65,7 @@
           "scenario": "receive_candidate_pattern",
           "unchanged_items": 16,
           "iterations": 1000,
-          "ns_per_op": 1913.21,
+          "ns_per_op": 654.33,
           "allocations_per_op": 22,
           "allocated_bytes_per_op": 9696
         },
@@ -73,7 +73,7 @@
           "scenario": "native_attribute_client_receive",
           "unchanged_items": 16,
           "iterations": 1000,
-          "ns_per_op": 4881.51,
+          "ns_per_op": 2706.21,
           "allocations_per_op": 6,
           "allocated_bytes_per_op": 455
         },
@@ -81,7 +81,7 @@
           "scenario": "direct_apply",
           "unchanged_items": 256,
           "iterations": 1000,
-          "ns_per_op": 2266.32,
+          "ns_per_op": 1061.97,
           "allocations_per_op": 2,
           "allocated_bytes_per_op": 240
         },
@@ -89,7 +89,7 @@
           "scenario": "receive_candidate_pattern",
           "unchanged_items": 256,
           "iterations": 1000,
-          "ns_per_op": 57444.1,
+          "ns_per_op": 10672.5,
           "allocations_per_op": 262,
           "allocated_bytes_per_op": 146256
         },
@@ -97,7 +97,7 @@
           "scenario": "native_attribute_client_receive",
           "unchanged_items": 256,
           "iterations": 1000,
-          "ns_per_op": 9406.35,
+          "ns_per_op": 3770.75,
           "allocations_per_op": 6,
           "allocated_bytes_per_op": 455
         }
@@ -110,7 +110,7 @@
           "scenario": "direct_apply",
           "unchanged_items": 0,
           "iterations": 1000,
-          "ns_per_op": 8355.53,
+          "ns_per_op": 151.612,
           "allocations_per_op": 2,
           "allocated_bytes_per_op": 240
         },
@@ -118,7 +118,7 @@
           "scenario": "receive_candidate_pattern",
           "unchanged_items": 0,
           "iterations": 1000,
-          "ns_per_op": 324.403,
+          "ns_per_op": 228.231,
           "allocations_per_op": 5,
           "allocated_bytes_per_op": 592
         },
@@ -126,7 +126,7 @@
           "scenario": "native_attribute_client_receive",
           "unchanged_items": 0,
           "iterations": 1000,
-          "ns_per_op": 12362.5,
+          "ns_per_op": 2777.12,
           "allocations_per_op": 6,
           "allocated_bytes_per_op": 455
         },
@@ -134,7 +134,7 @@
           "scenario": "direct_apply",
           "unchanged_items": 16,
           "iterations": 1000,
-          "ns_per_op": 298.239,
+          "ns_per_op": 183.756,
           "allocations_per_op": 2,
           "allocated_bytes_per_op": 240
         },
@@ -142,7 +142,7 @@
           "scenario": "receive_candidate_pattern",
           "unchanged_items": 16,
           "iterations": 1000,
-          "ns_per_op": 1247.11,
+          "ns_per_op": 662.975,
           "allocations_per_op": 22,
           "allocated_bytes_per_op": 9696
         },
@@ -150,7 +150,7 @@
           "scenario": "native_attribute_client_receive",
           "unchanged_items": 16,
           "iterations": 1000,
-          "ns_per_op": 4975.92,
+          "ns_per_op": 2720.54,
           "allocations_per_op": 6,
           "allocated_bytes_per_op": 455
         },
@@ -158,7 +158,7 @@
           "scenario": "direct_apply",
           "unchanged_items": 256,
           "iterations": 1000,
-          "ns_per_op": 1707.72,
+          "ns_per_op": 1035.15,
           "allocations_per_op": 2,
           "allocated_bytes_per_op": 240
         },
@@ -166,7 +166,7 @@
           "scenario": "receive_candidate_pattern",
           "unchanged_items": 256,
           "iterations": 1000,
-          "ns_per_op": 48098.7,
+          "ns_per_op": 10867.2,
           "allocations_per_op": 262,
           "allocated_bytes_per_op": 146256
         },
@@ -174,7 +174,7 @@
           "scenario": "native_attribute_client_receive",
           "unchanged_items": 256,
           "iterations": 1000,
-          "ns_per_op": 66010,
+          "ns_per_op": 3890.86,
           "allocations_per_op": 6,
           "allocated_bytes_per_op": 455
         }
@@ -187,7 +187,7 @@
           "scenario": "direct_apply",
           "unchanged_items": 0,
           "iterations": 1000,
-          "ns_per_op": 272.757,
+          "ns_per_op": 154.509,
           "allocations_per_op": 2,
           "allocated_bytes_per_op": 240
         },
@@ -195,7 +195,7 @@
           "scenario": "receive_candidate_pattern",
           "unchanged_items": 0,
           "iterations": 1000,
-          "ns_per_op": 378.669,
+          "ns_per_op": 227.422,
           "allocations_per_op": 5,
           "allocated_bytes_per_op": 592
         },
@@ -203,7 +203,7 @@
           "scenario": "native_attribute_client_receive",
           "unchanged_items": 0,
           "iterations": 1000,
-          "ns_per_op": 8594.08,
+          "ns_per_op": 2696.74,
           "allocations_per_op": 6,
           "allocated_bytes_per_op": 455
         },
@@ -211,7 +211,7 @@
           "scenario": "direct_apply",
           "unchanged_items": 16,
           "iterations": 1000,
-          "ns_per_op": 295.992,
+          "ns_per_op": 184.672,
           "allocations_per_op": 2,
           "allocated_bytes_per_op": 240
         },
@@ -219,7 +219,7 @@
           "scenario": "receive_candidate_pattern",
           "unchanged_items": 16,
           "iterations": 1000,
-          "ns_per_op": 1225.65,
+          "ns_per_op": 666.465,
           "allocations_per_op": 22,
           "allocated_bytes_per_op": 9696
         },
@@ -227,7 +227,7 @@
           "scenario": "native_attribute_client_receive",
           "unchanged_items": 16,
           "iterations": 1000,
-          "ns_per_op": 44885.9,
+          "ns_per_op": 2679.56,
           "allocations_per_op": 6,
           "allocated_bytes_per_op": 455
         },
@@ -235,7 +235,7 @@
           "scenario": "direct_apply",
           "unchanged_items": 256,
           "iterations": 1000,
-          "ns_per_op": 1721.07,
+          "ns_per_op": 1038.45,
           "allocations_per_op": 2,
           "allocated_bytes_per_op": 240
         },
@@ -243,7 +243,7 @@
           "scenario": "receive_candidate_pattern",
           "unchanged_items": 256,
           "iterations": 1000,
-          "ns_per_op": 37029.1,
+          "ns_per_op": 11029.3,
           "allocations_per_op": 262,
           "allocated_bytes_per_op": 146256
         },
@@ -251,7 +251,7 @@
           "scenario": "native_attribute_client_receive",
           "unchanged_items": 256,
           "iterations": 1000,
-          "ns_per_op": 10285.9,
+          "ns_per_op": 3867.77,
           "allocations_per_op": 6,
           "allocated_bytes_per_op": 455
         }
@@ -327,5 +327,134 @@
       "stdout": "{\"observed\": {\"fixture_end\": \"TimeoutError\"}, \"returncode\": 0, \"stdout\": \"rejected=remote PostgreSQL requires sslmode=verify-full\\n\", \"stderr\": \"\"}\n",
       "stderr": ""
     }
-  ]
+  ],
+  "extra_debug_behavior_probes": [
+    {
+      "case": "control_race",
+      "returncode": 0,
+      "stdout": "restore_sent_control=1 pet_controlled=1 actor_before_confirmation=1 actor_after_confirmation=1 actor_leaves=0 gateway_subscriptions=2\n",
+      "stderr": ""
+    },
+    {
+      "case": "lifecycle_admission",
+      "returncode": 0,
+      "stdout": "unload=2 pending_after_release=0 read_after_release=0 unload_retry=0 active_b=0\n",
+      "stderr": ""
+    },
+    {
+      "case": "drain_admission",
+      "returncode": 0,
+      "stdout": "first_drain=2 retry_drain=0 entities=0 pending=0\n",
+      "stderr": ""
+    },
+    {
+      "case": "missing_reads",
+      "returncode": 0,
+      "stdout": "misses=4096 locks=0 records=0 shards=0 elapsed_ms=35.8234\n",
+      "stderr": ""
+    },
+    {
+      "case": "node_callback_exception",
+      "returncode": 0,
+      "stdout": "destruction_completed=1\n",
+      "stderr": "completion_status=4\n"
+    }
+  ],
+  "release_library_sha256": "f8ee231c25bd27b9461bc0a97f5e166cc4db424257de2272039160669acfa0d0",
+  "local_ctest": {
+    "Debug": {
+      "passed": 42,
+      "failed": 0,
+      "log_sha256": "1dabf6a99d65de248bab994a374f7fc63c3cadaf29d04f12e641c31476fd96aa"
+    },
+    "Release": {
+      "passed": 42,
+      "failed": 0,
+      "log_sha256": "573ec12634988c716b7a59a09540b50c0c5b1960229cce743d065c3a9aa81d9f"
+    },
+    "PostgreSQL": {
+      "passed": 43,
+      "failed": 0,
+      "log_sha256": "db5266938adfdfad3e449d1ea8ea0e683e09fd4318937ac476aa42e14ce75924"
+    },
+    "ASan_UBSan": {
+      "passed": 26,
+      "failed": 0,
+      "log_sha256": "b7ef6ce0bd71b6776b41f012b8138847b663df615dea5bb6de3109f3a4def96f"
+    },
+    "Lua_OFF": {
+      "passed": 14,
+      "failed": 0,
+      "log_sha256": "3cf200127698652198d6f32ee842aa0d1c363b793053ce6e6dfd7747061c8bd6"
+    }
+  },
+  "base_implementation_commit": "bdedbf51aa9d67214286bea845d90e60a6ba657f",
+  "base_implementation_ci": "https://github.com/frodosens/fsnet/actions/runs/40152097019",
+  "base_implementation_ci_conclusion": "success (all five jobs)",
+  "schema_result_followup": {
+    "baseline": "bdedbf51aa9d67214286bea845d90e60a6ba657f",
+    "before_source_sha256": "21a9aa75d16f441a226357296a9c405c4312249856dbd87f4c9982fdff2e4606",
+    "before_observations": [
+      "308 [string \"script\"]:6: duplicate entity attributes",
+      "312 [string \"script\"]:6: duplicate entity attributes",
+      "316 [string \"script\"]:6: duplicate entity attributes",
+      "320 [string \"script\"]:6: duplicate entity attributes",
+      "324 [string \"script\"]:6: duplicate entity attributes",
+      "328 [string \"script\"]:6: duplicate entity attributes",
+      "332 [string \"script\"]:6: duplicate entity attributes",
+      "336 [string \"script\"]:6: duplicate entity attributes",
+      "340 [string \"script\"]:6: duplicate entity attributes",
+      "344 [string \"script\"]:6: duplicate entity attributes",
+      "348 [string \"script\"]:6: duplicate entity attributes",
+      "352 [string \"script\"]:6: duplicate entity attributes",
+      "356 [string \"script\"]:6: duplicate entity attributes",
+      "360 [string \"script\"]:6: duplicate entity attributes",
+      "364 [string \"script\"]:6: duplicate entity attributes",
+      "368 [string \"script\"]:6: duplicate entity attributes"
+    ],
+    "after": "lua-resources requires successful same-name retry with a 320 KiB budget; all Lua presets rerun after the fix"
+  },
+  "relocated_release_delivery": {
+    "checks": [
+      "unsafe launcher configuration rejected",
+      "mutual TLS",
+      "untrusted CA rejected",
+      "unmapped certificate rejected",
+      "authenticated account delegation",
+      "automatic subscription",
+      "SIGKILL takeover with confirmed state",
+      "same RPC ID replay across owners",
+      "shared field batch load",
+      "graceful owner handoff",
+      "directed owner handoff over mutual TLS",
+      "directed round trip preserves Lua object",
+      "durable command over mutual TLS with pinned owner roles",
+      "stable frontend entity",
+      "resource cleanup",
+      "readiness and metrics"
+    ],
+    "rounds": 1000,
+    "batch_seconds": 5.773489717999837,
+    "batch_rounds_per_second": 173.205469974655,
+    "batch_timing_scope": "parent observes recovered to load_done; one serial Lua vec3 batch per persistent commit, includes replication, no startup/crash recovery",
+    "recovery_seconds": 1.9700818360001904,
+    "elapsed_seconds": 10.792178750999938,
+    "peaks": {
+      "ownera.pending": 1,
+      "ownera.queued_bytes": 135,
+      "ownera.resident_bytes": 45511,
+      "ownera.lua_bytes": 2141694,
+      "ownerb.pending": 0,
+      "ownerb.queued_bytes": 0,
+      "ownerb.resident_bytes": 0,
+      "ownerb.lua_bytes": 570946,
+      "gateway.pending": 1,
+      "gateway.queued_bytes": 132,
+      "gateway.backend_pending": 1
+    },
+    "scope": "local processes, shared POSIX file storage, ephemeral PKI; not cross-machine HA or a production SLO",
+    "service_sha256": "d0b1125924637a63be25f95c89fc56310fd230b7201be8f2db9fc57bffff1001",
+    "client_sha256": "12c308222ced3bbede17d8eb8687efa15dd67eae38d5708f4a932c5a060b7893",
+    "library_sha256": "f8ee231c25bd27b9461bc0a97f5e166cc4db424257de2272039160669acfa0d0"
+  }
 }

@@ -124,4 +124,15 @@ void prediction_gc() {
     CHECK(engine.active()==0&&engine.last_error().empty());
     engine.stop();CHECK(host->unwatches==1&&engine.memory_used()==0);
 }
-int main(){try{watch_ownership();watch_completion_budget();schema_budget();prediction_gc();std::cout<<"PASS Lua native resources: watch ownership, schema quota, prediction and local carrier GC\n";}catch(const std::exception& error){std::cerr<<error.what()<<'\n';return 1;}}
+void schema_result_allocation(){
+    auto host=std::make_shared<Host>();fsnet::ScriptLimits limits;limits.memory_bytes=320*1024;
+    fsnet::LuaEngine engine(host,limits);engine.load(R"(
+        local value=string.rep('x',65536)
+        local spec={x={type='string',default=value}}
+        assert(not pcall(runtime._attributes_define,'Retry',spec,nil,true))
+        value=nil;spec=nil
+        runtime._attributes_define('Retry',{x={type='int32',default=0}},nil,true)
+    )");
+    engine.stop();CHECK(engine.memory_used()==0);
+}
+int main(){try{watch_ownership();watch_completion_budget();schema_budget();schema_result_allocation();prediction_gc();std::cout<<"PASS Lua native resources: watch ownership, schema quota, prediction and local carrier GC\n";}catch(const std::exception& error){std::cerr<<error.what()<<'\n';return 1;}}
