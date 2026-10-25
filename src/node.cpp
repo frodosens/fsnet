@@ -57,6 +57,7 @@ struct Node::Impl : std::enable_shared_from_this<Node::Impl> {
     struct Route { RpcPolicy policy; ContextHandler handler; bool legacy = false; };
     bool stopped = false, ready = true, driving = false;
     std::size_t receive_bytes = 0;
+    std::size_t callback_failures = 0;
     std::uint64_t peer_serial = 0, call_serial = 0;
     std::unordered_map<std::uint64_t, std::shared_ptr<Session>> sessions;
     std::unordered_map<std::uint64_t, Pending> calls;
@@ -102,7 +103,10 @@ struct Node::Impl : std::enable_shared_from_this<Node::Impl> {
         auto pending = std::move(it->second);
         calls.erase(it);
         pending.timer->cancel();
-        pending.reply(std::move(result));
+        deliver(std::move(pending.reply),std::move(result));
+    }
+    void deliver(Reply reply,Result result) noexcept {
+        try { reply(std::move(result)); } catch(...) { ++callback_failures; }
     }
     void lost(std::uint64_t peer) {
         sessions.erase(peer);
@@ -387,11 +391,11 @@ void Node::call(std::uint64_t peer, std::string_view route, std::string_view dat
     auto keep = impl_;
     if (!reply) throw std::invalid_argument("missing reply callback");
     if (route.empty() || route.size() > 256 || route.find('\0') != std::string::npos || route.size() + data.size() > impl_->limits.frame_bytes - 14 || timeout.count() <= 0 || timeout > std::chrono::seconds(30))
-        return reply({Status::rejected, {}});
+        return keep->deliver(std::move(reply),{Status::rejected, {}});
     auto it = impl_->sessions.find(peer);
-    if (impl_->stopped || it == impl_->sessions.end()) return reply({Status::disconnected, {}});
-    if (impl_->calls.size() >= impl_->limits.pending_calls) return reply({Status::overloaded, {}});
-    if (impl_->call_serial == std::numeric_limits<std::uint64_t>::max()) return reply({Status::overloaded, {}});
+    if (impl_->stopped || it == impl_->sessions.end()) return keep->deliver(std::move(reply),{Status::disconnected, {}});
+    if (impl_->calls.size() >= impl_->limits.pending_calls) return keep->deliver(std::move(reply),{Status::overloaded, {}});
+    if (impl_->call_serial == std::numeric_limits<std::uint64_t>::max()) return keep->deliver(std::move(reply),{Status::overloaded, {}});
     auto id = ++impl_->call_serial;
     auto timer = std::make_shared<asio::steady_timer>(impl_->io, timeout);
     impl_->calls.emplace(id, Impl::Pending{peer, timer, std::move(reply)});
@@ -456,6 +460,6 @@ void Node::stop() {
     if (!keep->driving) keep->drain();
 }
 std::size_t Node::pending() const { return impl_->calls.size(); }
-TransportStats Node::stats() const { TransportStats result;result.connections=impl_->sessions.size();result.pending=impl_->calls.size();result.receive_bytes=impl_->receive_bytes;for(const auto& [id,s]:impl_->sessions){(void)id;result.inflight+=s->inflight;result.queued_bytes+=s->queued;}return result; }
+TransportStats Node::stats() const { TransportStats result;result.connections=impl_->sessions.size();result.pending=impl_->calls.size();result.receive_bytes=impl_->receive_bytes;result.callback_failures=impl_->callback_failures;for(const auto& [id,s]:impl_->sessions){(void)id;result.inflight+=s->inflight;result.queued_bytes+=s->queued;}return result; }
 void Node::set_ready(bool value){impl_->ready=value;}
 }

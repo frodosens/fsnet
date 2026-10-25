@@ -22,7 +22,7 @@ Lua 启动器配置 FSNET_STORAGE_URI=file:/srv/fsnet/state。memory: 用于开�
 
 提交过程：取得跨进程排他锁 → 校验预期版本 → 写独立临时文件 → fsync 文件 → 同目录原子 rename → fsync 目录 → 返回成功。进程退出自动释放锁；锁等待有 5 秒上限。读取使用共享锁，不会看到半个记录。损坏记录报错，不静默丢弃或覆盖。
 
-delete 以 tombstone 替换记录，重建时沿用并增加版本；不能手工删除 tombstone/锁文件来回收空间，否则可能破坏 ABA 防护或跨进程锁。崩溃留下的 .tmp 文件不参与读取，可在全部实例停机后清理。根目录及父目录应在部署时预先创建并确保权限与持久化；数据文件权限 0600，目录挂载必须支持所需的 flock、rename、fsync 语义。
+delete 以 tombstone 替换记录，重建时沿用并增加版本；不能手工删除 tombstone/锁文件来回收空间，否则可能破坏 ABA 防护或跨进程锁。只读 get 直接读取原子替换的不可变记录，不为 miss 创建目录或锁；写入仍使用稳定的逐 key 锁。崩溃留下的 .tmp 文件不参与读取，可在全部实例停机后清理。根目录及父目录应在部署时预先创建并确保权限与持久化；数据文件权限 0600，目录挂载必须支持所需的 flock、rename、fsync 语义。
 
 这不是文件复制协议，也不宣称任意 NFS、对象存储或网络分区下的共享盘都满足合同。跨机部署必须选用已验证的共享/复制存储实现；独立本地目录只能用于独立分片或单机多进程。恢复旧备份前必须停止旧 writer 并执行明确的恢复/版本隔离流程，不能在在线实例下直接替换文件。
 
@@ -45,6 +45,8 @@ delete 以 tombstone 替换记录，重建时沿用并增加版本；不能手�
 `-DFSNET_WITH_POSTGRES=ON` 从固定 PostgreSQL 17.11 源码构建 libpq，并链接固定源码构建的 OpenSSL；不查找本机私有数据库客户端库。编译 Git 源码需要 Bison、Flex 和 m4。默认关闭，不影响文件/内存/SQLite 独立运行。
 
 使用 open_storage('postgresql://...') 或 postgres_database(libpq_options)。远端连接必须 sslmode=verify-full，校验服务端证书与目标名称；库不会把公共连接降级为明文。驱动强制连接超时 5 秒、语句/锁超时 5 秒、target_session_attrs=read-write 和 synchronous_commit=on。凭据通过安全配置/环境提供，不写入日志或仓库。
+
+目标检查在连接与认证之前执行，覆盖显式 host/hostaddr 和 libpq 环境默认值。service 配置不能在预检查时证明为本地，因此必须使用 verify-full；建立连接后的 TLS 检查作为额外保护。
 
 单记录 CAS 使用带版本条件的 INSERT/UPDATE，删除同样带版本条件；版本使用不回退的 PostgreSQL sequence。该适配器不提供多记录事务扩展，实体运行时也不需要。所有权、状态与去重仍是同一行的一次条件替换。字节参数使用 libpq 二进制参数绑定，不拼接业务 key/value。
 

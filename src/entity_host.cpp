@@ -277,6 +277,7 @@ struct EntityScriptHost::Impl : std::enable_shared_from_this<Impl> {
             else { request.method=found->second; request.route=found->first; }
         }
         ++counters.pending; counters.queued_bytes += bytes;
+        if(is_control(request.route,selected->type)) it->second.releasing=true;
     }
     void acquire(const std::string& entity, Slot& slot) {
         auto job = std::make_shared<Job>(); job->entity = entity;
@@ -560,7 +561,12 @@ struct EntityScriptHost::Impl : std::enable_shared_from_this<Impl> {
                 try { self->execute(job,done); }
                 catch (...) { done({Status::internal, {}}); }
             });
-        if (!accepted) complete(job, {Status::overloaded, {}});
+        if (!accepted) {
+            // The request was admitted to the mailbox. Temporary executor
+            // pressure defers acquisition, preserving its original deadline.
+            active.erase(entity); slot.busy=false;
+            slot.queue.push_front(std::move(job->request));
+        }
     }
 };
 EntityScriptHost::EntityScriptHost(std::shared_ptr<ScriptHost> parent, std::shared_ptr<Database> db,
@@ -592,6 +598,20 @@ void EntityScriptHost::bind_stateful(std::string route, std::string type, std::s
     auto method = std::make_shared<Impl::Method>(Impl::Method{std::move(type), std::move(initial),
         [logic = std::move(logic)](const CallIdentity&, std::string data, Reply reply) { logic(std::move(data), std::move(reply)); }, {}, std::move(schema)});
     self.methods.emplace(route, method);
+    // Delivery metadata is independent of typed attributes. Opaque native
+    // entities need the same private receive/ACK entry as schema entities.
+    auto metadata=method->type+".$snapshot";
+    bool added_metadata=false;
+    if(!self.methods.contains(metadata)) {
+        auto snapshot=std::make_shared<Impl::Method>(Impl::Method{method->type,method->initial,
+            [](const CallIdentity&,std::string input,Reply reply) {
+                auto entity=parse_entity_message_view(input);
+                auto state=entity?parse_state_message_view(entity->payload):std::nullopt;
+                if(!state)return reply({Status::internal,{}});
+                reply({Status::ok,state_message(state->state,state->state)});
+            },RpcPolicy{false,true,false},method->schema});
+        self.methods.emplace(metadata,std::move(snapshot));added_metadata=true;
+    }
     if (Impl::internal(route,method->type)) return; // runtime-only; clients cannot drive ticks
     try {
         self.parent->bind(route, [weak = std::weak_ptr(impl_), route](std::string data, Reply reply) {
@@ -599,7 +619,7 @@ void EntityScriptHost::bind_stateful(std::string route, std::string type, std::s
             if (!self) return reply({Status::disconnected, {}});
             self->enqueue(route, std::move(data), std::move(reply));
         });
-    } catch (...) { self.methods.erase(route); throw; }
+    } catch (...) { self.methods.erase(route); if(added_metadata)self.methods.erase(metadata); throw; }
 }
 void EntityScriptHost::define_schema(std::string type, EntitySchema schema) {
     schema.validate();
@@ -678,9 +698,18 @@ void EntityScriptHost::bind_stateful_context(std::string route, std::string type
                 if (!self) return reply({Status::disconnected, {}});
                 self->enqueue(route, std::move(data), std::move(reply), false, identity);
             });
-    } catch (...) { impl_->methods.erase(route); throw; }
+    } catch (...) { unbind(route); throw; }
 }
-void EntityScriptHost::unbind(const std::string& route) { impl_->parent->unbind(route); impl_->methods.erase(route); }
+void EntityScriptHost::unbind(const std::string& route) {
+    impl_->parent->unbind(route);
+    auto found=impl_->methods.find(route);if(found==impl_->methods.end())return;
+    auto type=found->second->type;impl_->methods.erase(found);
+    if(!impl_->schemas.contains(type)) {
+        auto metadata=type+".$snapshot";
+        bool remaining=false;for(const auto& [name,method]:impl_->methods)if(method->type==type&&name!=metadata){remaining=true;break;}
+        if(!remaining)impl_->methods.erase(metadata);
+    }
+}
 void EntityScriptHost::call_entity(std::string route, std::string data, std::chrono::milliseconds timeout, Reply reply) {
     impl_->parent->call_entity(std::move(route), std::move(data), timeout, std::move(reply));
 }
@@ -706,7 +735,7 @@ std::size_t EntityScriptHost::poll(std::size_t budget) {
         auto& slot = it->second;
         if (!slot.busy && slot.queue.empty() && time - slot.touched >= self.limits.idle_timeout) {
             auto route=slot.handle.type+".$deactivate";
-            if(self.methods.contains(route)) { self.enqueue(route,entity_message(slot.handle.id,"idle"),[](Result){}); slot.releasing=true; }
+            if(self.methods.contains(route)) { self.enqueue(route,entity_message(slot.handle.id,"idle"),[](Result){}); }
             else { self.counters.transient_bytes-=slot.transient.size(); self.slots.erase(it); continue; }
         }
         self.schedule.push_back(entity);
@@ -741,7 +770,7 @@ void EntityScriptHost::deactivate(const EntityHandle& handle, Reply reply) {
     if (handle.owner != self.owner || it == self.slots.end() || it->second.handle.generation != handle.generation || it->second.busy || !it->second.queue.empty())
         return reply({Status::rejected, {}});
     if(self.methods.contains(handle.type+".$deactivate")) {
-        self.enqueue(handle.type+".$deactivate",entity_message(handle.id,"explicit"),std::move(reply)); it->second.releasing=true; return;
+        self.enqueue(handle.type+".$deactivate",entity_message(handle.id,"explicit"),std::move(reply)); return;
     }
     it->second.busy = true; it->second.releasing = true;
     auto release = std::make_shared<Impl::Release>(Impl::Release{std::move(reply)});
@@ -872,9 +901,6 @@ void EntityScriptHost::handoff(const EntityHandle& handle,std::string target,Rep
         return reply({Status::rejected,{}});
     self.enqueue(handle.type+".$deactivate",entity_message(handle.id,"transfer"),std::move(reply),false,
         {Caller::server,"framework:handoff"},std::move(target));
-    // enqueue can reject for capacity; never freeze a mailbox without a control request.
-    auto queued=self.slots.find(key(handle.type,handle.id));
-    if(queued!=self.slots.end() && !queued->second.queue.empty() && !queued->second.queue.back().handoff_target.empty()) queued->second.releasing=true;
 }
 void EntityScriptHost::control_entity(std::string type,std::string id,bool destroy,Reply reply) {
     auto handle=this->handle(type,id);
@@ -884,7 +910,7 @@ void EntityScriptHost::control_entity(std::string type,std::string id,bool destr
     if(self.stopped) return reply({Status::disconnected,{}});
     if(it==self.slots.end() || it->second.busy || !it->second.queue.empty() || it->second.releasing || !self.methods.contains(type+".$destroy"))
         return reply({Status::rejected,{}});
-    self.enqueue(type+".$destroy",entity_message(id,"destroy"),std::move(reply)); it->second.releasing=true;
+    self.enqueue(type+".$destroy",entity_message(id,"destroy"),std::move(reply));
 }
 void EntityScriptHost::drain(Reply reply) {
     impl_->draining=true;
@@ -899,6 +925,9 @@ EntityRuntimeStats EntityScriptHost::stats() const { auto result = impl_->counte
 void EntityScriptHost::stop() {
     auto keep_alive = impl_; auto& self = *keep_alive;
     if (std::exchange(self.stopped, true)) return;
+    // Accepted operations own mutable Job results until the worker has joined.
+    // Synchronize before complete() observes or cancels any of those results.
+    self.storage.stop();
     for (const auto& [route, method] : self.methods) self.parent->unbind(route);
     self.methods.clear();
     auto active = self.active;
@@ -914,6 +943,5 @@ void EntityScriptHost::stop() {
     for (auto& [entity, release] : releases) if (!std::exchange(release->done, true)) {
         try { release->reply({Status::disconnected, {}}); } catch (...) {}
     }
-    self.storage.stop();
 }
 }

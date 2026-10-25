@@ -29,7 +29,7 @@ struct Limits {
     // closes the incoming connection; authentication frames have an exact cap.
     std::size_t receive_bytes = 16 * 1024 * 1024;
 };
-struct TransportStats { std::size_t connections=0,pending=0,inflight=0,queued_bytes=0,receive_bytes=0; };
+struct TransportStats { std::size_t connections=0,pending=0,inflight=0,queued_bytes=0,receive_bytes=0,callback_failures=0; };
 // All Node methods/callbacks run on its owning thread. Separate nodes can run on
 // separate threads/processes. No user code runs on a networking worker thread.
 class Node {
@@ -58,6 +58,8 @@ public:
     bool has_route(const std::string& route) const;
     bool unbind(const std::string& route);
     // Copies borrowed input into an owned frame synchronously before returning.
+    // Completion exceptions are contained and counted, including cancellation
+    // during destruction; they cannot interrupt other completions or teardown.
     void call(std::uint64_t peer, std::string_view route, std::string_view data,
               std::chrono::milliseconds timeout, Reply reply);
     using Notification = std::function<void(std::uint64_t, const std::string& certificate, std::string)>;

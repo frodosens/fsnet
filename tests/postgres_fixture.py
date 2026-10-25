@@ -28,6 +28,16 @@ with tempfile.TemporaryDirectory(prefix='fsnet-postgres-') as temporary:
         subprocess.run([str(pg / 'pg_ctl'), '-D', str(data), *args], check=True, env=environment, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, timeout=15)
     environment = os.environ.copy()
     environment['LD_LIBRARY_PATH'] = str(Path(root_path).parent / 'openssl-install' / 'lib') + ':' + str(Path(root_path) / 'lib') + ':' + environment.get('LD_LIBRARY_PATH', '')
+    # A destination supplied by libpq environment defaults must be rejected
+    # before opening a socket, rather than after authentication.
+    with socket.socket() as listener:
+        listener.bind(('127.0.0.2', 0))
+        listener.listen()
+        preflight = {key: value for key, value in environment.items() if not key.startswith('PG')}
+        preflight.update(PGHOST='127.0.0.2', PGPORT=str(listener.getsockname()[1]),
+                         PGUSER='fsnet_dummy', PGPASSWORD='not-a-real-password')
+        subprocess.run([executable, '--tls-preflight'], env=preflight, check=True, timeout=10)
+        assert not select.select([listener], [], [], 0)[0], 'TLS rejection occurred after connecting'
     query = {'sslmode': 'verify-full', 'sslrootcert': str(root / 'ca.pem')}
     uri = f'postgresql://127.0.0.1:{port}/postgres?' + urlencode(query)
     environment['FSNET_TEST_POSTGRES_URI'] = uri

@@ -49,27 +49,38 @@ public:
         if (options.find('\0') != std::string::npos) throw std::invalid_argument("invalid PostgreSQL connection options");
         char* parse_error = nullptr; auto* parsed = PQconninfoParse(options.c_str(), &parse_error);
         if (!parsed) { if (parse_error) PQfreemem(parse_error); throw std::invalid_argument("invalid PostgreSQL connection options"); }
+        using Options=std::unique_ptr<PQconninfoOption,decltype(&PQconninfoFree)>;
+        Options explicit_options(parsed,PQconninfoFree),defaults(PQconndefaults(),PQconninfoFree);
+        if(!defaults)throw std::runtime_error("PostgreSQL defaults unavailable");
         ssl_mode_ = "verify-full";
-        bool remote = false;
-        for (auto* entry = parsed; entry->keyword; ++entry) {
-            if (!entry->val || !*entry->val) continue;
-            const std::string_view name(entry->keyword), value(entry->val);
-            if (name == "sslmode") ssl_mode_ = value;
-            if (name == "host" || name == "hostaddr") {
+        std::string host,hostaddr,service;
+        for(auto* source:{defaults.get(),explicit_options.get()})for(auto* entry=source;entry->keyword;++entry){
+            if(!entry->val||!*entry->val)continue;
+            std::string_view name(entry->keyword);
+            if(name=="host")host=entry->val;
+            if(name=="hostaddr")hostaddr=entry->val;
+            if(name=="service")service=entry->val;
+            if(source==explicit_options.get()&&name=="sslmode")ssl_mode_=entry->val;
+        }
+        // Environment defaults and service expansion are connection inputs too.
+        // A service's destination cannot be proved local before expansion, so
+        // it always requires verified TLS before authentication starts.
+        bool remote = !service.empty();
+        for (std::string_view value : {std::string_view(host),std::string_view(hostaddr)}) {
+            if(!value.empty()) {
                 std::size_t offset = 0, count = 0;
                 while (offset < value.size()) {
                     auto end = value.find(',', offset); auto host = value.substr(offset, end == std::string_view::npos ? end : end - offset);
                     if (!loopback(host)) remote = true;
-                    if (++count > 8) { PQconninfoFree(parsed); throw std::invalid_argument("too many PostgreSQL destinations"); }
+                    if (++count > 8) throw std::invalid_argument("too many PostgreSQL destinations");
                     if (end == std::string_view::npos) break;
                     offset = end + 1;
                 }
             }
         }
-        PQconninfoFree(parsed);
         if (remote && ssl_mode_ != "verify-full") throw std::invalid_argument("remote PostgreSQL requires sslmode=verify-full");
-        const char* keys[] = {"dbname", "sslmode", "connect_timeout", "target_session_attrs", "options", nullptr};
-        const char* values[] = {options.c_str(), ssl_mode_.c_str(), "5", "read-write", "-c statement_timeout=5000 -c lock_timeout=5000 -c synchronous_commit=on", nullptr};
+        const char* keys[] = {"dbname", "sslmode", "host", "hostaddr", "connect_timeout", "target_session_attrs", "options", nullptr};
+        const char* values[] = {options.c_str(), ssl_mode_.c_str(),host.c_str(),hostaddr.c_str(), "5", "read-write", "-c statement_timeout=5000 -c lock_timeout=5000 -c synchronous_commit=on", nullptr};
         connection_ = PQconnectdbParams(keys, values, 1);
         try {
             if (!connection_ || PQstatus(connection_) != CONNECTION_OK) fail();

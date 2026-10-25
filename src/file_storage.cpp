@@ -76,8 +76,8 @@ class Files final : public Storage {
         if (!created || exclusive) check(::fsync(root_.get()), "file storage root sync");
         return Locked(::openat(root_.get(), shard.c_str(), O_RDONLY | O_DIRECTORY | O_CLOEXEC | O_NOFOLLOW), name, exclusive);
     }
-    Entry read(const Locked& locked, std::string_view key) {
-        auto descriptor = ::openat(locked.directory.get(), locked.name.c_str(), O_RDONLY | O_CLOEXEC | O_NOFOLLOW);
+    Entry read(int directory,const std::string& name, std::string_view key) {
+        auto descriptor = ::openat(directory, name.c_str(), O_RDONLY | O_CLOEXEC | O_NOFOLLOW);
         if (descriptor < 0 && errno == ENOENT) return {};
         Descriptor file(descriptor); struct stat metadata{}; check(::fstat(file.get(), &metadata), "file storage stat");
         if (!S_ISREG(metadata.st_mode) || metadata.st_size < 53 || metadata.st_size > static_cast<off_t>(maximum_value + 8192))
@@ -104,7 +104,7 @@ class Files final : public Storage {
     bool replace(std::string_view key, std::uint64_t expected, std::optional<std::string_view> value) {
         if (expected >= static_cast<std::uint64_t>(INT64_MAX) || (value && value->size() > maximum_value))
             throw std::invalid_argument("invalid storage replacement");
-        auto locked = lock(key, true); auto current = read(locked, key);
+        auto locked = lock(key, true); auto current = read(locked.directory.get(),locked.name,key);
         if ((current.present ? current.version : 0) != expected || (!value && !current.present)) return false;
         if (current.version >= static_cast<std::uint64_t>(INT64_MAX) - 1) throw std::overflow_error("record version exhausted");
         std::string bytes = "FSF1"; entity_record_detail::integer(bytes, current.version + 1); bytes.push_back(value ? 1 : 0);
@@ -128,7 +128,14 @@ public:
         check(::fsync(parent.get()), "file storage parent sync");
     }
     std::optional<Record> get(std::string_view key) override {
-        auto locked = lock(key, false); auto record = read(locked, key);
+        if(key.empty()||key.size()>4096)throw std::invalid_argument("invalid storage key");
+        auto name=hex(digest(key));auto shard=name.substr(0,2);
+        auto fd=::openat(root_.get(),shard.c_str(),O_RDONLY|O_DIRECTORY|O_CLOEXEC|O_NOFOLLOW);
+        if(fd<0&&errno==ENOENT)return std::nullopt;
+        Descriptor directory(fd);
+        // Writers only rename immutable files. An opened fd is a complete old
+        // or new record; readers neither need nor create a per-key lock.
+        auto record = read(directory.get(),name.substr(2)+".record",key);
         return record.present ? std::optional<Record>{{std::move(record.value), record.version}} : std::nullopt;
     }
     bool compare_exchange(std::string_view key, std::uint64_t expected, std::string_view value) override { return replace(key, expected, value); }

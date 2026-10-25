@@ -9,6 +9,13 @@
 #include "storage_contract.hpp"
 int main(int argc, char** argv) {
     try {
+        if (argc > 1 && std::string_view(argv[1]) == "--tls-preflight") {
+            bool rejected = false;
+            try { fsnet::postgres_database("sslmode=disable"); }
+            catch (const std::invalid_argument&) { rejected = true; }
+            CHECK(rejected);
+            return 0;
+        }
         auto* uri = std::getenv("FSNET_TEST_POSTGRES_URI"); CHECK(uri);
         auto db = fsnet::postgres_database(uri);
         if (argc > 1 && std::string_view(argv[1]) == "--reconnect") {

@@ -31,5 +31,6 @@ int main(int argc,char**){
  std::optional<fsnet::Result> unload;host.deactivate(handle,[&](auto value){unload=std::move(value);});
  held({fsnet::Status::ok,fsnet::state_message("","")});pump([&]{return bool(first);});
  auto retry=invoke("read","b");std::optional<fsnet::Result> unload_retry;host.deactivate(handle,[&](auto value){unload_retry=std::move(value);});
+ pump([&]{return bool(unload_retry);});
  std::cout<<"unload="<<int(unload->status)<<" pending_after_release="<<host.stats().pending<<" read_after_release="<<int(retry.status)<<" unload_retry="<<int(unload_retry->status)<<" active_b="<<host.active("Actor","b")<<"\n";
 }

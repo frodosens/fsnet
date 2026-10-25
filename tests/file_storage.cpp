@@ -12,6 +12,8 @@ int main() {
     auto root = std::filesystem::temp_directory_path() / ("fsnet-files-" + std::to_string(std::chrono::steady_clock::now().time_since_epoch().count()));
     try {
         auto first = fsnet::file_storage(root.string()), second = fsnet::file_storage(root.string());
+        for(unsigned i=0;i<4096;++i)CHECK(!first->get("absent-"+std::to_string(i)));
+        CHECK(std::filesystem::is_empty(root)); // a read miss must not consume persistent inodes
         CHECK(!first->supports_transactions()); bool unsupported = false;
         try { first->transact({}); } catch (const std::logic_error&) { unsupported = true; } CHECK(unsupported);
         const std::string key("../entity\0/42", 13), bytes("binary\0value\xff", 13);
