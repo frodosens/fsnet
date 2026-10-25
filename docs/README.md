@@ -38,6 +38,7 @@ C++ 提供客户端/服务端共用的引擎机制，业务逻辑写在 Lua；�
 - [完成状态](ENGINE_COMPLETION.md)：当前能力与尚未交付项。
 - [路线图](ROADMAP.md)：后续阶段，不将计划视为已实现 API。
 - [全局实体与业务 RPC 规划](ENTITY_ADDRESSING_PLAN.md)：已确认的全局独立 EntityId、业务统一实体调用、多 LoginHub 与跨节点创建约束；尚未实现。
+- [新旧实体方案比较](ENTITY_ADDRESSING_COMPARISON.md)：当前/建议 API、迁移复用、创建幂等、性能成本与复杂度；新接口为设计示意。
 - [验证记录](VALIDATION.md)：各阶段配置、测试数量与未验证场景；最新配置为 Lua ON、PostgreSQL OFF；当前结果见验证记录末节。
 - [Copy 优化实施](COPY_OPTIMIZATION.md)：借用解析、同步组帧、Gateway属性字节转发和确认版本共享。
 - [当前性能与字符串复制 review](PERFORMANCE_REVIEW.md)：RPC/Gateway、Lua/属性、mTLS持久化链路和 copy 审阅；本轮没有修改运行时。
