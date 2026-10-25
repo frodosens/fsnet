@@ -105,7 +105,7 @@ struct EntityScriptHost::Impl : std::enable_shared_from_this<Impl> {
     std::unordered_map<std::string, std::shared_ptr<Job>> active;
     std::unordered_map<std::uint64_t,std::shared_ptr<Admission>> admissions;
     std::unordered_map<std::string,std::string> resolved_types;
-    std::uint64_t admission_serial=0;
+    std::uint64_t admission_serial=0,timer_revision=0;
     bool global_entry=false;
     EntityRuntimeStats counters;
     std::uint64_t generation = 0;
@@ -207,6 +207,7 @@ struct EntityScriptHost::Impl : std::enable_shared_from_this<Impl> {
     }
     void complete(const std::shared_ptr<Job>& job, Result result) {
         if (std::exchange(job->responded, true)) return;
+        if(job->timer_dirty && (result.status==Status::ok || job->commit_uncertain))++timer_revision;
         active.erase(job->entity);
         auto it = slots.find(job->entity);
         if (job->attributes && result.status == Status::ok && it != slots.end()) {
@@ -687,6 +688,7 @@ struct EntityScriptHost::Impl : std::enable_shared_from_this<Impl> {
                     owner->counters.state_bytes = owner->counters.state_bytes - job->resident + retained;
                     job->resident = retained;
                     bool release=Impl::is_control(job->request.route,job->request.method->type);
+                    if(!job->timers.token.empty() && (!job->request.handoff_target.empty() || job->request.accept_transfer))job->timer_dirty=true;
                     EntityRecord committed{release?std::string{}:owner->owner,release?0:job->expires,job->fence,
                         {std::move(job->state),std::move(job->receipts),std::move(job->delivery),job->timers},release?!job->created:true,
                         job->request.handoff_target.empty()?job->placement:job->request.handoff_target,
@@ -709,7 +711,8 @@ struct EntityScriptHost::Impl : std::enable_shared_from_this<Impl> {
                             if (clock() >= job->expires) { job->owner_lost=true; job->status = Status::rejected; return; }
                             if(job->timer_dirty) {
                                 auto split=job->entity.find('\0');
-                                timer_index::arm(db,{job->request.method->type,job->entity.substr(split+1),job->timers.token,job->version,job->fence,next_entity_timer(job->timers),true});
+                                timer_index::arm(db,{job->request.method->type,job->entity.substr(split+1),job->timers.token,job->version,job->fence,next_entity_timer(job->timers),true,
+                                    job->request.handoff_target.empty()?job->placement:job->request.handoff_target});
                             }
                             if(clock()>=job->expires){job->owner_lost=true;job->status=Status::rejected;return;}
                             bool destroy=job->request.route==job->request.method->type+".$destroy";
@@ -845,6 +848,7 @@ void EntityScriptHost::enable_global_entities() {
 }
 void EntityScriptHost::bind_entity_owner(std::string type,std::string id,ConnectionRef owner,Reply reply) {impl_->bind_owner(std::move(type),std::move(id),std::move(owner),std::move(reply));}
 std::int64_t EntityScriptHost::now_ms()const{return impl_->now();}
+std::uint64_t EntityScriptHost::timer_revision()const{return impl_->timer_revision;}
 std::string EntityScriptHost::timer_key(const std::string& type,const std::string& id)const {
     auto job=impl_->timer_job(type,id);if(job->timers.sequence==UINT64_MAX)throw std::overflow_error("timer sequence exhausted");
     return "timer:"+std::to_string(job->version)+'.'+std::to_string(job->timers.sequence+1);

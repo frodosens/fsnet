@@ -10,6 +10,7 @@ struct Entry {
     std::uint64_t base_version=0,fence=0;
     std::int64_t due_ms=0;
     bool pending=true;
+    std::string placement{}; // routing hint; pending entries must consult the entity
     bool operator==(const Entry&)const=default;
 };
 struct Bucket {std::uint64_t version=0;std::map<std::string,Entry> entries;};

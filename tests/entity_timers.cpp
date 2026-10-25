@@ -1,6 +1,7 @@
 #include "fsnet/entity_timers.hpp"
 #include "fsnet/entity_message.hpp"
 #include "fsnet/lua_engine.hpp"
+#include "../src/entity_timer_index.hpp"
 #include <atomic>
 #include <filesystem>
 #include <fstream>
@@ -97,6 +98,25 @@ int main(int argc,char** argv){try{
         CHECK(machine.call(id,"arm","once").status==Status::ok);faulty->fault=fault;time->fetch_add(100);
         machine.until([&]{return machine.count(id)==3 && faulty->fault==FaultStorage::none;});machine.spin(50);
         CHECK(machine.count(id)==3 && machine.record(id).snapshot.timers.entries.empty() && machine.timers->stats().failures>0);
+    }
+    // Foreign/unknown types must not consume a local scheduling slot, even
+    // when they appear in earlier discovery shards.
+    {
+        time->store(10000);Machine machine(memory_database(),time,source,"capacity");auto id=machine.create();
+        CHECK(machine.call(id,"arm","once").status==Status::ok);machine.timers->stop();
+        for(bool unknown:{false,true}) {
+            std::uint64_t number=unknown?2000000:1000000;
+            while(timer_index::shard(EntityId(number).str())!=0)++number;
+            auto copy=machine.record(id);copy.placement=unknown?"timers":"foreign";copy.owner=copy.placement+"/fixture";
+            if(unknown)copy.metadata->type="Unknown";
+            auto key=entity_record_key(EntityId(number));CHECK(machine.db->compare_exchange(key,0,encode_entity_record(copy)));
+            auto bucket=timer_index::read(*machine.db,0);auto record=machine.db->get(key);
+            timer_index::Entry entry{copy.metadata->type,EntityId(number).str(),copy.snapshot.timers.token,record->version,copy.fence,10100,false,copy.placement};
+            bucket.entries.emplace(timer_index::identity(entry.type,entry.id),entry);CHECK(timer_index::write(*machine.db,0,bucket));
+        }
+        EntityTimerLimits scheduling;scheduling.tracked=1;scheduling.refresh=2ms;scheduling.retry=2ms;
+        machine.timers=std::make_unique<EntityTimers>(machine.host,machine.db,scheduling);
+        time->fetch_add(100);machine.until([&]{return machine.count(id)==3 && machine.timers->stats().fired==1;});
     }
     // Reopen a durable backend with no resident entity and a new process owner.
     auto directory=std::filesystem::temp_directory_path()/("fsnet-timer-restart-"+ConnectionRef::create().id);

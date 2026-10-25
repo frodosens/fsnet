@@ -1,4 +1,4 @@
--- Entity IDs are stable strings. Account ownership is separate metadata.
+-- Entity IDs are stable strings; authorization is bound to a logical connection.
 Player=fsnet.Entity:extend('Player',{owner='external'})
 Player:attr('name',{type='string',default='',sync='observers'})
 Player:attr('position',{type='vec3',authority='driver',sync='observers'})
@@ -10,4 +10,6 @@ function Player:move(input)
     return tostring(self.position.x)
 end
 function Player:on_deactivate() end
+Player:rpc('configure',{callers={'server'}})
+function Player:configure(name) self.name=name end
 Player:define()

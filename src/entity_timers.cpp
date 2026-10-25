@@ -16,11 +16,13 @@ struct EntityTimers::Impl:std::enable_shared_from_this<Impl> {
     std::map<std::pair<std::int64_t,std::string>,std::shared_ptr<Watch>> schedule;
     std::vector<std::set<std::string>> members{timer_index::shards};
     Clock::time_point refresh{};unsigned cursor=0,remaining=0;bool stopped=false,polling=false;
+    std::chrono::milliseconds idle{};std::uint64_t observed_revision=0,rounds=0;bool verify_hints=true;
     std::string owner,node;
     Impl(std::shared_ptr<EntityScriptHost> h,std::shared_ptr<Database> db,EntityTimerLimits settings)
         :host(std::move(h)),storage(std::move(db)),limits(settings) {
         if(!host || limits.pending<2 || limits.pending>1024 || !limits.tracked || limits.tracked>timer_index::shards*timer_index::per_shard || limits.refresh.count()<=0 || limits.retry.count()<=0)throw std::invalid_argument("invalid entity timer service limits");
         owner=host->owner_id();node=owner.substr(0,owner.find('/'));
+        idle=limits.refresh;observed_revision=host->timer_revision();
     }
     void due(const std::shared_ptr<Watch>& watch,std::int64_t when) {
         auto key=timer_index::identity(watch->entry.type,watch->entry.id);
@@ -37,9 +39,17 @@ struct EntityTimers::Impl:std::enable_shared_from_this<Impl> {
             if(error){++self->counters.failures;return;}
             std::set<std::string> seen;
             for(const auto& [key,entry]:bucket->entries) {
+                if(!self->host->schema(entry.type))continue;
                 auto it=self->watches.find(key);
                 if(it==self->watches.end()) {
-                    if(self->watches.size()>=self->limits.tracked){++self->counters.capacity_failures;continue;}
+                    if(self->watches.size()>=self->limits.tracked){
+                        ++self->counters.capacity_failures;
+                        // Prefer due work to a cached future/retrying task. Busy
+                        // jobs retain their capacity until completion.
+                        auto victim=self->schedule.empty()?self->schedule.end():std::prev(self->schedule.end());
+                        if(victim==self->schedule.end() || victim->first.first<=entry.due_ms)continue;
+                        victim->second->removed=true;self->watches.erase(victim->first.second);self->schedule.erase(victim);
+                    }
                     auto watch=std::make_shared<Watch>();watch->entry=entry;it=self->watches.emplace(key,watch).first;
                     self->due(watch,entry.pending?self->host->now_ms():entry.due_ms);
                 }else if(it->second->entry!=entry) {
@@ -48,13 +58,25 @@ struct EntityTimers::Impl:std::enable_shared_from_this<Impl> {
                 }
                 seen.insert(key);
             }
+            if(!seen.empty()){self->idle=self->limits.refresh;self->refresh=Clock::now()+self->limits.refresh;}
             for(const auto& key:self->members[index])if(!seen.contains(key)) {
                 auto it=self->watches.find(key);if(it==self->watches.end())continue;
                 it->second->removed=true;self->schedule.erase({it->second->next,key});self->watches.erase(it);
             }
             self->members[index]=std::move(seen);
         };
-        if(!storage.submit(3*1024*1024,[bucket,index](Database& db){*bucket=timer_index::read(db,index);},complete)){complete(std::make_exception_ptr(std::runtime_error("timer index queue pressure")));return false;}
+        if(!storage.submit(3*1024*1024,[bucket,index,this_node=node,verify=verify_hints](Database& db){
+            *bucket=timer_index::read(db,index);
+            for(auto it=bucket->entries.begin();it!=bucket->entries.end();) {
+                auto placement=it->second.placement;
+                // Never trust a pending hint: its entity CAS may still fail.
+                if(it->second.pending || placement.empty() || verify) {
+                    auto record=db.get(entity_record_key(EntityId(it->second.id)));
+                    if(record)placement=decode_entity_record_view(record->value).placement;
+                }
+                if(!placement.empty() && placement!=this_node)it=bucket->entries.erase(it);else ++it;
+            }
+        },complete)){complete(std::make_exception_ptr(std::runtime_error("timer index queue pressure")));return false;}
         return true;
     }
     void finish(const std::shared_ptr<Watch>& watch,std::uint64_t revision,std::int64_t next,bool failure) {
@@ -100,7 +122,7 @@ struct EntityTimers::Impl:std::enable_shared_from_this<Impl> {
             }
             if(timers.entries.empty()){bucket.entries.erase(indexed);result->next=timer_index::write(db,index,bucket)?INT64_MAX:time;return;}
             auto due=next_entity_timer(timers);
-            timer_index::Entry confirmed{entry.type,entry.id,timers.token,stored->version,record.fence,due,false};
+            timer_index::Entry confirmed{entry.type,entry.id,timers.token,stored->version,record.fence,due,false,std::string(record.placement)};
             if(indexed->second!=confirmed){indexed->second=confirmed;timer_index::write(db,index,bucket);}
             result->next=due;
             if(due>time)return;
@@ -116,7 +138,10 @@ std::size_t EntityTimers::poll(std::size_t budget) {
     auto keep=impl_;auto& self=*keep;if(self.stopped)return 0;if(self.polling)throw std::logic_error("recursive timer poll");
     self.polling=true;struct Reset{bool& flag;~Reset(){flag=false;}}reset{self.polling};auto work=self.storage.poll(budget);
     if(self.stopped)return work;
-    if(!self.remaining && Impl::Clock::now()>=self.refresh)self.remaining=timer_index::shards;
+    if(self.observed_revision!=self.host->timer_revision()){
+        self.observed_revision=self.host->timer_revision();self.idle=self.limits.refresh;self.refresh=Impl::Clock::now();
+    }
+    if(!self.remaining && Impl::Clock::now()>=self.refresh){self.remaining=timer_index::shards;self.verify_hints=(self.rounds++%16)==0;}
     auto now=self.host->now_ms();auto maximum=self.limits.pending-(self.remaining?1:0);
     while(work<budget && self.counters.pending<maximum && !self.schedule.empty() && self.schedule.begin()->first.first<=now) {
         auto watch=self.schedule.begin()->second;self.schedule.erase(self.schedule.begin());
@@ -126,7 +151,10 @@ std::size_t EntityTimers::poll(std::size_t budget) {
     while(work<budget && self.remaining && self.counters.pending<self.limits.pending) {
         if(!self.load(self.cursor%timer_index::shards))break;
         ++self.cursor;--self.remaining;++work;
-        if(!self.remaining)self.refresh=Impl::Clock::now()+self.limits.refresh;
+        if(!self.remaining){
+            self.refresh=Impl::Clock::now()+self.idle;
+            if(self.watches.empty())self.idle=std::min(self.idle*2,self.limits.refresh*16);else self.idle=self.limits.refresh;
+        }
     }
     return work;
 }

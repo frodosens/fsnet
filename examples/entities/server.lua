@@ -7,10 +7,13 @@ LoginEntity:rpc('login',{callers={'client'}})
 function LoginEntity:login(name)
     local ctx=self.context
     if ctx.subject=='' or #name==0 or #name>32 then self:reject() end
-    local player=Player:spawn({name=name},{
+    -- Creation retries have stable, unowned initial parameters. A reconnect
+    -- changes authority explicitly, without changing the original create claim.
+    local player=Player:spawn({},{
         creation_key='player:'..ctx.subject,
-        owner=ctx.connection,
     })
+    player:bind_owner(ctx.connection)
+    player:configure(name)
     -- Announce first so Gateway can preserve this projection during handoff.
     player:show_to(ctx.connection)
     player:possess(ctx.connection)

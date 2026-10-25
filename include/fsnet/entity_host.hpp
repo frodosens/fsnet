@@ -52,6 +52,7 @@ public:
     bool cancel_timer(const std::string&,const std::string&,const std::string&)override;
     std::optional<EntityTimer> entity_timer(const std::string&,const std::string&,const std::string&)const override;
     void fire_timer(std::string type,std::string id,std::string key,std::string generation,std::int64_t due_ms,Reply);
+    std::uint64_t timer_revision()const; // owner-thread discovery wake hint, not persisted
     std::int64_t now_ms()const;
     using CreateOnNode=std::function<void(std::string type,std::string id,std::string target,Reply)>;
     void on_create_on_node(CreateOnNode);

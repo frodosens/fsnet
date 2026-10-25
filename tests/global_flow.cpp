@@ -20,6 +20,8 @@ int main(int argc,char** argv){try{
     // Select the source-node login deterministically so this fixture always
     // exercises handoff. The example itself chooses randomly.
     auto random=source.find("math.random(#self.logins)");CHECK(random!=std::string::npos);source.replace(random,25,"1");
+    auto manager_registration=source.find("Manager:register()");CHECK(manager_registration!=std::string::npos);
+    source.insert(manager_registration,"Manager:rpc('unlisted',{callers={'client'}})\nfunction Manager:unlisted() return 'private-to-this-network' end\n");
     auto player_define=source.find("Player:define()");CHECK(player_define!=std::string::npos);
     source.insert(player_define,R"(
         Player:rpc('reward',{callers={'server'}})
@@ -57,6 +59,9 @@ int main(int argc,char** argv){try{
     ae.load(source,"global-flow");be.load(source,"global-flow");
     front.identify([](std::uint64_t,const std::string&)->std::optional<CallIdentity>{return CallIdentity{Caller::client,"account-1"};});
     GatewayLimits limits;limits.refresh=5ms;ClientGateway gateway(front,back,db,endpoints,limits);
+    gateway.bind_entity("Manager",{"discover","spawn_remote"});
+    gateway.bind_entity("LoginEntity",{"login"});
+    gateway.bind_entity("Player",{"move","arm_timer","reward"});
     auto port=front.listen("127.0.0.1",0);ClientOptions config;config.token="test";Client client(config),other_client(config);
     auto pump=[&]{a.poll();b.poll();front.poll();back.poll();client.poll();other_client.poll();ah->poll();bh->poll();ae.poll();be.poll();ad.poll();bd.poll();ar.poll();br.poll();ra.poll();rb.poll();at.poll();bt.poll();da.poll();db_delivery.poll();ta.poll();tb.poll();gateway.poll();};
     auto until=[&](auto done,std::source_location where=std::source_location::current()){
@@ -71,11 +76,13 @@ int main(int argc,char** argv){try{
     auto retry=created;created.reset();ah->create_entity("Manager",{},{"fixture","manager",{},"node-a"},[&](Result value){created=std::move(value);});until([&]{return created.has_value();});CHECK(created->data==retry->data);
     client.connect({"127.0.0.1",port,{}});until([&]{return client.state()==ClientState::connected;});
     auto call=[&](EntityId id,std::string method,std::string payload){std::optional<Result> result;client.call(id,method,payload,[&](Result value){result=std::move(value);});until([&]{return result.has_value();});return *result;};
+    CHECK(call(manager,"unlisted","").status==Status::rejected);
     auto discovery=call(manager,"discover","");CHECK(discovery.status==Status::ok);auto login=EntityId(discovery.data);
     auto logged_in=call(login,"login","Alice");CHECK(logged_in.status==Status::ok);auto player=EntityId(logged_in.data);
     until([&]{return client.controlled().has_value() && gateway.stats().migrations>=1 && !gateway.stats().migrating;});
     auto original=client.controlled()->handle;CHECK(client.entity(player)->key.id==player.str());CHECK(bh->active("Player",player.str()));
     CHECK(call(player,"move","3").data=="3.0");
+    CHECK(call(player,"reward","1").status==Status::rejected);
     CHECK(call(manager,"reward_player",player.str()).status==Status::rejected);
     std::optional<Result> queued;ra.call(manager,"reward_player",player.str(),3s,[&](Result value){queued=std::move(value);});until([&]{return queued.has_value();});CHECK(queued->status==Status::ok && !queued->data.empty());
     auto position=[&]{auto entity=client.entity(player);return entity?std::get<double>(std::get<AttributeStruct>(entity->confirmed->values.at("position")).at("x")):0.0;};
@@ -112,6 +119,10 @@ int main(int argc,char** argv){try{
     std::optional<Result> rebound;rb.bind_owner({},player.str(),replacement,3s,[&](Result value){rebound=std::move(value);});until([&]{return rebound.has_value();});CHECK(rebound->status==Status::ok);
     until([&]{return !client.entity(player);});CHECK(call(player,"move","1").status==Status::rejected);
     denied.reset();other_client.call(player,"move","1",[&](Result value){denied=std::move(value);});until([&]{return denied.has_value();});CHECK(denied->status==Status::ok);
+    std::optional<Result> relogged;
+    other_client.call(login,"login","Alice renamed",[&](Result value){relogged=std::move(value);});
+    until([&]{return relogged.has_value();});CHECK(relogged->status==Status::ok && relogged->data==player.str());
+    until([&]{return other_client.controlled() && other_client.controlled()->key.id==player.str();});
     other_client.disconnect();
     auto remote_player=call(manager,"spawn_remote","");if(remote_player.status!=Status::ok)throw std::runtime_error("remote spawn status "+std::to_string(static_cast<unsigned>(remote_player.status))+": "+ae.last_error()+" / "+be.last_error());
     auto remote_id=EntityId(remote_player.data);until([&]{return client.controlled() && client.controlled()->key.id==remote_id.str();});
