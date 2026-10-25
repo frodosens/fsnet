@@ -69,9 +69,5 @@ end,{timeout_ms=3000,request_id='inventory-edit-42'})
 
 `fsnet-patches` 覆盖混合替换/补丁、稀疏/密集回退、截断、非法索引/类型、失败不部分发布、
 合并图像节点限制和固定随机种子的 600 轮增删改重放。
-`fsnet-containers` 验证 batch 一次提交、多属性同一版本、确认/草稿分离、取消、禁止网络/等待、
-validator 拒绝、无变化不发、字段视图失效、owner/AOI、预测，以及多次草稿回收。
-交付的 [结构属性客户端](../tests/fixtures/lua/client/structured_entity.lua) 与独立进程测试也覆盖四次赋值一次提交。
-
-本轮没有消除所有复制：构造草稿、提案和副本预算校验仍有图像/容器遍历；服务端仍持久化完整实体记录。
-默认上行合批提案也会比较字段/容器差量；固定 ID 写入仍保留全值。尚无公共前缀树编码、跨实体帧合包、共享观察者投影缓存或数值量化。
+当前 [attributes 客户端](../examples/attributes/client.lua) 演示 batch 与字段提交；
+公共补丁的容量、非法路径及原子应用见 `fsnet-patches`，预测副作用限制见 `fsnet-current-prediction`。

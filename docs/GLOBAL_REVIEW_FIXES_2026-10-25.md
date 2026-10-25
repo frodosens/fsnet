@@ -34,26 +34,26 @@ Debug timers、global-flow、gateway、gateway-boundaries、timer-process、exam
 
 Debug 全量 CTest 49/49 通过，包含二进制协议、队列持有、迁移/重启/ACK 丢失和客户端预测。
 
-## 第三阶段：默认入口收口
+## 第三阶段：统一实体入口，删除旧实现
 
-- R4：scene/attributes 改为全局 SceneHub/ProfileHub 实体入口，启动器取得入口 EntityId
-  后配置客户端；原生客户端也使用该 ID 调用 login/logout，不再发独立 login RPC。
-- 默认 Lua ref/watch、原生 Client::call 与 EntityRouter::call 要求全局 ID，不自动回退。
-  原始注册、任意 ID 创建、owner-from-id、类型化 RPC 与账号路由改为显式 legacy 名称，
-  兼容夹具、诊断和性能程序已迁移。具体入口见 [兼容适配器](LEGACY_ADAPTERS.md)。
-- 普通实体类不再向传输注册 Type.method；只有显式 enable_legacy_routes/legacy 注册启用。
-  Gateway 的 bind_entity 只配置 @ 白名单，旧路由使用 bind_legacy_entity/account。
-- 当前 API 指南、全局架构、SDK、Gateway 和部署配置已同步，历史机制文档明确标注兼容夹具。
-  原生内部字段 owner_binding/owner_key 不再把连接授权称为 account。
-- 注册/查询等兼容包装器仍遵守预测外部副作用约束；新增默认入口无旧路由及 SDK 不接受
-  旧 ID 的断言。C++ 接口改变须重编，不能混用旧头文件/库。
+依用户要求，不保留接口适配层：
 
-Debug 全量 49/49 再次通过；安装消费者、真实进程恢复和所有交付示例包含在其中。
+- 删除任意字符串 ID 创建、账号 owner 映射、独立 login/account 路由、Type.method 业务转发及客户端旧 call/watch 入口。
+- Lua 仅保留全局实体类；公开 runtime.rpc/entity/entity_call/entity_request 不存在。内部注册要求显式策略与属性模型。
+- SDK、Gateway、Router、宿主与订阅均要求规范 EntityId；Gateway 清单只接受 entity。
+- 删除未使用的 EntityStore、离线双 key 迁移工具、过时夹具/对照程序；测试直接通过 Catalog 创建实体，不增加兼容 shim。
+- scene/attributes/native 示例全部使用全局 Hub 入口；连接授权只使用 ConnectionRef，移除 AttributeView 中闲置的 subject 副本。
+- 所有 Type.$* 控制入口保持内部使用；无效订阅的用户回调异常被隔离。
 
-## 第四阶段：订阅和内部入口补查
+公共值/patch、可靠投递、计时器与存储 CAS 机制继续共用。异步持有边界保留必要的字符串所有权。
+本次没有改写持久化与线协议格式；格式演进不与 API 删除混为一次迁移。
 
-默认 Client::watch 也要求全局 ID，旧 ID 使用 legacy_watch。宿主统一入队点在默认模式
-拒绝非全局 ID，防止属性订阅/快照查询绕回隐式旧实体创建；新增拒绝且不写记录的回归。
-原生不透明状态适配器显式启用 legacy，现代上下文注册走共享私有注册函数。
-所有 Type.$* 方法均视为内部入口，开启兼容模式也不向传输注册快照/创建/写入控制方法。
-Debug 全量 49/49 通过。
+## 测试迁移与发现
+
+新测试使用当前模型保留关键语义：current-runtime 覆盖生命周期、权限、回执/冲突、回滚、挂起撤权和 fence；
+current-delivery 及独立进程覆盖 outbox 回滚、角色检查、inbox 去重和 ACK 丢失恢复；
+current-prediction 覆盖校正重放与副作用约束；current-lua-limits 覆盖沙箱、指令和内存失败后恢复。
+
+资源测试发现 OOM 结束后的协程栈仍保留临时对象，后续健康请求可能无法分配。
+结束任务时先 lua_resetthread 再释放 registry 引用，释放失败栈，并验证持久状态没有提交。
+完整验证结果见 [删除适配层记录](REMOVE_ADAPTERS_2026-10-25.md)。

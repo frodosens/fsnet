@@ -1,5 +1,5 @@
 #include "fsnet/database.hpp"
-#include "fsnet/entity.hpp"
+#include "fsnet/entity_catalog.hpp"
 #include <atomic>
 #include <cstdlib>
 #include <iostream>
@@ -40,11 +40,12 @@ int main(int argc, char** argv) {
             } catch (...) { failed = true; }
         });
         for (auto& worker : workers) worker.join(); CHECK(!failed && db->get("cross-client")->value == "120");
-        fsnet::EntityStore a(db), b(clients[0]);
-        CHECK(a.transfer("postgres-entity", 0, "a")); auto fence = a.owner("postgres-entity")->fence;
-        CHECK(a.save("postgres-entity", fence, 0, "state")); auto state = a.load("postgres-entity");
-        CHECK(b.transfer("postgres-entity", fence, "b")); CHECK(!a.save("postgres-entity", fence, state->version, "stale"));
-        CHECK(b.save("postgres-entity", b.owner("postgres-entity")->fence, state->version, "restored"));
+        fsnet::EntityCatalog catalog(*db);auto id=catalog.create("postgres","fence",{"Counter","","state","node-a"});
+        auto key=fsnet::entity_record_key(id);auto initial=db->get(key);auto record=fsnet::decode_entity_record(initial->value);
+        record.owner="node-a/boot";record.fence=1;CHECK(db->compare_exchange(key,initial->version,fsnet::encode_entity_record(record)));
+        auto old=db->get(key);record.owner="node-b/boot";record.fence=2;
+        CHECK(clients[0]->compare_exchange(key,old->version,fsnet::encode_entity_record(record)));
+        CHECK(!db->compare_exchange(key,old->version,fsnet::encode_entity_record(record)));
         bool insecure = false;
         try { fsnet::postgres_database("postgresql://user@192.0.2.1/db?sslmode=disable"); } catch (const std::invalid_argument&) { insecure = true; }
         CHECK(insecure);

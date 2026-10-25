@@ -25,8 +25,6 @@ public:
     ~EntityRouter();
     void call(std::string type, std::string id, std::string method, std::string payload,
               std::chrono::milliseconds timeout, Reply, std::string request_id = {});
-    void legacy_call(std::string type,std::string id,std::string method,std::string payload,
-                     std::chrono::milliseconds,Reply,std::string request_id={});
     void call(EntityId,std::string_view method,std::string_view payload,std::chrono::milliseconds,Reply,std::string_view request_id={},std::string_view expected_type={});
     void call_encoded(std::string message,std::chrono::milliseconds,Reply); // takes ownership before returning
     void bind_owner(std::string type,std::string id,ConnectionRef,std::chrono::milliseconds,Reply);
@@ -45,15 +43,8 @@ public:
         if (!parent_) throw std::invalid_argument("script host required");
     }
     bool has_route(const std::string& r) const override { return parent_->has_route(r); }
-    void enable_legacy_routes()override {parent_->enable_legacy_routes();}
     void bind(std::string r, Handler h) override { parent_->bind(std::move(r), std::move(h)); }
-    void bind_legacy_stateful(std::string r, std::string t, std::string s, Handler h) override {
-        parent_->bind_legacy_stateful(std::move(r), std::move(t), std::move(s), std::move(h));
-    }
     void define_schema(std::string t, EntitySchema s) override { parent_->define_schema(std::move(t), std::move(s)); }
-    void legacy_spawn_entity(std::string t,std::string id,EntityAttributes::Values values,Reply reply) override {
-        parent_->legacy_spawn_entity(std::move(t),std::move(id),std::move(values),std::move(reply));
-    }
     void create_entity(std::string type,EntityAttributes::Values values,EntitySpawnOptions options,Reply reply) override {
         parent_->create_entity(std::move(type),std::move(values),std::move(options),std::move(reply));
     }

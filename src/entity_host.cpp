@@ -91,7 +91,6 @@ struct EntityScriptHost::Impl : std::enable_shared_from_this<Impl> {
     std::string owner;
     EntityRuntimeLimits limits;
     WallClock now;
-    OwnerResolver owner_resolver;
     AttributeListener attribute_listener;
     Closed closed_listener;
     Visibility visibility;
@@ -107,7 +106,7 @@ struct EntityScriptHost::Impl : std::enable_shared_from_this<Impl> {
     std::unordered_map<std::uint64_t,std::shared_ptr<Admission>> admissions;
     std::unordered_map<std::string,std::string> resolved_types;
     std::uint64_t admission_serial=0,timer_revision=0;
-    bool global_entry=false,legacy_routes=false;
+    bool global_entry=false;
     EntityRuntimeStats counters;
     std::uint64_t generation = 0;
     bool stopped = false, polling = false, draining = false, delivery_enabled = false;
@@ -125,13 +124,8 @@ struct EntityScriptHost::Impl : std::enable_shared_from_this<Impl> {
             limits.lease > std::chrono::hours(24) || limits.tick_interval.count() <= 0 || limits.idle_timeout.count() <= 0)
             throw std::invalid_argument("invalid entity runtime settings");
     }
-    std::string owner_key(const std::string& type, const std::string& id) const {
-        if(valid_entity_id(id)) {
-            auto found=slots.find(key(type,id));return found==slots.end()?std::string{}:found->second.owner_key;
-        }
-        auto definition=schemas.find(type);
-        if (definition!=schemas.end() && definition->second->legacy_owner_from_id) return id;
-        auto resolve=owner_resolver; return resolve ? resolve(type,id) : std::string{};
+    std::string owner_key(const std::string& type,const std::string& id)const {
+        auto found=slots.find(key(type,id));return found==slots.end()?std::string{}:found->second.owner_key;
     }
     std::shared_ptr<Job> timer_job(const std::string& type,const std::string& id)const {
         auto it=active.find(key(type,id));
@@ -275,7 +269,8 @@ struct EntityScriptHost::Impl : std::enable_shared_from_this<Impl> {
         reply(std::move(result));
     }
     static bool is_control(const std::string& route,const std::string& type) {
-        return route==type+".$deactivate" || route==type+".$destroy";
+        if(!route.starts_with(type))return false;
+        auto method=std::string_view(route).substr(type.size());return method==".$deactivate" || method==".$destroy";
     }
     static bool internal(const std::string& route,const std::string& type) {
         return route.size()>type.size()+1 && route.starts_with(type) && route[type.size()]=='.' && route[type.size()+1]=='$';
@@ -336,7 +331,7 @@ struct EntityScriptHost::Impl : std::enable_shared_from_this<Impl> {
         if (counters.pending >= limits.requests || charged > limits.queued_bytes - counters.queued_bytes)
             return reply({Status::overloaded, {}});
         auto message = decoded?std::move(decoded):parse_entity_message(data);
-        if (!message || (!legacy_routes && !valid_entity_id(message->id))) return reply({Status::rejected, {}});
+        if (!message || !valid_entity_id(message->id)) return reply({Status::rejected, {}});
         if (!message->request_id.empty() && message->payload.size() + route.size() + message->request_id.size() + 16 > limits.receipt_bytes)
             return reply({Status::overloaded, {}});
         if (selected->policy) {
@@ -402,21 +397,7 @@ struct EntityScriptHost::Impl : std::enable_shared_from_this<Impl> {
                     auto record = db.get(record_key(job->entity));
                     EntityRecord current;
                     if (record) current = decode_entity_record(record->value);
-                    else {
-                        auto split=job->entity.find('\0');
-                        if(valid_entity_id(std::string_view(job->entity).substr(split+1))) {job->status=Status::not_found;return;}
-                        if(job->request.incoming || job->request.ack) { job->status=Status::not_found; return; }
-                        current.initialized=false;
-                        // Never silently reset a record created by the earlier two-key protocol.
-                        if (db.get("fsnet/actor/owner/" + job->entity) || db.get("fsnet/actor/state/" + job->entity))
-                            throw std::runtime_error("legacy entity needs offline migration");
-                        current.snapshot.state = job->request.method->initial;
-                        if(job->request.method->schema && job->request.route==job->request.method->type+".$spawn") {
-                            EntityAttributes initial(*job->request.method->schema,"");
-                            initial.publish(initial.stage(decode_attributes(job->request.payload).values,{Caller::server,{}}));
-                            current.snapshot.state=encode_attributes({0,initial.revision(),true,initial.persistent()});
-                        }
-                    }
+                    else {job->status=Status::not_found;return;}
                     if(current.metadata && (current.metadata->destroyed || current.metadata->type!=job->request.method->type)) {
                         job->status=current.metadata->destroyed?Status::not_found:Status::rejected;return;
                     }
@@ -756,7 +737,6 @@ struct EntityScriptHost::Impl : std::enable_shared_from_this<Impl> {
         // Delivery metadata is independent of typed attributes. Opaque native
         // entities need the same private receive/ACK entry as schema entities.
         auto metadata=method->type+".$snapshot";
-        bool added_metadata=false;
         if(!self.methods.contains(metadata)) {
             auto snapshot=std::make_shared<Impl::Method>(Impl::Method{method->type,method->initial,
                 [](const CallIdentity&,std::string input,Reply reply) {
@@ -765,16 +745,8 @@ struct EntityScriptHost::Impl : std::enable_shared_from_this<Impl> {
                     if(!state)return reply({Status::internal,{}});
                     reply({Status::ok,state_message(state->state,state->state)});
                 },RpcPolicy{false,true,false},method->schema});
-            self.methods.emplace(metadata,std::move(snapshot));added_metadata=true;
+            self.methods.emplace(metadata,std::move(snapshot));
         }
-        if (Impl::internal(route,method->type)) return; // runtime-only; clients cannot drive ticks
-        try {
-            self.parent->bind(route, [weak = std::weak_ptr(shared_from_this()), route](std::string data, Reply reply) {
-                auto self = weak.lock();
-                if (!self) return reply({Status::disconnected, {}});
-                self->enqueue(route, std::move(data), std::move(reply));
-            });
-        } catch (...) { self.methods.erase(route); if(added_metadata)self.methods.erase(metadata); throw; }
 
     }
 };
@@ -782,41 +754,22 @@ EntityScriptHost::EntityScriptHost(std::shared_ptr<ScriptHost> parent, std::shar
     std::string owner, EntityRuntimeLimits limits, StorageLimits storage, WallClock now)
   : impl_(std::make_shared<Impl>(std::move(parent), std::move(db), std::move(owner), limits, storage, std::move(now))) {}
 EntityScriptHost::~EntityScriptHost() { stop(); }
-void EntityScriptHost::enable_legacy_routes() {
-    if(impl_->stopped)throw std::logic_error("entity host stopped");
-    if(std::exchange(impl_->legacy_routes,true))return;
-    for(const auto& [route,method]:impl_->methods){
-        if(!method->policy || Impl::internal(route,method->type))continue;
-        impl_->parent->unbind(route);auto policy=*method->policy;policy.owner_only=false;
-        impl_->parent->bind_context(route,policy,[weak=std::weak_ptr(impl_),route](const CallIdentity& identity,std::string data,Reply reply){
-            if(auto self=weak.lock())self->enqueue(route,std::move(data),std::move(reply),false,identity);else reply({Status::disconnected,{}});
-        });
-    }
-}
 bool EntityScriptHost::has_route(const std::string& route) const { return impl_->methods.contains(route) || impl_->parent->has_route(route); }
 void EntityScriptHost::rpc_policy(const std::string& route, RpcPolicy policy) {
     auto found = impl_->methods.find(route);
     if (found == impl_->methods.end()) return impl_->parent->rpc_policy(route, policy);
     if (!found->second->policy)
         throw std::invalid_argument("policy update requires a contextual entity RPC");
-    auto transport = policy; transport.owner_only = false;
-    // Validate/update the public entry point first. Failed updates leave the
-    // entity policy unchanged. Every queued request shares this Method.
-    if(impl_->legacy_routes)impl_->parent->rpc_policy(route, transport);
+    // Every queued request shares this Method and rechecks its policy.
     found->second->policy = policy;
 }
 void EntityScriptHost::bind(std::string route, Handler handler) { impl_->parent->bind(std::move(route), std::move(handler)); }
-void EntityScriptHost::bind_legacy_stateful(std::string route,std::string type,std::string initial,Handler logic) {
-    impl_->register_stateful(std::move(route),std::move(type),std::move(initial),std::move(logic));
-    enable_legacy_routes();
-}
 
 void EntityScriptHost::define_schema(std::string type, EntitySchema schema) {
     schema.validate();
     if (impl_->stopped || type.empty() || type.size() > 127 || type.find_first_of(".\0", 0, 2) != std::string::npos || impl_->schemas.size() >= 256)
         throw std::invalid_argument("invalid entity schema type");
     for (const auto& [route, method] : impl_->methods) if (method->type == type) throw std::logic_error("entity schema must precede methods");
-    if(schema.legacy_owner_from_id)enable_legacy_routes();
     auto definition = std::make_shared<const EntitySchema>(std::move(schema));
     EntityAttributes defaults(*definition, "");
     auto initial = encode_attributes({0, 0, true, defaults.persistent()});
@@ -839,17 +792,6 @@ std::shared_ptr<const EntitySchema> EntityScriptHost::schema(const std::string& 
 }
 std::string EntityScriptHost::owner_binding(const std::string& type, const std::string& id) const {
     return impl_->owner_key(type,id);
-}
-void EntityScriptHost::legacy_spawn_entity(std::string type,std::string id,EntityAttributes::Values values,Reply reply) {
-    std::string message;
-    try {
-        auto definition=schema(type); if(!definition) return reply({Status::not_found,{}});
-        EntityAttributes model(*definition,"");
-        (void)model.stage(values,{Caller::server,{}});
-        message=entity_message(id,encode_attributes({0,0,true,std::move(values)}));
-        enable_legacy_routes();
-    } catch(...) { return reply({Status::rejected,{}}); }
-    impl_->enqueue(type+".$spawn",std::move(message),std::move(reply));
 }
 void EntityScriptHost::enable_global_entities() {
     if(impl_->global_entry)return;
@@ -972,7 +914,6 @@ void EntityScriptHost::write_attributes(std::string type, std::string id, CallId
 }
 void EntityScriptHost::on_closed(Closed listener) { impl_->closed_listener=std::move(listener); }
 void EntityScriptHost::on_attributes(AttributeListener listener) { impl_->attribute_listener = std::move(listener); }
-void EntityScriptHost::legacy_ownership(OwnerResolver resolve) { enable_legacy_routes();impl_->owner_resolver = std::move(resolve); }
 void EntityScriptHost::bind_context(std::string route, RpcPolicy policy, ContextHandler handler) {
     impl_->parent->bind_context(std::move(route), policy, std::move(handler));
 }
@@ -982,18 +923,7 @@ void EntityScriptHost::bind_stateful_context(std::string route, std::string type
     impl_->register_stateful(route, std::move(type), std::move(initial), [](std::string, Reply reply) { reply({Status::internal, {}}); });
     auto method = impl_->methods.at(route);
     method->logic = std::move(handler); method->policy = policy;
-    if (Impl::internal(route,method->type)) return;
-    impl_->parent->unbind(route);
-    if(!impl_->legacy_routes)return;
-    auto transport_policy = policy; transport_policy.owner_only = false;
-    try {
-        impl_->parent->bind_context(route, transport_policy,
-            [weak = std::weak_ptr(impl_), route](const CallIdentity& identity, std::string data, Reply reply) {
-                auto self = weak.lock();
-                if (!self) return reply({Status::disconnected, {}});
-                self->enqueue(route, std::move(data), std::move(reply), false, identity);
-            });
-    } catch (...) { unbind(route); throw; }
+
 }
 void EntityScriptHost::unbind(const std::string& route) {
     impl_->parent->unbind(route);
@@ -1010,7 +940,7 @@ void EntityScriptHost::call_entity(std::string route, std::string data, std::chr
         if(timeout.count()<=0 || timeout>std::chrono::minutes(5))return reply({Status::rejected,{}});
         return impl_->dispatch({Caller::server,"script:"+impl_->owner},std::move(data),std::move(reply),Clock::now()+timeout);
     }
-    impl_->parent->call_entity(std::move(route), std::move(data), timeout, std::move(reply));
+    reply({Status::rejected,{}});
 }
 std::uint64_t EntityScriptHost::connect(const std::string& address, std::uint16_t port) { return impl_->parent->connect(address, port); }
 void EntityScriptHost::call(std::uint64_t peer, std::string route, std::string data, std::chrono::milliseconds timeout, Reply reply) {

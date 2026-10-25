@@ -53,7 +53,7 @@ public:
     void identify(IdentityResolver);
     void bind_rpc(std::string route, RpcPolicy, ContextHandler);
     void rpc_policy(const std::string& route, RpcPolicy);
-    // Legacy binary host API; migration to explicit policies is still required.
+    // Data-only transport callback; entity business RPCs use the dispatcher.
     void bind(std::string route, Handler handler);
     bool has_route(const std::string& route) const;
     bool unbind(const std::string& route);

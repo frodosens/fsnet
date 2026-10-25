@@ -13,10 +13,10 @@ C++ 提供客户端/服务端共用的引擎机制，业务逻辑写在 Lua；�
 
 ## API 合同
 
-旧夹具入口已集中为显式 [legacy 适配器](LEGACY_ADAPTERS.md)，新业务使用全局实体。
+业务入口统一为全局实体，旧适配 API 已删除。
 
 全局实体分支的最新授权合同见[逻辑连接授权与持久计时器](CONNECTION_AUTHORITY_AND_TIMERS.md)，
-账号与角色的关联由业务维护；旧文档中的账号 owner 合同仅用于历史接口。
+账号与角色的关联由业务维护；引擎的 owner 授权绑定逻辑连接。
 
 | 主题 | 文档 |
 | --- | --- |
@@ -26,14 +26,14 @@ C++ 提供客户端/服务端共用的引擎机制，业务逻辑写在 Lua；�
 | 身份、RPC/属性权限、原生同步与提案 | [实体 schema](ENTITY_SCHEMA.md) |
 | 服务端初始化、激活、卸载、删除与 drain | [生命周期](ENTITY_LIFECYCLE.md) |
 | 持久延迟、周期任务、取消、失败重试和重启恢复 | [实体计时器](ENTITY_TIMERS.md) |
-| 登录、spawn/restore、可见性、控制与表现 | [实体存在性](ENTITY_PRESENCE.md) |
+| 登录、spawn/ref、可见性、控制与表现 | [实体存在性](ENTITY_PRESENCE.md) |
 | struct、vec3、矩阵、固定数组与字段视图 | [结构属性](STRUCTURED_ATTRIBUTES.md) |
 | 变长 list/map/set、Item/Task 示例 | [容器属性](CONTAINER_ATTRIBUTES.md) |
 | batch 边界、草稿、失败与副作用限制 | [合批](ATTRIBUTE_BATCHING.md) |
 | 字段路径、FSA3、大小选择与接收应用 | [字段差量](FIELD_PATH_DELTAS.md) |
 | 默认上下行共用差量、固定 ID 回退 | [共用差量](SHARED_ATTRIBUTE_DELTAS.md) |
 | 输入确认、校正、重放和效果处理 | [预测](PREDICTION.md) |
-| Lua 宿主、协程、预算、底层兼容接口 | [脚本宿主](SCRIPTING.md) |
+| Lua 宿主、协程、预算、宿主边界 | [脚本宿主](SCRIPTING.md) |
 | CAS、存储后端、fencing 与恢复 | [存储](STORAGE.md) |
 | Gateway 委托、转发、迁移与资源边界 | [跨节点接入](CLIENT_GATEWAY.md) |
 | 部署模板、发行包、指标、故障验收 | [交付运行手册](PRODUCTION.md) |

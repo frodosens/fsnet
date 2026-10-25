@@ -50,11 +50,12 @@ GatewayDelegation::GatewayDelegation(Node& node,Node::IdentityResolver base,Trus
             auto cert=self->node.peer_identity(who.peer);
             try{
                 ConnectionRef connection;
-                if(subject.starts_with("FSCN1")) {
+                if(!subject.starts_with("FSCN1"))throw std::invalid_argument("connection delegation required");
+                {
                     std::string_view input(subject);input.remove_prefix(5);auto name=snapshot_detail::blob(input);
                     connection=ConnectionRef::from_key(snapshot_detail::blob_view(input));if(!input.empty())throw std::invalid_argument("trailing delegation");subject=std::move(name);
                 }
-                if((subject.empty()&&!connection)||subject.size()>256||!self->trust(who,cert)||self->sessions.contains(who.peer))return reply({Status::rejected,{}});
+                if((!connection)||subject.size()>256||!self->trust(who,cert)||self->sessions.contains(who.peer))return reply({Status::rejected,{}});
                 if(self->sessions.size()>=self->limit)return reply({Status::overloaded,{}});
                 self->sessions.emplace(who.peer,Impl::Session{std::move(subject),who.subject,std::move(cert),std::move(connection)});reply({Status::ok,{}});
             }catch(...){reply({Status::rejected,{}});}
@@ -235,18 +236,18 @@ struct ClientGateway::Impl:std::enable_shared_from_this<Impl>{
         auto cached=lookups.find(valid_entity_id(sub.entity)?"global:"+sub.entity:encode_entity_key(sub.type,sub.entity));
         if(cached!=lookups.end())cached->second->expires=Clock::time_point{};
     }
-    void routed(const CallIdentity& who,std::string type,std::string route,std::string input,bool account,Reply reply){
+    void routed(const CallIdentity& who,std::string input,Reply reply){
         std::string entity;
-        try{if(route==entity_call_route){auto parsed=parse_entity_call_view(input);if(!parsed)throw std::invalid_argument("invalid entity call");entity=parsed->id.str();}
-            else if(account)entity=who.subject;else{auto parsed=parse_entity_message_view(input);if(!parsed)throw std::invalid_argument("invalid entity request");entity=parsed->id;}}catch(...){return reply({Status::rejected,{}});}
+        try{auto parsed=parse_entity_call_view(input);if(!parsed)throw std::invalid_argument("invalid entity call");entity=parsed->id.str();}
+        catch(...){return reply({Status::rejected,{}});}
         auto r=request(who,std::move(input),std::move(reply));if(!r)return;
-        select(std::move(type),std::move(entity),[weak=weak_from_this(),r,route](Status status,std::optional<std::size_t> index,bool){auto self=weak.lock();if(!self||r->done)return;if(status!=Status::ok)return self->finish(r,{status,{}});
-            if(route==entity_call_route){
+        select({},std::move(entity),[weak=weak_from_this(),r](Status status,std::optional<std::size_t> index,bool){auto self=weak.lock();if(!self||r->done)return;if(status!=Status::ok)return self->finish(r,{status,{}});
+            {
                 auto call=parse_entity_call_view(r->data);auto allowed=self->exposed.find(r->resolved_type);
                 if(!call || (!call->expected_type.empty() && call->expected_type!=r->resolved_type) || allowed==self->exposed.end() || !allowed->second.contains(std::string(call->method)))return self->finish(r,{Status::rejected,{}});
             }
-            self->acquire(r->client,*index,[weak,r,route](Status status,std::shared_ptr<Link> link){auto self=weak.lock();if(!self||r->done)return;if(status!=Status::ok)return self->finish(r,{status,{}});++self->counters.forwarded;
-                self->back.call(link->peer,route,r->data,self->remaining(r),[weak,r](Result result){if(auto self=weak.lock())self->finish(r,std::move(result));});
+            self->acquire(r->client,*index,[weak,r](Status status,std::shared_ptr<Link> link){auto self=weak.lock();if(!self||r->done)return;if(status!=Status::ok)return self->finish(r,{status,{}});++self->counters.forwarded;
+                self->back.call(link->peer,entity_call_route,r->data,self->remaining(r),[weak,r](Result result){if(auto self=weak.lock())self->finish(r,std::move(result));});
             },r);
         },{},r);
     }
@@ -415,7 +416,7 @@ ClientGateway::ClientGateway(Node& front,Node& back,std::shared_ptr<Database> db
     try{
         back.bind_rpc("system.gateway.present",{true,true,false},[weak](const CallIdentity& who,std::string data,Reply reply){if(auto self=weak.lock())self->present(who,std::move(data),std::move(reply));else reply({Status::disconnected,{}});});impl_->owns_present=true;
         front.bind_rpc(entity_call_route,{true,false,false},[weak](const CallIdentity& who,std::string data,Reply reply){
-            if(auto self=weak.lock())self->routed(who,{},entity_call_route,std::move(data),false,std::move(reply));else reply({Status::disconnected,{}});
+            if(auto self=weak.lock())self->routed(who,std::move(data),std::move(reply));else reply({Status::disconnected,{}});
         });impl_->bound.emplace_back(entity_call_route);
         for(const auto* name:{"system.attributes.watch","system.attributes.unwatch","system.attributes.renew","system.attributes.write"}){
         std::string route=name;front.bind_rpc(route,{true,false,false},[weak,route](const CallIdentity& who,std::string data,Reply reply){auto self=weak.lock();if(!self)return reply({Status::disconnected,{}});if(route=="system.attributes.watch")self->watch(who,std::move(data),std::move(reply));else self->control(who,route,std::move(data),std::move(reply));});impl_->bound.push_back(route);}
@@ -429,12 +430,6 @@ void ClientGateway::bind_entity(std::string type,std::vector<std::string> method
     for(const auto& method:methods)if(!valid_entity_method(method))throw std::invalid_argument("invalid exposed method");
     for(auto& method:methods)impl_->exposed[type].insert(std::move(method));
 }
-void ClientGateway::bind_legacy_entity(std::string type,std::vector<std::string> methods){
-    for(const auto& method:methods){if(method.empty()||method.front()=='$'||method.find_first_of(".\0",0,2)!=std::string::npos)throw std::invalid_argument("invalid exposed entity method");auto route=type+'.'+method;auto weak=std::weak_ptr(impl_);
-        if(impl_->front.has_route(route))continue;
-        impl_->front.bind_rpc(route,{true,false,false},[weak,type,route](const CallIdentity& who,std::string input,Reply reply){if(auto self=weak.lock())self->routed(who,type,route,std::move(input),false,std::move(reply));else reply({Status::disconnected,{}});});impl_->bound.push_back(route);impl_->exposed[type].insert(method);}
-}
-void ClientGateway::bind_legacy_account(std::string route,std::string type){auto weak=std::weak_ptr(impl_);impl_->front.bind_rpc(route,{true,false,false},[weak,type,route](const CallIdentity& who,std::string input,Reply reply){if(auto self=weak.lock())self->routed(who,type,route,std::move(input),true,std::move(reply));else reply({Status::disconnected,{}});});impl_->bound.push_back(std::move(route));}
 void ClientGateway::poll(std::size_t budget){auto self=impl_;if(self->stopped)return;self->storage.poll(budget);auto now=Clock::now();std::vector<std::uint64_t> dead;
     for(const auto& [peer,s]:self->sessions)if(!self->authenticated(peer,s.subject))dead.push_back(peer);
     for(auto peer:dead){self->front.close(peer);auto subs=self->subscriptions;for(auto& [id,s]:subs){(void)id;if(s->client==peer)self->remove(s,Status::disconnected,false);}auto it=self->sessions.find(peer);if(it!=self->sessions.end()){for(auto& [index,l]:it->second.links){(void)index;self->back.close(l->peer);self->links.erase(l->peer);}self->sessions.erase(it);}}

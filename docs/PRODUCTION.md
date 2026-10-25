@@ -19,7 +19,6 @@ TGZ 包包含 `bin/fsnet-service`、`bin/fsnet-client`、`bin/fsnet-native-clien
 Lua示例、示例启动器、部署模板及文档。
 安装后的SDK示例可直接 `python3 /opt/fsnet/share/fsnet/examples/run.py scene --native`。可解压到其他前缀；程序通过 `$ORIGIN/../lib` 寻找库。
 Linux 构建仍依赖兼容 glibc/libstdc++ 等系统运行库，不是任意系统通用的静态发行包。
-`tools/validate_delivery.py` 同时安装到 `share/fsnet/tools/`，需要 Python3 与 openssl。
 可选 PostgreSQL 需构建时启用相应选项，见 STORAGE.md；默认交付验证不要求它。
 
 ## 配置与启动
@@ -72,8 +71,7 @@ owner 证书白名单互连；与 Gateway pins 分开，owner 证书同时需要
 启用前须一起升级全部 owner/Gateway 以读取 FER5/FSP3/FTI2，见[交接部署与升级合同](ENTITY_TRANSFER.md)及[持久命令](ENTITY_DELIVERY.md)。
 owner pins 应包含参与投递的 owner，包括自身证书；端点类型列表必须同时包含发送与接收实体类型，确认也需要路由回源。
 
-工具 validate_delivery.py 的旧协议夹具显式使用 legacy-account/legacy-entity；
-新业务不配置独立 login 路由。Manager/LoginEntity 的全局入口 ID 由可信启动/服务发现提供。
+Manager/LoginEntity 的入口 ID 由可信启动/发现提供，业务不配置独立 login 路由。
 
 ## 健康、排空与升级
 
@@ -87,30 +85,27 @@ SIGTERM/SIGINT 将 readiness 置 false。owner 停止接单、等待现有请求
 systemd 停止时限分别配置 45/10 秒，避免正常 drain 被过早 SIGKILL。先从负载均衡摘除再停止。
 稳定 Node ID、实体类型和 EntityId 必须跨版本一致。重连需要业务显式重新绑定新的逻辑连接。
 
-FER2 初始化标记不能被旧可执行程序读取。首次从旧版本升级时，先备份并排空旧 writer，再启动
-新 writer；回滚前必须确认存储兼容，不能把旧二进制直接连接到含 FER2 的存储。
+本轮不改写持久化/线协议格式。部署时头文件、库、脚本与 owner/Gateway 应来自同一构建，
+不能将历史格式支持误认为在线滚动升级协议；上线前仍需备份与明确回滚方案。
 模块热更新/状态迁移尚未实现，不支持在运行中替换 schema。hook 的外部副作用需业务幂等，
 详见 ENTITY_LIFECYCLE.md。Gateway 故障后客户端需由应用重新连接、登录和重建订阅。
 
 ## 可重复故障验收
 
 ```sh
-python3 tools/validate_delivery.py \
-  --service build/fsnet-service --client build/fsnet-client \
-  --rounds 100 --output delivery-report.json
-# 对解压后的交付包重复同一检查：
-python3 /opt/fsnet/share/fsnet/tools/validate_delivery.py \
-  --service /opt/fsnet/bin/fsnet-service --client /opt/fsnet/bin/fsnet-client \
-  --rounds 1000 --output delivery-release.json
+. tools/dev/activate.sh
+ctest --preset debug --output-on-failure
+ctest --preset postgres -R fsnet-postgres --output-on-failure
 ```
 
-脚本临时生成 PKI，启动两个 owner、Gateway 和 Lua 客户端，通过真实 loopback mTLS 检查：
-未知 CA 拒绝、合法但未映射证书拒绝、可信账号委托、自动实体、SIGKILL owner 后租约接管、
-确认状态与已创建标记保留、相同 RPC ID 跨 owner 去重、字段合批负载、重启原节点、优雅交接、
-前端视图不重复创建、资源清理和最终 readiness。超时/断言令验证非零退出，finally 清理进程。
-临时证书/私钥不进入报告；报告包含二进制哈希、步骤、耗时和采样资源峰值。
+当前故障覆盖拆分为可独立复现的测试：
 
-普通 CTest 包含 100 轮验收，sanitizer 单独运行原生生命周期与 Gateway 测试。
-`--rounds` 是单账号串行合批次数，不是并发容量压测；资源采样峰值也不是严格分配峰值。
-需另外在目标机器验证真实并发、慢客户端、磁盘满/断电、跨机网络分区/时钟漂移、数据库 HA、
-证书轮换及长稳容量，定义可接受的恢复/延迟 SLO。不得用本机耗时推算玩家在线规模。
+- `fsnet-current-delivery-process`：接收端状态/inbox 已持久化但 ACK 未发出时进程退出，重启发现 outbox 并重投，效果不重复。
+- `fsnet-timer-process`：真实服务端 SIGKILL 后恢复延迟、有限周期、取消状态与稳定 EntityId；PostgreSQL fixture 也运行此流程。
+- `fsnet-global-flow`：真实 loopback Node/Gateway、远程创建、连接换绑、定向迁移、订阅、RPC 策略、投递与计时器。
+- `fsnet-tls`：临时 PKI、双向 TLS、身份映射与非法证书拒绝。
+- `fsnet-sdk-install` 与 examples：安装消费者和交付 API 的可用性。
+
+依赖旧业务接口的整合验收工具已删除。以上测试分别覆盖 TLS 和全局实体故障流程，
+尚未提供将全局实体、mTLS、双 owner 故障和负载合并的一键生产验收工具。
+本机结果不是公网、多机数据库高可用或生产 SLO；跨机故障域与容量仍需部署环境验收。

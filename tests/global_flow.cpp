@@ -61,9 +61,9 @@ int main(int argc,char** argv){try{
     GatewayLimits limits;limits.refresh=5ms;ClientGateway gateway(front,back,db,endpoints,limits);
     CHECK(!a.has_route("Player.move") && !b.has_route("Player.move"));
     std::optional<Result> invalid_snapshot;
-    ah->read_attributes("Player","unallocated-legacy-id",[&](Result value){invalid_snapshot=std::move(value);});
+    ah->read_attributes("Player","unallocated-name",[&](Result value){invalid_snapshot=std::move(value);});
     CHECK(invalid_snapshot && invalid_snapshot->status==Status::rejected);
-    CHECK(!db->get(entity_record_key("Player","unallocated-legacy-id")));
+    CHECK(!db->get(entity_record_key("Player","unallocated-name")));
     gateway.bind_entity("Manager",{"discover","spawn_remote"});
     gateway.bind_entity("LoginEntity",{"login"});
     gateway.bind_entity("Player",{"move","arm_timer","reward"});
@@ -100,23 +100,19 @@ int main(int argc,char** argv){try{
     until([&]{return position()==16.0;});CHECK(decode_entity_record(db->get(entity_record_key(player))->value).snapshot.timers.entries.empty());
     if(argc==3) {
         // Same actor, storage, payload and connections; only addressing differs.
-        // Legacy type+id is explicitly exposed solely as a comparison fixture.
-        gateway.bind_legacy_entity("Player",{"move"});
-        ah->enable_legacy_routes();bh->enable_legacy_routes();
-        for(bool global:{false,true}) {
+        {
             constexpr unsigned rounds=2000,concurrency=8;unsigned sent=0,done=0;std::vector<double> latency;
             auto start=std::chrono::steady_clock::now();auto deadline=start+20s;
             while(done<rounds) {
                 while(sent<rounds && sent-done<concurrency) {
                     ++sent;auto began=std::chrono::steady_clock::now();
                     auto reply=[&,began](Result result){CHECK(result.status==Status::ok);latency.push_back(std::chrono::duration<double,std::micro>(std::chrono::steady_clock::now()-began).count());++done;};
-                    if(global)client.call(player,"move","0",std::move(reply));
-                    else client.request("Player.move",entity_message(player.str(),"0"),std::move(reply));
+                    client.call(player,"move","0",std::move(reply));
                 }
                 pump();CHECK(std::chrono::steady_clock::now()<deadline);std::this_thread::yield();
             }
             auto seconds=std::chrono::duration<double>(std::chrono::steady_clock::now()-start).count();std::sort(latency.begin(),latency.end());
-            std::cout<<"{\"scenario\":\""<<(global?"global_id":"legacy_type_id")<<"\",\"requests\":"<<rounds<<",\"concurrency\":"<<concurrency<<",\"rps\":"<<rounds/seconds<<",\"p50_us\":"<<latency[rounds/2]<<",\"p99_us\":"<<latency[rounds*99/100]<<"}\n";
+            std::cout<<"{\"scenario\":\""<<"global_id"<<"\",\"requests\":"<<rounds<<",\"concurrency\":"<<concurrency<<",\"rps\":"<<rounds/seconds<<",\"p50_us\":"<<latency[rounds/2]<<",\"p99_us\":"<<latency[rounds*99/100]<<"}\n";
         }
     }
     CHECK(ae.last_error().empty() && be.last_error().empty());

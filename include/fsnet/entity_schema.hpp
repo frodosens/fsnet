@@ -22,7 +22,7 @@ struct CallIdentity {
     std::function<bool()> current{}; // owner-thread revalidation, never serialized
     bool live()const {try{return !current || current();}catch(...){return false;}}
     bool owns(const std::string& owner)const {
-        return live() && (owner.starts_with("connection/") ? connection.matches_key(owner) : (!subject.empty() && subject==owner));
+        return live() && connection.matches_key(owner);
     }
 };
 enum class Access { none, read, write, read_write };
@@ -61,11 +61,9 @@ struct AttributeDefinition {
 struct EntitySchema {
     std::map<std::string, AttributeDefinition> attributes;
     std::map<std::string, RpcPolicy> methods;
-    bool legacy_owner_from_id = false;
     void validate() const;
 };
 struct AttributeView {
-    std::string subject;
     bool observer = false;
     ConnectionRef connection{};
 };

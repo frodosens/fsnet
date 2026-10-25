@@ -45,6 +45,5 @@ Gateway 根据权威目录路由，指定目标迁移后恢复订阅和控制状
 迁移和转发失败计数。排空后拒绝新请求，已进入底层存储的提交仍遵守原持久合同。
 多机存储必须提供相同的 CAS/fence 语义，不能把本地 SQLite 或文件复制当成共享目录。
 
-启动器的 entity 清单使用同一白名单；legacy-account、legacy-entity 和 bind_legacy_* 仅用于
-显式兼容夹具，不与新业务入口混称。见 [兼容适配器](LEGACY_ADAPTERS.md)、
-[部署](PRODUCTION.md)、[全局实体](GLOBAL_ENTITIES.md) 与 [修复记录](GLOBAL_REVIEW_FIXES_2026-10-25.md)。
+启动器只接受 `entity 类型 方法...` 清单，按权威类型检查同一白名单。
+见 [部署](PRODUCTION.md)、[全局实体](GLOBAL_ENTITIES.md) 与 [修复记录](GLOBAL_REVIEW_FIXES_2026-10-25.md)。

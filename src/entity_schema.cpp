@@ -137,7 +137,7 @@ bool EntityAttributes::publish(const Mutation& mutation) {
     return true;
 }
 bool EntityAttributes::owned(const AttributeView& view)const {
-    return owner_.starts_with("connection/")?view.connection.matches_key(owner_):(!view.subject.empty() && view.subject==owner_);
+    return view.connection.matches_key(owner_);
 }
 bool EntityAttributes::visible(const AttributeDefinition& d, bool owned, bool observer) {
     if (!reads(d.client)) return false;

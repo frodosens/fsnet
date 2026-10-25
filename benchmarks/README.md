@@ -1,14 +1,13 @@
 # 引擎性能夹具
 
-这些程序测量公共运行时，不是游戏客户端/服务端示例。由CMake构建，程序名保持不变：
-`fsnet-benchmark`、`fsnet-request-benchmark`、`fsnet-envelope-benchmark`、
-`fsnet-attribute-benchmark`、`fsnet-container-benchmark`、`fsnet-replication-benchmark`。
+使用 Release 构建，运行 `python3 tools/review_performance.py .dev/build/release --runs 3 --output report.json`。
 
-请使用Release构建；统一入口是 `tools/review_performance.py`，新旧构建交替对照使用
-`tools/compare_engine_benchmarks.py`。测量方法和边界见
-[性能review](../docs/PERFORMANCE_REVIEW.md)、[优化记录](../docs/COPY_OPTIMIZATION.md)。
+- `fsnet-benchmark`：原生协议吞吐。
+- `fsnet-request-benchmark`：直连和 Gateway 转发；不是完整实体持久提交耗时。
+- `fsnet-envelope-benchmark`：公共封包解析与持有成本。
+- `fsnet-attribute-benchmark all 20000`、`fsnet-container-benchmark all 20000`：同一公共值模型夹具，测量 stage/publish、64KiB 结构字段差量、投影应用及容器追加。
+- `fsnet-replication-benchmark`：复制转发。
+- `fsnet-global-flow-tests <源码目录> --benchmark`：统一实体的 Lua/CAS/Gateway 链路，输出 global_id 场景。
 
-最新整体结果见 [2026-10-25 Benchmark](../docs/BENCHMARK_2026-10-25.md)：
-Release 预热后串行五轮，包含单请求/Gateway、属性/Lua、容器合批、复制转发、
-真实客户端接收分配和五轮 mTLS 文件持久化交付验证。
-`tools/review_performance.py --receiver PATH` 可附加编译后的接收诊断，复现命令见报告。
+旧 API 对照程序已删除，历史结果仅代表当时版本；不能与当前改写后的夹具直接比较。
+持久投递崩溃恢复与迁移正确性由 CTest 单独验证，不混入上述微基准。

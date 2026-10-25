@@ -12,9 +12,8 @@ import tempfile
 
 parser=argparse.ArgumentParser(description=__doc__)
 parser.add_argument('build',type=Path)
-parser.add_argument('--delivery',action='store_true',help='also measure three independent mTLS/file-storage delivery runs')
 parser.add_argument('--runs',type=int,default=3)
-parser.add_argument('--receiver',type=Path,help='optional compiled tools/review/round2/replica_cow.cpp diagnostic')
+parser.add_argument('--receiver',type=Path,help='optional compiled native receive diagnostic')
 parser.add_argument('--output',type=Path,required=True)
 args=parser.parse_args()
 if not 3<=args.runs<=20:parser.error('runs must be 3..20')
@@ -35,7 +34,7 @@ report={'platform':platform.platform(),'source_revision':subprocess.check_output
         'cpu':next((s.split(':',1)[1].strip() for s in Path('/proc/cpuinfo').read_text().splitlines() if s.startswith('model name')),''),
         'cpu_quota':Path('/sys/fs/cgroup/cpu.max').read_text().strip() if Path('/sys/fs/cgroup/cpu.max').exists() else 'unavailable',
         'compiler':subprocess.check_output([os.environ.get('CXX','c++'),'--version'],text=True).splitlines()[0],
-        'scope':'single polling thread loopback, no TLS; attribute network uses memory storage and a separate storage worker; gateway fixture echoes without per-request entity/Lua/commits; parser views use the common runtime parser; optional delivery runs use independent mTLS processes and POSIX file persistence',
+        'scope':'single polling thread loopback, no TLS; attribute network uses memory storage and a separate storage worker; gateway fixture echoes without per-request entity/Lua/commits; parser views use the common runtime parser; persistent delivery is validated separately by CTest',
         'method':'one untimed warmup per benchmark command, then serial measured repetitions; summarize each metric with the median of per-run values; per-run p99 values are not pooled quantiles',
         'sha256':{},'runs':[]}
 for name,path in {**executables,'libfsnet.so':build/'libfsnet.so'}.items():report['sha256'][name]=hashlib.sha256(path.read_bytes()).hexdigest()
@@ -55,14 +54,5 @@ for repeat in range(args.runs):
   if result.returncode:raise RuntimeError(f'{name}: {result.stderr}')
  print(f'completed repeat {repeat+1}/{args.runs}',flush=True)
 
-if args.delivery:
- report['delivery_runs']=[]
- for repeat in range(args.runs):
-  with tempfile.TemporaryDirectory(prefix='fsnet-perf-report-') as directory:
-   output=Path(directory)/'report.json'
-   command=['python3',str(Path(__file__).with_name('validate_delivery.py')),'--service',str(build/'fsnet-service'),'--client',str(build/'fsnet-client'),'--rounds','1000','--output',str(output)]
-   subprocess.run(command,env=environment,check=True,timeout=120)
-   report['delivery_runs'].append(json.loads(output.read_text()))
-   args.output.write_text(json.dumps(report,indent=2)+'\n')
 report['cgroup_after']={name:(Path('/sys/fs/cgroup')/name).read_text().strip() for name in ('cpu.stat','memory.current') if (Path('/sys/fs/cgroup')/name).exists()}
 args.output.write_text(json.dumps(report,indent=2)+'\n')

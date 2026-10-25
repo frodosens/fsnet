@@ -1,3 +1,5 @@
+> 历史性能记录。旧 API 对照程序已删除，仅能在对应 Git 提交复现；当前夹具见 [benchmarks](../benchmarks/README.md)。
+
 # 属性同步性能与优化
 
 2026-10-23。本轮降低属性写入和同步路径的 CPU/复制成本，FSA1/FSN1 协议与 Lua API 保持兼容。

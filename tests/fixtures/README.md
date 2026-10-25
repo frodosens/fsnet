@@ -1,5 +1,6 @@
-# 兼容测试夹具
+# 当前测试夹具
 
-`lua/`保存原来的单项脚本，供共享实体、属性、容器、预测和进程恢复测试使用。
-这些文件继续执行合同断言，避免示例重写时丢失回归覆盖；推荐应用接入见
-[新示例](../../examples/README.md)与[客户端SDK](../../docs/CLIENT_SDK.md)。
+`lua/timer_entity.lua` 使用全局实体和持久计时器 API。
+`tests/support/runtime.hpp` 为测试提供真实 EntityScriptHost、LuaEngine、Catalog 创建与持久属性读取。
+所有业务夹具使用 Catalog 分配的 EntityId；不提供任意字符串 ID 或账号路由适配器。
+可运行应用见 [示例](../../examples/README.md)。

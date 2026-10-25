@@ -1,5 +1,6 @@
 """Kill/restart the real Lua host; recover delayed and periodic entity timers."""
 import os
+import argparse
 from pathlib import Path
 import secrets
 import select
@@ -8,7 +9,12 @@ import sys
 import tempfile
 import time
 
-server_exe, client_exe = sys.argv[1:]
+parser = argparse.ArgumentParser(description=__doc__)
+parser.add_argument("server")
+parser.add_argument("client")
+parser.add_argument("--storage-uri")
+args = parser.parse_args()
+server_exe, client_exe = args.server, args.client
 children = []
 environment = dict(os.environ, FSNET_CLUSTER_TOKEN=secrets.token_hex(24),
                    FSNET_BIND_ADDRESS='127.0.0.1', FSNET_DEMO_SUBJECT='timer-client',
@@ -38,7 +44,7 @@ Clock:rpc('read',{callers={'client'}})
 function Clock:read() return self.once..':'..self.periodic..':'..self.cancelled end
 Clock:register()
 runtime.start(function()
-    local actor=Clock:spawn({},{creation_key='clock',bootstrap_scope='timer-process',target_node='local'})
+    local actor=Clock:spawn({},{creation_key='clock',bootstrap_scope='TIMER_SCOPE',target_node='local'})
     -- A killed owner retains its lease briefly. Bootstrap retries this
     -- idempotent operation while the timer worker observes the same fence.
     local ready=false
@@ -50,6 +56,7 @@ runtime.start(function()
     print('ready '..actor.id)
 end)
 """
+source = source.replace("TIMER_SCOPE", "timer-process-" + secrets.token_hex(8))
 
 
 def start(script):
@@ -87,7 +94,7 @@ def read(script, port, identity):
 try:
     with tempfile.TemporaryDirectory(prefix='fsnet-timer-process-') as directory:
         root = Path(directory)
-        environment['FSNET_STORAGE_URI'] = 'file:' + str(root / 'records')
+        environment['FSNET_STORAGE_URI'] = args.storage_uri or 'file:' + str(root / 'records')
         script, query = root / 'server.lua', root / 'client.lua'
         script.write_text(source)
         first, port, identity = start(script)

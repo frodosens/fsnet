@@ -76,8 +76,9 @@ int main() {
         definition.client=Access::read_write;
         EntitySchema schema; schema.attributes.emplace("data",definition);
         definition.client=Access::read; schema.attributes.emplace("locked",definition);
-        EntityAttributes authority(schema,"alice"); authority.restore_full(large.values,1);
-        CallIdentity alice{Caller::client,"alice"},bob{Caller::client,"bob"};
+        auto alice_connection=ConnectionRef::create(),bob_connection=ConnectionRef::create();
+        EntityAttributes authority(schema,alice_connection.key()); authority.restore_full(large.values,1);
+        CallIdentity alice{Caller::client,"same",0,alice_connection},bob{Caller::client,"same",0,bob_connection};
         auto staged=stage_attribute_proposal(authority,decode_attributes(encode_attributes(proposal)),alice);
         CHECK(staged.values.at("data")==changed.values.at("data"));
         CHECK(authority.all_values().at("data")==large.values.at("data") && authority.revision()==1);
@@ -132,8 +133,8 @@ int main() {
         CHECK(one_axis.patches.size()==1 && one_axis.patches[0].replace && one_axis.patches[0].path.size()==1);
         // Old FSA2 append/splice remains readable and encodes identically.
         AttributePatch append; append.property="list"; append.index=0; append.insert={true};
-        AttributeUpdate legacy{1,2,false,{},{append}}; auto legacy_bytes=encode_attributes(legacy);
-        CHECK(legacy_bytes.starts_with("FSA2") && encode_attributes(decode_attributes(legacy_bytes))==legacy_bytes);
+        AttributeUpdate compact{1,2,false,{},{append}}; auto compact_bytes=encode_attributes(compact);
+        CHECK(compact_bytes.starts_with("FSA2") && encode_attributes(decode_attributes(compact_bytes))==compact_bytes);
         AttributeArray items; AttributeMap tasks;
         for(int i=0;i<128;++i) { items.emplace_back(AttributeStruct{{"id",std::to_string(i)},{"count",std::int64_t(1)}}); tasks.emplace(std::to_string(i),items.back()); }
         AttributeUpdate previous{0,1,true,{{"items",items},{"tasks",tasks},{"scalar",false}}};

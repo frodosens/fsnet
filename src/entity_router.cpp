@@ -150,24 +150,6 @@ void EntityRouter::call(std::string type, std::string id, std::string method, st
     if(!valid_entity_id(id))return reply({Status::rejected,{}});
     call(EntityId(id),method,payload,timeout,std::move(reply),request_id,type);
 }
-void EntityRouter::legacy_call(std::string type, std::string id, std::string method, std::string payload,
-    std::chrono::milliseconds timeout, Reply reply, std::string request_id) {
-    auto& self = *impl_;
-    if (!reply) throw std::invalid_argument("reply required");
-    if (self.stopped) return reply({Status::disconnected, {}});
-    std::string route;
-    try { route=entity_route(type,method); } catch(...) { return reply({Status::rejected,{}}); }
-    if(id.empty() || id.size()>256 || request_id.size()>128 || timeout.count()<=0 || timeout>std::chrono::minutes(5))
-        return reply({Status::rejected,{}});
-    auto bytes = type.size() + id.size() + method.size() + payload.size() + request_id.size() + 8;
-    if (self.serial == UINT64_MAX || self.calls.size() >= self.limits.requests || bytes > self.limits.bytes - self.bytes)
-        return reply({Status::overloaded, {}});
-    auto call = std::make_shared<Impl::Call>(); call->id = ++self.serial;
-    call->type = std::move(type); call->entity = std::move(id); call->route = std::move(route);
-    call->message = entity_message(call->entity, payload, request_id); call->request_id = std::move(request_id);
-    call->reply = std::move(reply); call->deadline = Clock::now() + timeout; call->bytes = bytes;
-    self.calls.emplace(call->id, call); self.bytes += bytes;
-}
 std::size_t EntityRouter::poll(std::size_t budget) {
     auto keep_alive = impl_; auto& self = *keep_alive;
     if (self.stopped) return 0;
@@ -196,9 +178,6 @@ void RoutedScriptHost::call_entity(std::string route, std::string data, std::chr
     if(route==entity_call_route) {
         return router_.call_encoded(std::move(data),timeout,std::move(reply));
     }
-    auto split = route.find('.'); auto message = parse_entity_message(data);
-    if (split == std::string::npos || !message) return reply({Status::rejected, {}});
-    router_.legacy_call(route.substr(0, split), std::move(message->id), route.substr(split + 1), std::move(message->payload),
-        timeout, std::move(reply), std::move(message->request_id));
+    reply({Status::rejected,{}});
 }
 }

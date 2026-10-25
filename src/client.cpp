@@ -172,12 +172,6 @@ void Client::call(const EntityKey& key,std::string_view method,std::string_view 
     catch(const std::exception&){auto self=impl_;return self->guarded(std::move(reply))({Status::rejected,{}});}
     request(route,message,std::move(reply),options.timeout);
 }
-void Client::legacy_call(const EntityKey& key,std::string_view method,std::string_view payload,Reply reply,ClientRequestOptions options) {
-    std::string route,message;
-    try{route=entity_route(key.type,method);message=entity_message(key.id,payload,options.request_id);}
-    catch(...){return impl_->guarded(std::move(reply))({Status::rejected,{}});}
-    request(route,message,std::move(reply),options.timeout);
-}
 void Client::call(EntityId id,std::string_view method,std::string_view payload,Reply reply,ClientRequestOptions options) {
     std::string message;
     try{message=entity_call_message(id,method,payload,options.request_id);}
@@ -191,10 +185,6 @@ std::optional<ClientEntity> Client::entity(EntityId id) const {
 void Client::watch(EntityKey key,Ready reply,std::chrono::milliseconds timeout){
     if(!reply)throw std::invalid_argument("missing watch callback");
     if(!valid_entity_id(key.id)){auto self=impl_;return self->invoke([&]{reply(Status::rejected,{});});}
-    legacy_watch(std::move(key),std::move(reply),timeout);
-}
-void Client::legacy_watch(EntityKey key,Ready reply,std::chrono::milliseconds timeout){
-    if(!reply)throw std::invalid_argument("missing watch callback");
     auto self=impl_;if(!self->active())return self->invoke([&]{reply(Status::disconnected,{});});
     const auto epoch=self->generation;
     auto pinned=self->host;

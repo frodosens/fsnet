@@ -1,7 +1,7 @@
 #include "fsnet/database.hpp"
 #include "fsnet/cluster.hpp"
 #include "fsnet/c_api.h"
-#include "fsnet/entity.hpp"
+#include "fsnet/entity_catalog.hpp"
 #include "fsnet/directory.hpp"
 #include "fsnet/ice.hpp"
 #include "fsnet/node.hpp"
@@ -35,18 +35,16 @@ void database_tests() {
     std::cout << "PASS storage: interchangeable backends, CAS contention, deletion, restart persistence\n";
 }
 void fencing_test(std::shared_ptr<fsnet::Database> db) {
-    fsnet::EntityStore first(db), second(db);
-    CHECK(first.transfer("player42", 0, "logic-a"));
-    auto old_owner = first.owner("player42"); CHECK(old_owner);
-    CHECK(first.save("player42", old_owner->fence, 0, "saved before failure"));
-    auto old_state = first.load("player42"); CHECK(old_state);
-    CHECK(second.transfer("player42", old_owner->fence, "logic-b"));
-    auto new_owner = second.owner("player42"); CHECK(new_owner);
-    CHECK(new_owner->fence > old_owner->fence);
-    CHECK(!first.save("player42", old_owner->fence, old_state->version, "stale writer after partition"));
-    CHECK(second.save("player42", new_owner->fence, old_state->version, "recovered on logic-b"));
-    CHECK(second.load("player42")->value == "recovered on logic-b");
-    CHECK(!first.transfer("player42", old_owner->fence, "stale takeover"));
+    fsnet::EntityCatalog catalog(*db);
+    auto id=catalog.create("core","fence",{"Counter","","state","node-a"});
+    auto key=fsnet::entity_record_key(id);auto old=db->get(key);auto record=fsnet::decode_entity_record(old->value);
+    record.owner="node-a/boot";record.fence=1;record.initialized=true;
+    CHECK(db->compare_exchange(key,old->version,fsnet::encode_entity_record(record)));
+    auto first=db->get(key);record.owner="node-b/boot";record.fence=2;
+    CHECK(db->compare_exchange(key,first->version,fsnet::encode_entity_record(record)));
+    CHECK(!db->compare_exchange(key,first->version,fsnet::encode_entity_record(record)));
+    auto current=fsnet::decode_entity_record(db->get(key)->value);CHECK(current.owner=="node-b/boot" && current.fence==2);
+
     std::cout << "PASS entity recovery: persisted state, atomic fencing rejects previous owner\n";
 }
 void node_tests() {

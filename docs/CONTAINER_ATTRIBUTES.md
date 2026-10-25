@@ -1,8 +1,5 @@
 # 变长容器属性
 
-本文保留机制说明与显式 legacy 夹具；当前业务接入以 [API 指南](API_GUIDE.md) 和
-[全局实体](GLOBAL_ENTITIES.md) 为准，兼容入口见 [legacy 适配器](LEGACY_ADAPTERS.md)。
-
 已实现 `fsnet.list(Element, max_items)`、`fsnet.map(Element, max_items)`、
 `fsnet.set(Scalar, max_items)`。容量参数可省略，默认 256，允许范围 1..256；
 容器初始为空，也可以提供完整 `default`。容量是上限，不预分配/填充元素。
@@ -13,7 +10,7 @@
 ```lua
 local Item=fsnet.struct('Item',{id='string',count='int32'})
 local Task=fsnet.struct('Task',{progress='int32',done='bool'})
-local Player=fsnet.Entity:extend('Player',{owner='legacy_id'})
+local Player=fsnet.Entity:extend('Player')
 Player:attr('items',{type=fsnet.list(Item,128),sync='owner'})
 Player:attr('tasks',{type=fsnet.map(Task,128),sync='owner'})
 Player:attr('tags',{type=fsnet.set('string',32),sync='owner'})
@@ -82,7 +79,7 @@ list 元素的字段视图绑定下标，删除/插入会移动下标；不要�
 
 ## 客户端怎样知道变化
 
-客户端沿用自动实体创建或 `Player:legacy_watch(id)`，无需额外拉取容器。订阅收到确认更新后，
+客户端沿用自动实体创建或 `Player:watch(id)`，无需额外拉取容器。订阅收到确认更新后，
 `player.items`、`player.tasks` 就是新的状态。UI 可在帧更新里检查 `player.revision`，按稳定 ID
 与上一帧状态比较，触发新增/删除/修改处理：
 
@@ -132,20 +129,7 @@ Lua 候选值解析也有递归节点预算，map 的嵌套分配会计入载体
 
 ## 可运行示例与验证
 
-共享声明：[container_entity.lua](../tests/fixtures/lua/shared/container_entity.lua)。
-服务端：[container_entity.lua](../tests/fixtures/lua/container_entity.lua)。
-客户端：[container_entity.lua](../tests/fixtures/lua/client/container_entity.lua)，包含任务新增/修改/删除的通知 diff。
-示例 `demo` RPC 仅用于触发确定的服务端流程，不能直接照搬成生产奖励入口。
-
-```sh
-cat tests/fixtures/lua/shared/container_entity.lua tests/fixtures/lua/container_entity.lua > /tmp/fsnet-container-server.lua
-FSNET_CLUSTER_TOKEN=local-demo FSNET_DEMO_SUBJECT=alice /path/to/build/fsnet-script /tmp/fsnet-container-server.lua 7001
-
-# 另一终端，连接本轮新启动的默认内存服务端：
-cat tests/fixtures/lua/shared/container_entity.lua tests/fixtures/lua/client/container_entity.lua > /tmp/fsnet-container-client.lua
-FSNET_CLUSTER_TOKEN=local-demo /path/to/build/fsnet-client /tmp/fsnet-container-client.lua 127.0.0.1 7001
-```
-
-`fsnet-containers` 覆盖原生 codec/持久化恢复、容量/类型/唯一性/递归预算、两个客户端同步、
-owner 自动提案与观察者拒写、脚本失败回滚、嵌套容器、深复制、预测重放和停止内存释放。
-`fsnet-container-process` 使用独立的服务端与客户端程序运行上述交付示例。
+当前共享类、服务端和客户端用法见 [attributes 示例](../examples/attributes/)。
+用 `python3 examples/run.py attributes --build .dev/build/debug` 运行。
+`fsnet-patches` 验证路径/容器编辑、非法路径、预算和原子应用，`fsnet-schema` 验证类型及权限。
+引擎代码和测试不再接受任意字符串实体 ID。

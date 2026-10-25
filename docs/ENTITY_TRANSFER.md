@@ -108,10 +108,7 @@ FER1/FER2。本版本读取全部三种格式。**先升级所有 owner、Gatewa
 unpossess/possess 回调，表现 spawn 不重复。尚无迁移期间输入自动缓存补发、地图预加载、AOI
 成员持久化、跨实体/地图事务或零停顿承诺。观察者恢复仍由现有 Restore 策略重新验证权限。
 
-验证：`fsnet-transfer` 覆盖三节点、Lua 入口、源 hook 回滚、目标激活失败、丢失 ACK、持久目标、
-过期租约、旧编号与权限隔离；`fsnet-gateway` 覆盖指定目标往返、订阅与控制保持；
-`fsnet-delivery` 使用临时 mTLS 证书、独立 owner/Gateway 进程和共享 POSIX 存储，验证往返后
-客户端 Lua 对象保持同一实例。均为本机验证，不代表跨机 HA 或公网延迟指标。
+验证：`fsnet-global-flow` 覆盖两节点定向交接、稳定 ID、客户端订阅/控制、持久命令和随实体迁移的计时器。
 
 服务端持久命令已新增 outbox/inbox 协议，使用 `ref:send(...)`，随实体迁移保留，
 详见 [ENTITY_DELIVERY.md](ENTITY_DELIVERY.md)。普通同步 call 和客户端预测输入仍保留原语义。

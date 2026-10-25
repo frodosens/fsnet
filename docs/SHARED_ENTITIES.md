@@ -1,18 +1,15 @@
 # 共享实体与 Lua 客户端
 
-本文保留机制说明与显式 legacy 夹具；当前业务接入以 [API 指南](API_GUIDE.md) 和
-[全局实体](GLOBAL_ENTITIES.md) 为准，兼容入口见 [legacy 适配器](LEGACY_ADAPTERS.md)。
-
 同一份类定义可用于三种载体：
 
 | 载体 | 创建方式 | 属性语义 |
 | --- | --- | --- |
 | 服务端请求门面 | `Class:register()` 后由请求激活 | server 权限，mailbox、fencing 与提交后同步 |
 | 纯本地实例 | `Class:spawn_local(values, {id=...})` | 只有 `authority='driver'` 的属性可写，无持久化或联网 |
-| 客户端确认副本 | `Class:legacy_watch(id, {timeout_ms=...})` | 自动读取原生同步值；有写权限时赋值自动提交提案，其他写入拒绝 |
+| 客户端确认副本 | `Class:watch(id, {timeout_ms=...})` | 自动读取原生同步值；有写权限时赋值自动提交提案，其他写入拒绝 |
 
 ```lua
-local Circle = fsnet.Entity:extend('Circle', {owner='legacy_id'})
+local Circle = fsnet.Entity:extend('Circle')
 Circle:attr('radius', {type='number', default=0, authority='driver', sync='observers'})
 function Circle:advance(dt) self.radius = self.radius + dt * 2 end
 function Circle:contains(x, y) return x*x + y*y <= self.radius*self.radius end
@@ -35,7 +32,7 @@ runtime.start(function()
     offline:advance(0.1)
     offline:close()
 
-    local circle = Circle:legacy_watch('alice')
+    local circle = Circle:watch(circle_id)
     while circle.radius < 10 do
         print(circle:contains(0, 0))
         runtime.sleep(16)
@@ -72,12 +69,9 @@ C++ 客户端用 `ClientScriptHost(node, server_peer)` 承载 LuaEngine，并持
 ClientScriptHost 和 LuaEngine；每个 Node 一个属性客户端。服务端用 EntityScriptHost
 和 AttributeReplication。两个启动器 `fsnet-script` / `fsnet-client` 已接好这些组件。
 客户端未指定 peer 的实体引用通过 ClientScriptHost 发送到其配置的服务器连接；
-这仍是直连 owner，不包含 Gateway 身份委托或自动 owner 发现。
-
-完整魔法阵类见 [circle_entity.lua](../tests/fixtures/lua/shared/circle_entity.lua)。
-启动步骤见 [examples](../examples/README.md)。`FSNET_DEMO_SUBJECT=alice` 是 loopback
-演示身份，非回环监听会拒绝启用。生产身份来自可信登录/证书映射，不能由 payload 指定。
-当前直连 owner 节点；Gateway 转发、模块和完整生命周期将在后续阶段接入。
+可直连 owner，也可指向 Gateway，由可信委托与实体路由找到当前 Node。
+完整例子见 [scene](../examples/scene/)。`FSNET_DEMO_SUBJECT=alice` 是 loopback
+演示身份，非回环监听会拒绝启用；生产身份来自可信证书/认证映射。
 
 独立预测状态、有界输入历史、服务器校正与重放见 [客户端预测](PREDICTION.md)。
 

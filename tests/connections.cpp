@@ -1,4 +1,5 @@
 #include "fsnet/client_gateway.hpp"
+#include "fsnet/entity_message.hpp"
 #include <iostream>
 #include <thread>
 using namespace fsnet;using namespace std::chrono_literals;
@@ -15,21 +16,28 @@ int main(){try{
     auto base=[](std::uint64_t,const std::string&)->std::optional<CallIdentity>{return CallIdentity{Caller::server,"fixture"};};
     GatewayDelegation delegation(server,base,[](const CallIdentity& who,const std::string&){return who.caller==Caller::server&&who.subject=="fixture";},host);
     std::vector<CallIdentity> captured;
-    server.bind_rpc("who",{true,true,false},[&](const CallIdentity& who,std::string,Reply reply){captured.push_back(who);reply({Status::ok,who.connection.key()});});
+    server.bind_rpc("system.test.identity",{true,true,false},[&](const CallIdentity& who,std::string,Reply reply){captured.push_back(who);reply({Status::ok,who.connection.key()});});
     auto port=server.listen("127.0.0.1",0);
     auto peer_a=a.connect("127.0.0.1",port),peer_b=b.connect("127.0.0.1",port);
     std::uint64_t frontend=0;
     front.identify([&](std::uint64_t peer,const std::string&)->std::optional<CallIdentity>{frontend=peer;return CallIdentity{Caller::client,"same-account"};});
-    ClientGateway gateway(front,back,db,{{"server","127.0.0.1",port,{"Actor"}}});gateway.bind_legacy_account("who","Actor");
+    host->define_schema("Actor",{});
+    host->bind_stateful_context("Actor.who","Actor",encode_attributes({0,0,true,{}}),{true,true,false},[&](const CallIdentity& who,std::string input,Reply reply){
+        auto entity=parse_entity_message_view(input);auto state=parse_state_message_view(entity->payload);
+        captured.push_back(who);reply({Status::ok,state_message(state->state,who.connection.key())});
+    });
+    ClientGateway gateway(front,back,db,{{"server","127.0.0.1",port,{"Actor"}}});gateway.bind_entity("Actor",{"who"});
     auto gateway_port=front.listen("127.0.0.1",0);
     auto pump=[&]{server.poll();a.poll();b.poll();front.poll();back.poll();host->poll();delegation.poll();gateway.poll();};
     auto until=[&](auto done){auto end=std::chrono::steady_clock::now()+3s;while(!done()){pump();CHECK(std::chrono::steady_clock::now()<end);std::this_thread::sleep_for(1ms);}};
-    auto call=[&](Node& node,std::uint64_t peer){std::optional<Result> result;node.call(peer,"who","",1s,[&](Result value){result=std::move(value);});until([&]{return result.has_value();});CHECK(result->status==Status::ok);return ConnectionRef::from_key(result->data);};
+    std::optional<Result> created;host->create_entity("Actor",{},{"connections","entry",{},"server"},[&](Result value){created=std::move(value);});
+    until([&]{return created.has_value();});CHECK(created->status==Status::ok);auto actor=EntityId(created->data);
+    auto call=[&](Node& node,std::uint64_t peer,bool entity=false){std::optional<Result> result;node.call(peer,entity?entity_call_route:"system.test.identity",entity?entity_call_message(actor,"who",""):"",1s,[&](Result value){result=std::move(value);});until([&]{return result.has_value();});CHECK(result->status==Status::ok);return ConnectionRef::from_key(result->data);};
     auto first=call(a,peer_a),second=call(b,peer_b);CHECK(first!=second && first.key()==ConnectionRef::from_key(first.key()).key());
     auto identity=captured.front();CHECK(identity.live());RpcPolicy owner{false,true,true};CHECK(owner.allows(identity,first.key()));CHECK(!owner.allows(captured.back(),first.key()));
     server.close(identity.peer);CHECK(!identity.live() && !owner.allows(identity,first.key()));
     auto replacement=call(a,a.connect("127.0.0.1",port));CHECK(replacement!=first);
-    auto proxied=call(a,a.connect("127.0.0.1",gateway_port));CHECK(front.identity(frontend)->connection==proxied);
+    auto proxied=call(a,a.connect("127.0.0.1",gateway_port),true);CHECK(front.identity(frontend)->connection==proxied);
     CHECK(captured.back().caller==Caller::client && captured.back().subject=="same-account");
     auto old_proxy=captured.back();front.close(frontend);until([&]{return !old_proxy.live();});
     for(auto invalid:{"","connection/x/1","connection/00000000000000000000000000000000/0","connection/00000000000000000000000000000000/01"}) {

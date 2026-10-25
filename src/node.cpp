@@ -54,7 +54,7 @@ struct Node::Impl : std::enable_shared_from_this<Node::Impl> {
     Authorizer authorizer;
     IdentityResolver identity_resolver;
     std::unordered_map<std::string, Notification> notifications;
-    struct Route { RpcPolicy policy; ContextHandler handler; bool legacy = false; };
+    struct Route { RpcPolicy policy; ContextHandler handler; };
     bool stopped = false, ready = true, driving = false;
     std::size_t receive_bytes = 0;
     std::size_t callback_failures = 0;
@@ -296,8 +296,7 @@ struct Node::Impl::Session : std::enable_shared_from_this<Session> {
         }
         auto registered = it->second;
         CallIdentity principal{Caller::client, {}};
-        if(registered.legacy || !node->identity_resolver) principal.subject=identity;
-        if (!registered.legacy) {
+        {
             try {
                 {
                     auto resolved = this->principal();
@@ -391,19 +390,19 @@ void Node::bind_rpc(std::string route, RpcPolicy policy, ContextHandler handler)
     // A plain transport route has no entity owner to compare against. Reject this
     // policy rather than silently claiming owner authorization has been enforced.
     if (policy.owner_only) throw std::invalid_argument("owner policy requires an entity dispatcher");
-    if (!impl_->handlers.emplace(std::move(route), Impl::Route{policy, std::move(handler), false}).second)
+    if (!impl_->handlers.emplace(std::move(route), Impl::Route{policy, std::move(handler)}).second)
         throw std::logic_error("duplicate RPC route");
 }
 void Node::rpc_policy(const std::string& route, RpcPolicy policy) {
     if ((!policy.client && !policy.server) || policy.owner_only)
         throw std::invalid_argument("explicit caller roles required; owner policy requires entity dispatcher");
     auto& registered = impl_->handlers.at(route);
-    registered.policy = policy; registered.legacy = false;
+    registered.policy = policy;
 }
 void Node::bind(std::string route, Handler handler) {
     if (route.empty() || route.size() > 256 || route.find('\0') != std::string::npos || !handler) throw std::invalid_argument("invalid RPC route");
     if (!impl_->handlers.emplace(std::move(route), Impl::Route{{true, true, false},
-        [handler = std::move(handler)](const CallIdentity&, std::string data, Reply reply) { handler(std::move(data), std::move(reply)); }, true}).second) throw std::logic_error("duplicate RPC route");
+        [handler = std::move(handler)](const CallIdentity&, std::string data, Reply reply) { handler(std::move(data), std::move(reply)); }}).second) throw std::logic_error("duplicate RPC route");
 }
 void Node::call(std::uint64_t peer, std::string_view route, std::string_view data, std::chrono::milliseconds timeout, Reply reply) {
     auto keep = impl_;

@@ -9,7 +9,7 @@ import tempfile
 from urllib.parse import urlencode
 from certificates import certificates
 
-root_path, openssl, executable, library, lua, script = sys.argv[1:]
+root_path, openssl, executable, lua, client = sys.argv[1:]
 pg = Path(root_path) / 'bin'
 with tempfile.TemporaryDirectory(prefix='fsnet-postgres-') as temporary:
     root = Path(temporary)
@@ -49,7 +49,7 @@ with tempfile.TemporaryDirectory(prefix='fsnet-postgres-') as temporary:
         subprocess.run([executable], env=environment, check=True, timeout=30)
         if lua != '-':
             environment['FSNET_STORAGE_URI'] = uri
-            subprocess.run([sys.executable, str(Path(__file__).with_name('entity_process.py')), library, lua, script, 'postgres'], env=environment, check=True, timeout=20)
+            subprocess.run([sys.executable, str(Path(__file__).with_name('timer_process.py')), lua, client, '--storage-uri', uri], env=environment, check=True, timeout=20)
         child = subprocess.Popen([executable, '--reconnect'], env=environment, stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True)
         assert select.select([child.stdout], [], [], 5)[0] and child.stdout.readline().strip() == 'ready'
         control('-m', 'immediate', '-w', 'stop')

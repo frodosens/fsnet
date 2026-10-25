@@ -41,11 +41,8 @@ public:
                      std::string owner_id, EntityRuntimeLimits = {}, StorageLimits = {}, WallClock = {});
     ~EntityScriptHost() override;
     bool has_route(const std::string&) const override;
-    void enable_legacy_routes()override;
     void bind(std::string, Handler) override;
-    void bind_legacy_stateful(std::string route, std::string type, std::string initial, Handler) override;
     void define_schema(std::string, EntitySchema) override;
-    void legacy_spawn_entity(std::string type, std::string id, EntityAttributes::Values, Reply) override;
     void create_entity(std::string type,EntityAttributes::Values,EntitySpawnOptions,Reply) override;
     void bind_entity_owner(std::string type,std::string id,ConnectionRef,Reply) override;
     std::string schedule_timer(const std::string&,const std::string&,EntityTimerSpec)override;
@@ -80,12 +77,7 @@ public:
     void read_attributes(std::string type, std::string id, Reply);
     void bind_context(std::string, RpcPolicy, ContextHandler) override;
     void bind_stateful_context(std::string, std::string, std::string, RpcPolicy, ContextHandler) override;
-    using OwnerResolver = std::function<std::string(const std::string& type, const std::string& id)>;
-    // Trusted application mapping from entity identity to account subject. Empty
-    // results deny owner-only calls; the default resolver denies all such calls.
-    void legacy_ownership(OwnerResolver);
-    // Updates existing contextual RPCs. Legacy bind_legacy_stateful handlers do not
-    // receive authenticated caller identity and cannot acquire a policy here.
+    // Updates the shared method policy, rechecked by queued and resumed calls.
     void rpc_policy(const std::string&, RpcPolicy) override;
     void unbind(const std::string&) override;
     void call_entity(std::string, std::string, std::chrono::milliseconds, Reply) override;

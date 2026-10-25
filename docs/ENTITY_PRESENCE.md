@@ -1,8 +1,5 @@
 # 服务端创建与客户端实体表现
 
-本文保留机制说明与显式 legacy 夹具；当前业务接入以 [API 指南](API_GUIDE.md) 和
-[全局实体](GLOBAL_ENTITIES.md) 为准，兼容入口见 [legacy 适配器](LEGACY_ADAPTERS.md)。
-
 服务端只有一个 `Player` 实体类型；客户端根据服务器确认的归属，把它包装为
 `LocalPlayer` 或 `RemotePlayer`。表现类不改变服务端实体类型或权限。
 C++ 提供实体、可见性和同步载体；登录、场景、AOI、镜头和输入策略留在 Lua/应用适配层。
@@ -10,27 +7,21 @@ C++ 提供实体、可见性和同步载体；登录、场景、AOI、镜头和�
 ## 登录与服务端创建
 
 ```lua
-Player:register()
-runtime.legacy_rpc('login', {callers={'client'}, handler=function(ctx, name)
-    -- ctx.subject 来自宿主认证，不能采用 payload 中的账号或 owner。
-    local player = Player:legacy_spawn_or_restore(ctx.subject, {name=name})
-    player:show_to(ctx.peer)
-    player:possess(ctx.peer)
+LoginEntity:rpc('login',{callers={'client'}})
+function LoginEntity:login(name)
+    local connection=self.context.connection
+    local player=Player:spawn({},{creation_key='player:'..self.context.subject,target_node='map-02'})
+    player:bind_owner(connection)
+    player:show_to(connection)
+    player:possess(connection)
     return player.id
-end})
+end
 ```
 
-`Class:legacy_spawn_or_restore(id, values)` 仅用于已注册的服务端属性类，必须在异步任务中调用。
-它经过已有实体 mailbox、租约与单记录 CAS：新记录的持久化初值与取得所有权原子保存；
-已有记录恢复状态，**不会重新应用初值**。返回逻辑实体引用，不是可绕过 mailbox 的可写对象。
-默认属性初始化仍遵守类型、server 写权限、驻留/队列/存储预算。非持久化初值只在当前驻留期保留。
-
-初始化持久化记录后，操作也可能超时或在最终确认前失败；重试应恢复已有记录，不假定失败
-等于服务器没有创建。这不是 exactly-once 创建事件，on_create 的属性初始化与首个操作一起提交，失败可重试；见 [生命周期](ENTITY_LIFECYCLE.md)。
-
-本阶段 `owner='legacy_id'` 沿用账号 subject = 实体 ID；其他所有权关系由可信宿主 resolver 提供。
-没有动态写 owner 或从客户端认领实体的接口。不得在某实体自己的 mailbox 中同步
-spawn 或 show 同一个实体，以免等待自己；相同目标会立即拒绝，跨实体循环仍需业务避免。
+启动时创建 Manager/LoginEntity，并从可信发现渠道提供入口 EntityId。客户端先调用
+`fsnet.ref(login_id):call('login','Alice')`。业务决定账号与角色映射，引擎只负责全局 ID 和连接授权。
+创建初始参数与 creation_key 必须稳定，重连后换绑当前 ConnectionRef；后续配置通过实体方法修改。
+创建确认丢失可用相同 key 找回原实体，已销毁实体不会复活。
 
 ## 可见性与控制
 
@@ -38,23 +29,14 @@ spawn 或 show 同一个实体，以免等待自己；相同目标会立即拒�
 
 | 接口 | 合同 |
 | --- | --- |
-| `player:show_to(peer)` | 为已提交且驻留的实体授予当前认证连接观察权限，并推送过滤后的初始快照；重复调用不重复创建表现 |
-| `player:hide_from(peer)` | 撤销该连接的自动订阅，通知客户端移除；可重复，不删除服务端记录 |
-| `player:possess(peer)` | 将此连接的控制目标切换到这个可见且归其所有的实体；旧目标先解除控制 |
-| `player:unpossess(peer)` | 解除此实体的控制，保留可见性；可重复 |
+| `player:show_to(connection)` | 为已提交且驻留的实体授予当前认证连接观察权限，并推送过滤后的初始快照；重复调用不重复创建表现 |
+| `player:hide_from(connection)` | 撤销该连接的自动订阅，通知客户端移除；可重复，不删除服务端记录 |
+| `player:possess(connection)` | 将此连接的控制目标切换到这个可见且归其所有的实体；旧目标先解除控制 |
+| `player:unpossess(connection)` | 解除此实体的控制，保留可见性；可重复 |
 
-peer 必须是当前认证的 client 连接且 subject 非空，来自可信上下文 `ctx.peer` 或可信场景会话表。
-显式 show 是服务端的观察授权；外部 observer hook 仍可用于其他手动 watch，单纯
-`sync='observers'` 不自动向全世界广播。
-
-自己看到自己：owner + observers 属性。其他人看到此实体：只收到 observers 属性。
-owner 与控制分开；归自己所有的实体可以暂时不受控制，一个连接最多控制一个实体。
-本阶段不允许控制他人实体，受信任的多人驾驶等规则需要后续明确授权扩展。
-
-可见性与控制是连接内的临时状态，不写入实体持久化记录。场景成员表由脚本维护，
-scene/AOI 应在进入时 show、离开时 hide。不存在自动几何搜索或跨实体事务。
-退出视野、断线、身份变化、owner 变化、实体卸载、schema 移除和订阅超期都会撤销副本。
-重新登录需要重新建立可见性，不能把旧 peer 或旧订阅 ID 当作新的会话。
+connection 来自可信 `self.context.connection`，不得采用负载声明的 owner 或 socket ID。
+可见性和控制与实体归属分别管理；possess 只允许当前连接拥有且可见的实体。
+跨节点 Gateway 将逻辑连接委托给 owner，并转发属性与表现通知。
 
 ## 客户端工厂与生命周期
 
@@ -89,7 +71,7 @@ function RemotePlayer:on_despawn() models:destroy(self.model) end
 fsnet.entities:register(Player, {owned=LocalPlayer, observed=RemotePlayer})
 fsnet.entities:start()
 runtime.start(function()
-    runtime.legacy_server_request('login', 'Alice')
+    fsnet.ref(login_id):call('login', 'Alice')
 end)
 ```
 
@@ -120,8 +102,6 @@ models/camera/input 只是图形引擎适配接口示意，不是 fsnet 内置�
 后到的自动创建将退订；手动 watch 和整个 Node 保持可用。退出登录应先让
 服务端撤销可见性。停止后当前管理器不能重新 start，重新加载需新的引擎。
 
-`runtime.legacy_server_request(route,bytes,timeout)` 发往 ClientScriptHost 配置的服务器连接。
-该连接可指向 owner 或 [ClientGateway](CLIENT_GATEWAY.md)，后者负责可信委托和 owner 路由。生产连接仍需真实认证。
 
 ## 同步与资源边界
 
@@ -140,8 +120,6 @@ models/camera/input 只是图形引擎适配接口示意，不是 fsnet 内置�
 
 ## 验证
 
-`fsnet-presence` 使用一个服务端和两个真实客户端，验证认证登录后自动 LocalPlayer/
-RemotePlayer、初值恢复、实时属性同步与私有字段过滤、控制切换与幂等性、hide/show、
-未创建实体拒绝、额度、非服务器通知隔离、禁止控制他人、身份撤销和 hook 异常清理。
-`fsnet-presence-process` 使用两个独立交付程序运行登录、镜头目标绑定示意、预测和注销。
+`fsnet-global-flow` 验证多 Node 创建、Gateway 权限/订阅、连接换绑、迁移与控制、持久命令和计时器。
+`fsnet-client-sdk` 验证连接代数与失效写入；scene 的 Lua/原生示例运行完整登录和移动流程。
 本机验证不等同于公网、自动 AOI 或图形引擎集成验收。

@@ -25,7 +25,7 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
         std::uint64_t peer;
         std::string route, data, target, entity_id, source_type, source_id;
         std::chrono::milliseconds timeout;
-        enum class Kind { rpc, sleep, watch, write, spawn, create, bind_owner, control, transfer, send, visibility } kind = Kind::rpc;
+        enum class Kind { rpc, sleep, watch, write,  create, bind_owner, control, transfer, send, visibility } kind = Kind::rpc;
         std::uint64_t subscription = 0;
         AttributeWriteOptions options;
         EntityAttributes::Values values;
@@ -370,11 +370,7 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
             if (kind.empty() || kind.size() > 127 || kind.find_first_of(".\0", 0, 2) != std::string::npos || engine.schemas.size() >= 256)
                 throw std::invalid_argument("invalid attribute entity kind");
             EntitySchema schema;
-            if (!lua_isnoneornil(L,3)) {
-                std::size_t length; const char* owner = luaL_checklstring(L,3,&length);
-                if (std::string_view(owner,length)!="legacy_id") throw std::invalid_argument("unsupported declarative entity owner");
-                schema.legacy_owner_from_id = true;
-            }
+            if(!lua_isnoneornil(L,3))throw std::invalid_argument("entity ownership is assigned to connections");
             lua_pushnil(L);
             while (lua_next(L, 2)) {
                 if (schema.attributes.size() >= 256) throw std::length_error("attribute count limit");
@@ -1060,23 +1056,6 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
         return lua_yield(L,0);
     }
 
-    static int legacy_spawn_entity(lua_State* L) {
-        prediction_external(L);
-        auto& engine=self(L);
-        std::size_t n,m; const char* kind=luaL_checklstring(L,1,&n); const char* id=luaL_checklstring(L,2,&m);
-        if(!engine.threads.contains(L)) return luaL_error(L,"spawn requires an async server task");
-        try {
-            std::string type(kind,n);
-            if(!engine.server_schemas.contains(type) || m==0 || m>256) throw std::invalid_argument("spawn requires a registered server class and valid ID");
-            const auto& task=engine.tasks.at(engine.threads.at(L));
-            if(task.entity_type==type && task.entity_id==std::string_view(id,m)) throw std::logic_error("cannot spawn the currently executing entity");
-            Await request{}; request.kind=Await::Kind::spawn; request.timeout=engine.limits.task_timeout;
-            request.route=std::move(type); request.data=std::string(id,m);
-            request.values=values(L,3,engine.schemas.at(request.route));
-            engine.tasks.at(engine.threads.at(L)).await=std::move(request);
-        } catch(const std::exception& e) { return luaL_error(L,"%s",e.what()); }
-        return lua_yield(L,0);
-    }
     static int global_id(lua_State* L) {
         std::size_t n;const char* id=luaL_checklstring(L,1,&n);lua_pushboolean(L,valid_entity_id(std::string_view(id,n)));return 1;
     }
@@ -1296,11 +1275,6 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
             return 1;
         } catch(const std::exception& e) { return luaL_error(L,"%s",e.what()); }
     }
-    static int enable_legacy_routes(lua_State* L) {
-        prediction_external(L);
-        try{self(L).host->enable_legacy_routes();return 0;}
-        catch(const std::exception& error){return luaL_error(L,"%s",error.what());}
-    }
     static int rpc(lua_State* L) {
         luaL_checktype(L, 1, LUA_TSTRING); luaL_checktype(L, 2, LUA_TFUNCTION);
         std::size_t size = 0; const char* name = lua_tolstring(L, 1, &size);
@@ -1412,13 +1386,11 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
         lua_pushcfunction(L,connection_index);lua_setfield(L,-2,"__index");
         lua_pushboolean(L,false);lua_setfield(L,-2,"__metatable");lua_pop(L,1);
         lua_newtable(L);
-        lua_pushcfunction(L,enable_legacy_routes);lua_setfield(L,-2,"_enable_legacy_routes");
         lua_pushcfunction(L,start_task); lua_setfield(L,-2,"_start");
         lua_pushcfunction(L,sleep_task); lua_setfield(L,-2,"_sleep");
         lua_pushcfunction(L,watch_attributes); lua_setfield(L,-2,"_watch");
         lua_pushcfunction(L,unwatch_attributes); lua_setfield(L,-2,"_unwatch");
         lua_pushcfunction(L,write_attributes); lua_setfield(L,-2,"_write");
-        lua_pushcfunction(L,legacy_spawn_entity); lua_setfield(L,-2,"_legacy_spawn_entity");
         lua_pushcfunction(L,create_entity); lua_setfield(L,-2,"_create_entity");
         lua_pushcfunction(L,bind_owner);lua_setfield(L,-2,"_bind_entity_owner");
         lua_pushcfunction(L,schedule_timer);lua_setfield(L,-2,"_schedule_timer");
@@ -1482,38 +1454,15 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
         lua_call(L, 0, 0);
         const char* entities = R"lua(
             local register_rpc = runtime.rpc
-            runtime._rpc = function(route, handler, kind, initial, policy)
-                if type(handler) == 'table' then
-                    local definition = handler
-                    assert(kind == nil and initial == nil and policy == nil and definition.access == nil, 'invalid stateless RPC definition')
-                    assert(type(definition.handler) == 'function' and type(definition.callers) == 'table' and #definition.callers > 0, 'explicit RPC callers and handler required')
-                    policy = {}
-                    for _, caller in ipairs(definition.callers) do
-                        assert(caller == 'client' or caller == 'server', 'invalid RPC caller')
-                        policy[caller] = true
-                    end
-                    handler = function(data, ctx) return definition.handler(ctx, data) end
-                end
-                return register_rpc(route, handler, kind, initial, policy)
-            end
-            runtime.legacy_rpc = function(...)
-                local result=runtime._rpc(...)
-                runtime._enable_legacy_routes()
-                return result
-            end
+            runtime._rpc = register_rpc
             runtime.rpc = nil
-            runtime.legacy_entity_rpc = function(kind, method, handler)
-                assert(type(method) == 'string' and #method > 0 and #method <= 127 and not method:find('[%.%z]'), 'invalid entity method')
-                runtime.legacy_rpc(kind .. '.' .. method, handler, kind)
-            end
             runtime._entity = function(kind, definition)
                 assert(type(definition) == 'table' and type(definition.methods) == 'table', 'entity definition required')
-                assert(not (definition.attrs and definition.initial), 'attribute entities cannot declare opaque initial state')
-                assert(definition.owner == nil or (definition.attrs and definition.owner == 'legacy_id'), 'unsupported entity owner declaration')
-                local initial = definition.attrs and (definition.model and runtime._model_publish(kind) or runtime._attributes_define(kind, definition.attrs, definition.owner)) or definition.initial or ''
+                assert(definition.attrs and definition.model and definition.initial == nil and definition.owner == nil, 'registered attribute model required')
+                local initial = runtime._model_publish(kind)
                 local register = function(method, handler)
                     local policy
-                    assert(not definition.attrs or type(handler) == 'table', 'attribute entity methods require explicit callers')
+                    assert(type(handler) == 'table', 'entity methods require explicit callers')
                     if type(handler) == 'table' then
                         assert(handler.access == nil or handler.access == 'owner', 'invalid entity access')
                         assert(type(handler.callers) == 'table' and #handler.callers > 0, 'explicit RPC callers required')
@@ -1532,11 +1481,9 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
                         assert(#data >= offset + size - 1, 'truncated state')
                         local state = data:sub(offset, offset + size - 1)
                         local next_state, response
-                        if definition.attrs then
-                            local self = runtime._attributes_open(kind, state)
-                            response = handler(self, ctx, data:sub(offset + size))
-                            next_state = runtime._attributes_close(self)
-                        else next_state, response = handler(state, id, data:sub(offset + size), ctx) end
+                        local self = runtime._attributes_open(kind, state)
+                        response = handler(self, ctx, data:sub(offset + size))
+                        next_state = runtime._attributes_close(self)
                         assert(type(next_state) == 'string' and type(response) == 'string', 'return state and response bytes')
                         return 'FSS1' .. string.pack('>I4', #next_state) .. next_state .. response
                     end, kind, initial, policy)
@@ -1563,28 +1510,7 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
                     end
                 end
                 if definition.timer then register('$timer',{callers={'server'},handler=definition.timer}) end
-                if definition.tick then register('$tick', definition.attrs and {callers={'server'}, handler=definition.tick} or definition.tick) end
-            end
-            runtime.legacy_entity = function(...)
-                local result=runtime._entity(...)
-                runtime._enable_legacy_routes()
-                return result
-            end
-            runtime.entity_call = function(kind, id, method, payload, timeout, request_id)
-                return runtime.entity_request(0, kind, id, method, payload, timeout, request_id)
-            end
-            runtime.entity_request = function(peer, kind, id, method, payload, timeout, request_id)
-                assert(type(id) == 'string' and #id > 0 and #id <= 256, 'invalid entity ID')
-                if runtime._global_entity_id(id) then
-                    return runtime.request(peer,'@',runtime._entity_call_message(kind,id,method,payload,request_id),timeout)
-                end
-                assert(kind,'generic references require a global EntityId')
-                local envelope
-                if request_id then
-                    assert(type(request_id) == 'string' and #request_id > 0 and #request_id <= 128, 'invalid request ID')
-                    envelope = 'FSE2' .. string.pack('>I2', #id) .. id .. string.pack('>I2', #request_id) .. request_id .. payload
-                else envelope = 'FSE1' .. string.pack('>I2', #id) .. id .. payload end
-                return runtime.request(peer, kind .. '.' .. method, envelope, timeout)
+                if definition.tick then register('$tick', {callers={'server'}, handler=definition.tick}) end
             end
         )lua";
         if (luaL_loadstring(L, entities) != LUA_OK) return lua_error(L);
@@ -1663,6 +1589,10 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
         auto task = std::move(it->second); tasks.erase(it);
         if(task.pending_watch)task.pending_watch->close();
         threads.erase(task.thread);
+        // Release failed/suspended Lua frames before dropping the registry
+        // root. Otherwise an OOM coroutine can retain its request carrier and
+        // prevent the next entity operation from allocating its own frame.
+        if(task.thread)lua_resetthread(task.thread);
         if (task.reference != LUA_NOREF) luaL_unref(state, LUA_REGISTRYINDEX, task.reference);
         if(task.background && task.function!=LUA_NOREF) luaL_unref(state,LUA_REGISTRYINDEX,task.function);
         if (!task.mailbox.empty()) busy.erase(task.mailbox);
@@ -1733,7 +1663,6 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
                         completion({status,std::move(result)});
                     },request.timeout);
             } else if(request.kind==Await::Kind::write) host->write_attributes(request.subscription,std::move(request.values),std::move(completion),std::move(request.options),request.timeout);
-            else if(request.kind==Await::Kind::spawn) host->legacy_spawn_entity(std::move(request.route),std::move(request.data),std::move(request.values),std::move(completion));
             else if(request.kind==Await::Kind::create) host->create_entity(std::move(request.route),std::move(request.values),std::move(request.creation),std::move(completion));
             else if(request.kind==Await::Kind::bind_owner)host->bind_entity_owner(std::move(request.route),std::move(request.data),std::move(request.creation.owner),std::move(completion));
             else if(request.kind==Await::Kind::send) host->send_entity(std::move(request.source_type),std::move(request.source_id),std::move(request.route),std::move(request.entity_id),std::move(request.target),std::move(request.data),std::move(completion));
@@ -1832,9 +1761,7 @@ void LuaEngine::load(std::string_view source, const std::string& name) {
                 if (managed != owner.stateful_routes.end()) owner.host->bind_stateful_context(route, kind, managed->second, policy, std::move(handler));
                 else owner.host->bind_context(route, policy, std::move(handler));
             } else {
-                Handler legacy = [handler = std::move(handler)](std::string data, Reply reply) { handler({}, std::move(data), std::move(reply)); };
-                if (managed != owner.stateful_routes.end()) owner.host->bind_legacy_stateful(route, kind, managed->second, std::move(legacy));
-                else owner.host->bind(route, std::move(legacy));
+                throw std::logic_error("explicit entity RPC caller policy required");
             }
         }
         owner.loaded = true; owner.source = {};

@@ -40,7 +40,7 @@ ClientState为disconnected/connecting/connected。connected表示Node传输认�
 远端连接必须使用mTLS；明文仅允许loopback。Endpoint当前接收数字IP，server_name只控制
 证书名验证，不执行DNS解析。token/TLS策略与Node相同，不把cluster token视为玩家身份。
 
-`request(route, bytes, reply, timeout)` 是底层控制/兼容 RPC；业务调用使用实体。`call(EntityKey, method, bytes, reply, options)`
+`request(route, bytes, reply, timeout)` 是底层控制 RPC；业务调用使用实体。`call(EntityKey, method, bytes, reply, options)`
 是共用FSE实体调用，options支持timeout/request_id。超时结果可能不确定，SDK不会自动重放。
 安全重试须保留同一request_id和完全相同输入，并遵守服务端持久回执保留窗口。
 

@@ -85,7 +85,7 @@ python3 examples/run.py attributes
 
 存储最低要求是单记录原子 CAS，不要求数据库事务；可以使用 file:/目录 的 POSIX 文件后端。PostgreSQL 是可选后端，使用 FSNET_WITH_POSTGRES=ON 从固定源码构建。详见 [存储合同](docs/STORAGE.md)。
 
-`EntityStore` 提供 owner 转移与 fenced save：将 owner、fencing 和实体状态保存在同一记录，通过单记录 CAS 提交，接管后旧 owner 的写入返回失败，不依赖数据库事务。接管时机由控制平面决定；此接口不把单机 SQLite 变成跨机器数据库集群。
+`EntityCatalog / EntityScriptHost` 提供 owner 转移与 fenced save：将 owner、fencing 和实体状态保存在同一记录，通过单记录 CAS 提交，接管后旧 owner 的写入返回失败，不依赖数据库事务。接管时机由控制平面决定；此接口不把单机 SQLite 变成跨机器数据库集群。
 
 ## 服务容错与 P2P
 

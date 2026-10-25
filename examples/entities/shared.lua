@@ -1,5 +1,5 @@
 -- Entity IDs are stable strings; authorization is bound to a logical connection.
-Player=fsnet.Entity:extend('Player',{owner='external'})
+Player=fsnet.Entity:extend('Player')
 Player:attr('name',{type='string',default='',sync='observers'})
 Player:attr('position',{type='vec3',authority='driver',sync='observers'})
 Player:rpc('move',{callers={'client'},access='owner'})

@@ -1,8 +1,7 @@
 # 当前 API 使用指南
 
 当前合同：全局 EntityId、逻辑连接授权、公共属性差量与持久计时器。
-可直接运行的程序见 [examples](../examples/README.md)，旧原生/脚本夹具接口见
-[显式兼容适配器](LEGACY_ADAPTERS.md)。这些旧入口不再是默认业务 API。
+可直接运行的程序见 [examples](../examples/README.md)。业务入口统一使用全局实体，不提供旧接口适配层。
 
 ## 类、属性与 RPC
 

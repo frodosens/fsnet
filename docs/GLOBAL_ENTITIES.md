@@ -58,13 +58,13 @@ fsnet.ref(player_id):call('move','1')
 持久任务携带实体快照移动，调度器使用持久索引发现未激活任务并按租约/fence 执行。
 见 [交接](ENTITY_TRANSFER.md)、[投递](ENTITY_DELIVERY.md)、[计时器](ENTITY_TIMERS.md)。
 
-## 公共机制和兼容边界
+## 公共机制与运行边界
 
 两端共用 EntityId、连接引用、FSE3、属性值/patch、计时器状态与周期推进算法。
 授权、持久提交与发现调度在服务端边界执行，客户端不能因此获得 server-only 权限。
-默认 Lua 类、SDK 和 Gateway 不再自动回退到任意字符串 ID / Type.method。
-原生协议/存储夹具使用显式 [legacy 适配器](LEGACY_ADAPTERS.md)；FER1/2/3 codec
-仍供这些夹具使用，不承诺线上旧数据迁移。FER4 的账号授权不能解释为 FER5 的连接授权。
+Lua 类、SDK、Gateway 和宿主都要求全局 ID。任意字符串 ID 创建、账号路由、
+Type.method 业务路由及适配器已经删除。Node 的底层控制路由仍用于协议基础设施。
+当前记录 writer 使用 FER5，授权只认逻辑连接；本次没有改写磁盘与线协议格式。
 
 验证范围、当前修复与尚保留的成本见 [验证](VALIDATION.md) 和
 [本轮修复](GLOBAL_REVIEW_FIXES_2026-10-25.md)。历史性能基线见
