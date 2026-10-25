@@ -8,6 +8,7 @@ namespace fsnet {
 namespace {
 constexpr const char* probe_route="system.entity_transfer.probe";
 constexpr const char* accept_route="system.entity_transfer.accept";
+constexpr const char* create_route="system.entity_create.activate";
 std::pair<std::string,std::string> identity(std::string_view& input) {
     if(input.size()>1024) throw std::invalid_argument("transfer message too large");
     return decode_entity_key(input);
@@ -55,6 +56,20 @@ struct EntityTransfer::Impl:std::enable_shared_from_this<Impl> {
             auto self=weak.lock(); if(!self || self->stopped || op->done) return;
             result.data.clear(); self->finish(op,std::move(result));
         });
+    }
+    void create(std::string type,std::string id,std::string target,Reply reply) {
+        if(stopped)return reply({Status::disconnected,{}});
+        if(!valid_entity_id(id) || !valid_entity_node(target))return reply({Status::rejected,{}});
+        auto endpoint=std::find_if(endpoints.begin(),endpoints.end(),[&](const auto& member){
+            return member.node==target && std::find(member.types.begin(),member.types.end(),type)!=member.types.end();
+        });
+        if(endpoint==endpoints.end())return reply({Status::not_found,{}});
+        auto key="create:"+id;
+        if(operations.size()>=limits.requests || operations.contains(key))return reply({Status::overloaded,{}});
+        auto op=std::make_shared<Operation>();op->type=std::move(type);op->id=std::move(id);op->target=std::move(target);
+        op->key=std::move(key);op->endpoint=static_cast<std::size_t>(endpoint-endpoints.begin());op->reply=std::move(reply);
+        operations.emplace(op->key,op);
+        send(op,create_route,encode_entity_key(op->type,op->id),[weak=weak_from_this(),op](Result result){if(auto self=weak.lock())self->finish(op,std::move(result));});
     }
     void start(std::string type,std::string id,std::string target,Reply reply) {
         if(!reply) throw std::invalid_argument("transfer callback required");
@@ -104,9 +119,20 @@ struct EntityTransfer::Impl:std::enable_shared_from_this<Impl> {
 EntityTransfer::EntityTransfer(Node& node,std::shared_ptr<EntityScriptHost> host,std::shared_ptr<Database> db,
     std::vector<EntityEndpoint> endpoints,Trust trust,EntityTransferLimits limits)
     :impl_(std::make_shared<Impl>(node,std::move(host),std::move(db),std::move(endpoints),std::move(trust),limits)) {
-    if(node.has_route(probe_route)||node.has_route(accept_route)) throw std::logic_error("transfer routes already bound");
+    if(node.has_route(probe_route)||node.has_route(accept_route)||node.has_route(create_route)) throw std::logic_error("entity placement routes already bound");
     auto weak=std::weak_ptr(impl_);
     try {
+        node.bind_rpc(create_route,{false,true,false},[weak](const CallIdentity& who,std::string data,Reply reply){
+            auto self=weak.lock();if(!self || self->stopped)return reply({Status::disconnected,{}});
+            try {
+                if(!self->trust(who))return reply({Status::rejected,{}});
+                std::string_view input(data);auto [type,id]=identity(input);
+                if(!input.empty() || !valid_entity_id(id))return reply({Status::rejected,{}});
+                // No creation parameters or client identity cross this hop.
+                // The host validates type, placement and fence against FER4.
+                self->host->read_attributes(std::move(type),std::move(id),std::move(reply));
+            }catch(...){reply({Status::rejected,{}});}
+        });
         node.bind_rpc(probe_route,{false,true,false},[weak](const CallIdentity& who,std::string data,Reply reply) {
             auto self=weak.lock(); if(!self || self->stopped) return reply({Status::disconnected,{}});
             try {
@@ -132,7 +158,10 @@ EntityTransfer::EntityTransfer(Node& node,std::shared_ptr<EntityScriptHost> host
             // Route through the same public entry without capturing a facade lifetime.
             self->start(std::move(type),std::move(id),std::move(target),std::move(reply));
         });
-    } catch(...) { node.unbind(probe_route); node.unbind(accept_route); throw; }
+        impl_->host->on_create_on_node([weak](std::string type,std::string id,std::string target,Reply reply){
+            if(auto self=weak.lock())self->create(std::move(type),std::move(id),std::move(target),std::move(reply));else reply({Status::disconnected,{}});
+        });
+    } catch(...) { node.unbind(probe_route); node.unbind(accept_route);node.unbind(create_route);throw; }
 }
 EntityTransfer::~EntityTransfer() { stop(); }
 void EntityTransfer::transfer(std::string type,std::string id,std::string target,Reply reply) {
@@ -142,7 +171,7 @@ std::size_t EntityTransfer::poll(std::size_t budget) { auto keep=impl_; return k
 std::size_t EntityTransfer::pending() const { return impl_->operations.size(); }
 void EntityTransfer::stop() {
     auto keep=impl_; auto& self=*keep; if(std::exchange(self.stopped,true)) return;
-    self.host->on_transfer({}); self.node.unbind(probe_route); self.node.unbind(accept_route);
+    self.host->on_transfer({});self.host->on_create_on_node({}); self.node.unbind(probe_route); self.node.unbind(accept_route);self.node.unbind(create_route);
     auto copy=self.operations;
     for(auto& [key,op]:copy) { (void)key; try { self.finish(op,{Status::disconnected,{}}); } catch(...) {} }
     for(auto peer:self.peers) if(peer) self.node.close(peer);

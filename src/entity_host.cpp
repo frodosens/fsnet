@@ -853,6 +853,10 @@ void EntityScriptHost::unbind(const std::string& route) {
     }
 }
 void EntityScriptHost::call_entity(std::string route, std::string data, std::chrono::milliseconds timeout, Reply reply) {
+    if(route==entity_call_route) {
+        if(timeout.count()<=0)return reply({Status::rejected,{}});
+        return impl_->dispatch({Caller::server,"script:"+impl_->owner},std::move(data),std::move(reply));
+    }
     impl_->parent->call_entity(std::move(route), std::move(data), timeout, std::move(reply));
 }
 std::uint64_t EntityScriptHost::connect(const std::string& address, std::uint16_t port) { return impl_->parent->connect(address, port); }
@@ -956,7 +960,7 @@ void EntityScriptHost::send_entity(std::string source_type,std::string source_id
     if(job->metadata && job->metadata->rebuildable)return reply({Status::rejected,{}});
     std::optional<Status> invalid;
     try {
-        (void)entity_route(type,method);(void)entity_message(id,"");
+        (void)entity_route(type.empty() && valid_entity_id(id)?"_":type,method);(void)entity_message(id,"");
         if(method.front()=='$' || payload.size()>delivery_payload_limit || job->delivery.outbox.size()>=self.limits.delivery_messages)
             invalid=Status::overloaded;
     } catch(...) {invalid=Status::rejected;}
@@ -964,11 +968,13 @@ void EntityScriptHost::send_entity(std::string source_type,std::string source_id
     auto target_epoch=std::make_shared<std::uint64_t>(0);auto status=std::make_shared<Status>(Status::overloaded);
     auto source=std::make_pair(source_type,source_id);auto settings=self.limits;
     auto target_type=type,target_id=id;auto queued_bytes=payload.size()+1024;
-    if(!self.storage.submit(queued_bytes,[source,target_type,target_id,target_epoch,status,settings](Database& db) {
+    auto resolved_type=std::make_shared<std::string>(type);
+    if(!self.storage.submit(queued_bytes,[source,target_type,target_id,target_epoch,status,settings,resolved_type](Database& db) {
         auto target=db.get(entity_record_key(target_type,target_id));
         if(!target) {*status=Status::not_found;return;}
         auto value=decode_entity_record(target->value);
-        if(value.metadata && (value.metadata->destroyed || value.metadata->rebuildable || value.metadata->type!=target_type)) {*status=Status::rejected;return;}
+        if(value.metadata && (value.metadata->destroyed || value.metadata->rebuildable || (!target_type.empty() && value.metadata->type!=target_type))) {*status=Status::rejected;return;}
+        if(value.metadata)*resolved_type=value.metadata->type;
         if(!value.initialized || !value.snapshot.delivery.epoch) {*status=Status::overloaded;return;}
         *target_epoch=value.snapshot.delivery.epoch;
         // Register before the source CAS. A crash may leave an empty registry
@@ -981,13 +987,13 @@ void EntityScriptHost::send_entity(std::string source_type,std::string source_id
             sources.push_back(source);
             if(db.compare_exchange(delivery_registry_key,record?record->version:0,encode_delivery_sources(sources))) {*status=Status::ok;return;}
         }
-    },[weak=std::weak_ptr(keep),job,type=std::move(type),id=std::move(id),method=std::move(method),payload=std::move(payload),source_type=std::move(source_type),source_id=std::move(source_id),target_epoch,status,reply](std::exception_ptr error) mutable {
+    },[weak=std::weak_ptr(keep),job,id=std::move(id),method=std::move(method),payload=std::move(payload),source_type=std::move(source_type),source_id=std::move(source_id),target_epoch,status,reply,resolved_type](std::exception_ptr error) mutable {
         auto self=weak.lock();if(!self || self->stopped || job->responded || job->committing) return reply({Status::disconnected,{}});
         if(error) return reply({Status::internal,{}});
         if(*status!=Status::ok) return reply({*status,{}});
         Result prepared{Status::overloaded,{}};
         try { prepared = [&]() -> Result {
-            auto next=job->delivery;auto channel=delivery_channel(type,id,*target_epoch);
+            auto type=*resolved_type;auto next=job->delivery;auto channel=delivery_channel(type,id,*target_epoch);
             if(!next.sent.contains(channel) && next.sent.size()>=self->limits.delivery_channels) return {Status::overloaded,{}};
             auto& sequence=next.sent[channel];if(sequence==UINT64_MAX) return {Status::overloaded,{}};
             DeliveryMessage message;message.type=std::move(type);message.id=std::move(id);message.method=std::move(method);message.payload=std::move(payload);

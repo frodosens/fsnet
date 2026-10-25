@@ -59,3 +59,9 @@ CMake链接 `fsnet::client`，需要Lua时再链接 `fsnet::lua`。应用创建C
 生产启动方式和证书/路由清单见 [部署手册](../docs/PRODUCTION.md)。SDK可连接owner或Gateway，
 同一连接上的owner迁移由Gateway恢复订阅。scene中的online表只演示单owner内可见性，不是
 跨节点持久场景或自动AOI；断线会话回收和多设备登录还需要应用策略，示例不宣称已经实现这些业务能力。
+## 全局实体示例
+
+`entities/shared.lua`、`entities/server.lua` 和 `entities/client.lua` 展示
+Manager → LoginEntity → Player → 地图 Node 的新模型。入口配置保存 Manager 的 EntityId；
+客户端通过 `fsnet.ref(id)` 调用，服务端通过 `Class:spawn` 自动分配全局 ID。
+创建、迁移、账号归属与稳定 ID 的合同及两节点运行命令见 [实施文档](../docs/GLOBAL_ENTITIES.md)。

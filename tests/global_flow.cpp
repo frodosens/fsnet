@@ -1,0 +1,76 @@
+#include "fsnet/client.hpp"
+#include "fsnet/client_gateway.hpp"
+#include "fsnet/entity_transfer.hpp"
+#include "fsnet/entity_delivery.hpp"
+#include "fsnet/attribute_replication.hpp"
+#include "fsnet/lua_engine.hpp"
+#include <fstream>
+#include <iostream>
+#include <source_location>
+#include <thread>
+using namespace fsnet;
+using namespace std::chrono_literals;
+#define CHECK(c) do{if(!(c))throw std::runtime_error(std::string(__FILE__)+":"+std::to_string(__LINE__)+" " #c);}while(false)
+std::string read(const std::string& path){std::ifstream in(path);CHECK(in);return {std::istreambuf_iterator<char>(in),{}};}
+int main(int argc,char** argv){try{
+    CHECK(argc==2);auto source=read(std::string(argv[1])+"/examples/entities/shared.lua")+read(std::string(argv[1])+"/examples/entities/server.lua");
+    // Select the source-node login deterministically so this fixture always
+    // exercises handoff. The example itself chooses randomly.
+    auto random=source.find("math.random(#self.logins)");CHECK(random!=std::string::npos);source.replace(random,25,"1");
+    auto player_define=source.find("Player:define()");CHECK(player_define!=std::string::npos);
+    source.insert(player_define,R"(
+        Player:rpc('reward',{callers={'server'}})
+        function Player:reward(amount) self.position.x=self.position.x+tonumber(amount) end
+    )");
+    auto manager_register=source.find("Manager:register()");CHECK(manager_register!=std::string::npos);
+    source.insert(manager_register,R"(
+        Manager:rpc('reward_player',{callers={'server'}})
+        function Manager:reward_player(id) return fsnet.ref(id):send('reward','1') end
+    )");
+    Node a("test"),b("test"),front("test"),back("test");auto db=memory_database();
+    auto ah=std::make_shared<EntityScriptHost>(std::make_shared<NodeScriptHost>(a),db,"node-a/boot");
+    auto bh=std::make_shared<EntityScriptHost>(std::make_shared<NodeScriptHost>(b),db,"node-b/boot");
+    auto base=[](std::uint64_t,const std::string&)->std::optional<CallIdentity>{return CallIdentity{Caller::server,"loopback-fixture"};};
+    auto gateway_trust=[](const CallIdentity& who,const std::string&){return who.caller==Caller::server && who.subject=="loopback-fixture";};
+    auto owner_trust=[](const CallIdentity& who){return who.caller==Caller::server && who.subject=="loopback-fixture";};
+    GatewayDelegation ad(a,base,gateway_trust,ah),bd(b,base,gateway_trust,bh);
+    AttributeReplication ar(a,ah),br(b,bh);
+    auto ap=a.listen("127.0.0.1",0),bp=b.listen("127.0.0.1",0);
+    std::vector<EntityEndpoint> endpoints={{"node-a","127.0.0.1",ap,{"Manager","LoginEntity","Player"}},{"node-b","127.0.0.1",bp,{"Manager","LoginEntity","Player"}}};
+    EntityTransfer at(a,ah,db,endpoints,owner_trust),bt(b,bh,db,endpoints,owner_trust);
+    EntityDelivery da(a,ah,db,endpoints,owner_trust),db_delivery(b,bh,db,endpoints,owner_trust);
+    EntityRouter ra(a,db,endpoints),rb(b,db,endpoints);
+    LuaEngine ae(std::make_shared<RoutedScriptHost>(ah,ra)),be(std::make_shared<RoutedScriptHost>(bh,rb));
+    ae.load(source,"global-flow");be.load(source,"global-flow");
+    front.identify([](std::uint64_t,const std::string&)->std::optional<CallIdentity>{return CallIdentity{Caller::client,"account-1"};});
+    GatewayLimits limits;limits.refresh=5ms;ClientGateway gateway(front,back,db,endpoints,limits);
+    auto port=front.listen("127.0.0.1",0);ClientOptions config;config.token="test";Client client(config);
+    auto pump=[&]{a.poll();b.poll();front.poll();back.poll();client.poll();ah->poll();bh->poll();ae.poll();be.poll();ad.poll();bd.poll();ar.poll();br.poll();ra.poll();rb.poll();at.poll();bt.poll();da.poll();db_delivery.poll();gateway.poll();};
+    auto until=[&](auto done,std::source_location where=std::source_location::current()){
+        auto end=std::chrono::steady_clock::now()+8s;while(!done()){pump();if(std::chrono::steady_clock::now()>end)throw std::runtime_error("deadline at "+std::to_string(where.line())+": "+ae.last_error()+" / "+be.last_error());std::this_thread::sleep_for(1ms);}
+    };
+    std::optional<Result> created;ah->create_entity("Manager",{},{"fixture","manager","","node-a"},[&](Result value){created=std::move(value);});until([&]{return created.has_value();});
+    CHECK(created->status==Status::ok);auto manager=EntityId(created->data);
+    // Manager.on_create used the common cross-node protocol to create its pool.
+    std::optional<Result> pool;ah->read_attributes("Manager",manager.str(),[&](Result value){pool=std::move(value);});until([&]{return pool.has_value();});CHECK(pool->status==Status::ok);
+    auto entries=std::get<AttributeArray>(decode_attributes(pool->data).values.at("logins"));CHECK(entries.size()==2);
+    auto remote=EntityId(std::get<std::string>(entries[1]));CHECK(bh->active("LoginEntity",remote.str()));
+    auto retry=created;created.reset();ah->create_entity("Manager",{},{"fixture","manager","","node-a"},[&](Result value){created=std::move(value);});until([&]{return created.has_value();});CHECK(created->data==retry->data);
+    client.connect({"127.0.0.1",port,{}});until([&]{return client.state()==ClientState::connected;});
+    auto call=[&](EntityId id,std::string method,std::string payload){std::optional<Result> result;client.call(id,method,payload,[&](Result value){result=std::move(value);});until([&]{return result.has_value();});return *result;};
+    auto discovery=call(manager,"discover","");CHECK(discovery.status==Status::ok);auto login=EntityId(discovery.data);
+    auto logged_in=call(login,"login","Alice");CHECK(logged_in.status==Status::ok);auto player=EntityId(logged_in.data);
+    until([&]{return client.controlled().has_value() && gateway.stats().migrations>=1 && !gateway.stats().migrating;});
+    auto original=client.controlled()->handle;CHECK(client.entity(player)->key.id==player.str());CHECK(bh->active("Player",player.str()));
+    CHECK(call(player,"move","3").data=="3.0");
+    CHECK(call(manager,"reward_player",player.str()).status==Status::rejected);
+    std::optional<Result> queued;ra.call(manager,"reward_player",player.str(),3s,[&](Result value){queued=std::move(value);});until([&]{return queued.has_value();});CHECK(queued->status==Status::ok && !queued->data.empty());
+    auto position=[&]{auto entity=client.entity(player);return entity?std::get<double>(std::get<AttributeStruct>(entity->confirmed->values.at("position")).at("x")):0.0;};
+    until([&]{return position()==4.0;});
+    std::optional<Result> moved;bt.transfer("Player",player.str(),"node-a",[&](Result value){moved=std::move(value);});until([&]{return moved.has_value();});CHECK(moved->status==Status::ok);
+    until([&]{return gateway.stats().migrations>=2 && !gateway.stats().migrating;});CHECK(client.entity(player)->handle==original);
+    CHECK(call(EntityId(player.str()),"move","2").data=="6.0");
+    CHECK(ae.last_error().empty() && be.last_error().empty());
+    client.disconnect();ae.stop();be.stop();da.stop();db_delivery.stop();at.stop();bt.stop();ra.stop();rb.stop();gateway.stop();ar.stop();br.stop();ad.stop();bd.stop();ah->stop();bh->stop();a.stop();b.stop();front.stop();back.stop();
+    std::cout<<"PASS global flow: Manager, remote LoginEntity creation, Gateway RPC, Player handoff, stable serialized ID and client view\n";
+}catch(const std::exception& error){std::cerr<<error.what()<<'\n';return 1;}}

@@ -90,3 +90,38 @@ request_id 最长 128 B，类型与方法最长 127 B；内部 `$` 方法不可�
 2. 共用客户端/服务端调用编码、Gateway 转发、Lua EntityRef 与自动分配创建 API。
 3. 指定 Node 幂等创建、Manager/LoginEntity 示例、服务实体重建和入口发现。
 4. 迁移、订阅/预测、持久消息回归及 Release 性能对比。
+
+## 阶段三：指定节点创建和完整链路
+
+`EntityTransfer` 的公共放置适配器接入 `on_create_on_node`：创建者先在共享 Storage 登记身份、类型、
+初始状态和目标，再通过仅可信 owner 可调用的 `system.entity_create.activate` 通知目标激活。
+目标重新读取同一 FER4，校验类型、placement、租约和 fencing；网络消息不能指定或覆盖初始状态。
+确认丢失后按原 creation_key 重试复用原 ID。未激活的登记记录由相同创建操作重试补全。
+这不是跨记录事务，也不承诺业务层账号绑定与角色创建为一个事务。
+
+服务启动器在配置 owner endpoints 后安装公共 EntityRouter，Lua 的通用引用可以跨 Node 调用。
+无路由器的单机宿主走同一 FSE3 分发路径。Gateway 保持一条客户端连接，backend 委托与订阅恢复继续复用原机制。
+
+完整 Lua 示例在 [`examples/entities`](../examples/entities/)，分别给出共享 Player、Manager/LoginEntity 和客户端表现。
+Manager 的持久 list 保存 LoginEntity IDs，登录实体可重建；LoginEntity 创建 Player、show/possess，
+然后交接到地图节点。先建立投影使 Gateway 可以保持原客户端对象和订阅句柄。
+账号认证由可信接入提供，示例没有实现密码数据库；跨登录实体复用同一账号的角色可以由 Account 实体协调，
+不由全局 ID 唯一性暗中决定游戏账号策略。
+
+Bootstrap 使用可信服务配置：在已加载类的宿主调用
+`create_entity("Manager", {}, {"game-bootstrap", "login-manager", "", "node-a"}, reply)`，
+将返回的 ID 保存为客户端入口配置。之后业务请求都通过实体引用执行。
+它可以被另一服务、配置系统或账号资料引用，不保存 owner 节点作永久地址。
+
+可运行的两节点验收（包含示例脚本加载、Gateway 和原生客户端）：
+
+```bash
+. tools/dev/activate.sh
+cmake --build --preset debug --target fsnet-global-flow-tests
+ctest --preset debug -R '^fsnet-global-flow$'
+```
+
+该夹具使用明确的 loopback 测试身份，并不替代已有 mTLS 交付验收。
+覆盖 Manager 两个子实体在不同 Node 激活、重复 bootstrap 保留 ID、发现和登录、Player A→B→A 交接、
+存储 ID 往返后再次 RPC、自动创建 LocalPlayer 投影和迁移时客户端句柄不变。
+现有 scene/attributes 示例和底层旧类型化夹具仍保留，不能据此宣称已删除所有历史接口。

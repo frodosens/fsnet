@@ -70,11 +70,15 @@ int main(int argc,char** argv){try{
         if(!transfer_endpoints.empty()) delivery=std::make_unique<fsnet::EntityDelivery>(node,host,database,transfer_endpoints,
             [owner_pins,&node](const fsnet::CallIdentity& who) { auto it=owner_pins.find(node.peer_identity(who.peer)); return who.caller==fsnet::Caller::server && it!=owner_pins.end() && it->second==who.subject; });
         std::unique_ptr<fsnet::EntityTransfer> transfer;
+        std::unique_ptr<fsnet::EntityRouter> router;
+        if(!transfer_endpoints.empty())router=std::make_unique<fsnet::EntityRouter>(node,database,transfer_endpoints);
         if(!transfer_endpoints.empty()) transfer=std::make_unique<fsnet::EntityTransfer>(node,host,database,std::move(transfer_endpoints),
             [owner_pins,&node](const fsnet::CallIdentity& who) { auto it=owner_pins.find(node.peer_identity(who.peer)); return who.caller==fsnet::Caller::server && it!=owner_pins.end() && it->second==who.subject; });
-        fsnet::LuaEngine engine(host);engine.load(script(argv[2]),argv[2]);
+        std::shared_ptr<fsnet::ScriptHost> script_host=host;
+        if(router)script_host=std::make_shared<fsnet::RoutedScriptHost>(host,*router);
+        fsnet::LuaEngine engine(script_host);engine.load(script(argv[2]),argv[2]);
         auto listen_port=node.listen(bind_from_environment(),static_cast<std::uint16_t>(port(argv[3])));std::cout<<"listening "<<listen_port<<std::endl;
-        auto pump=[&]{node.poll();host->poll();engine.poll();delegation.poll();replication.poll();if(transfer)transfer->poll();if(delivery)delivery->poll();};
+        auto pump=[&]{node.poll();host->poll();engine.poll();delegation.poll();replication.poll();if(transfer)transfer->poll();if(delivery)delivery->poll();if(router)router->poll();};
         auto report=[&](bool ready){auto s=host->stats();metrics(mode,ready,node.stats(),",\"entities\":"+std::to_string(s.entities)+",\"pending\":"+std::to_string(s.pending)+",\"queued_bytes\":"+std::to_string(s.queued_bytes)+",\"resident_bytes\":"+std::to_string(s.state_bytes)+",\"transient_bytes\":"+std::to_string(s.transient_bytes)+",\"committed\":"+std::to_string(s.committed)+",\"rejected\":"+std::to_string(s.rejected)+",\"failed\":"+std::to_string(s.failed)+",\"publication_failures\":"+std::to_string(s.publication_failures)+",\"lua_active\":"+std::to_string(engine.active())+",\"lua_bytes\":"+std::to_string(engine.memory_used()));};
         while(running){pump();if(std::chrono::steady_clock::now()>=next_metrics){report(true);next_metrics=std::chrono::steady_clock::now()+100ms;}std::this_thread::sleep_for(1ms);}
         node.set_ready(false);report(false);auto deadline=std::chrono::steady_clock::now()+35s;bool drained=false;fsnet::Status status=fsnet::Status::overloaded;
