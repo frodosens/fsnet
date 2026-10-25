@@ -190,7 +190,7 @@ std::optional<ClientEntity> Client::entity(EntityId id) const {
 }
 void Client::watch(EntityKey key,Ready reply,std::chrono::milliseconds timeout){
     if(!reply)throw std::invalid_argument("missing watch callback");
-    if(!valid_entity_id(key.id))return reply(Status::rejected,{});
+    if(!valid_entity_id(key.id)){auto self=impl_;return self->invoke([&]{reply(Status::rejected,{});});}
     legacy_watch(std::move(key),std::move(reply),timeout);
 }
 void Client::legacy_watch(EntityKey key,Ready reply,std::chrono::milliseconds timeout){

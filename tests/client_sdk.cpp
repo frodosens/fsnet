@@ -108,6 +108,11 @@ int main(){try{
     client->on_event([](const auto& event){if(event.kind==fsnet::ClientEvent::Kind::connected)throw std::runtime_error("callback marker");});
     client->connect({"127.0.0.1",port,{}});until([&]{return client->state()==fsnet::ClientState::disconnected;});
     CHECK(client->last_error()=="callback marker");client.reset();
+    {
+        fsnet::Client invalid(options);
+        invalid.watch({"Actor","old-id"},[](auto,auto){throw std::runtime_error("watch callback marker");});
+        CHECK(invalid.last_error()=="watch callback marker");
+    }
     fsnet::Node frozen("sdk-test");auto frozen_port=frozen.listen("127.0.0.1",0);options.connect_timeout=20ms;
     client=std::make_unique<fsnet::Client>(options);fsnet::Status failure=fsnet::Status::ok;
     client->on_event([&](const auto& event){if(event.kind==fsnet::ClientEvent::Kind::disconnected)failure=event.status;});
