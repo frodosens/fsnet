@@ -1,3 +1,3 @@
 # stable-node address port comma-separated-entity-types expected-TLS-name
-owner-a 127.0.0.1 7001 Player owner-a.example
-owner-b 127.0.0.1 7002 Player owner-b.example
+owner-a 127.0.0.1 7001 Manager,LoginEntity,Player owner-a.example
+owner-b 127.0.0.1 7002 Manager,LoginEntity,Player owner-b.example

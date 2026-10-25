@@ -66,6 +66,7 @@ public:
     void legacy_call(const EntityKey&,std::string_view method,std::string_view payload,Reply,ClientRequestOptions = {});
     void call(EntityId,std::string_view method,std::string_view payload,Reply,ClientRequestOptions = {});
     void watch(EntityKey,Ready,std::chrono::milliseconds timeout=std::chrono::milliseconds{0});
+    void legacy_watch(EntityKey,Ready,std::chrono::milliseconds timeout=std::chrono::milliseconds{0});
     void write(ClientEntityHandle,EntityAttributes::Values,Reply,AttributeWriteOptions = {},
                std::chrono::milliseconds timeout=std::chrono::milliseconds{0});
     void unwatch(ClientEntityHandle);

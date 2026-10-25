@@ -11,7 +11,7 @@
 | 原生旧归属 | EntitySchema::legacy_owner_from_id、EntityScriptHost::legacy_ownership |
 | 原生旧实体创建 | ScriptHost::legacy_spawn_entity |
 | 原生不透明状态夹具 | ScriptHost::bind_legacy_stateful |
-| 原生客户端旧寻址 | Client::legacy_call；普通 call 需要全局 ID |
+| 原生客户端旧寻址 | Client::legacy_call / legacy_watch；普通 call/watch 需要全局 ID |
 | 原生路由旧寻址 | EntityRouter::legacy_call；普通 call 需要全局 ID |
 | owner 的 Type.method | EntityScriptHost::enable_legacy_routes，默认关闭 |
 | Gateway 旧转发 | bind_legacy_account、bind_legacy_entity |

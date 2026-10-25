@@ -28,6 +28,8 @@ Linux 构建仍依赖兼容 glibc/libstdc++ 等系统运行库，不是任意系
 参考 `deploy/*.env.example` 配置系统服务；这些文件是模板，不包含有效证书或账号。
 `deploy/fsnet-owner@.service` 默认每台机器 owner 端口 7001；同机运行多个 owner 时应覆盖
 ExecStart 使用不同端口。节点 ID 必须稳定且不同，重启自动生成新的 incarnation 用于 fencing。
+运行 examples/entities 时，它的目标名 node-a/node-b 必须与所用服务实例和 endpoints 清单一致；
+部署模板的 owner-a/owner-b 是可替换示意，不能只改某一份名字。
 
 各进程必须显式提供持久存储 URI 和 CA/证书/私钥，缺失即启动失败：
 

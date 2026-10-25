@@ -63,7 +63,8 @@ int main(){try{
     reply.reset();client->legacy_call(owned.key,"echo",std::string("a\0b",3),[&](auto r){reply=std::move(r);},{"stable-id",2s});
     until([&]{return reply.has_value();});CHECK(reply->data==std::string("a\0b",3));
     fsnet::ClientEntityHandle manual;
-    client->watch({"Actor","bob"},[&](auto status,auto handle){CHECK(status==fsnet::Status::ok);manual=handle;CHECK(client->entity(handle));});
+    client->watch({"Actor","bob"},[&](auto status,auto handle){CHECK(status==fsnet::Status::rejected && !handle);});
+    client->legacy_watch({"Actor","bob"},[&](auto status,auto handle){CHECK(status==fsnet::Status::ok);manual=handle;CHECK(client->entity(handle));});
     until([&]{return bool(manual);});CHECK(!client->entity(manual)->owned.has_value());
     reply.reset();client->write(manual,{{"text",std::string("forbidden")}},[&](auto r){reply=std::move(r);});until([&]{return reply.has_value();});CHECK(reply->status==fsnet::Status::rejected);
     std::optional<fsnet::Result> shown;

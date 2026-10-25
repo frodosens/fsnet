@@ -60,6 +60,10 @@ int main(int argc,char** argv){try{
     front.identify([](std::uint64_t,const std::string&)->std::optional<CallIdentity>{return CallIdentity{Caller::client,"account-1"};});
     GatewayLimits limits;limits.refresh=5ms;ClientGateway gateway(front,back,db,endpoints,limits);
     CHECK(!a.has_route("Player.move") && !b.has_route("Player.move"));
+    std::optional<Result> invalid_snapshot;
+    ah->read_attributes("Player","unallocated-legacy-id",[&](Result value){invalid_snapshot=std::move(value);});
+    CHECK(invalid_snapshot && invalid_snapshot->status==Status::rejected);
+    CHECK(!db->get(entity_record_key("Player","unallocated-legacy-id")));
     gateway.bind_entity("Manager",{"discover","spawn_remote"});
     gateway.bind_entity("LoginEntity",{"login"});
     gateway.bind_entity("Player",{"move","arm_timer","reward"});
