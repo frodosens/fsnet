@@ -1497,8 +1497,9 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
                 return register_rpc(route, handler, kind, initial, policy)
             end
             runtime.legacy_rpc = function(...)
+                local result=runtime._rpc(...)
                 runtime._enable_legacy_routes()
-                return runtime._rpc(...)
+                return result
             end
             runtime.rpc = nil
             runtime.legacy_entity_rpc = function(kind, method, handler)
@@ -1565,8 +1566,9 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
                 if definition.tick then register('$tick', definition.attrs and {callers={'server'}, handler=definition.tick} or definition.tick) end
             end
             runtime.legacy_entity = function(...)
+                local result=runtime._entity(...)
                 runtime._enable_legacy_routes()
-                return runtime._entity(...)
+                return result
             end
             runtime.entity_call = function(kind, id, method, payload, timeout, request_id)
                 return runtime.entity_request(0, kind, id, method, payload, timeout, request_id)

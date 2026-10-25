@@ -806,11 +806,11 @@ void EntityScriptHost::bind_legacy_stateful(std::string route, std::string type,
     } catch (...) { self.methods.erase(route); if(added_metadata)self.methods.erase(metadata); throw; }
 }
 void EntityScriptHost::define_schema(std::string type, EntitySchema schema) {
-    if(schema.legacy_owner_from_id)enable_legacy_routes();
     schema.validate();
     if (impl_->stopped || type.empty() || type.size() > 127 || type.find_first_of(".\0", 0, 2) != std::string::npos || impl_->schemas.size() >= 256)
         throw std::invalid_argument("invalid entity schema type");
     for (const auto& [route, method] : impl_->methods) if (method->type == type) throw std::logic_error("entity schema must precede methods");
+    if(schema.legacy_owner_from_id)enable_legacy_routes();
     auto definition = std::make_shared<const EntitySchema>(std::move(schema));
     EntityAttributes defaults(*definition, "");
     auto initial = encode_attributes({0, 0, true, defaults.persistent()});
