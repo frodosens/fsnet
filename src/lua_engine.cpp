@@ -32,13 +32,16 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
         unsigned action=0;
         EntitySpawnOptions creation;
     };
-    struct ConnectionHandle {ConnectionRef ref;std::uint64_t peer;std::function<bool()> current;};
+    struct ConnectionHandle {ConnectionRef ref;std::uint64_t peer;std::function<bool()> current;Impl* engine;std::size_t charge;};
     static ConnectionHandle& connection(lua_State* L,int index) {
         auto& result=*static_cast<ConnectionHandle*>(luaL_checkudata(L,index,"fsnet.connection"));
         if(!result.ref || (result.current && !result.current()))throw std::runtime_error("logical connection is no longer live");
         return result;
     }
-    static int connection_gc(lua_State* L) {static_cast<ConnectionHandle*>(luaL_checkudata(L,1,"fsnet.connection"))->~ConnectionHandle();return 0;}
+    static int connection_gc(lua_State* L) {
+        auto& handle=*static_cast<ConnectionHandle*>(luaL_checkudata(L,1,"fsnet.connection"));
+        handle.engine->used-=handle.charge;handle.~ConnectionHandle();return 0;
+    }
     static int connection_index(lua_State* L) {
         auto& handle=*static_cast<ConnectionHandle*>(luaL_checkudata(L,1,"fsnet.connection"));
         std::size_t n;auto key=luaL_checklstring(L,2,&n);
@@ -48,8 +51,11 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
     }
     static void push_connection(lua_State* L,const CallIdentity& who) {
         if(!who.connection){lua_pushnil(L);return;}
+        auto& engine=self(L);auto charge=512+2*who.subject.size()+2*who.connection.id.size();
+        engine.reserve_external(L,charge,"connection context memory limit");
         auto memory=lua_newuserdatauv(L,sizeof(ConnectionHandle),0);
-        new(memory) ConnectionHandle{who.connection,who.peer,who.current};
+        engine.reserve_external(L,charge,"connection context memory limit");
+        new(memory) ConnectionHandle{who.connection,who.peer,who.current,&engine,charge};engine.used+=charge;
         luaL_getmetatable(L,"fsnet.connection");lua_setmetatable(L,-2);
     }
     struct WatchLease {
@@ -1133,6 +1139,67 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
         }catch(const std::exception& error){return luaL_error(L,"%s",error.what());}
         return lua_yield(L,0);
     }
+    static Task& timer_task(lua_State* L,int type_index,int id_index) {
+        prediction_external(L);auto& engine=self(L);
+        std::size_t n,m;auto type=luaL_checklstring(L,type_index,&n),id=luaL_checklstring(L,id_index,&m);
+        if(!engine.threads.contains(L))throw std::logic_error("timer requires an entity task");
+        auto& task=engine.tasks.at(engine.threads.at(L));
+        if(task.entity_type!=std::string_view(type,n) || task.entity_id!=std::string_view(id,m) || !engine.server_schemas.contains(task.entity_type))throw std::logic_error("timer requires the current server entity");
+        return task;
+    }
+    static void timer_info(lua_State* L,const EntityTimer& timer,std::optional<std::int64_t> fired={}) {
+        lua_createtable(L,0,9);
+        for(const auto& [name,value]:{std::pair{"id",&timer.key},std::pair{"generation",&timer.generation},std::pair{"method",&timer.method}}){lua_pushlstring(L,value->data(),value->size());lua_setfield(L,-2,name);}
+        lua_pushinteger(L,timer.due_ms);lua_setfield(L,-2,"scheduled_at");
+        lua_pushinteger(L,timer.interval_ms);lua_setfield(L,-2,"interval_ms");
+        lua_pushinteger(L,static_cast<lua_Integer>(timer.remaining));lua_setfield(L,-2,"remaining");
+        if(fired){lua_pushinteger(L,*fired);lua_setfield(L,-2,"fired_at");lua_pushinteger(L,*fired-timer.due_ms);lua_setfield(L,-2,"late_ms");}
+    }
+    static int schedule_timer(lua_State* L) {
+        try {
+            auto& task=timer_task(L,1,2);auto& engine=self(L);
+            std::size_t mode_size,n,m;auto mode=luaL_checklstring(L,3,&mode_size);auto time=luaL_checkinteger(L,4);
+            auto method=luaL_checklstring(L,5,&n),payload=luaL_optlstring(L,6,"",&m);luaL_checktype(L,7,LUA_TTABLE);
+            EntityTimerSpec spec;spec.method=std::string(method,n);spec.payload=std::string(payload,m);
+            lua_getfield(L,7,"key");std::size_t size;auto key=luaL_optlstring(L,-1,"",&size);spec.key=std::string(key,size);lua_pop(L,1);
+            auto kind=std::string_view(mode,mode_size);
+            if(kind=="after")spec.delay_ms=time;
+            else if(kind=="at"){if(time<0)throw std::invalid_argument("invalid UTC timer deadline");spec.at_ms=time;}
+            else if(kind=="every") {
+                if(time<=0)throw std::invalid_argument("period must be positive");
+                spec.interval_ms=time;
+                lua_getfield(L,7,"delay_ms");spec.delay_ms=luaL_optinteger(L,-1,time);lua_pop(L,1);
+                lua_getfield(L,7,"count");auto count=luaL_optinteger(L,-1,0);lua_pop(L,1);if(count<0)throw std::invalid_argument("invalid repeat count");spec.count=static_cast<std::uint64_t>(count);
+                lua_getfield(L,7,"missed");auto missed=luaL_optstring(L,-1,"coalesce");
+                if(std::string_view(missed)=="catch_up")spec.missed=TimerMissed::catch_up;else if(std::string_view(missed)!="coalesce")throw std::invalid_argument("invalid missed timer policy");lua_pop(L,1);
+                lua_getfield(L,7,"mode");auto repeat=luaL_optstring(L,-1,"fixed_rate");
+                if(std::string_view(repeat)=="fixed_delay")spec.fixed_delay=true;else if(std::string_view(repeat)!="fixed_rate")throw std::invalid_argument("invalid repeat mode");lua_pop(L,1);
+            }else throw std::invalid_argument("invalid timer kind");
+            if(spec.key.empty())spec.key=engine.host->timer_key(task.entity_type,task.entity_id);
+            // Allocate the Lua result before publishing the native mutation.
+            lua_pushlstring(L,spec.key.data(),spec.key.size());
+            engine.host->schedule_timer(task.entity_type,task.entity_id,std::move(spec));return 1;
+        }catch(const std::exception& error){return luaL_error(L,"%s",error.what());}
+    }
+    static int cancel_timer(lua_State* L) {
+        try {
+            auto& task=timer_task(L,1,2);std::size_t n;auto key=luaL_checklstring(L,3,&n);
+            lua_pushboolean(L,false);bool cancelled=self(L).host->cancel_timer(task.entity_type,task.entity_id,std::string(key,n));lua_pushboolean(L,cancelled);lua_replace(L,-2);return 1;
+        }catch(const std::exception& error){return luaL_error(L,"%s",error.what());}
+    }
+    static int query_timer(lua_State* L) {
+        try {
+            auto& task=timer_task(L,1,2);std::size_t n;auto key=luaL_checklstring(L,3,&n);
+            auto timer=self(L).host->entity_timer(task.entity_type,task.entity_id,std::string(key,n));
+            if(timer)timer_info(L,*timer);else lua_pushnil(L);return 1;
+        }catch(const std::exception& error){return luaL_error(L,"%s",error.what());}
+    }
+    static int timer_event(lua_State* L) {
+        try {
+            std::size_t n;auto bytes=luaL_checklstring(L,1,&n);auto event=decode_timer_event(std::string_view(bytes,n));
+            lua_pushlstring(L,event.timer.method.data(),event.timer.method.size());lua_pushlstring(L,event.timer.payload.data(),event.timer.payload.size());timer_info(L,event.timer,event.fired_ms);return 3;
+        }catch(const std::exception& error){return luaL_error(L,"%s",error.what());}
+    }
     static int send_entity(lua_State* L) {
         prediction_external(L);auto& engine=self(L);
         std::size_t n,m,k,p;const char* type=luaL_optlstring(L,1,"",&n);const char* id=luaL_checklstring(L,2,&m);
@@ -1348,6 +1415,10 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
         lua_pushcfunction(L,spawn_entity); lua_setfield(L,-2,"_spawn_entity");
         lua_pushcfunction(L,create_entity); lua_setfield(L,-2,"_create_entity");
         lua_pushcfunction(L,bind_owner);lua_setfield(L,-2,"_bind_entity_owner");
+        lua_pushcfunction(L,schedule_timer);lua_setfield(L,-2,"_schedule_timer");
+        lua_pushcfunction(L,cancel_timer);lua_setfield(L,-2,"_cancel_timer");
+        lua_pushcfunction(L,query_timer);lua_setfield(L,-2,"_query_timer");
+        lua_pushcfunction(L,timer_event);lua_setfield(L,-2,"_timer_event");
         lua_pushcfunction(L,global_id); lua_setfield(L,-2,"_global_entity_id");
         lua_pushcfunction(L,global_call_message); lua_setfield(L,-2,"_entity_call_message");
         lua_pushcfunction(L,control_entity); lua_setfield(L,-2,"_control_entity");
@@ -1479,6 +1550,7 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
                         register('$'..hook,{callers={'server'},handler=fn})
                     end
                 end
+                if definition.timer then register('$timer',{callers={'server'},handler=definition.timer}) end
                 if definition.tick then register('$tick', definition.attrs and {callers={'server'}, handler=definition.tick} or definition.tick) end
             end
             runtime.entity_call = function(kind, id, method, payload, timeout, request_id)

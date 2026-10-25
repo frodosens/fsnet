@@ -8,7 +8,8 @@ local reserved = {id=true, type=true, context=true, reject=true, attr=true, rpc=
                   private=true, extend=true, register=true, ref=true, reference=true,
                   define=true, spawn_local=true, watch=true, write=true, close=true,
                   revision=true, mode=true, method=true, batch=true, prediction=true, spawn_or_restore=true, spawn=true,
-                  deactivate=true, destroy=true, show_to=true, hide_from=true, possess=true, unpossess=true}
+                  deactivate=true, destroy=true, show_to=true, hide_from=true, possess=true, unpossess=true,
+                  after=true,at=true,every=true,cancel_timer=true,timer=true,bind_owner=true}
 local unsupported_hooks = {new=true, init=true}
 local lifecycle_hooks = {on_create=true,on_activate=true,on_deactivate=true,on_destroy=true}
 local function name(value)
@@ -138,6 +139,18 @@ local function define(class)
             return fn(object,...)
         end
     end
+    local function schedule(object,kind,time,method,payload,opts)
+        runtime._object_check(object);check_domain(object,'server');name(method)
+        assert(flat.methods[method],'unknown timer callback: '..method)
+        opts=copy(opts or {})
+        for key in pairs(opts) do assert(key=='key' or (kind=='every' and (key=='count' or key=='delay_ms' or key=='missed' or key=='mode')),'invalid timer option') end
+        return runtime._schedule_timer(object.type,object.id,kind,time,method,payload or '',opts)
+    end
+    members.after=function(object,time,method,payload,opts)return schedule(object,'after',time,method,payload,opts) end
+    members.at=function(object,time,method,payload,opts)return schedule(object,'at',time,method,payload,opts) end
+    members.every=function(object,time,method,payload,opts)return schedule(object,'every',time,method,payload,opts) end
+    members.cancel_timer=function(object,key)runtime._object_check(object);check_domain(object,'server');return runtime._cancel_timer(object.type,object.id,key) end
+    members.timer=function(object,key)runtime._object_check(object);check_domain(object,'server');return runtime._query_timer(object.type,object.id,key) end
     members.prediction=function(object,opts) return create_prediction(object,opts) end
     members.reject=function(object) runtime._object_check(object); return runtime.reject() end
     members.close=function(object) return runtime._object_dispose(object) end
@@ -250,6 +263,11 @@ function Class:register()
         end}
     end
     definition.lifecycle={}
+    definition.timer=function(object,ctx,bytes)
+        local method,payload,info=runtime._timer_event(bytes)
+        assert(flat.methods[method],'timer callback is missing: '..method)
+        return invoke(attach(object,ctx),function(self,value)return members[method](self,value,info) end,payload)
+    end
     for _,hook in ipairs({'create','activate'}) do
         local fn=members['on_'..hook]
         if fn then definition.lifecycle[hook]=function(object,ctx,payload) return invoke(attach(object,ctx),fn,payload) end end

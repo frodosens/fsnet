@@ -2,6 +2,7 @@
 #include "fsnet/client_gateway.hpp"
 #include "fsnet/entity_transfer.hpp"
 #include "fsnet/entity_delivery.hpp"
+#include "fsnet/entity_timers.hpp"
 #include "fsnet/attribute_replication.hpp"
 #include "fsnet/lua_engine.hpp"
 #include "fsnet/entity_message.hpp"
@@ -23,6 +24,8 @@ int main(int argc,char** argv){try{
     source.insert(player_define,R"(
         Player:rpc('reward',{callers={'server'}})
         function Player:reward(amount) self.position.x=self.position.x+tonumber(amount) end
+        Player:rpc('arm_timer',{callers={'client'},access='owner'})
+        function Player:arm_timer() return self:after(250,'reward','10',{key='migration-reward'}) end
     )");
     auto manager_register=source.find("Manager:register()");CHECK(manager_register!=std::string::npos);
     source.insert(manager_register,R"(
@@ -48,13 +51,14 @@ int main(int argc,char** argv){try{
     std::vector<EntityEndpoint> endpoints={{"node-a","127.0.0.1",ap,{"Manager","LoginEntity","Player"}},{"node-b","127.0.0.1",bp,{"Manager","LoginEntity","Player"}}};
     EntityTransfer at(a,ah,db,endpoints,owner_trust),bt(b,bh,db,endpoints,owner_trust);
     EntityDelivery da(a,ah,db,endpoints,owner_trust),db_delivery(b,bh,db,endpoints,owner_trust);
+    EntityTimers ta(ah,db),tb(bh,db);
     EntityRouter ra(a,db,endpoints),rb(b,db,endpoints);
     LuaEngine ae(std::make_shared<RoutedScriptHost>(ah,ra)),be(std::make_shared<RoutedScriptHost>(bh,rb));
     ae.load(source,"global-flow");be.load(source,"global-flow");
     front.identify([](std::uint64_t,const std::string&)->std::optional<CallIdentity>{return CallIdentity{Caller::client,"account-1"};});
     GatewayLimits limits;limits.refresh=5ms;ClientGateway gateway(front,back,db,endpoints,limits);
     auto port=front.listen("127.0.0.1",0);ClientOptions config;config.token="test";Client client(config),other_client(config);
-    auto pump=[&]{a.poll();b.poll();front.poll();back.poll();client.poll();other_client.poll();ah->poll();bh->poll();ae.poll();be.poll();ad.poll();bd.poll();ar.poll();br.poll();ra.poll();rb.poll();at.poll();bt.poll();da.poll();db_delivery.poll();gateway.poll();};
+    auto pump=[&]{a.poll();b.poll();front.poll();back.poll();client.poll();other_client.poll();ah->poll();bh->poll();ae.poll();be.poll();ad.poll();bd.poll();ar.poll();br.poll();ra.poll();rb.poll();at.poll();bt.poll();da.poll();db_delivery.poll();ta.poll();tb.poll();gateway.poll();};
     auto until=[&](auto done,std::source_location where=std::source_location::current()){
         auto end=std::chrono::steady_clock::now()+8s;while(!done()){pump();if(std::chrono::steady_clock::now()>end)throw std::runtime_error("deadline at "+std::to_string(where.line())+": "+ae.last_error()+" / "+be.last_error());std::this_thread::sleep_for(1ms);}
     };
@@ -76,9 +80,11 @@ int main(int argc,char** argv){try{
     std::optional<Result> queued;ra.call(manager,"reward_player",player.str(),3s,[&](Result value){queued=std::move(value);});until([&]{return queued.has_value();});CHECK(queued->status==Status::ok && !queued->data.empty());
     auto position=[&]{auto entity=client.entity(player);return entity?std::get<double>(std::get<AttributeStruct>(entity->confirmed->values.at("position")).at("x")):0.0;};
     until([&]{return position()==4.0;});
+    CHECK(call(player,"arm_timer","").status==Status::ok);
     std::optional<Result> moved;bt.transfer("Player",player.str(),"node-a",[&](Result value){moved=std::move(value);});until([&]{return moved.has_value();});CHECK(moved->status==Status::ok);
     until([&]{return gateway.stats().migrations>=2 && !gateway.stats().migrating;});CHECK(client.entity(player)->handle==original);
     CHECK(call(EntityId(player.str()),"move","2").data=="6.0");
+    until([&]{return position()==16.0;});CHECK(decode_entity_record(db->get(entity_record_key(player))->value).snapshot.timers.entries.empty());
     if(argc==3) {
         // Same actor, storage, payload and connections; only addressing differs.
         // Legacy type+id is explicitly exposed solely as a comparison fixture.
@@ -110,6 +116,6 @@ int main(int argc,char** argv){try{
     auto remote_player=call(manager,"spawn_remote","");if(remote_player.status!=Status::ok)throw std::runtime_error("remote spawn status "+std::to_string(static_cast<unsigned>(remote_player.status))+": "+ae.last_error()+" / "+be.last_error());
     auto remote_id=EntityId(remote_player.data);until([&]{return client.controlled() && client.controlled()->key.id==remote_id.str();});
     CHECK(bh->active("Player",remote_id.str()));CHECK(call(remote_id,"move","1").data=="1.0");
-    client.disconnect();ae.stop();be.stop();da.stop();db_delivery.stop();at.stop();bt.stop();ra.stop();rb.stop();gateway.stop();ar.stop();br.stop();ad.stop();bd.stop();ah->stop();bh->stop();a.stop();b.stop();front.stop();back.stop();
+    client.disconnect();ta.stop();tb.stop();ae.stop();be.stop();da.stop();db_delivery.stop();at.stop();bt.stop();ra.stop();rb.stop();gateway.stop();ar.stop();br.stop();ad.stop();bd.stop();ah->stop();bh->stop();a.stop();b.stop();front.stop();back.stop();
     std::cout<<"PASS global flow: Manager, remote LoginEntity creation, Gateway RPC, Player handoff, stable serialized ID and client view\n";
 }catch(const std::exception& error){std::cerr<<error.what()<<'\n';return 1;}}

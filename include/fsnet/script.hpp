@@ -33,6 +33,10 @@ public:
     virtual void spawn_entity(std::string, std::string, EntityAttributes::Values, Reply reply) { reply({Status::rejected,{}}); }
     virtual void create_entity(std::string,EntityAttributes::Values,EntitySpawnOptions,Reply reply) {reply({Status::rejected,{}});}
     virtual void bind_entity_owner(std::string,std::string,ConnectionRef,Reply reply) {reply({Status::rejected,{}});}
+    virtual std::string schedule_timer(const std::string&,const std::string&,EntityTimerSpec){throw std::logic_error("timers require a managed durable entity");}
+    virtual std::string timer_key(const std::string&,const std::string&)const{throw std::logic_error("timers require a managed durable entity");}
+    virtual bool cancel_timer(const std::string&,const std::string&,const std::string&){throw std::logic_error("timers require a managed durable entity");}
+    virtual std::optional<EntityTimer> entity_timer(const std::string&,const std::string&,const std::string&)const {return {};}
     virtual void send_entity(std::string,std::string,std::string,std::string,std::string,std::string,Reply reply) { reply({Status::rejected,{}}); }
     virtual std::optional<DeliveryMessage> delivery_status(const std::string&,const std::string&,const std::string&) const { return {}; }
     virtual bool forget_delivery(const std::string&,const std::string&,const std::string&) { return false; }

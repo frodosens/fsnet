@@ -15,6 +15,7 @@ struct EntityRuntimeLimits {
     std::size_t delivery_messages = 64, delivery_channels = 256, delivery_sources = 4096;
     std::size_t delivery_bytes = 2 * 1024 * 1024;
     std::size_t state_bytes = 1024 * 1024;
+    std::size_t timers=64,timer_bytes=256*1024;
     std::chrono::milliseconds lease{60000};
     std::chrono::milliseconds request_timeout{30000};
     std::chrono::milliseconds tick_interval{100};
@@ -46,6 +47,12 @@ public:
     void spawn_entity(std::string type, std::string id, EntityAttributes::Values, Reply) override;
     void create_entity(std::string type,EntityAttributes::Values,EntitySpawnOptions,Reply) override;
     void bind_entity_owner(std::string type,std::string id,ConnectionRef,Reply) override;
+    std::string schedule_timer(const std::string&,const std::string&,EntityTimerSpec)override;
+    std::string timer_key(const std::string&,const std::string&)const override;
+    bool cancel_timer(const std::string&,const std::string&,const std::string&)override;
+    std::optional<EntityTimer> entity_timer(const std::string&,const std::string&,const std::string&)const override;
+    void fire_timer(std::string type,std::string id,std::string key,std::string generation,std::int64_t due_ms,Reply);
+    std::int64_t now_ms()const;
     using CreateOnNode=std::function<void(std::string type,std::string id,std::string target,Reply)>;
     void on_create_on_node(CreateOnNode);
     void enable_global_entities();

@@ -54,6 +54,10 @@ public:
         parent_->create_entity(std::move(type),std::move(values),std::move(options),std::move(reply));
     }
     void bind_entity_owner(std::string type,std::string id,ConnectionRef owner,Reply reply)override {router_.bind_owner(std::move(type),std::move(id),std::move(owner),std::chrono::seconds(30),std::move(reply));}
+    std::string schedule_timer(const std::string& type,const std::string& id,EntityTimerSpec spec)override{return parent_->schedule_timer(type,id,std::move(spec));}
+    std::string timer_key(const std::string& type,const std::string& id)const override{return parent_->timer_key(type,id);}
+    bool cancel_timer(const std::string& type,const std::string& id,const std::string& key)override{return parent_->cancel_timer(type,id,key);}
+    std::optional<EntityTimer> entity_timer(const std::string& type,const std::string& id,const std::string& key)const override{return parent_->entity_timer(type,id,key);}
     void send_entity(std::string st,std::string sid,std::string t,std::string id,std::string m,std::string p,Reply r) override { parent_->send_entity(std::move(st),std::move(sid),std::move(t),std::move(id),std::move(m),std::move(p),std::move(r)); }
     std::optional<DeliveryMessage> delivery_status(const std::string& t,const std::string& id,const std::string& ticket) const override { return parent_->delivery_status(t,id,ticket); }
     bool forget_delivery(const std::string& t,const std::string& id,const std::string& ticket) override { return parent_->forget_delivery(t,id,ticket); }

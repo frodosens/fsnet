@@ -2,6 +2,7 @@
 #include "fsnet/client_gateway.hpp"
 #include "fsnet/entity_transfer.hpp"
 #include "fsnet/entity_delivery.hpp"
+#include "fsnet/entity_timers.hpp"
 #include "fsnet/attribute_replication.hpp"
 #include "fsnet/lua_engine.hpp"
 #include <algorithm>
@@ -65,6 +66,7 @@ int main(int argc,char** argv){try{
         auto lease=std::stoll(env("FSNET_ENTITY_LEASE_MS","60000"));if(lease<500||lease>86400000)throw std::runtime_error("lease out of range");limits.lease=std::chrono::milliseconds(lease);limits.request_timeout=std::min(30000ms,limits.lease/2);
         auto host=std::make_shared<fsnet::EntityScriptHost>(std::make_shared<fsnet::NodeScriptHost>(node),database,incarnation(argv[4]),limits);
         fsnet::AttributeReplication replication(node,host);
+        fsnet::EntityTimers timers(host,database);
         fsnet::GatewayDelegation delegation(node,base,[gateway_pins](const fsnet::CallIdentity& who,const std::string& cert){auto it=gateway_pins.find(cert);return it!=gateway_pins.end()&&it->second==who.subject&&who.caller==fsnet::Caller::server;},host);
         std::unique_ptr<fsnet::EntityDelivery> delivery;
         if(!transfer_endpoints.empty()) delivery=std::make_unique<fsnet::EntityDelivery>(node,host,database,transfer_endpoints,
@@ -78,10 +80,10 @@ int main(int argc,char** argv){try{
         if(router)script_host=std::make_shared<fsnet::RoutedScriptHost>(host,*router);
         fsnet::LuaEngine engine(script_host);engine.load(script(argv[2]),argv[2]);
         auto listen_port=node.listen(bind_from_environment(),static_cast<std::uint16_t>(port(argv[3])));std::cout<<"listening "<<listen_port<<std::endl;
-        auto pump=[&]{node.poll();host->poll();engine.poll();delegation.poll();replication.poll();if(transfer)transfer->poll();if(delivery)delivery->poll();if(router)router->poll();};
+        auto pump=[&]{node.poll();host->poll();engine.poll();delegation.poll();replication.poll();if(transfer)transfer->poll();if(delivery)delivery->poll();if(router)router->poll();timers.poll();};
         auto report=[&](bool ready){auto s=host->stats();metrics(mode,ready,node.stats(),",\"entities\":"+std::to_string(s.entities)+",\"pending\":"+std::to_string(s.pending)+",\"queued_bytes\":"+std::to_string(s.queued_bytes)+",\"resident_bytes\":"+std::to_string(s.state_bytes)+",\"transient_bytes\":"+std::to_string(s.transient_bytes)+",\"committed\":"+std::to_string(s.committed)+",\"rejected\":"+std::to_string(s.rejected)+",\"failed\":"+std::to_string(s.failed)+",\"publication_failures\":"+std::to_string(s.publication_failures)+",\"lua_active\":"+std::to_string(engine.active())+",\"lua_bytes\":"+std::to_string(engine.memory_used()));};
         while(running){pump();if(std::chrono::steady_clock::now()>=next_metrics){report(true);next_metrics=std::chrono::steady_clock::now()+100ms;}std::this_thread::sleep_for(1ms);}
-        node.set_ready(false);report(false);auto deadline=std::chrono::steady_clock::now()+35s;bool drained=false;fsnet::Status status=fsnet::Status::overloaded;
+        node.set_ready(false);timers.stop();report(false);auto deadline=std::chrono::steady_clock::now()+35s;bool drained=false;fsnet::Status status=fsnet::Status::overloaded;
         while(!drained&&std::chrono::steady_clock::now()<deadline){
             auto complete=std::make_shared<std::optional<fsnet::Status>>();
             host->drain([complete](auto result){*complete=result.status;});

@@ -23,6 +23,7 @@ C++ 提供客户端/服务端共用的引擎机制，业务逻辑写在 Lua；�
 | 本地/确认/预测实例、执行域 | [共享实体](SHARED_ENTITIES.md) |
 | 身份、RPC/属性权限、原生同步与提案 | [实体 schema](ENTITY_SCHEMA.md) |
 | 服务端初始化、激活、卸载、删除与 drain | [生命周期](ENTITY_LIFECYCLE.md) |
+| 持久延迟、周期任务、取消、失败重试和重启恢复 | [实体计时器](ENTITY_TIMERS.md) |
 | 登录、spawn/restore、可见性、控制与表现 | [实体存在性](ENTITY_PRESENCE.md) |
 | struct、vec3、矩阵、固定数组与字段视图 | [结构属性](STRUCTURED_ATTRIBUTES.md) |
 | 变长 list/map/set、Item/Task 示例 | [容器属性](CONTAINER_ATTRIBUTES.md) |

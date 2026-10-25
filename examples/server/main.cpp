@@ -1,6 +1,7 @@
 #include "../common/config.hpp"
 #include "fsnet/lua_engine.hpp"
 #include "fsnet/entity_host.hpp"
+#include "fsnet/entity_timers.hpp"
 #include "fsnet/attribute_replication.hpp"
 #include <random>
 #include <chrono>
@@ -49,12 +50,13 @@ int main(int argc, char** argv) {
         }
         auto host = std::make_shared<fsnet::EntityScriptHost>(transport, database, instance, entity_limits);
         fsnet::AttributeReplication replication(node,host);
+        fsnet::EntityTimers timers(host,database);
         fsnet::LuaEngine engine(host); engine.load(source, argv[1]);
         std::signal(SIGINT, stop); std::signal(SIGTERM, stop);
         std::cout << "listening " << node.listen(bind_from_environment(), static_cast<std::uint16_t>(port)) << std::endl;
         while (running) {
-            node.poll(); host->poll(); replication.poll(); engine.poll(); std::this_thread::sleep_for(std::chrono::milliseconds(1));
+            node.poll(); host->poll(); replication.poll(); engine.poll();timers.poll(); std::this_thread::sleep_for(std::chrono::milliseconds(1));
         }
-        engine.stop(); replication.stop(); host->stop(); node.stop();
+        timers.stop();engine.stop(); replication.stop(); host->stop(); node.stop();
     } catch (const std::exception& error) { std::cerr << error.what() << '\n'; return 1; }
 }
