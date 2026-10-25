@@ -39,6 +39,7 @@ C++ 提供客户端/服务端共用的引擎机制，业务逻辑写在 Lua；�
 
 ## 实现状态与证据
 
+- [全局实体结构与复制审查](REVIEW_GLOBAL_STRUCTURE_AND_COPIES_2026-10-25.md)：旧入口残留、路由策略、计时器容量与字符串分配诊断。
 - [全局实体重构实施](GLOBAL_ENTITIES.md)：已对齐边界、已实现阶段与尚待接入范围。
 - [全局实体寻址性能](BENCHMARK_GLOBAL_ENTITIES_2026-10-25.md)：相同 Lua/CAS 链路的五轮比较及完整帧字节。
 
