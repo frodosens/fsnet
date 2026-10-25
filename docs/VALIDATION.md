@@ -365,6 +365,12 @@ API 与恢复合同见 [CONNECTION_AUTHORITY_AND_TIMERS.md](CONNECTION_AUTHORITY
 重复专项使用 `ctest --preset debug -R '^fsnet-timers$' --repeat until-fail:10` 和
 `ctest --preset debug -R '^fsnet-timer-process$' --repeat until-fail:3`。
 
+补充计时器应用示例后，`ctest --preset debug -R '^fsnet-example-'` 的四个示例全部通过。
+`python3 examples/run.py timers` 完成真实 SIGKILL/文件存储恢复、稳定 ID、延迟/指定时间、
+合并/补跑周期、取消和完成后不再触发检查。安装到独立 prefix 后，从
+`share/fsnet/examples/run.py timers` 使用默认安装路径同样通过，无需源码目录或手工拼接脚本。
+示例代码与预期输出见 [examples/timers](../examples/timers/README.md)。
+
 ## Runtime 审查修复（2026-10-24）
 
 针对 [代码审查报告](CODE_REVIEW_2026-10-24.md) 的七项缺陷补齐修复：Node 回调生命周期与接收预算、实体运行时权限更新与重放激活、不确定提交后的订阅失效恢复、Lua 模式匹配工作预算与输入容量释放。同时优化持久投递扫描、目录解码，并修复 Gateway 慢轮询时的候选重试和恢复后的旧缓存。

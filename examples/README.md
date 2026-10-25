@@ -15,11 +15,13 @@ cmake --build --preset debug
 python3 examples/run.py scene
 python3 examples/run.py scene --native
 python3 examples/run.py attributes
+python3 examples/run.py timers
 ```
 
 其他构建位置使用 `--build /path/to/build`。启动器自动组合共享脚本，启动临时loopback服务端
 和客户端，退出后清理进程/脚本；不再需要手工cat多个文件。
-演示固定认证账号alice，使用临时token和内存存储，不继承生产TLS/存储设置。
+scene/attributes 演示固定认证账号alice，使用临时token和内存存储，不继承生产TLS/存储设置。
+timers 使用临时文件存储和 timer-demo 演示身份，自动强制终止并重启服务端以展示持久恢复。
 它是单账号本机演示；真实账号由证书/可信登录系统映射，不能用展示名称替代认证。
 
 ## 目录与职责
@@ -35,6 +37,8 @@ python3 examples/run.py attributes
 | [scene/client.lua](scene/client.lua) | 自动LocalPlayer/RemotePlayer、镜头、预测/校正、效果去重、三次移动 |
 | [attributes/shared.lua](attributes/shared.lua) | vec3、mat4x4、嵌套结构、list/map/set声明与服务器校验 |
 | [attributes/client.lua](attributes/client.lua) | 整值/字段赋值、batch、拒写回滚、容器新增/修改/删除 |
+| [timers/server.lua](timers/server.lua) | 命名计时器回调、延迟/指定时间、周期合并/补跑、取消及幂等初始化 |
+| [timers/client.lua](timers/client.lua) | 使用稳定 EntityId 查询重启后的任务状态 |
 
 scene的Lua客户端打印预测/确认位置0→2→5→4，每个输入只播放一次footstep。
 服务端一直使用同一个Player类型；LocalPlayer/RemotePlayer只决定客户端表现。
@@ -43,6 +47,8 @@ scene的Lua客户端打印预测/确认位置0→2→5→4，每个输入只播�
 
 attributes示例只允许客户端修改position/transform/pose；背包、任务、标签由服务器提交，
 客户端只读。sample RPC是用于展示同步的演示动作，不是可直接用于生产的奖励接口。
+
+timers 的运行过程、预期输出与恢复约束见 [计时器示例](timers/README.md)。
 
 ## 嵌入自己的客户端
 

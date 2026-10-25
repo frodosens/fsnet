@@ -6,9 +6,10 @@ from pathlib import Path
 import secrets
 import select
 import subprocess
+import sys
 import tempfile
 parser=argparse.ArgumentParser(description=__doc__)
-parser.add_argument('example',choices=('scene','attributes'))
+parser.add_argument('example',choices=('scene','attributes','timers'))
 parser.add_argument('--build',type=Path)
 parser.add_argument('--native',action='store_true',help='use the native C++ scene client')
 args=parser.parse_args()
@@ -16,6 +17,9 @@ root=Path(__file__).resolve().parent.parent
 default_build=root/'.dev/build/debug' if (root/'CMakeLists.txt').is_file() else root.parent.parent/'bin'
 build=(args.build or default_build).resolve()
 if args.native and args.example!='scene':parser.error('--native is available for scene')
+if args.example=='timers':
+    subprocess.run([sys.executable,str(root/'examples/timers/run.py'),'--build',str(build)],check=True)
+    sys.exit(0)
 # Demonstration identity is deliberately loopback-only and single-account.
 # Do not inherit a developer's production storage or TLS configuration.
 environment=dict(os.environ,FSNET_CLUSTER_TOKEN=secrets.token_hex(24),FSNET_DEMO_SUBJECT='alice',FSNET_BIND_ADDRESS='127.0.0.1',FSNET_STORAGE_URI='memory:')

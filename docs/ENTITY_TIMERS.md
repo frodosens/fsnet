@@ -3,6 +3,8 @@
 计时器属于持久 Entity，保存回调方法名、bytes 参数、UTC 到期时间、周期和剩余次数。
 实体卸载、进程重启或迁移后继续使用原 EntityId 与计时器状态。
 `fsnet-script` 和 `fsnet-service owner` 已安装调度服务；自定义宿主的接入方法见文末。
+一键运行示例：`python3 examples/run.py timers`，脚本与重启演示见
+[examples/timers](../examples/timers/README.md)。
 
 ## Lua API
 
