@@ -47,14 +47,20 @@ void define(EntityScriptHost& runtime,const std::string& type){
 int main(){try{
     auto db=std::make_shared<Uncertain>();auto parent=std::make_shared<Host>();std::int64_t now=10000;
     EntityScriptHost runtime(parent,db,"node-a/boot-1",{},{},[&]{return now;});define(runtime,"Player");define(runtime,"LoginEntity");
-    EntitySpawnOptions options{"manager-1","player-1","account-1","node-a"};
+    ConnectionRef owner{"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",1},other_owner{"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",1};
+    EntitySpawnOptions options{"manager-1","player-1",owner,"node-a"};
     auto created=wait(runtime,[&](Reply reply){runtime.create_entity("Player",{},options,std::move(reply));});CHECK(created.status==Status::ok);auto id=EntityId(created.data);
-    auto call=[&](EntityId target,std::string subject,std::string expected={},std::string request={}){return wait(runtime,[&](Reply reply){parent->contexts.at("@")({Caller::client,subject,1},entity_call_message(target,"increment","",request,expected),std::move(reply));});};
+    auto call=[&](EntityId target,std::string subject,std::string expected={},std::string request={}){return wait(runtime,[&](Reply reply){parent->contexts.at("@")({Caller::client,subject,1,subject=="account-1"?owner:other_owner},entity_call_message(target,"increment","",request,expected),std::move(reply));});};
     CHECK(call(id,"account-1").data=="1");CHECK(call(id,"account-2").status==Status::rejected);
     CHECK(call(id,"account-1","LoginEntity").status==Status::rejected);CHECK(call(EntityId(UINT64_MAX),"account-1").status==Status::not_found);
     CHECK(!db->get(entity_record_key(EntityId(UINT64_MAX))));CHECK(call(id,"account-1").data=="2");
     auto retry=wait(runtime,[&](Reply reply){runtime.create_entity("Player",{},options,std::move(reply));});CHECK(retry.data==id.str());
-    auto conflict=options;conflict.owner_account_id="account-2";CHECK(wait(runtime,[&](Reply reply){runtime.create_entity("Player",{},conflict,std::move(reply));}).status==Status::rejected);
+    auto conflict=options;conflict.owner=other_owner;CHECK(wait(runtime,[&](Reply reply){runtime.create_entity("Player",{},conflict,std::move(reply));}).status==Status::rejected);
+    CHECK(wait(runtime,[&](Reply reply){runtime.bind_entity_owner("Player",id.str(),other_owner,std::move(reply));}).status==Status::ok);
+    CHECK(call(id,"account-1").status==Status::rejected);CHECK(call(id,"account-2").data=="3");
+    CHECK(wait(runtime,[&](Reply reply){runtime.bind_entity_owner("Player",id.str(),{},std::move(reply));}).status==Status::ok);
+    CHECK(call(id,"account-2").status==Status::rejected);
+    CHECK(wait(runtime,[&](Reply reply){runtime.bind_entity_owner("Player",id.str(),owner,std::move(reply));}).status==Status::ok);
     options.creation_key="login-1";options.persistence=EntityPersistence::rebuildable;
     auto login=wait(runtime,[&](Reply reply){runtime.create_entity("LoginEntity",{},options,std::move(reply));});CHECK(login.status==Status::ok);auto login_id=EntityId(login.data);
     CHECK(call(login_id,"account-1").data=="1");CHECK(call(login_id,"account-1").data=="2");
@@ -65,10 +71,10 @@ int main(){try{
     CHECK(call(login_id,"account-1","","cached-response").data=="1");
     auto encoded=entity_call_message(id,"increment","","token","Player");for(std::size_t n=0;n<encoded.size();++n)CHECK(!parse_entity_call_view(std::string_view(encoded).substr(0,n)));
     runtime.stop();now+=120000;auto second_parent=std::make_shared<Host>();EntityScriptHost second(second_parent,db,"node-a/boot-2",{},{},[&]{return now;});define(second,"Player");define(second,"LoginEntity");
-    auto second_call=[&](EntityId target){return wait(second,[&](Reply reply){second_parent->contexts.at("@")({Caller::client,"account-1",1},entity_call_message(target,"increment",""),std::move(reply));});};
-    CHECK(second_call(id).data=="3");CHECK(second_call(login_id).data=="1");
+    auto second_call=[&](EntityId target){return wait(second,[&](Reply reply){second_parent->contexts.at("@")({Caller::client,"account-1",1,owner},entity_call_message(target,"increment",""),std::move(reply));});};
+    CHECK(second_call(id).data=="4");CHECK(second_call(login_id).data=="1");
     CHECK(wait(second,[&](Reply reply){second.control_entity("Player",id.str(),true,std::move(reply));}).status==Status::ok);
     CHECK(second_call(id).status==Status::not_found);CHECK(decode_entity_record(db->get(entity_record_key(id))->value).metadata->destroyed);
-    options={"manager-1","player-1","account-1","node-a"};CHECK(wait(second,[&](Reply reply){second.create_entity("Player",{},options,std::move(reply));}).status==Status::not_found);
+    options={"manager-1","player-1",owner,"node-a"};CHECK(wait(second,[&](Reply reply){second.create_entity("Player",{},options,std::move(reply));}).status==Status::not_found);
     second.stop();std::cout<<"PASS global entities: metadata dispatch, account authority, explicit creation, rebuild, restart and tombstones\n";
 }catch(const std::exception& error){std::cerr<<error.what()<<'\n';return 1;}}

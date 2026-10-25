@@ -2,6 +2,7 @@
 #include "fsnet/entity_message.hpp"
 #include "fsnet/entity_snapshot.hpp"
 #include "fsnet/entity_record.hpp"
+#include "fsnet/replication_wire.hpp"
 #include <algorithm>
 #include <openssl/sha.h>
 #include <deque>
@@ -37,6 +38,7 @@ struct EntityScriptHost::Impl : std::enable_shared_from_this<Impl> {
         std::optional<DeliveryEnvelope> incoming;
         std::optional<DeliveryAck> ack;
         std::optional<Result> delivery_error;
+        std::optional<ConnectionRef> new_owner{};
     };
     struct Slot {
         EntityHandle handle;
@@ -164,6 +166,20 @@ struct EntityScriptHost::Impl : std::enable_shared_from_this<Impl> {
         auto route=entity_route(type,call->method);
         enqueue(route,entity_message(call->id.str(),call->payload,call->request_id),std::move(reply),false,std::move(identity),{},0,{},{},deadline);
     }
+    void bind_owner(std::string type,std::string id,ConnectionRef connection,Reply reply) {
+        if(!valid_entity_id(id) || ((!connection.id.empty() || connection.generation) && !connection.valid()))return reply({Status::rejected,{}});
+        if(!type.empty())return enqueue(type+".$snapshot",entity_message(id,""),std::move(reply),false,{Caller::server,"framework:bind-owner"},{},0,{},{},{},std::move(connection));
+        auto admission=admit(id.size()+64,std::move(reply));if(!admission)return;
+        auto resolved=std::make_shared<std::string>();
+        if(!storage.submit(limits.state_bytes,[id,resolved](Database& db){
+            auto record=db.get(entity_record_key(EntityId(id)));if(!record)return;auto value=decode_entity_record_view(record->value);
+            if(value.metadata && !value.metadata->destroyed)*resolved=value.metadata->type;
+        },[weak=weak_from_this(),admission,resolved,id,connection](std::exception_ptr error){
+            auto self=weak.lock();if(!self || admission->done)return;
+            if(error || resolved->empty())return self->finish(admission,{error?Status::internal:Status::not_found,{}});
+            auto reply=self->take(admission);self->bind_owner(*resolved,id,connection,std::move(reply));
+        }))finish(admission,{Status::overloaded,{}});
+    }
     void complete(const std::shared_ptr<Job>& job, Result result) {
         if (std::exchange(job->responded, true)) return;
         active.erase(job->entity);
@@ -183,6 +199,7 @@ struct EntityScriptHost::Impl : std::enable_shared_from_this<Impl> {
             if(it->second.activated && it->second.activation_fence==job->previous_fence) it->second.activation_fence=job->fence;
         }
         if (it != slots.end()) { it->second.busy = false; it->second.touched = Clock::now();
+            if(result.status==Status::ok && job->metadata)it->second.account=job->metadata->owner_connection;
             if (result.status == Status::ok && !job->metadata_only) { it->second.activated = true; it->second.activation_fence=job->fence; }
             else if ((!job->fence && !job->preserve_activation) || job->owner_lost) it->second.activated = false;
             it->second.releasing=false; }
@@ -280,7 +297,7 @@ struct EntityScriptHost::Impl : std::enable_shared_from_this<Impl> {
         };
         (*advance)();
     }
-    void enqueue(const std::string& route, std::string data, Reply reply, bool tick = false, CallIdentity identity = {Caller::server, {}}, std::string handoff_target={}, std::uint64_t accept_transfer=0, std::optional<DeliveryEnvelope> incoming={}, std::optional<DeliveryAck> ack={}, Clock::time_point deadline={}) {
+    void enqueue(const std::string& route, std::string data, Reply reply, bool tick = false, CallIdentity identity = {Caller::server, {}}, std::string handoff_target={}, std::uint64_t accept_transfer=0, std::optional<DeliveryEnvelope> incoming={}, std::optional<DeliveryAck> ack={}, Clock::time_point deadline={},std::optional<ConnectionRef> new_owner={}) {
         if (stopped) return reply({Status::disconnected, {}});
         auto method = methods.find(route);
         if (method == methods.end()) return reply({Status::not_found, {}});
@@ -306,7 +323,7 @@ struct EntityScriptHost::Impl : std::enable_shared_from_this<Impl> {
             // Receipts must not disclose another principal's response, even if
             // two callers choose the same request ID and payload.
             if (!message->request_id.empty()) {
-                auto subject = identity.subject;
+                auto subject = valid_entity_id(message->id) && identity.connection?identity.connection.key():identity.subject;
                 if (subject.empty()) subject = "anonymous:" + owner + ':' + std::to_string(identity.peer);
                 auto scope = std::string(identity.caller == Caller::server ? "server:" : "client:") +
                     std::to_string(subject.size()) + ':' + subject + message->request_id;
@@ -332,6 +349,7 @@ struct EntityScriptHost::Impl : std::enable_shared_from_this<Impl> {
         it->second.queue.push_back({selected, std::move(message->payload), route, std::move(message->request_id), std::move(reply),
             Clock::now() + limits.request_timeout, bytes, tick, std::move(identity), std::move(handoff_target), accept_transfer, std::move(incoming), std::move(ack), {}});
         auto& request=it->second.queue.back();
+        request.new_owner=std::move(new_owner);
         if(deadline!=Clock::time_point{})request.deadline=std::min(request.deadline,deadline);
         if(request.incoming) {
             const auto& m=request.incoming->message; auto found=methods.find(selected->type+"."+m.method);
@@ -345,7 +363,7 @@ struct EntityScriptHost::Impl : std::enable_shared_from_this<Impl> {
         auto job = std::make_shared<Job>(); job->entity = entity;
         job->cached_fence=slot.transient.empty()?0:slot.transient_fence;
         job->request = std::move(slot.queue.front()); slot.queue.pop_front(); slot.busy = true;
-        job->preserve_activation=job->request.incoming.has_value() || job->request.ack.has_value();
+        job->preserve_activation=job->request.incoming.has_value() || job->request.ack.has_value() || job->request.new_owner.has_value();
         active.emplace(entity, job);
         auto owner_id = owner; auto clock = now; auto settings = limits;
         auto accepted = storage.submit(job->request.bytes + limits.state_bytes + limits.receipt_bytes + limits.delivery_bytes,
@@ -377,6 +395,7 @@ struct EntityScriptHost::Impl : std::enable_shared_from_this<Impl> {
                         job->status=Status::rejected;return;
                     }
                     job->metadata=current.metadata;
+                    if(job->request.new_owner && (!current.metadata || !current.initialized)) {job->status=Status::overloaded;return;}
                     if(current.metadata && current.metadata->rebuildable &&
                        (job->request.incoming || job->request.ack || !job->request.handoff_target.empty() || job->request.accept_transfer)) {
                         job->status=Status::rejected;return;
@@ -401,7 +420,7 @@ struct EntityScriptHost::Impl : std::enable_shared_from_this<Impl> {
                         current.snapshot.state=current.metadata->initial_state;current.snapshot.receipts.clear();
                     }
                     job->delivery=current.snapshot.delivery;
-                    job->metadata_only=job->request.ack.has_value() || job->request.delivery_error.has_value();
+                    job->metadata_only=job->request.ack.has_value() || job->request.delivery_error.has_value() || job->request.new_owner.has_value();
                     if(job->request.incoming) {
                         const auto& incoming=*job->request.incoming;const auto& m=incoming.message;
                         if(!current.initialized || job->delivery.epoch!=m.target_epoch) { job->status=Status::not_found; job->preserve_activation=true; return; }
@@ -464,7 +483,7 @@ struct EntityScriptHost::Impl : std::enable_shared_from_this<Impl> {
                     return self->complete(job, {job->status, {}});
                 }
                 if(job->metadata) {
-                    auto slot=self->slots.find(job->entity);if(slot!=self->slots.end())slot->second.account=job->metadata->owner_account;
+                    auto slot=self->slots.find(job->entity);if(slot!=self->slots.end())slot->second.account=job->metadata->owner_connection;
                 }
                 if(self->delivery_enabled && !job->delivery.epoch) job->delivery.epoch=job->version;
                 if (job->request.deadline <= Clock::now()) return self->complete(job, {Status::timeout, {}});
@@ -628,6 +647,11 @@ struct EntityScriptHost::Impl : std::enable_shared_from_this<Impl> {
                         {std::move(job->state),std::move(job->receipts),std::move(job->delivery)},release?!job->created:true,
                         job->request.handoff_target.empty()?job->placement:job->request.handoff_target,
                         job->request.handoff_target.empty()?job->transfer_id:job->version,job->metadata};
+                    if(job->request.new_owner) {
+                        if(!committed.metadata || committed.metadata->owner_revision==UINT64_MAX)return owner->complete(job,{Status::rejected,{}});
+                        committed.metadata->owner_connection=*job->request.new_owner?job->request.new_owner->key():std::string{};
+                        ++committed.metadata->owner_revision;job->metadata=committed.metadata;
+                    }
                     if(committed.metadata && committed.metadata->rebuildable)committed.snapshot.state=committed.metadata->initial_state;
                     if(committed.metadata && job->request.route==job->request.method->type+".$destroy") {
                         committed.metadata->destroyed=true;committed.snapshot={};
@@ -756,29 +780,41 @@ void EntityScriptHost::enable_global_entities() {
     impl_->parent->bind_context(entity_call_route,{true,true,false},[weak](const CallIdentity& who,std::string data,Reply reply){
         if(auto self=weak.lock())self->dispatch(who,std::move(data),std::move(reply));else reply({Status::disconnected,{}});
     });
+    try {
+        impl_->parent->bind_context("system.entity.owner",{false,true,false},[weak](const CallIdentity&,std::string data,Reply reply){
+            auto self=weak.lock();if(!self)return reply({Status::disconnected,{}});
+            try {
+                std::string_view input(data);auto type=snapshot_detail::blob(input),id=snapshot_detail::blob(input),owner=snapshot_detail::blob(input);
+                if(!input.empty() || type.size()>127 || !valid_entity_id(id))throw std::invalid_argument("invalid owner binding");
+                auto connection=owner.empty()?ConnectionRef{}:ConnectionRef::from_key(owner);
+                self->bind_owner(std::move(type),std::move(id),std::move(connection),std::move(reply));
+            }catch(...){if(reply)reply({Status::rejected,{}});}
+        });
+    }catch(...){impl_->parent->unbind(entity_call_route);throw;}
     impl_->global_entry=true;
 }
+void EntityScriptHost::bind_entity_owner(std::string type,std::string id,ConnectionRef owner,Reply reply) {impl_->bind_owner(std::move(type),std::move(id),std::move(owner),std::move(reply));}
 void EntityScriptHost::on_create_on_node(CreateOnNode fn) {impl_->create_on_node=std::move(fn);}
 void EntityScriptHost::create_entity(std::string type,EntityAttributes::Values values,EntitySpawnOptions options,Reply reply) {
     auto keep=impl_;auto& self=*keep;
     std::string state;
     auto definition=schema(type);if(!definition)return reply({Status::not_found,{}});
     try {
-        EntityAttributes model(*definition,options.owner_account_id);model.publish(model.stage(values,{Caller::server,{}}));
+        EntityAttributes model(*definition,options.owner?options.owner.key():std::string{});model.publish(model.stage(values,{Caller::server,{}}));
         state=encode_attributes({0,model.revision(),true,model.all_values()});
         if(state.size()>self.limits.state_bytes || options.scope.empty() || options.scope.size()>256 ||
-           options.creation_key.empty() || options.creation_key.size()>128 || options.owner_account_id.size()>256 ||
+           options.creation_key.empty() || options.creation_key.size()>128 || (!options.owner.id.empty() && !options.owner.valid()) ||
            (!options.target_node.empty() && !valid_entity_node(options.target_node)))throw std::invalid_argument("invalid entity creation options");
         enable_global_entities();
     }catch(...) {return reply({Status::rejected,{}});}
     if(options.target_node.empty())options.target_node=self.owner.substr(0,self.owner.find('/'));
-    auto admission=self.admit(state.size()+type.size()+options.scope.size()+options.creation_key.size()+options.owner_account_id.size()+options.target_node.size(),std::move(reply));
+    auto admission=self.admit(state.size()+type.size()+options.scope.size()+options.creation_key.size()+64+options.target_node.size(),std::move(reply));
     if(!admission)return;
     struct Created {std::string id,type,target;Status status=Status::ok;bool initialized=false;};
     auto created=std::make_shared<Created>();auto catalog=self.catalog;
     if(!self.storage.submit(state.size()*2+2048,[catalog,created,type=std::move(type),state=std::move(state),options=std::move(options)](Database&) {
         try {
-            auto id=catalog->create(options.scope,options.creation_key,{type,options.owner_account_id,state,options.target_node,options.persistence});
+            auto id=catalog->create(options.scope,options.creation_key,{type,options.owner?options.owner.key():std::string{},state,options.target_node,options.persistence});
             auto description=catalog->find(id);created->id=id.str();created->type=type;
             if(!description || description->record.metadata->destroyed){created->status=Status::not_found;return;}
             created->initialized=description->record.initialized;created->target=description->record.placement;
@@ -807,6 +843,12 @@ void EntityScriptHost::on_visibility(Visibility fn) { impl_->visibility=std::mov
 void EntityScriptHost::entity_visibility(std::uint64_t peer,std::string type,std::string id,unsigned action,Reply reply) {
     auto fn=impl_->visibility;
     if(impl_->stopped || !fn) return reply({Status::rejected,{}});
+    if(valid_entity_id(id) && !active(type,id)) {
+        std::string input;
+        try{input=encode_entity_key(type,id);if(action<1 || action>4)throw std::invalid_argument("invalid visibility action");input+=static_cast<char>(action);}
+        catch(...){return reply({Status::rejected,{}});}
+        return impl_->parent->call(peer,"system.gateway.present",std::move(input),impl_->limits.request_timeout,std::move(reply));
+    }
     fn(peer,std::move(type),std::move(id),action,std::move(reply));
 }
 void EntityScriptHost::read_attributes(std::string type, std::string id, Reply reply) {
@@ -1085,7 +1127,7 @@ void EntityScriptHost::stop() {
     // Accepted operations own mutable Job results until the worker has joined.
     // Synchronize before complete() observes or cancels any of those results.
     self.storage.stop();
-    if(self.global_entry)self.parent->unbind(entity_call_route);
+    if(self.global_entry){self.parent->unbind(entity_call_route);self.parent->unbind("system.entity.owner");}
     auto admissions=std::move(self.admissions);self.admissions.clear();
     for(auto& [id,admission]:admissions) {(void)id;try{self.finish(admission,{Status::disconnected,{}});}catch(...){}}
     for (const auto& [route, method] : self.methods) self.parent->unbind(route);

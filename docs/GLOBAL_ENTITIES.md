@@ -1,6 +1,8 @@
 # 全局实体重构实施记录
 
 分支：`refactor/global-entities`。2026-10-25 开始实施。
+当前 owner 已切换为逻辑连接授权，最新合同见[连接与计时器](CONNECTION_AUTHORITY_AND_TIMERS.md)。
+下文账号归属与 FER4 说明保留为前一阶段记录，不作为当前 owner API。
 架构约束见[规划](ENTITY_ADDRESSING_PLAN.md)，重构前基线与成本见[差异分析](ENTITY_ADDRESSING_COMPARISON.md)。
 
 ## 已对齐的边界

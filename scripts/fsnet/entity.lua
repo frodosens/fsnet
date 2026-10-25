@@ -188,7 +188,7 @@ function Class:spawn(values,opts)
     assert(data.registered,'spawn requires a registered server class')
     opts=copy(opts or {})
     for key in pairs(opts) do
-        assert(key=='creation_key' or key=='owner_account_id' or key=='target_node' or key=='persistence' or key=='bootstrap_scope','invalid spawn option')
+        assert(key=='creation_key' or key=='owner' or key=='target_node' or key=='persistence' or key=='bootstrap_scope','invalid spawn option')
     end
     local id,status=runtime._create_entity(data.name,values or {},opts)
     assert(status==runtime.status.ok,'entity creation failed: '..tostring(status))
@@ -341,6 +341,11 @@ local function visibility(ref,peer,action)
 end
 ref_mt.__index=function(ref,key)
     local data=assert(refs[ref],'invalid entity reference')
+    if key=='bind_owner' then return function(object,connection)
+        local target=assert(refs[object],'expected an entity reference')
+        local _,status=runtime._bind_entity_owner(target.type,target.id,connection)
+        assert(status==runtime.status.ok,'owner binding failed: '..tostring(status))
+    end end
     if visibility_actions[key] then return function(object,peer) return visibility(object,peer,visibility_actions[key]) end end
     if key=='id' or key=='type' then return data[key] end
     if key=='call' then return call end

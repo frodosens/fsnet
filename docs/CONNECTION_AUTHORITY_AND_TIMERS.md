@@ -31,7 +31,38 @@ Gateway 使用有界 FSCN1 委托 envelope 转发原始逻辑连接，owner 端�
 
 专项验证覆盖两个连接区分、序列化、连接关闭、重连不继承授权、Gateway 原会话传递及断线失效。
 
+## 阶段二：实体授权
+
+全局记录升级为 FER5，保存 owner_connection 与 owner_revision，不再保存账号归属。
+FER4 全局记录不自动解释为连接授权；此分支仍不提供线上旧数据转换。
+RPC owner 检查、私有属性读写、控制权和 Gateway 恢复都按原逻辑连接校验。
+旧的非全局 ID 原生夹具保留其显式 subject 映射，不作为新 API 的账号模型。
+
+```lua
+local player=Player:spawn(initial_values,{
+    target_node='map-02',
+    creation_key=stable_creation_key,
+    owner=self.context.connection,
+})
+player:show_to(self.context.connection)
+player:possess(self.context.connection)
+```
+
+远端创建后的 show/possess 通过原客户端的可信 Gateway 链路转发至目标 Node；
+请求受现有容量、超时和委托校验约束。客户端前端不暴露这些控制路由。
+
+`ref:bind_owner(connection)` 显式换绑，`ref:bind_owner(nil)` 撤销授权；需要服务端异步任务，
+通过目标实体 mailbox 和单记录 CAS 更新。换绑确认后，后续旧连接调用拒绝，旧投影撤销；
+已完成的业务操作不会回滚，已进入底层存储提交的操作仍遵守原提交合同。
+断线依据传输检测；不能宣称在未检测到网络断开时已经全局瞬时撤权。
+
+创建 key 对应的初始参数包含初始授权。若业务需要跨重连找回同一个实体，可以保存 EntityId，
+在身份验证后对既有引用换绑；也可先以不带 owner 的稳定参数创建/重试，再显式绑定当前连接。
+不得把新连接加入原创建参数并指望同一 key 悄悄改变已经登记的创建操作。
+
+两节点验收补充覆盖：同账号第二连接被拒、跨节点换绑、旧客户端投影失效、新连接调用成功，
+以及直接在远端 Node 创建 Player 并向原连接自动投影/授予控制。
+
 ## 接入阶段
 
-1. 全局实体记录、Lua owner 参数、属性私有可见性和控制检查切换为连接授权，并补重新绑定 API。
-2. 接入通用持久计时器状态、调度、脚本 API 和重启/迁移故障验收。
+1. 接入通用持久计时器状态、调度、脚本 API 和重启/迁移故障验收。

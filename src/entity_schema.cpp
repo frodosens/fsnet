@@ -102,7 +102,7 @@ EntityAttributes::EntityAttributes(EntitySchema schema, std::string owner) : sch
 const AttributeValue& EntityAttributes::read(const std::string& name, const CallIdentity& who) const {
     const auto& d = schema_.attributes.at(name);
     if (!reads(who.caller == Caller::server ? d.server : d.client) ||
-        (who.caller == Caller::client && !visible(d, {who.subject, false}))) throw std::runtime_error("attribute read denied");
+        !who.live() || (who.caller == Caller::client && !visible(d, {who.subject, false,who.connection}))) throw std::runtime_error("attribute read denied");
     return values_.at(name);
 }
 EntityAttributes::Mutation EntityAttributes::stage(const Values& values, const CallIdentity& who) const {
@@ -110,7 +110,7 @@ EntityAttributes::Mutation EntityAttributes::stage(const Values& values, const C
     for (const auto& [name, value] : values) {
         const auto& d = schema_.attributes.at(name);
         if (!writes(who.caller == Caller::server ? d.server : d.client) ||
-            (who.caller == Caller::client && (who.subject.empty() || who.subject != owner_)))
+            !who.live() || (who.caller == Caller::client && !who.owns(owner_)))
             throw std::runtime_error("attribute write denied");
         if (!valid(d, value)) throw std::invalid_argument("attribute type or size mismatch");
     }
@@ -137,8 +137,9 @@ bool EntityAttributes::publish(const Mutation& mutation) {
 }
 bool EntityAttributes::visible(const AttributeDefinition& d, const AttributeView& view) const {
     if (!reads(d.client)) return false;
-    if (d.visibility == Visibility::owner) return !view.subject.empty() && view.subject == owner_;
-    return d.visibility == Visibility::observers && (view.observer || (!view.subject.empty() && view.subject == owner_));
+    bool owned=owner_.starts_with("connection/")?(view.connection && view.connection.key()==owner_):(!view.subject.empty() && view.subject==owner_);
+    if (d.visibility == Visibility::owner) return owned;
+    return d.visibility == Visibility::observers && (view.observer || owned);
 }
 AttributeUpdate EntityAttributes::snapshot(const AttributeView& view) const {
     AttributeUpdate update{0, revision_, true, {}};

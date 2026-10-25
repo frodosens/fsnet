@@ -9,11 +9,11 @@ function LoginEntity:login(name)
     if ctx.subject=='' or #name==0 or #name>32 then self:reject() end
     local player=Player:spawn({name=name},{
         creation_key='player:'..ctx.subject,
-        owner_account_id=ctx.subject,
+        owner=ctx.connection,
     })
     -- Announce first so Gateway can preserve this projection during handoff.
-    player:show_to(ctx.peer)
-    player:possess(ctx.peer)
+    player:show_to(ctx.connection)
+    player:possess(ctx.connection)
     if self.home_node~='node-b' then
         local status=Player:transfer(player.id,'node-b')
         assert(status==runtime.status.ok,'retry handoff to the same destination')

@@ -17,12 +17,12 @@ std::string operation_key(std::string_view scope,std::string_view key) {
 }
 std::string creation_digest(const EntityCreation& creation) {
     if(creation.type.empty() || creation.type.size()>127 || creation.type.find_first_of(".\0",0,2)!=std::string::npos ||
-       creation.owner_account.size()>256 || creation.state.size()>8*1024*1024 ||
+       (!creation.owner_connection.empty() && !valid_connection_key(creation.owner_connection)) || creation.state.size()>8*1024*1024 ||
        (!creation.target_node.empty() && !valid_entity_node(creation.target_node)) ||
        (creation.persistence!=EntityPersistence::durable && creation.persistence!=EntityPersistence::rebuildable))
         throw std::invalid_argument("invalid entity creation");
     std::string bytes="FEC1";
-    snapshot_detail::blob(bytes,creation.type); snapshot_detail::blob(bytes,creation.owner_account);
+    snapshot_detail::blob(bytes,creation.type); snapshot_detail::blob(bytes,creation.owner_connection);
     snapshot_detail::blob(bytes,creation.target_node); bytes.push_back(static_cast<char>(creation.persistence));
     snapshot_detail::blob(bytes,creation.state); return digest(bytes);
 }
@@ -68,7 +68,7 @@ EntityId EntityCatalog::create(std::string_view scope,std::string_view key,const
     auto entity_key=entity_record_key(id);
     EntityRecord initial; initial.initialized=false; initial.placement=creation.target_node;
     initial.snapshot.state=creation.state;
-    initial.metadata=EntityMetadata{creation.type,creation.owner_account,fingerprint,
+    initial.metadata=EntityMetadata{creation.type,creation.owner_connection,fingerprint,
         creation.persistence==EntityPersistence::rebuildable,false,
         creation.persistence==EntityPersistence::rebuildable?creation.state:std::string{}};
     auto stored=storage_.get(entity_key);

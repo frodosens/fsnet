@@ -25,13 +25,33 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
         std::uint64_t peer;
         std::string route, data, target, entity_id, source_type, source_id;
         std::chrono::milliseconds timeout;
-        enum class Kind { rpc, sleep, watch, write, spawn, create, control, transfer, send, visibility } kind = Kind::rpc;
+        enum class Kind { rpc, sleep, watch, write, spawn, create, bind_owner, control, transfer, send, visibility } kind = Kind::rpc;
         std::uint64_t subscription = 0;
         AttributeWriteOptions options;
         EntityAttributes::Values values;
         unsigned action=0;
         EntitySpawnOptions creation;
     };
+    struct ConnectionHandle {ConnectionRef ref;std::uint64_t peer;std::function<bool()> current;};
+    static ConnectionHandle& connection(lua_State* L,int index) {
+        auto& result=*static_cast<ConnectionHandle*>(luaL_checkudata(L,index,"fsnet.connection"));
+        if(!result.ref || (result.current && !result.current()))throw std::runtime_error("logical connection is no longer live");
+        return result;
+    }
+    static int connection_gc(lua_State* L) {static_cast<ConnectionHandle*>(luaL_checkudata(L,1,"fsnet.connection"))->~ConnectionHandle();return 0;}
+    static int connection_index(lua_State* L) {
+        auto& handle=*static_cast<ConnectionHandle*>(luaL_checkudata(L,1,"fsnet.connection"));
+        std::size_t n;auto key=luaL_checklstring(L,2,&n);
+        if(std::string_view(key,n)=="id"){lua_pushlstring(L,handle.ref.id.data(),handle.ref.id.size());return 1;}
+        if(std::string_view(key,n)=="generation"){lua_pushinteger(L,static_cast<lua_Integer>(handle.ref.generation));return 1;}
+        return luaL_error(L,"unknown connection member");
+    }
+    static void push_connection(lua_State* L,const CallIdentity& who) {
+        if(!who.connection){lua_pushnil(L);return;}
+        auto memory=lua_newuserdatauv(L,sizeof(ConnectionHandle),0);
+        new(memory) ConnectionHandle{who.connection,who.peer,who.current};
+        luaL_getmetatable(L,"fsnet.connection");lua_setmetatable(L,-2);
+    }
     struct WatchLease {
         std::weak_ptr<ScriptHost> host; std::uint64_t subscription;
         WatchLease(std::weak_ptr<ScriptHost> owner,std::uint64_t id):host(std::move(owner)),subscription(id){}
@@ -1072,7 +1092,8 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
             const auto& task=engine.tasks.at(engine.threads.at(L));Await request{};request.kind=Await::Kind::create;request.timeout=engine.limits.task_timeout;
             request.route=type;request.values=values(L,2,engine.schemas.at(type));
             auto string_option=[&](const char* name){lua_getfield(L,3,name);std::size_t size;auto text=luaL_optlstring(L,-1,"",&size);std::string out(text,size);lua_pop(L,1);return out;};
-            request.creation.creation_key=string_option("creation_key");request.creation.owner_account_id=string_option("owner_account_id");
+            request.creation.creation_key=string_option("creation_key");
+            lua_getfield(L,3,"owner");if(!lua_isnil(L,-1))request.creation.owner=connection(L,-1).ref;lua_pop(L,1);
             request.creation.target_node=string_option("target_node");auto scope=string_option("bootstrap_scope");
             if(!scope.empty() && !task.entity_id.empty())throw std::logic_error("bootstrap_scope is only valid outside an entity");
             request.creation.scope=task.entity_id.empty()?"bootstrap:"+(scope.empty()?engine.chunk_name:scope):task.entity_id;
@@ -1097,6 +1118,19 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
             request.route=std::move(type); request.data=std::move(entity); request.action=destroy?1:0;
             engine.tasks.at(engine.threads.at(L)).await=std::move(request);
         } catch(const std::exception& e) { return luaL_error(L,"%s",e.what()); }
+        return lua_yield(L,0);
+    }
+    static int bind_owner(lua_State* L) {
+        prediction_external(L);auto& engine=self(L);std::size_t n,m;
+        auto type=luaL_optlstring(L,1,"",&n),id=luaL_checklstring(L,2,&m);
+        if(!engine.threads.contains(L) || engine.server_schemas.empty())return luaL_error(L,"owner binding requires an async server task");
+        try {
+            auto& task=engine.tasks.at(engine.threads.at(L));
+            if(!valid_entity_id(std::string_view(id,m)) || n>127 || task.entity_id==std::string_view(id,m))throw std::invalid_argument("invalid owner target or self-await");
+            Await request{};request.kind=Await::Kind::bind_owner;request.route=std::string(type,n);request.data=std::string(id,m);request.timeout=engine.limits.task_timeout;
+            if(!lua_isnoneornil(L,3))request.creation.owner=connection(L,3).ref;
+            task.await=std::move(request);
+        }catch(const std::exception& error){return luaL_error(L,"%s",error.what());}
         return lua_yield(L,0);
     }
     static int send_entity(lua_State* L) {
@@ -1154,7 +1188,9 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
     static int entity_visibility(lua_State* L) {
         prediction_external(L);
         auto& engine=self(L);
-        auto peer=luaL_checkinteger(L,1),action=luaL_checkinteger(L,4);
+        lua_Integer peer=0;auto action=luaL_checkinteger(L,4);
+        try{peer=luaL_testudata(L,1,"fsnet.connection")?static_cast<lua_Integer>(connection(L,1).peer):luaL_checkinteger(L,1);}
+        catch(const std::exception& error){return luaL_error(L,"%s",error.what());}
         std::size_t n,m; const char* kind=luaL_checklstring(L,2,&n); const char* id=luaL_checklstring(L,3,&m);
         if(!engine.threads.contains(L) || peer<=0 || action<1 || action>4) return luaL_error(L,"visibility requires an async server task and valid peer/action");
         try {
@@ -1299,6 +1335,10 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
         luaL_requiref(L, LUA_MATHLIBNAME, luaopen_math, 1); lua_pop(L, 1);
         luaL_requiref(L, LUA_UTF8LIBNAME, luaopen_utf8, 1); lua_pop(L, 1);
         for (const char* name : {"dofile", "loadfile", "load", "collectgarbage"}) { lua_pushnil(L); lua_setglobal(L, name); }
+        luaL_newmetatable(L,"fsnet.connection");
+        lua_pushcfunction(L,connection_gc);lua_setfield(L,-2,"__gc");
+        lua_pushcfunction(L,connection_index);lua_setfield(L,-2,"__index");
+        lua_pushboolean(L,false);lua_setfield(L,-2,"__metatable");lua_pop(L,1);
         lua_newtable(L);
         lua_pushcfunction(L,start_task); lua_setfield(L,-2,"_start");
         lua_pushcfunction(L,sleep_task); lua_setfield(L,-2,"_sleep");
@@ -1307,6 +1347,7 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
         lua_pushcfunction(L,write_attributes); lua_setfield(L,-2,"_write");
         lua_pushcfunction(L,spawn_entity); lua_setfield(L,-2,"_spawn_entity");
         lua_pushcfunction(L,create_entity); lua_setfield(L,-2,"_create_entity");
+        lua_pushcfunction(L,bind_owner);lua_setfield(L,-2,"_bind_entity_owner");
         lua_pushcfunction(L,global_id); lua_setfield(L,-2,"_global_entity_id");
         lua_pushcfunction(L,global_call_message); lua_setfield(L,-2,"_entity_call_message");
         lua_pushcfunction(L,control_entity); lua_setfield(L,-2,"_control_entity");
@@ -1482,6 +1523,7 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
             lua_pushlstring(L, task.identity.subject.data(), task.identity.subject.size()); lua_setfield(L, -2, "subject");
             lua_pushstring(L, task.identity.caller == Caller::server ? "server" : "client"); lua_setfield(L, -2, "caller");
             lua_pushinteger(L, static_cast<lua_Integer>(task.identity.peer)); lua_setfield(L, -2, "peer");
+            push_connection(L,task.identity);lua_setfield(L,-2,"connection");
         }
         lua_xmove(L, task.thread, task.startup ? 1 : (task.mailbox.empty() ? 2 : 3) + (task.contextual ? 1 : 0)); return 0;
     }
@@ -1604,6 +1646,7 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
             } else if(request.kind==Await::Kind::write) host->write_attributes(request.subscription,std::move(request.values),std::move(completion),std::move(request.options),request.timeout);
             else if(request.kind==Await::Kind::spawn) host->spawn_entity(std::move(request.route),std::move(request.data),std::move(request.values),std::move(completion));
             else if(request.kind==Await::Kind::create) host->create_entity(std::move(request.route),std::move(request.values),std::move(request.creation),std::move(completion));
+            else if(request.kind==Await::Kind::bind_owner)host->bind_entity_owner(std::move(request.route),std::move(request.data),std::move(request.creation.owner),std::move(completion));
             else if(request.kind==Await::Kind::send) host->send_entity(std::move(request.source_type),std::move(request.source_id),std::move(request.route),std::move(request.entity_id),std::move(request.target),std::move(request.data),std::move(completion));
             else if(request.kind==Await::Kind::transfer) host->transfer_entity(std::move(request.route),std::move(request.data),std::move(request.target),std::move(completion));
             else if(request.kind==Await::Kind::control) host->control_entity(std::move(request.route),std::move(request.data),request.action!=0,std::move(completion));

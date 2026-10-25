@@ -18,11 +18,13 @@ public:
 };
 enum class EntityPersistence : unsigned char { durable=0, rebuildable=1 };
 struct EntityCreation {
-    std::string type, owner_account, state, target_node;
+    std::string type, owner_connection, state, target_node;
     EntityPersistence persistence=EntityPersistence::durable;
 };
 struct EntitySpawnOptions {
-    std::string scope, creation_key, owner_account_id, target_node;
+    std::string scope, creation_key;
+    ConnectionRef owner{};
+    std::string target_node;
     EntityPersistence persistence=EntityPersistence::durable;
 };
 struct EntityDescription {

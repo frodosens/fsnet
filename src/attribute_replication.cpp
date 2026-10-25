@@ -45,11 +45,11 @@ struct AttributeReplication::Impl : std::enable_shared_from_this<Impl> {
     struct Permission { std::string owner,key; bool observer; };
     Permission permission(const Subscription& sub) {
         auto authenticated=node.identity(sub.identity.peer);
-        if(!authenticated || authenticated->caller!=Caller::client || authenticated->subject!=sub.identity.subject)
+        if(!authenticated || authenticated->caller!=Caller::client || authenticated->subject!=sub.identity.subject || authenticated->connection!=sub.identity.connection || !sub.identity.live())
             throw std::runtime_error("connection identity changed");
         auto owner=host->owner_subject(sub.type,sub.entity);
         bool observes=sub.automatic; if(observer) { auto check=observer; observes=check(sub.identity,sub.type,sub.entity) || observes; }
-        if(stopped || (sub.identity.subject!=owner && !observes) || sub.identity.subject.empty()) throw std::runtime_error("subscription denied");
+        if(stopped || (!sub.identity.owns(owner) && !observes) || (!sub.identity.connection && sub.identity.subject.empty())) throw std::runtime_error("subscription denied");
         return {owner,std::to_string(owner.size())+":"+owner+(observes?"1":"0"),observes};
     }
     AttributeUpdate filtered(const Subscription& sub, const EntitySchema& schema, const AttributeUpdate& image, std::string* key=nullptr) {
@@ -58,7 +58,7 @@ struct AttributeReplication::Impl : std::enable_shared_from_this<Impl> {
         // directly instead of rebuilding defaults and restoring a carrier for
         // every recipient. Authorization is still rechecked for each peer.
         AttributeUpdate result{0,image.revision,true,{}};
-        const bool owned=!sub.identity.subject.empty() && sub.identity.subject==view.owner;
+        const bool owned=sub.identity.owns(view.owner);
         for (const auto& [name,d]:schema.attributes) {
             const bool readable=d.client==Access::read || d.client==Access::read_write;
             if (readable && ((d.visibility==Visibility::owner && owned) ||
@@ -89,7 +89,7 @@ struct AttributeReplication::Impl : std::enable_shared_from_this<Impl> {
         std::string type,id;
         try { std::string_view view(input); auto key=decode_entity_key(view); if(!view.empty()) throw std::invalid_argument("trailing watch bytes"); type=std::move(key.first); id=std::move(key.second); }
         catch(...) { return reply({Status::rejected,{}}); }
-        if(stopped || identity.subject.empty()) return reply({Status::rejected,{}});
+        if(stopped || (!identity.connection && identity.subject.empty())) return reply({Status::rejected,{}});
         std::size_t peers=peer_counts.contains(identity.peer)?peer_counts.at(identity.peer):0;
         if(subscriptions.size()>=limits.subscriptions || peers>=limits.per_peer || serial==UINT64_MAX) return reply({Status::overloaded,{}});
         auto definition=host->schema(type); if(!definition) return reply({Status::not_found,{}});
@@ -114,7 +114,7 @@ struct AttributeReplication::Impl : std::enable_shared_from_this<Impl> {
                     if(count>self->limits.image_bytes-self->bytes) return self->remove(id,Status::overloaded,false);
                     auto response=encode_replication_packet(id,sub->type,sub->entity,Status::ok,&next,static_cast<std::uint32_t>(self->limits.lease.count()));
                     auto handle=self->host->handle(sub->type,sub->entity); if(!handle) return self->remove(id,Status::rejected,false);
-                    sub->owned=self->host->owner_subject(sub->type,sub->entity)==sub->identity.subject;
+                    sub->owned=sub->identity.owns(self->host->owner_subject(sub->type,sub->entity));
                     sub->generation=handle->generation; sub->permission=std::move(permission);
                     self->bytes+=count; sub->bytes=count; sub->last=std::move(next); sub->expires=Clock::now()+self->limits.lease;
                     auto reply=std::exchange(sub->pending,{}); reply({Status::ok,std::move(response)});
@@ -125,7 +125,7 @@ struct AttributeReplication::Impl : std::enable_shared_from_this<Impl> {
     void visibility(std::uint64_t peer,std::string type,std::string entity,unsigned action,Reply reply) {
         if(stopped) return reply({Status::disconnected,{}});
         auto who=node.identity(peer);
-        if(!who || who->caller!=Caller::client || who->subject.empty()) return reply({Status::rejected,{}});
+        if(!who || who->caller!=Caller::client || (!who->connection && who->subject.empty())) return reply({Status::rejected,{}});
         std::string input;
         try { input=encode_entity_key(type,entity); } catch(...) { return reply({Status::rejected,{}}); }
         std::shared_ptr<Subscription> target;
@@ -164,7 +164,7 @@ struct AttributeReplication::Impl : std::enable_shared_from_this<Impl> {
         if(!target || target->pending) return reply({Status::not_found,{}});
         try { (void)permission(*target); }
         catch(...) { return reply({Status::rejected,{}}); }
-        if(action==3 && host->owner_subject(type,entity)!=who->subject) return reply({Status::rejected,{}});
+        if(action==3 && !who->owns(host->owner_subject(type,entity))) return reply({Status::rejected,{}});
         auto set_control=[&](const std::shared_ptr<Subscription>& sub,bool value) {
             if(sub->controlled==value) return true;
             sub->controlled=value;
@@ -207,7 +207,7 @@ struct AttributeReplication::Impl : std::enable_shared_from_this<Impl> {
         if(sub->pending) return reply({Status::overloaded,{}});
         if(sub->identity.peer!=who.peer || sub->identity.subject!=who.subject) return reply({Status::rejected,{}});
         if(sub->expires<=Clock::now()) return reply({Status::timeout,{}});
-        try { auto view=permission(*sub); if(view.owner!=who.subject) return reply({Status::rejected,{}}); }
+        try { auto view=permission(*sub); if(!who.owns(view.owner)) return reply({Status::rejected,{}}); }
         catch(...) { return reply({Status::rejected,{}}); }
         if(stopped || !subscriptions.contains(id)) return reply({Status::disconnected,{}});
         host->write_attributes(sub->type,sub->entity,who,std::move(proposal),std::move(reply),std::move(request));
@@ -231,7 +231,7 @@ struct AttributeReplication::Impl : std::enable_shared_from_this<Impl> {
                 if(permission!=sub->permission) { remove(id,Status::rejected); continue; }
                 auto update=attribute_delta(sub->last,next);
                 if(!update.snapshot && update.values.empty() && update.patches.empty() &&
-                   (next.revision==sub->last.revision || sub->identity.subject!=host->owner_subject(sub->type,sub->entity))) continue;
+                   (next.revision==sub->last.revision || !sub->identity.owns(host->owner_subject(sub->type,sub->entity)))) continue;
                 // Owners need even an empty delta to advance their optimistic-write
                 // revision after server-private changes. Observers may skip it.
                 auto count=attribute_wire_size(next)+attribute_image_bytes(next.values);

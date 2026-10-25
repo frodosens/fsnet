@@ -68,6 +68,7 @@ struct EntitySchema {
 struct AttributeView {
     std::string subject;
     bool observer = false;
+    ConnectionRef connection{};
 };
 // Bounded edits below a top-level property. Paths contain exact string keys
 // or zero-based sequence indices; replacements address an existing value.

@@ -6,6 +6,16 @@
 #include <string_view>
 
 namespace fsnet {
+inline bool valid_connection_key(std::string_view key) {
+    if(!key.starts_with("connection/") || key.size()<45 || key.size()>64)return false;
+    key.remove_prefix(11);
+    for(unsigned i=0;i<32;++i)if(!((key[i]>='0'&&key[i]<='9')||(key[i]>='a'&&key[i]<='f')))return false;
+    if(key[32]!='/')return false;
+    key.remove_prefix(33);
+    if(key.empty() || key.front()=='0')return false;
+    std::uint64_t generation=0;auto [end,error]=std::from_chars(key.data(),key.data()+key.size(),generation);
+    return error==std::errc{} && end==key.data()+key.size() && generation;
+}
 // A transport-independent client session. Only trusted transport/delegation
 // code supplies it; possession of its serialized value grants no authority.
 struct ConnectionRef {
@@ -23,7 +33,7 @@ struct ConnectionRef {
         return "connection/"+id+'/'+std::to_string(generation);
     }
     static ConnectionRef from_key(std::string_view key) {
-        if(!key.starts_with("connection/"))throw std::invalid_argument("invalid connection key");
+        if(!valid_connection_key(key))throw std::invalid_argument("invalid connection key");
         key.remove_prefix(11);if(key.size()<34 || key[32]!='/')throw std::invalid_argument("invalid connection key");
         ConnectionRef result{std::string(key.substr(0,32)),0};key.remove_prefix(33);
         auto [end,error]=std::from_chars(key.data(),key.data()+key.size(),result.generation);

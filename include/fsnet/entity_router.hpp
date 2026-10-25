@@ -26,6 +26,7 @@ public:
     void call(std::string type, std::string id, std::string method, std::string payload,
               std::chrono::milliseconds timeout, Reply, std::string request_id = {});
     void call(EntityId,std::string method,std::string payload,std::chrono::milliseconds,Reply,std::string request_id={},std::string expected_type={});
+    void bind_owner(std::string type,std::string id,ConnectionRef,std::chrono::milliseconds,Reply);
     std::size_t poll(std::size_t budget = 64);
     std::size_t pending() const;
     void stop();
@@ -52,6 +53,7 @@ public:
     void create_entity(std::string type,EntityAttributes::Values values,EntitySpawnOptions options,Reply reply) override {
         parent_->create_entity(std::move(type),std::move(values),std::move(options),std::move(reply));
     }
+    void bind_entity_owner(std::string type,std::string id,ConnectionRef owner,Reply reply)override {router_.bind_owner(std::move(type),std::move(id),std::move(owner),std::chrono::seconds(30),std::move(reply));}
     void send_entity(std::string st,std::string sid,std::string t,std::string id,std::string m,std::string p,Reply r) override { parent_->send_entity(std::move(st),std::move(sid),std::move(t),std::move(id),std::move(m),std::move(p),std::move(r)); }
     std::optional<DeliveryMessage> delivery_status(const std::string& t,const std::string& id,const std::string& ticket) const override { return parent_->delivery_status(t,id,ticket); }
     bool forget_delivery(const std::string& t,const std::string& id,const std::string& ticket) override { return parent_->forget_delivery(t,id,ticket); }

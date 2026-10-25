@@ -45,6 +45,7 @@ public:
     void define_schema(std::string, EntitySchema) override;
     void spawn_entity(std::string type, std::string id, EntityAttributes::Values, Reply) override;
     void create_entity(std::string type,EntityAttributes::Values,EntitySpawnOptions,Reply) override;
+    void bind_entity_owner(std::string type,std::string id,ConnectionRef,Reply) override;
     using CreateOnNode=std::function<void(std::string type,std::string id,std::string target,Reply)>;
     void on_create_on_node(CreateOnNode);
     void enable_global_entities();

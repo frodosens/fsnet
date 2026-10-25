@@ -32,6 +32,7 @@ public:
     }
     virtual void spawn_entity(std::string, std::string, EntityAttributes::Values, Reply reply) { reply({Status::rejected,{}}); }
     virtual void create_entity(std::string,EntityAttributes::Values,EntitySpawnOptions,Reply reply) {reply({Status::rejected,{}});}
+    virtual void bind_entity_owner(std::string,std::string,ConnectionRef,Reply reply) {reply({Status::rejected,{}});}
     virtual void send_entity(std::string,std::string,std::string,std::string,std::string,std::string,Reply reply) { reply({Status::rejected,{}}); }
     virtual std::optional<DeliveryMessage> delivery_status(const std::string&,const std::string&,const std::string&) const { return {}; }
     virtual bool forget_delivery(const std::string&,const std::string&,const std::string&) { return false; }

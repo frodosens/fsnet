@@ -47,12 +47,13 @@ int main() {
         });
         for(auto& worker:workers) worker.join(); if(error) std::rethrow_exception(error);
         CHECK(ids.size()==2400); EntityIdAllocator restarted(*db,17); CHECK(!ids.contains(restarted.allocate().value()));
-        EntityCreation player{"Player","account-1","initial","map-b"};
+        auto connection=ConnectionRef{"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",1};
+        EntityCreation player{"Player",connection.key(),"initial","map-b"};
         EntityCatalog catalog(*db,5); auto player_id=catalog.create("bootstrap","player-1",player);
         auto same=catalog.create("bootstrap","player-1",player); CHECK(same==player_id);
         auto described=catalog.find(player_id); CHECK(described && described->record.metadata->type=="Player");
         CHECK(!described->record.initialized && described->record.placement=="map-b" && described->record.transfer_id==0);
-        CHECK(described->record.metadata->owner_account=="account-1");
+        CHECK(described->record.metadata->owner_connection==connection.key());
         auto other=player;other.type="Pet"; CHECK(catalog.create("bootstrap","pet-1",other)!=player_id);
         throws([&] {catalog.create("bootstrap","player-1",other);});
         workers.clear();std::vector<std::uint64_t> creations(8);
