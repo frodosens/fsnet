@@ -1,7 +1,7 @@
 -- Shared declarations. Items/tasks are Lua business types, not native classes.
 local Item=fsnet.struct('Item',{id='string',count='int32'})
 local Task=fsnet.struct('Task',{progress='int32',done='bool'})
-ContainerPlayer=fsnet.Entity:extend('ContainerDemo',{owner='id'})
+ContainerPlayer=fsnet.Entity:extend('ContainerDemo',{owner='legacy_id'})
 ContainerPlayer:attr('items',{type=fsnet.list(Item,64),sync='owner'})
 ContainerPlayer:attr('tasks',{type=fsnet.map(Task,64),sync='owner'})
 ContainerPlayer:attr('tags',{type=fsnet.set('string',32),sync='owner'})

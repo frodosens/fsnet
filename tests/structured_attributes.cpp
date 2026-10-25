@@ -11,7 +11,7 @@ using namespace std::chrono_literals;
 const char* model=R"(
     local Vec3=fsnet.struct('Vec3',{x='number',y='number',z='number'})
     local Data=fsnet.struct('Data',{position=Vec3,basis=fsnet.mat4x4,flags=fsnet.array('bool',2),tag='string',code='int32'})
-    local Actor=fsnet.Entity:extend('Structured',{owner='id'})
+    local Actor=fsnet.Entity:extend('Structured',{owner='legacy_id'})
     Actor:attr('position',{type=Vec3,authority='driver',client='rw',sync='observers'})
     Actor:attr('matrix',{type='mat4x4',authority='driver',client='rw',sync='observers'})
     Actor:attr('data',{type=Data,authority='driver',client='rw',sync='observers'})
@@ -141,10 +141,10 @@ int main() {
             Bad:attr('value',{type=fsnet.array(fsnet.array('number',64),64)})
             assert(not pcall(Bad.define,Bad))
             runtime.start(function()
-                local replica=Actor:watch('alice')
+                local replica=Actor:legacy_watch('alice')
                 runtime.request(peer,'report','owner-ready')
                 runtime.request(peer,'gate','')
-                local reference=Actor:ref('alice')
+                local reference=Actor:legacy_ref('alice')
                 reference:edit('')
                 assert(replica.position.x==7 and replica.position.y==5 and replica.matrix[1][4]==10)
                 assert(replica.data.position.y==8 and replica.data.flags[1] and replica.data.basis[4][4]==1)
@@ -190,7 +190,7 @@ int main() {
         be->load("local peer="+std::to_string(b)+"\n"+model+R"(
             Actor:define()
             runtime.start(function()
-                local replica=Actor:watch('alice')
+                local replica=Actor:legacy_watch('alice')
                 assert(not pcall(function() replica.position.x=50 end)) -- observer has no owner write right
                 assert(not pcall(function() return replica.secret.x end))
                 runtime.request(peer,'report','observer-ready')

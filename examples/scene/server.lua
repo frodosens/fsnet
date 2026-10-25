@@ -1,28 +1,43 @@
--- Account identity comes from the authenticated host, never the display name.
+-- Account-to-player mapping is Lua policy; IDs are allocated by fsnet.
 Player:register()
 local online={}
-runtime.rpc('login',{callers={'client'},handler=function(ctx,name)
+local SceneHub=fsnet.Entity:extend('SceneHub')
+SceneHub:rpc('login',{callers={'client'}})
+function SceneHub:login(name)
+    local ctx=self.context
     assert(ctx.subject~='' and #name>0 and #name<=32,'invalid login')
-    local previous=online[ctx.subject]
-    assert(not previous or previous.peer==ctx.peer,'account already connected')
-    local player=Player:spawn_or_restore(ctx.subject,{name=name})
-    player:show_to(ctx.peer)
+    local player=Player:spawn({},{creation_key='player:'..ctx.subject})
+    player:bind_owner(ctx.connection)
+    player:configure(name)
+    player:show_to(ctx.connection)
     for subject,session in pairs(online) do
         if subject~=ctx.subject then
-            player:show_to(session.peer);session.player:show_to(ctx.peer)
+            local live=pcall(function()
+                player:show_to(session.connection)
+                session.player:show_to(ctx.connection)
+            end)
+            if not live then online[subject]=nil end
         end
     end
-    player:possess(ctx.peer)
-    online[ctx.subject]={peer=ctx.peer,player=player}
+    player:possess(ctx.connection)
+    online[ctx.subject]={connection=ctx.connection,player=player}
     return player.id
-end})
-runtime.rpc('logout',{callers={'client'},handler=function(ctx)
+end
+SceneHub:rpc('logout',{callers={'client'}})
+function SceneHub:logout()
+    local ctx=self.context
     local session=online[ctx.subject]
-    if not session or session.peer~=ctx.peer then return '' end
-    for _,other in pairs(online) do
-        session.player:hide_from(other.peer)
-        if other~=session then other.player:hide_from(ctx.peer) end
+    if not session or session.connection.id~=ctx.connection.id or session.connection.generation~=ctx.connection.generation then return '' end
+    for subject,other in pairs(online) do
+        pcall(function() session.player:hide_from(other.connection) end)
+        if subject~=ctx.subject then other.player:hide_from(ctx.connection) end
     end
+    session.player:bind_owner(nil)
     online[ctx.subject]=nil
     return ''
-end})
+end
+SceneHub:register()
+runtime.start(function()
+    local hub=SceneHub:spawn({},{creation_key='scene',bootstrap_scope='examples'})
+    print('entry '..hub.id)
+end)

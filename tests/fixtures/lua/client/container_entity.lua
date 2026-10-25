@@ -1,7 +1,7 @@
 -- Bundle shared/container_entity.lua first; run with fsnet-client.
 runtime.start(function()
-    local player=ContainerPlayer:watch('alice')
-    local server=ContainerPlayer:ref('alice')
+    local player=ContainerPlayer:legacy_watch('alice')
+    local server=ContainerPlayer:legacy_ref('alice')
     local tasks={}
     local function refresh_tasks()
         local next_tasks={}

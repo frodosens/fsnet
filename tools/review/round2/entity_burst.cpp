@@ -13,7 +13,7 @@ struct Host:fsnet::ScriptHost {
  void call(std::uint64_t,std::string,std::string,std::chrono::milliseconds,fsnet::Reply)override{throw std::logic_error("unused");}
 };
 int main(){auto p=std::make_shared<Host>();fsnet::EntityScriptHost host(p,fsnet::memory_database(),"owner");
- host.bind_stateful("Actor.echo","Actor","",[](auto input,auto done){done({fsnet::Status::ok,std::string(fsnet::parse_entity_message_view(input)->payload)});});
+ host.bind_legacy_stateful("Actor.echo","Actor","",[](auto input,auto done){done({fsnet::Status::ok,std::string(fsnet::parse_entity_message_view(input)->payload)});});
  std::size_t completed=0,success=0,overloaded=0;
  for(unsigned i=0;i<64;++i)p->handlers.at("Actor.echo")(fsnet::entity_message(std::to_string(i),""),[&](auto result){++completed;if(result.status==fsnet::Status::ok)++success;if(result.status==fsnet::Status::overloaded)++overloaded;});
  auto pending=host.stats().pending;host.poll();std::cout<<"{\"submitted_pending\":"<<pending<<",\"first_poll_completed\":"<<completed<<",\"first_poll_overloaded\":"<<overloaded<<"}"<<std::endl;

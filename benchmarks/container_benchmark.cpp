@@ -34,7 +34,7 @@ struct CountingHost final:fsnet::ScriptHost {
 std::string model() {return R"(
     local Item=fsnet.struct('BenchItem',{id='string',count='int32'})
     local initial={}; for i=1,128 do initial[i]={id='item-'..i,count=0} end
-    local E=fsnet.Entity:extend('BatchBench',{owner='id'})
+    local E=fsnet.Entity:extend('BatchBench',{owner='legacy_id'})
     E:attr('items',{type=fsnet.list(Item,256),default=initial,client='rw',sync='observers'})
 )";}
 void network(bool batched,std::size_t rounds) {
@@ -51,7 +51,7 @@ void network(bool batched,std::size_t rounds) {
     fsnet::LuaEngine engine(counted);
     std::string edit="for i=1,16 do value.items[i].count=round end";
     std::string operation=batched?"entity:batch(function(value) "+edit+" end)":"local value=entity; "+edit;
-    engine.load(model()+"E:define(); runtime.start(function() local entity=E:watch('alice'); runtime.server_request('ready',''); for round=1,"+std::to_string(rounds)+" do "+operation+" end; assert(entity.items[1].count=="+std::to_string(rounds)+" and entity.items[16].count=="+std::to_string(rounds)+"); runtime.server_request('done',''); entity:close() end)");
+    engine.load(model()+"E:define(); runtime.start(function() local entity=E:legacy_watch('alice'); runtime.legacy_server_request('ready',''); for round=1,"+std::to_string(rounds)+" do "+operation+" end; assert(entity.items[1].count=="+std::to_string(rounds)+" and entity.items[16].count=="+std::to_string(rounds)+"); runtime.legacy_server_request('done',''); entity:close() end)");
     auto pump=[&]{server.poll(); node.poll(); host->poll(); replication.poll(); client->poll(); authority.poll(); engine.poll();};
     auto until=[&](auto condition){auto deadline=Clock::now()+60s; while(!condition()){pump(); if(Clock::now()>deadline) throw std::runtime_error("benchmark deadline: "+engine.last_error()+" / "+authority.last_error());}};
     until([&]{return bool(gate);});

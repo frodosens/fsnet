@@ -42,7 +42,7 @@ void integration() {
             self.hp=math.max(0,self.hp-amount)
             return tostring(self.hp)
         end
-        local Player=Combatant:extend('Player',{owner='id'})
+        local Player=Combatant:extend('Player',{owner='legacy_id'})
         Player:attr('label',{type='string',default='Player',client='rw',sync='owner'})
         Player:rpc('damage',{callers={'server'}})
         function Player:damage(payload)
@@ -72,12 +72,12 @@ void integration() {
         Player:rpc('relay',{callers={'server'}})
         function Player:relay(id)
             owner_peer=owner_peer or runtime.connect('127.0.0.1',owner_port)
-            return Player:ref(id,{peer=owner_peer}):damage('3',{timeout_ms=1000,request_id='ref-1'})
+            return Player:legacy_ref(id,{peer=owner_peer}):damage('3',{timeout_ms=1000,request_id='ref-1'})
         end
         Player:rpc('explode',{callers={'server'}})
         function Player:explode() saved=self; self.hp=0; error('abort object mutation') end
         Player:rpc('cycle',{callers={'server'}})
-        function Player:cycle() return Player:ref(self.id):damage('1') end
+        function Player:cycle() return Player:legacy_ref(self.id):damage('1') end
         Player:register()
         local Npc=Combatant:extend('Npc')
         Npc:register()
@@ -171,7 +171,7 @@ void registration_rollback() {
         A:rpc('two',{callers={'client'}}); function A:two() end
         A:rpc('three',{callers={'client'}}); function A:three() end
         assert(not pcall(function() A:register() end)) -- plus the built-in property write route exceeds the budget
-        runtime.rpc('healthy',{callers={'client'},handler=function(ctx,payload) return payload end})
+        runtime.legacy_rpc('healthy',{callers={'client'},handler=function(ctx,payload) return payload end})
     )");
     CHECK(!server.has_route("A.one") && !server.has_route("A.two") && !server.has_route("A.three") && !host->schema("A"));
     auto peer=client.connect("127.0.0.1",server.listen("127.0.0.1",0)); std::optional<fsnet::Result> result;

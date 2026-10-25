@@ -12,7 +12,7 @@
 using namespace std::chrono_literals;
 #define CHECK(x) do{if(!(x))throw std::runtime_error(std::string(__FILE__)+':'+std::to_string(__LINE__)+" " #x);}while(false)
 const char* model=R"(
-    local Actor=fsnet.Entity:extend('Actor',{owner='id'})
+    local Actor=fsnet.Entity:extend('Actor',{owner='legacy_id'})
     Actor:attr('position',{type='vec3',client='rw',sync='observers'})
     Actor:attr('gold',{type='int32',default=0,sync='owner'})
     Actor:attr('activations',{type='int32',default=0,sync='owner'})
@@ -24,9 +24,9 @@ const char* model=R"(
     function Actor:validate_write(values) return not values.position or values.position.x<=20 end
     Actor:register()
     local Pet=Actor:extend('Pet'); Pet:register()
-    runtime.rpc('pet_login',{callers={'client'},handler=function(ctx) local actor=Pet:spawn_or_restore(ctx.subject); actor:show_to(ctx.peer); actor:possess(ctx.peer); return actor.id end})
-    runtime.rpc('login',{callers={'client'},handler=function(ctx,name)
-        local actor=Actor:spawn_or_restore(ctx.subject)
+    runtime.legacy_rpc('pet_login',{callers={'client'},handler=function(ctx) local actor=Pet:legacy_spawn_or_restore(ctx.subject); actor:show_to(ctx.peer); actor:possess(ctx.peer); return actor.id end})
+    runtime.legacy_rpc('login',{callers={'client'},handler=function(ctx,name)
+        local actor=Actor:legacy_spawn_or_restore(ctx.subject)
         actor:show_to(ctx.peer); actor:possess(ctx.peer); return actor.id
     end})
 )";
@@ -44,7 +44,7 @@ void restored_route_expires_old_lookup(){
     front.identify([](std::uint64_t,const std::string&)->std::optional<fsnet::CallIdentity>{return fsnet::CallIdentity{fsnet::Caller::client,"alice"};});
     fsnet::GatewayLimits limits;limits.refresh=2s;
     fsnet::ClientGateway gateway(front,back,database,{{"a","127.0.0.1",ap,{"Actor"}},{"b","127.0.0.1",bp,{"Actor"}}},limits);
-    gateway.bind_account("login","Actor");gateway.bind_entity("Actor",{"move"});
+    gateway.bind_legacy_account("login","Actor");gateway.bind_legacy_entity("Actor",{"move"});
     auto port=front.listen("127.0.0.1",0);auto peer=client.connect("127.0.0.1",port);
     std::uint64_t owned=0;fsnet::AttributeClient attributes(client,peer);
     auto pump=[&]{a.poll();b.poll();front.poll();back.poll();client.poll();ah->poll();bh->poll();ae.poll();be.poll();ad.poll();bd.poll();ar.poll();br.poll();gateway.poll();attributes.poll();};

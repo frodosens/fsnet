@@ -32,10 +32,10 @@ int main() {
         auto storage=std::make_shared<CommitThenThrow>();
         auto entities=std::make_shared<fsnet::EntityScriptHost>(transport,storage,"replication/boot");
         std::string owner="alice";
-        entities->ownership([&](const std::string&,const std::string&) { return owner; });
+        entities->legacy_ownership([&](const std::string&,const std::string&) { return owner; });
         fsnet::LuaEngine engine(entities);
         engine.load(R"(
-            runtime.entity('player', {attrs={
+            runtime.legacy_entity('player', {attrs={
                 hp={type='int32',default=100,sync='observers'},
                 gold={type='int64',default=7,sync='owner'},
                 secret={type='string',default='secret',client='none',sync='none'},
@@ -47,7 +47,7 @@ int main() {
             end, methods={damage={callers={'server'},handler=function(self,ctx,data)
                 self.hp=self.hp-tonumber(data); self.gold=self.gold+1; self.temporary=self.temporary+1; return ''
             end}, hidden={callers={'server'},handler=function(self) self.secret='changed'; return '' end}}})
-            runtime.entity('self_owned', {owner='id', attrs={value={type='int32',default=1}}, methods={
+            runtime.legacy_entity('self_owned', {owner='legacy_id', attrs={value={type='int32',default=1}}, methods={
                 read={callers={'client'},access='owner',handler=function(self) return tostring(self.value) end},
             }})
         )");

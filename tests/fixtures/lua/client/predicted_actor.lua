@@ -1,6 +1,6 @@
 -- Bundle shared/predicted_actor.lua first; run with fsnet-client.
 runtime.start(function()
-    local confirmed=PredictedActor:watch('alice')
+    local confirmed=PredictedActor:legacy_watch('alice')
     local first=confirmed.processed_input+1
     local prediction=confirmed:prediction({acknowledged=first-1})
     local effects=0
@@ -10,7 +10,7 @@ runtime.start(function()
     end
     local initial_x=confirmed.x
     assert(prediction.state.x==initial_x+10)
-    local server=PredictedActor:ref('alice')
+    local server=PredictedActor:legacy_ref('alice')
     for sequence=first,first+1 do
         server:input(tostring(sequence)..':5',{request_id='demo-input-'..sequence})
         while confirmed.processed_input<sequence do runtime.sleep(1) end

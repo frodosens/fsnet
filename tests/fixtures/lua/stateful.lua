@@ -1,6 +1,6 @@
 -- All state interpretation and business rules live in Lua. The runtime stores
 -- opaque bytes, serializes each ID and commits before acknowledging a request.
-runtime.entity('counter', {
+runtime.legacy_entity('counter', {
     initial = '0',
     methods = {
         add = function(state, id, payload)

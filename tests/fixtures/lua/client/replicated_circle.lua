@@ -5,7 +5,7 @@ assert(local_circle.radius == 2 and local_circle:contains(1, 0))
 local_circle:close()
 
 runtime.start(function()
-    local circle = MagicCircle:watch('alice')
+    local circle = MagicCircle:legacy_watch('alice')
     while circle.duration > 0 do
         -- Same query method reads current confirmed properties automatically.
         print('circle', circle.radius, circle.duration, circle:contains(0, 0))

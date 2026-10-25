@@ -18,11 +18,11 @@ int main(){
  fsnet::EntityScriptHost host(parent,db,"owner/boot");host.enable_delivery(true);
  fsnet::EntitySchema schema;host.define_schema("Target",schema);
  auto initial=fsnet::encode_attributes({0,0,true,{}});
- host.bind_stateful("Target.reward","Target",initial,[](std::string input,fsnet::Reply reply){
+ host.bind_legacy_stateful("Target.reward","Target",initial,[](std::string input,fsnet::Reply reply){
   auto s=fsnet::parse_state_message(fsnet::parse_entity_message(input)->payload);
   reply({fsnet::Status::ok,fsnet::state_message(s->state,"reward applied")});
  });
- host.bind_stateful("Source.issue","Source","",[&](std::string input,fsnet::Reply reply){
+ host.bind_legacy_stateful("Source.issue","Source","",[&](std::string input,fsnet::Reply reply){
   auto s=fsnet::parse_state_message(fsnet::parse_entity_message(input)->payload);
   host.send_entity("Source","alice","Target","bob","reward","",[s,reply](auto r){
    if(r.status==fsnet::Status::ok)reply({r.status,fsnet::state_message(s->state,r.data)});else reply(r);

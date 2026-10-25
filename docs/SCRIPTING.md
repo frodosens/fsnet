@@ -1,5 +1,8 @@
 # 脚本 API 与宿主合同
 
+本文保留机制说明与显式 legacy 夹具；当前业务接入以 [API 指南](API_GUIDE.md) 和
+[全局实体](GLOBAL_ENTITIES.md) 为准，兼容入口见 [legacy 适配器](LEGACY_ADAPTERS.md)。
+
 业务逻辑推荐使用 [面向对象的实体 API](OBJECT_API.md)：类、继承、本地方法、显式 RPC、原生属性和实体引用。下文保留底层宿主合同与兼容接口，旧示例不等于推荐业务写法。
 
 ## 分层
@@ -18,7 +21,7 @@ Lua 的 `instructions_per_resume` 同时计入 VM 指令和字符串模式匹配
 
 ```lua
 local peer
-runtime.rpc('gateway.forward', function(payload)
+runtime.legacy_rpc('gateway.forward', function(payload)
     peer = peer or runtime.connect('127.0.0.1', 7002)
     return runtime.request(peer, 'backend.handle', payload, 1000)
 end)
@@ -26,7 +29,7 @@ end)
 
 | API | 合同 |
 | --- | --- |
-| `runtime.rpc(route, function(payload) ... end)` | 仅在加载时注册；路由非空、无 NUL、最多 256 字节；重复/已有宿主路由导致加载失败 |
+| `runtime.legacy_rpc(route, function(payload) ... end)` | 仅在加载时注册；路由非空、无 NUL、最多 256 字节；重复/已有宿主路由导致加载失败 |
 | `runtime.connect(address, port)` | 仅在请求协程中使用；返回异步连接句柄，真正连接失败通过 RPC 状态返回；不把句柄存在视为连接就绪 |
 | `runtime.await(peer, route, bytes, timeout_ms=1000)` | 让出协程；恢复时返回 `bytes, status`；状态 0 表示成功，deadline 为 1–30000 ms |
 | `runtime.request(...)` | await 的顺序式包装；成功返回字符串，非零状态抛 Lua 错误；业务可用 pcall 处理 |
@@ -73,7 +76,7 @@ end)
 -- runtime.entity_request(peer, 'player', '42', 'update', payload, 1000)
 ```
 
-同一 LuaEngine 中，实体类型 + 二进制 ID 唯一标识 mailbox。同一实体的所有方法按接收 FIFO 顺序执行；等待外部 RPC 时仍占有 mailbox，后续请求不能交错修改状态。其他实体可继续执行。普通 `runtime.rpc` 是无状态服务接口，不提供实体隔离；实体状态只能由对应的实体处理器修改，不能从其他实体或普通 RPC 绕过访问。
+同一 LuaEngine 中，实体类型 + 二进制 ID 唯一标识 mailbox。同一实体的所有方法按接收 FIFO 顺序执行；等待外部 RPC 时仍占有 mailbox，后续请求不能交错修改状态。其他实体可继续执行。普通 `runtime.legacy_rpc` 是无状态服务接口，不提供实体隔离；实体状态只能由对应的实体处理器修改，不能从其他实体或普通 RPC 绕过访问。
 
 成功、异常、执行预算超限、任务超时都会结束当前协程并释放 mailbox。超时后的迟到回包被忽略。排队时间计入任务期限，队列受宿主全局请求数和字节预算限制。停止宿主会以 disconnected 结束活动和排队请求。调用方超时不等于服务端撤销，也不会回滚已发生的脚本状态修改或外部写入；持久化操作仍需要幂等性和 fencing。
 
@@ -86,7 +89,7 @@ end)
 ## 托管状态、快照与接管
 
 ```lua
-runtime.entity('counter', {
+runtime.legacy_entity('counter', {
     initial = '0',
     methods = {
         add = function(state, id, payload)
@@ -121,7 +124,7 @@ runtime.entity('counter', {
 
 快照存储采用 `FSP1`（状态 + 普通回执）或 `FSP2`（另含持久命令元数据）。快照与 owner/租约一起包装在 FER1/FER2/FER3 单记录中；此前双 key 实验格式需要停写后离线迁移，不自动初始化或覆盖旧数据。
 
-服务端 `Class:spawn_or_restore`、连接可见性和客户端自动表现工厂见
+服务端 `Class:legacy_spawn_or_restore`、连接可见性和客户端自动表现工厂见
 [ENTITY_PRESENCE.md](ENTITY_PRESENCE.md)。服务端生命周期见 [ENTITY_LIFECYCLE.md](ENTITY_LIFECYCLE.md)，模块热更新尚未实现。
 
 服务端托管实体可用 `ref:send(method,payload)` 提交持久命令，随后在源实体事务中以

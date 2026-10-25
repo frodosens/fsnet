@@ -9,8 +9,8 @@ using namespace std::chrono_literals;
 #define CHECK(x) do { if(!(x)) throw std::runtime_error(std::string(__FILE__)+':'+std::to_string(__LINE__)+" " #x); } while(false)
 const char* script=R"(
 local reject_activation=false
-runtime.rpc('reject_activation',{callers={'server'},handler=function(ctx,data) reject_activation=data=='yes'; return 'ok' end})
-local Player=fsnet.Entity:extend('Player',{owner='id'})
+runtime.legacy_rpc('reject_activation',{callers={'server'},handler=function(ctx,data) reject_activation=data=='yes'; return 'ok' end})
+local Player=fsnet.Entity:extend('Player',{owner='legacy_id'})
 Player:attr('position',{type='vec3',client='rw',sync='observers'})
 Player:attr('activations',{type='int32',default=0,sync='owner'})
 Player:attr('fail_release',{type='bool',default=false,sync='owner'})
@@ -26,7 +26,7 @@ function Player:fail(data) self.fail_release=data=='yes' end
 Player:rpc('self_transfer',{callers={'server'}})
 function Player:self_transfer() return tostring(Player:transfer(self.id,'b')) end
 Player:register()
-runtime.rpc('transfer',{callers={'server'},handler=function(ctx,id) return tostring(Player:transfer(id,'b')) end})
+runtime.legacy_rpc('transfer',{callers={'server'},handler=function(ctx,id) return tostring(Player:transfer(id,'b')) end})
 )";
 int main(){try {
     auto db=fsnet::memory_database(); fsnet::Node a("t"),b("t"),c("t"),admin("t"),intruder("t");

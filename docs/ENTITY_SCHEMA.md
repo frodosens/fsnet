@@ -1,5 +1,8 @@
 # Entity RPC and attribute schemas
 
+本文保留机制说明与显式 legacy 夹具；当前业务接入以 [API 指南](API_GUIDE.md) 和
+[全局实体](GLOBAL_ENTITIES.md) 为准，兼容入口见 [legacy 适配器](LEGACY_ADAPTERS.md)。
+
 This stage implements Lua attribute entities, a native schema carrier, post-commit
 attribute events and explicit caller-role policies.
 It includes a local owner-node replication service and a native client projection manager. The existing
@@ -25,7 +28,7 @@ operation. Distributed identity delegation is not implemented in this stage.
 Stateless RPCs can use a declaration with `handler(ctx, payload)`:
 
 ```lua
-runtime.rpc('ping', {
+runtime.legacy_rpc('ping', {
     callers = {'client'},
     handler = function(ctx, payload) return payload end,
 })
@@ -34,7 +37,7 @@ runtime.rpc('ping', {
 Lua persistent methods can declare caller roles:
 
 ```lua
-runtime.entity('counter', {
+runtime.legacy_entity('counter', {
     initial = '0',
     methods = {
         read = {
@@ -54,9 +57,9 @@ runtime.entity('counter', {
 
 These policies reach Node through both persistent and routed script-host decorators.
 Hosts without policy support reject registration. Empty or unknown caller lists fail
-script loading. The original function-only methods and `runtime.rpc` are legacy
+script loading. The original function-only methods and `runtime.legacy_rpc` are legacy
 registrations, not protected client entry points. Migration to mandatory declarations
-is pending. Persistent methods now support `access='owner'`. For attribute entities, declare `owner='id'` to use the authenticated account
+is pending. Persistent methods now support `access='owner'`. For attribute entities, declare `owner='legacy_id'` to use the authenticated account
 subject as the entity ID entirely from Lua. Otherwise configure
 `EntityScriptHost::ownership` with a trusted `(type, id) -> account subject` mapping;
 an absent, empty, or throwing mapping denies access. Entity IDs are not implicitly
@@ -108,7 +111,7 @@ record before publication; no database transaction is required.
 ## Lua attributes and durable publication
 
 ```lua
-runtime.entity('Player', {
+runtime.legacy_entity('Player', {
     attrs = {
         hp = {type='int32', default=100, server='rw', client='r', sync='observers'},
         gold = {type='int64', default=0, server='rw', client='r', sync='owner'},

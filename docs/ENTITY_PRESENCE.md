@@ -1,5 +1,8 @@
 # 服务端创建与客户端实体表现
 
+本文保留机制说明与显式 legacy 夹具；当前业务接入以 [API 指南](API_GUIDE.md) 和
+[全局实体](GLOBAL_ENTITIES.md) 为准，兼容入口见 [legacy 适配器](LEGACY_ADAPTERS.md)。
+
 服务端只有一个 `Player` 实体类型；客户端根据服务器确认的归属，把它包装为
 `LocalPlayer` 或 `RemotePlayer`。表现类不改变服务端实体类型或权限。
 C++ 提供实体、可见性和同步载体；登录、场景、AOI、镜头和输入策略留在 Lua/应用适配层。
@@ -8,16 +11,16 @@ C++ 提供实体、可见性和同步载体；登录、场景、AOI、镜头和�
 
 ```lua
 Player:register()
-runtime.rpc('login', {callers={'client'}, handler=function(ctx, name)
+runtime.legacy_rpc('login', {callers={'client'}, handler=function(ctx, name)
     -- ctx.subject 来自宿主认证，不能采用 payload 中的账号或 owner。
-    local player = Player:spawn_or_restore(ctx.subject, {name=name})
+    local player = Player:legacy_spawn_or_restore(ctx.subject, {name=name})
     player:show_to(ctx.peer)
     player:possess(ctx.peer)
     return player.id
 end})
 ```
 
-`Class:spawn_or_restore(id, values)` 仅用于已注册的服务端属性类，必须在异步任务中调用。
+`Class:legacy_spawn_or_restore(id, values)` 仅用于已注册的服务端属性类，必须在异步任务中调用。
 它经过已有实体 mailbox、租约与单记录 CAS：新记录的持久化初值与取得所有权原子保存；
 已有记录恢复状态，**不会重新应用初值**。返回逻辑实体引用，不是可绕过 mailbox 的可写对象。
 默认属性初始化仍遵守类型、server 写权限、驻留/队列/存储预算。非持久化初值只在当前驻留期保留。
@@ -25,7 +28,7 @@ end})
 初始化持久化记录后，操作也可能超时或在最终确认前失败；重试应恢复已有记录，不假定失败
 等于服务器没有创建。这不是 exactly-once 创建事件，on_create 的属性初始化与首个操作一起提交，失败可重试；见 [生命周期](ENTITY_LIFECYCLE.md)。
 
-本阶段 `owner='id'` 沿用账号 subject = 实体 ID；其他所有权关系由可信宿主 resolver 提供。
+本阶段 `owner='legacy_id'` 沿用账号 subject = 实体 ID；其他所有权关系由可信宿主 resolver 提供。
 没有动态写 owner 或从客户端认领实体的接口。不得在某实体自己的 mailbox 中同步
 spawn 或 show 同一个实体，以免等待自己；相同目标会立即拒绝，跨实体循环仍需业务避免。
 
@@ -86,7 +89,7 @@ function RemotePlayer:on_despawn() models:destroy(self.model) end
 fsnet.entities:register(Player, {owned=LocalPlayer, observed=RemotePlayer})
 fsnet.entities:start()
 runtime.start(function()
-    runtime.server_request('login', 'Alice')
+    runtime.legacy_server_request('login', 'Alice')
 end)
 ```
 
@@ -117,7 +120,7 @@ models/camera/input 只是图形引擎适配接口示意，不是 fsnet 内置�
 后到的自动创建将退订；手动 watch 和整个 Node 保持可用。退出登录应先让
 服务端撤销可见性。停止后当前管理器不能重新 start，重新加载需新的引擎。
 
-`runtime.server_request(route,bytes,timeout)` 发往 ClientScriptHost 配置的服务器连接。
+`runtime.legacy_server_request(route,bytes,timeout)` 发往 ClientScriptHost 配置的服务器连接。
 该连接可指向 owner 或 [ClientGateway](CLIENT_GATEWAY.md)，后者负责可信委托和 owner 路由。生产连接仍需真实认证。
 
 ## 同步与资源边界

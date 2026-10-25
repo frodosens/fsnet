@@ -18,5 +18,5 @@ int main(){auto h=std::make_shared<Host>();fsnet::ScriptLimits l;l.task_timeout=
 local C=fsnet.Entity:extend('Watch')
 C:attr('x',{type='int32',default=0})
 C:define()
-runtime.start(function() C:watch('alice') end)
+runtime.start(function() C:legacy_watch('alice') end)
 )");e.poll();std::cout<<"watch_pending="<<bool(h->pending)<<" active="<<e.active()<<'\n';h->pending(fsnet::Status::ok,123);std::this_thread::sleep_for(20ms);e.poll();std::cout<<"after_timeout active="<<e.active()<<" unwatches="<<h->unwatches<<" error="<<e.last_error()<<'\n';e.stop();std::cout<<"after_stop unwatches="<<h->unwatches<<'\n';}

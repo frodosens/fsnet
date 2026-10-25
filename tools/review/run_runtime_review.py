@@ -32,7 +32,7 @@ def main():
                     '-lfsnet', '-lpthread', '-ldl', '-lm', '-o', executable]
         subprocess.run(command, check=True, cwd=root)
         script = Path(directory) / 'pattern.lua'
-        script.write_text("runtime.rpc('probe',function() local s=string.rep('a',100); "
+        script.write_text("runtime.legacy_rpc('probe',function() local s=string.rep('a',100); "
                           "return tostring(s:find('a*a*a*a*b')) end)\n")
         cases = [(name, []) for name in ('policy', 'replay', 'uncertain', 'memory', 'frame')]
         cases.append(('lua', [str(script)]))

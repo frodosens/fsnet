@@ -64,14 +64,14 @@ GatewayDelegation::GatewayDelegation(Node& node,Node::IdentityResolver base,Trus
             try{
                 if(!self->sessions.contains(who.peer))return reply({Status::rejected,{}});
                 std::string_view in(data);auto [type,id]=decode_entity_key(in);auto control=get(in,1);if(!in.empty()||control>1)throw std::invalid_argument("invalid restore");
-                bool allowed=who.owns(self->host->owner_subject(type,id));
+                bool allowed=who.owns(self->host->owner_binding(type,id));
                 if(self->restore)allowed=self->restore(who,type,id,control!=0);
                 if(!allowed && !valid_entity_id(id))return reply({Status::rejected,{}});
                 self->host->read_attributes(type,id,[weak,who,type,id,control,reply=std::move(reply)](Result result)mutable{
                     auto self=weak.lock();if(!self||self->stopped)return reply({Status::disconnected,{}});
                     if(result.status!=Status::ok)return reply(std::move(result));
                     auto identity=self->node.identity(who.peer);if(!identity||identity->caller!=Caller::client||identity->subject!=who.subject)return reply({Status::rejected,{}});
-                    bool allowed=who.owns(self->host->owner_subject(type,id));
+                    bool allowed=who.owns(self->host->owner_binding(type,id));
                     if(self->restore)allowed=self->restore(who,type,id,control!=0);
                     if(!allowed)return reply({Status::rejected,{}});
                     self->host->entity_visibility(who.peer,type,id,1,[weak,who,type,id,control,reply=std::move(reply)](Result result)mutable{
@@ -425,11 +425,16 @@ ClientGateway::ClientGateway(Node& front,Node& back,std::shared_ptr<Database> db
 }
 ClientGateway::~ClientGateway(){stop();}
 void ClientGateway::bind_entity(std::string type,std::vector<std::string> methods){
+    (void)entity_route(type,"validate");
+    for(const auto& method:methods)if(!valid_entity_method(method))throw std::invalid_argument("invalid exposed method");
+    for(auto& method:methods)impl_->exposed[type].insert(std::move(method));
+}
+void ClientGateway::bind_legacy_entity(std::string type,std::vector<std::string> methods){
     for(const auto& method:methods){if(method.empty()||method.front()=='$'||method.find_first_of(".\0",0,2)!=std::string::npos)throw std::invalid_argument("invalid exposed entity method");auto route=type+'.'+method;auto weak=std::weak_ptr(impl_);
-        if(impl_->exposed[type].contains(method))continue;
+        if(impl_->front.has_route(route))continue;
         impl_->front.bind_rpc(route,{true,false,false},[weak,type,route](const CallIdentity& who,std::string input,Reply reply){if(auto self=weak.lock())self->routed(who,type,route,std::move(input),false,std::move(reply));else reply({Status::disconnected,{}});});impl_->bound.push_back(route);impl_->exposed[type].insert(method);}
 }
-void ClientGateway::bind_account(std::string route,std::string type){auto weak=std::weak_ptr(impl_);impl_->front.bind_rpc(route,{true,false,false},[weak,type,route](const CallIdentity& who,std::string input,Reply reply){if(auto self=weak.lock())self->routed(who,type,route,std::move(input),true,std::move(reply));else reply({Status::disconnected,{}});});impl_->bound.push_back(std::move(route));}
+void ClientGateway::bind_legacy_account(std::string route,std::string type){auto weak=std::weak_ptr(impl_);impl_->front.bind_rpc(route,{true,false,false},[weak,type,route](const CallIdentity& who,std::string input,Reply reply){if(auto self=weak.lock())self->routed(who,type,route,std::move(input),true,std::move(reply));else reply({Status::disconnected,{}});});impl_->bound.push_back(std::move(route));}
 void ClientGateway::poll(std::size_t budget){auto self=impl_;if(self->stopped)return;self->storage.poll(budget);auto now=Clock::now();std::vector<std::uint64_t> dead;
     for(const auto& [peer,s]:self->sessions)if(!self->authenticated(peer,s.subject))dead.push_back(peer);
     for(auto peer:dead){self->front.close(peer);auto subs=self->subscriptions;for(auto& [id,s]:subs){(void)id;if(s->client==peer)self->remove(s,Status::disconnected,false);}auto it=self->sessions.find(peer);if(it!=self->sessions.end()){for(auto& [index,l]:it->second.links){(void)index;self->back.close(l->peer);self->links.erase(l->peer);}self->sessions.erase(it);}}

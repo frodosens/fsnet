@@ -37,7 +37,7 @@ function RemotePlayer:on_despawn() print('remote-despawn',self.id) end
 fsnet.entities:register(Player,{owned=LocalPlayer,observed=RemotePlayer})
 fsnet.entities:start()
 runtime.start(function()
-    local id=runtime.server_request('login','Alice')
+    local id=fsnet.ref(entry_id):call('login','Alice')
     local player
     repeat
         player=fsnet.entities:get('Player',id)
@@ -45,7 +45,7 @@ runtime.start(function()
     until player and player.controlled
     assert(player.entity.created==1)
     for _,delta in ipairs({2,3,-1}) do player:move(delta) end
-    runtime.server_request('logout','')
+    fsnet.ref(entry_id):call('logout','')
     while not removed do runtime.sleep(1) end
     fsnet.entities:stop()
     print('scene complete')

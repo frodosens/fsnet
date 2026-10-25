@@ -61,7 +61,7 @@ struct AttributeDefinition {
 struct EntitySchema {
     std::map<std::string, AttributeDefinition> attributes;
     std::map<std::string, RpcPolicy> methods;
-    bool owner_from_id = false;
+    bool legacy_owner_from_id = false;
     void validate() const;
 };
 struct AttributeView {

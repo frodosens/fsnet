@@ -97,10 +97,10 @@ local function backend()
   peer = peer or runtime.connect('127.0.0.1', BACKEND_PORT)
   return peer
 end
-runtime.rpc('contract.echo', function(data) return data end)
-runtime.rpc('contract.forward', function(data) return runtime.request(backend(), 'backend.echo', data) end)
-runtime.rpc('contract.fail', function() error('intentional contract error') end)
-runtime.rpc('contract.timeout', function(data)
+runtime.legacy_rpc('contract.echo', function(data) return data end)
+runtime.legacy_rpc('contract.forward', function(data) return runtime.request(backend(), 'backend.echo', data) end)
+runtime.legacy_rpc('contract.fail', function() error('intentional contract error') end)
+runtime.legacy_rpc('contract.timeout', function(data)
   local response, status = runtime.await(backend(), 'backend.hang', data, 30)
   assert(status == 3 and response == '')
   return 'timeout'

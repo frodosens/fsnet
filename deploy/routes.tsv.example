@@ -1,3 +1,4 @@
-# Only explicitly listed routes are exposed.
-account login Player
+# Entity method allowlist applies to @ calls using authoritative entity type.
+entity Manager discover
+entity LoginEntity login
 entity Player move

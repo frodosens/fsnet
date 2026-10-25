@@ -42,17 +42,17 @@ void lifecycle() {
     fsnet::LuaEngine engine(host);
     engine.load(R"(
         assert(io == nil and os == nil and debug == nil and package == nil and load == nil)
-        runtime.rpc('echo', function(data) return data end)
-        runtime.rpc('forward', function(data) return runtime.request(42, 'echo', data) end)
-        runtime.rpc('double', function(data) return runtime.request(42, 'double', data) end)
-        runtime.rpc('timeout', function(data)
+        runtime.legacy_rpc('echo', function(data) return data end)
+        runtime.legacy_rpc('forward', function(data) return runtime.request(42, 'echo', data) end)
+        runtime.legacy_rpc('double', function(data) return runtime.request(42, 'double', data) end)
+        runtime.legacy_rpc('timeout', function(data)
             local value, status = runtime.await(42, 'missing', data, 30)
             assert(status == runtime.status.timeout and value == '')
             return 'handled timeout'
         end)
-        runtime.rpc('fail', function() error('script application error') end)
-        runtime.rpc('wrong', function() return 123 end)
-        runtime.rpc('wait', function(data) return runtime.request(42, 'hang', data) end)
+        runtime.legacy_rpc('fail', function() error('script application error') end)
+        runtime.legacy_rpc('wrong', function() return 123 end)
+        runtime.legacy_rpc('wait', function(data) return runtime.request(42, 'hang', data) end)
     )");
     auto binary = std::string("hello\0world", 11);
     auto echo = invoke(*host, engine, "echo", binary); CHECK(echo.status == fsnet::Status::ok && echo.data == binary);
@@ -78,9 +78,9 @@ void budgets() {
     limits.queued_bytes = 16;
     fsnet::LuaEngine engine(host, limits);
     engine.load(R"(
-        runtime.rpc('echo', function(data) return data end)
-        runtime.rpc('loop', function() while true do pcall(function() while true do end end) end end)
-        runtime.rpc('memory', function() return string.rep('x', 2 * 1024 * 1024) end)
+        runtime.legacy_rpc('echo', function(data) return data end)
+        runtime.legacy_rpc('loop', function() while true do pcall(function() while true do end end) end end)
+        runtime.legacy_rpc('memory', function() return string.rep('x', 2 * 1024 * 1024) end)
     )");
     CHECK(invoke(*host, engine, "loop", {}).status == fsnet::Status::overloaded);
     CHECK(engine.last_error().find("instruction") != std::string::npos);
@@ -96,9 +96,9 @@ void budgets() {
     std::cout << "PASS Lua limits: instruction yield cannot be caught by pcall, OOM recovery, bounded queue\n";
 }
 void failed_load() {
-    for (const auto& source : {"runtime.rpc('partial', function(s) return s end); error('load failed')",
-                              "runtime.rpc('partial', function(s) return s end); while true do end",
-                              "this is not Lua", "runtime.rpc('x', function(s) return s end); runtime.rpc('x', function(s) return s end)"}) {
+    for (const auto& source : {"runtime.legacy_rpc('partial', function(s) return s end); error('load failed')",
+                              "runtime.legacy_rpc('partial', function(s) return s end); while true do end",
+                              "this is not Lua", "runtime.legacy_rpc('x', function(s) return s end); runtime.legacy_rpc('x', function(s) return s end)"}) {
         auto host = std::make_shared<Host>(); fsnet::LuaEngine engine(host);
         bool failed = false;
         try { engine.load(source); } catch (const std::exception&) { failed = true; }
@@ -111,21 +111,21 @@ void pattern_budgets() {
     fsnet::ScriptLimits limits; limits.instructions_per_resume = 1000;
     fsnet::LuaEngine engine(host, limits);
     engine.load(R"(
-        runtime.rpc('find', function(s) return tostring(s:find('a*a*a*a*b')) end)
-        runtime.rpc('match', function(s) return tostring(s:match('a*a*a*a*b')) end)
-        runtime.rpc('gmatch', function(s)
+        runtime.legacy_rpc('find', function(s) return tostring(s:find('a*a*a*a*b')) end)
+        runtime.legacy_rpc('match', function(s) return tostring(s:match('a*a*a*a*b')) end)
+        runtime.legacy_rpc('gmatch', function(s)
             for _ in s:gmatch('a*a*a*a*b') do end
             return ''
         end)
-        runtime.rpc('gsub', function(s) return (s:gsub('a*a*a*a*b', 'c')) end)
-        runtime.rpc('catch', function(s)
+        runtime.legacy_rpc('gsub', function(s) return (s:gsub('a*a*a*a*b', 'c')) end)
+        runtime.legacy_rpc('catch', function(s)
             pcall(string.find, s, 'a*a*a*a*b')
             return 'caught'
         end)
-        runtime.rpc('catch_loop', function(s)
+        runtime.legacy_rpc('catch_loop', function(s)
             while true do pcall(string.find, s, 'a*a*a*a*b') end
         end)
-        runtime.rpc('healthy', function(s)
+        runtime.legacy_rpc('healthy', function(s)
             local a,b = s:match('^(%a+):(%d+)$')
             assert(a == 'item' and b == '42')
             assert(s:find('42', 1, true) == 6)
@@ -144,8 +144,8 @@ void pattern_budgets() {
     limits.instructions_per_resume = 1000000000; limits.task_timeout = 1ms;
     fsnet::LuaEngine deadline_engine(deadline_host, limits);
     deadline_engine.load(R"(
-        runtime.rpc('slow',function(s) pcall(string.find,s,'a*a*a*a*b');return '' end)
-        runtime.rpc('slow_loop',function(s) while true do pcall(string.find,s,'a*a*a*a*b') end end)
+        runtime.legacy_rpc('slow',function(s) pcall(string.find,s,'a*a*a*a*b');return '' end)
+        runtime.legacy_rpc('slow_loop',function(s) while true do pcall(string.find,s,'a*a*a*a*b') end end)
     )");
     CHECK(invoke(*deadline_host, deadline_engine, "slow", std::string(200, 'a')).status == fsnet::Status::timeout);
     CHECK(invoke(*deadline_host, deadline_engine, "slow_loop", std::string(200, 'a')).status == fsnet::Status::timeout);
@@ -155,7 +155,7 @@ void task_deadline() {
     auto host = std::make_shared<Host>();
     fsnet::ScriptLimits limits; limits.task_timeout = 5ms;
     fsnet::LuaEngine engine(host, limits);
-    engine.load("runtime.rpc('wait', function(s) return runtime.request(42, 'hang', s) end)");
+    engine.load("runtime.legacy_rpc('wait', function(s) return runtime.request(42, 'hang', s) end)");
     std::optional<fsnet::Result> result;
     host->handlers.at("wait")("waiting", [&](fsnet::Result reply) { result = std::move(reply); });
     engine.poll(); CHECK(!result && engine.active() == 1);
@@ -170,16 +170,16 @@ void entity_serialization() {
     fsnet::LuaEngine engine(host, limits);
     engine.load(R"(
         local values = {}
-        runtime.entity_rpc('player', 'wait', function(id, data)
+        runtime.legacy_entity_rpc('player', 'wait', function(id, data)
             values[id] = 'started'
             local reply = runtime.request(42, 'hang', data)
             values[id] = reply
             return reply
         end)
-        runtime.entity_rpc('player', 'read', function(id) return values[id] or 'empty' end)
-        runtime.entity_rpc('player', 'mark', function(id, data) values[id] = (values[id] or '') .. data; return values[id] end)
-        runtime.entity_rpc('player', 'fail', function() error('failed') end)
-        runtime.rpc('encode', function(data) return runtime.entity_request(42, 'player', '42', 'read', data) end)
+        runtime.legacy_entity_rpc('player', 'read', function(id) return values[id] or 'empty' end)
+        runtime.legacy_entity_rpc('player', 'mark', function(id, data) values[id] = (values[id] or '') .. data; return values[id] end)
+        runtime.legacy_entity_rpc('player', 'fail', function() error('failed') end)
+        runtime.legacy_rpc('encode', function(data) return runtime.entity_request(42, 'player', '42', 'read', data) end)
     )");
     std::optional<fsnet::Result> first, second, third, other;
     auto submit = [&](const char* method, const char* id, std::optional<fsnet::Result>& result) {
@@ -222,7 +222,7 @@ void persistent_lua() {
     auto host = std::make_shared<fsnet::EntityScriptHost>(parent, db, "lua/boot-1");
     fsnet::LuaEngine engine(host);
     const auto source = R"(
-        runtime.entity('counter', {
+        runtime.legacy_entity('counter', {
             initial = '0',
             methods = {
                 add = function(state, id, payload)
@@ -267,7 +267,7 @@ void persistent_lua() {
 void callback_shutdown() {
     auto host = std::make_shared<Host>();
     auto engine = std::make_unique<fsnet::LuaEngine>(host);
-    engine->load("runtime.rpc('echo', function(s) return s end)");
+    engine->load("runtime.legacy_rpc('echo', function(s) return s end)");
     bool completed = false;
     host->handlers.at("echo")("done", [&](fsnet::Result result) {
         CHECK(result.status == fsnet::Status::ok && result.data == "done");
@@ -283,12 +283,12 @@ void lua_routing() {
     auto transport = std::make_shared<fsnet::NodeScriptHost>(server);
     auto entities = std::make_shared<fsnet::EntityScriptHost>(transport, db, "server/boot-1");
     fsnet::LuaEngine backend(entities);
-    backend.load("runtime.entity('counter', {initial='0', methods={add=function(state, id, data) local next=tostring(tonumber(state)+tonumber(data)); return next, next end}})");
+    backend.load("runtime.legacy_entity('counter', {initial='0', methods={add=function(state, id, data) local next=tostring(tonumber(state)+tonumber(data)); return next, next end}})");
     fsnet::EntityRouter router(gateway, db, {{"server", "127.0.0.1", server.listen("127.0.0.1", 0), {"counter"}}});
     auto gateway_transport = std::make_shared<fsnet::NodeScriptHost>(gateway);
     auto routed = std::make_shared<fsnet::RoutedScriptHost>(gateway_transport, router);
     fsnet::LuaEngine frontend(routed);
-    frontend.load("runtime.rpc('gateway.add', function(data) return runtime.entity_call('counter', '42', 'add', data, 1000, 'request-1') end)");
+    frontend.load("runtime.legacy_rpc('gateway.add', function(data) return runtime.entity_call('counter', '42', 'add', data, 1000, 'request-1') end)");
     auto peer = client.connect("127.0.0.1", gateway.listen("127.0.0.1", 0));
     auto call = [&] {
         std::optional<fsnet::Result> result;
@@ -308,7 +308,7 @@ void tcp() {
     backend.bind("echo", [](std::string data, fsnet::Reply reply) { reply({fsnet::Status::ok, std::move(data)}); });
     auto port = backend.listen("127.0.0.1", 0);
     auto host = std::make_shared<fsnet::NodeScriptHost>(server); fsnet::LuaEngine engine(host);
-    engine.load("local peer; runtime.rpc('forward', function(data) peer = peer or runtime.connect('127.0.0.1', " +
+    engine.load("local peer; runtime.legacy_rpc('forward', function(data) peer = peer or runtime.connect('127.0.0.1', " +
                 std::to_string(port) + "); return runtime.request(peer, 'echo', data, 1000) end)");
     auto peer = client.connect("127.0.0.1", server.listen("127.0.0.1", 0));
     std::optional<fsnet::Result> result;
@@ -325,7 +325,7 @@ void tcp() {
 void context_suspension() {
     auto host = std::make_shared<Host>(); fsnet::LuaEngine engine(host);
     engine.load(R"(
-        runtime.rpc('identity', {callers={'client'}, handler=function(ctx, data)
+        runtime.legacy_rpc('identity', {callers={'client'}, handler=function(ctx, data)
             if data == 'wait' then runtime.request(42, 'hang', data) end
             return ctx.subject
         end})
@@ -347,7 +347,7 @@ void rpc_policies() {
     auto entities = std::make_shared<fsnet::EntityScriptHost>(transport, fsnet::memory_database(), "policy/boot");
     fsnet::LuaEngine engine(entities);
     engine.load(R"(
-        runtime.entity('counter', {initial='0', methods={
+        runtime.legacy_entity('counter', {initial='0', methods={
             read={callers={'client'}, handler=function(state) return state, state end},
             owned={callers={'client'}, access='owner', handler=function(state, id, data, ctx)
                 assert(ctx.caller == 'client' and ctx.subject == 'alice' and ctx.peer > 0)
@@ -374,7 +374,7 @@ void rpc_policies() {
     CHECK(invoke("increment").status == fsnet::Status::rejected);
     CHECK(invoke("read").data == "0");
     CHECK(invoke("owned").status == fsnet::Status::rejected); // no owner resolver: fail closed
-    entities->ownership([](const std::string& type, const std::string&) { CHECK(type == "counter"); return "alice"; });
+    entities->legacy_ownership([](const std::string& type, const std::string&) { CHECK(type == "counter"); return "alice"; });
     fsnet::CallIdentity who{fsnet::Caller::client, "alice"};
     server.identify([&](std::uint64_t, const std::string&) { return std::optional(who); });
     CHECK(invoke("owned").data == "alice");
@@ -383,7 +383,7 @@ void rpc_policies() {
     who.subject = "bob";
     CHECK(invoke("owned").status == fsnet::Status::rejected);
     CHECK(invoke("identify", "same-request").data == "bob:2"); // never replay Alice's response
-    entities->ownership([](const std::string&, const std::string&) -> std::string { throw std::runtime_error("mapping error"); });
+    entities->legacy_ownership([](const std::string&, const std::string&) -> std::string { throw std::runtime_error("mapping error"); });
     CHECK(invoke("owned").status == fsnet::Status::rejected);
     server.identify([](std::uint64_t, const std::string&) { return std::optional(fsnet::CallIdentity{fsnet::Caller::server, "test-service"}); });
     CHECK(invoke("increment").data == "3");
@@ -392,7 +392,7 @@ void rpc_policies() {
     for (auto definition : {"{callers={},handler=function()end}", "{callers={'bogus'},handler=function()end}",
                             "{callers={'client'},access='invalid',handler=function()end}"}) {
         fsnet::LuaEngine invalid(entities); bool rejected = false;
-        try { invalid.load(std::string("runtime.entity('invalid', {methods={read=") + definition + "}})"); }
+        try { invalid.load(std::string("runtime.legacy_entity('invalid', {methods={read=") + definition + "}})"); }
         catch (const std::exception&) { rejected = true; }
         CHECK(rejected && !server.has_route("invalid.read"));
     }

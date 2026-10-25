@@ -20,7 +20,7 @@ int main(){
  fsnet::Node front("x"),back("y"),client("x");
  front.identify([](auto,const auto&){return std::optional(fsnet::CallIdentity{fsnet::Caller::client,"alice"});});
  fsnet::GatewayLimits limits;limits.requests=4;limits.bytes=1024*1024;limits.request_timeout=50ms;
- fsnet::ClientGateway gateway(front,back,db,{{"owner","127.0.0.1",1,{"Actor"}}},limits);gateway.bind_entity("Actor",{"echo"});
+ fsnet::ClientGateway gateway(front,back,db,{{"owner","127.0.0.1",1,{"Actor"}}},limits);gateway.bind_legacy_entity("Actor",{"echo"});
  auto peer=client.connect("127.0.0.1",front.listen("127.0.0.1",0));
  auto pump=[&]{front.poll();back.poll();client.poll();gateway.poll();};
  auto initial=Clock::now()+100ms;while(Clock::now()<initial){pump();std::this_thread::sleep_for(1ms);}

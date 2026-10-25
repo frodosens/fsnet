@@ -6,7 +6,7 @@ local removed = false
 
 -- The framework calls this after receiving the server's initial attributes.
 function LocalPlayer:on_spawn()
-    self.server = PlayerEntity:ref(self.id)
+    self.server = PlayerEntity:legacy_ref(self.id)
     print('LocalPlayer', self.id, self.entity.name)
 end
 
@@ -76,7 +76,7 @@ fsnet.entities:start()
 runtime.start(function()
     -- The host already authenticated the connection. 'Alice' is a display name;
     -- the server derives the account/entity ID from its trusted login context.
-    local id = runtime.server_request('login', 'Alice')
+    local id = runtime.legacy_server_request('login', 'Alice')
 
     -- No watch/spawn on the client: the server's presence stream creates it.
     local player
@@ -90,7 +90,7 @@ runtime.start(function()
     player:move(3)
     player:move(-1)
 
-    runtime.server_request('logout', '')
+    runtime.legacy_server_request('logout', '')
     while not removed do runtime.sleep(1) end
     fsnet.entities:stop()
 end)

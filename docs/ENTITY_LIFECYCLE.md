@@ -1,10 +1,13 @@
 # 服务端实体生命周期
 
+本文保留机制说明与显式 legacy 夹具；当前业务接入以 [API 指南](API_GUIDE.md) 和
+[全局实体](GLOBAL_ENTITIES.md) 为准，兼容入口见 [legacy 适配器](LEGACY_ADAPTERS.md)。
+
 服务端属性类现在支持 `on_create`、`on_activate`、`on_deactivate(reason)`、`on_destroy(reason)`。
 这些是实体宿主内部入口，不注册公开网络路由；客户端表现 hook 仍是另一套对象生命周期。
 
 ```lua
-local Actor=fsnet.Entity:extend('Actor',{owner='id'})
+local Actor=fsnet.Entity:extend('Actor',{owner='legacy_id'})
 Actor:attr('created',{type='bool',default=false,sync='owner'})
 Actor:attr('visits',{type='int32',default=0,sync='owner'})
 function Actor:on_create() self.created=true end
@@ -16,7 +19,7 @@ end
 function Actor:on_destroy(reason) end
 Actor:register()
 -- 在服务端无状态 RPC/后台任务中：
--- Actor:spawn_or_restore('alice')
+-- Actor:legacy_spawn_or_restore('alice')
 -- Actor:deactivate('alice')
 -- Actor:destroy('alice')
 -- local status=Actor:transfer('alice','owner-b') -- 安装交接组件后可用

@@ -6,15 +6,16 @@ using namespace std::chrono_literals;
 // Native engine adapter example: session, presentation/control events, confirmed
 // snapshots and RPC. Movement and prediction rules live in scene/client.lua.
 int main(int argc,char** argv){try{
-    if(argc<3||argc>4)throw std::invalid_argument("usage: fsnet-native-client address port [display-name]");
+    if(argc<4||argc>5)throw std::invalid_argument("usage: fsnet-native-client address port entry-id [display-name]");
     auto* token=std::getenv("FSNET_CLUSTER_TOKEN");if(!token)throw std::runtime_error("set FSNET_CLUSTER_TOKEN");
     std::size_t end=0;auto port=std::stoul(argv[2],&end);if(end!=std::string(argv[2]).size()||!port||port>65535)throw std::invalid_argument("invalid port");
     fsnet::ClientOptions options;options.token=token;options.tls=tls_from_environment();fsnet::Client client(std::move(options));
+    fsnet::EntityId entry_id(argv[3]);
     bool logged_in=false,requested=false,left=false,logout_complete=false,done=false;std::string error;
     auto check=[&](fsnet::Result result){if(result.status!=fsnet::Status::ok)error="RPC failed: "+std::to_string(static_cast<unsigned>(result.status));};
     client.on_event([&](const fsnet::ClientEvent& event){
         using Kind=fsnet::ClientEvent::Kind;
-        if(event.kind==Kind::connected)client.request("login",argc==4?argv[3]:"Alice",[&](auto result){check(result);logged_in=result.status==fsnet::Status::ok;});
+        if(event.kind==Kind::connected)client.call(entry_id,"login",argc==5?argv[4]:"Alice",[&](auto result){check(result);logged_in=result.status==fsnet::Status::ok;});
         if(event.kind==Kind::enter && event.automatic)std::cout<<(event.owned.value_or(false)?"LocalPlayer ":"RemotePlayer ")<<event.key.id<<'\n';
         if(event.kind==Kind::control)std::cout<<(event.controlled?"camera follow ":"camera release ")<<event.key.id<<'\n';
         if(event.kind==Kind::leave && event.owned==true){
@@ -34,7 +35,7 @@ int main(int argc,char** argv){try{
             client.call(player->key,"describe","",[&](auto result){
                 check(result);if(!error.empty())return;
                 std::cout<<"describe "<<result.data<<'\n';
-                client.request("logout","",[&](auto result){check(result);logout_complete=result.status==fsnet::Status::ok;done=left && logout_complete;});
+                client.call(entry_id,"logout","",[&](auto result){check(result);logout_complete=result.status==fsnet::Status::ok;done=left && logout_complete;});
             });
         }
         if(!client.last_error().empty())error=client.last_error();

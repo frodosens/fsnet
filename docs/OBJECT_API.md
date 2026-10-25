@@ -1,10 +1,13 @@
 # 面向对象的 Lua 实体 API
 
+本文保留机制说明与显式 legacy 夹具；当前业务接入以 [API 指南](API_GUIDE.md) 和
+[全局实体](GLOBAL_ENTITIES.md) 为准，兼容入口见 [legacy 适配器](LEGACY_ADAPTERS.md)。
+
 端到端组合与当前能力总览见 [API 使用指南](API_GUIDE.md)；本文保留类/RPC/作用域的详细合同。
 
 这是业务脚本的推荐入口。`fsnet.Entity` 随 Lua 适配器内置，不依赖本地 Lua
 库、`require` 或运行时文件系统。C++ 负责调度、网络、权限和持久化，游戏规则写在 Lua。
-旧的 `runtime.entity` / `runtime.rpc` 注册接口继续作为底层及兼容接口。
+旧的 `runtime.entity` / `runtime.legacy_rpc` 注册接口继续作为底层及兼容接口。
 
 ## 定义类和实体方法
 
@@ -25,7 +28,7 @@ function Combatant:damage(payload)
     return tostring(self.hp)
 end
 
-local Player = Combatant:extend('Player', {owner='id'})
+local Player = Combatant:extend('Player', {owner='legacy_id'})
 Player:attr('name', {type='string', default='Player', client='rw', sync='owner'})
 
 Player:rpc('respawn', {callers={'client'}, access='owner'})
@@ -60,8 +63,8 @@ Player:register()
 | `Class:rpc(name, {callers=..., access=...})` | 声明远程入口；业务函数用普通 `function Class:method` 定义 |
 | `Class:private(name)` | 显式隐藏继承的远程入口，保留本地方法 |
 | `Class:register()` | 编译并注册类，同时封存此类和祖先的定义 |
-| `Class:ref(id, options)` | 创建有本地 RPC 声明的逻辑实体引用 |
-| `Entity:reference(type, id, options)` | 创建没有本地类定义的跨节点实体引用 |
+| `Class:legacy_ref(id, options)` | 创建有本地 RPC 声明的逻辑实体引用 |
+| `Entity:legacy_reference(type, id, options)` | 创建没有本地类定义的跨节点实体引用 |
 
 属性合同与 [ENTITY_SCHEMA.md](ENTITY_SCHEMA.md) 一致。属性与方法不能重名，框架成员和
 生命周期名称保留；权限字段拼写错误、缺少实现、未知配置、重复声明在加载时拒绝。
@@ -80,7 +83,7 @@ end
 ```
 
 类注册后不可通过普通赋值修改定义，但仍可创建子类。无需注册只作为基类的抽象类。
-`owner='id'` 表示账号 subject 与实体 ID 对应；不声明时使用宿主的外部 owner 映射。
+`owner='legacy_id'` 表示账号 subject 与实体 ID 对应；不声明时使用宿主的外部 owner 映射。
 子类可用 `owner='external'` 显式取消继承的 id 映射。外部映射仍需按实体生命周期串行变更。
 类定义及权限不是热更新协议，已有持久化属性的 schema 修改需要明确迁移。
 
@@ -88,15 +91,15 @@ end
 
 ```lua
 -- 在另一个实体或无状态 RPC 中：
-local player = Player:ref('42')
+local player = Player:legacy_ref('42')
 local result = player:damage('10', {timeout_ms=1000, request_id='operation-123'})
 
 -- 不在本进程加载 Player 实现时：
-local remote = Entity:reference('Player', '42')
+local remote = Entity:legacy_reference('Player', '42')
 local result = remote:call('damage', '10', {timeout_ms=1000, request_id='operation-123'})
 
 -- 连接已由 runtime.connect 建立，显式选择节点：
-local player = Player:ref('42', {peer=peer, timeout_ms=1000})
+local player = Player:legacy_ref('42', {peer=peer, timeout_ms=1000})
 ```
 
 未设置 peer 时沿用 `RoutedScriptHost` 的实体 owner 路由；设置 peer 时使用明确的连接。
@@ -141,7 +144,7 @@ end
 
 完整例子见 [attributes.lua](../tests/fixtures/lua/attributes.lua)。
 
-服务端 `spawn_or_restore`、连接可见性与客户端表现生命周期见
+服务端 `legacy_spawn_or_restore`、连接可见性与客户端表现生命周期见
 [实体存在性与表现](ENTITY_PRESENCE.md)。客户端表现 hook 不代替服务端实体生命周期。
 
 结构属性、固定数组、整值与嵌套赋值自动同步见 [STRUCTURED_ATTRIBUTES.md](STRUCTURED_ATTRIBUTES.md)。

@@ -41,10 +41,11 @@ public:
                      std::string owner_id, EntityRuntimeLimits = {}, StorageLimits = {}, WallClock = {});
     ~EntityScriptHost() override;
     bool has_route(const std::string&) const override;
+    void enable_legacy_routes()override;
     void bind(std::string, Handler) override;
-    void bind_stateful(std::string route, std::string type, std::string initial, Handler) override;
+    void bind_legacy_stateful(std::string route, std::string type, std::string initial, Handler) override;
     void define_schema(std::string, EntitySchema) override;
-    void spawn_entity(std::string type, std::string id, EntityAttributes::Values, Reply) override;
+    void legacy_spawn_entity(std::string type, std::string id, EntityAttributes::Values, Reply) override;
     void create_entity(std::string type,EntityAttributes::Values,EntitySpawnOptions,Reply) override;
     void bind_entity_owner(std::string type,std::string id,ConnectionRef,Reply) override;
     std::string schedule_timer(const std::string&,const std::string&,EntityTimerSpec)override;
@@ -71,8 +72,8 @@ public:
     // entity's handle generation changes; clients must acquire a new snapshot.
     void on_closed(Closed);
     std::shared_ptr<const EntitySchema> schema(const std::string& type) const;
-    std::string owner_subject(const std::string& type, const std::string& id) const;
-    std::string entity_owner(const std::string& type, const std::string& id) const override { return owner_subject(type,id); }
+    std::string owner_binding(const std::string& type, const std::string& id) const;
+    std::string entity_owner(const std::string& type, const std::string& id) const override { return owner_binding(type,id); }
     void write_attributes(std::string type, std::string id, CallIdentity, std::string proposal, Reply, std::string request_id = {});
     // Trusted framework API, not a public RPC: serialized with entity operations,
     // returns the full image for subsequent recipient-specific filtering.
@@ -82,8 +83,8 @@ public:
     using OwnerResolver = std::function<std::string(const std::string& type, const std::string& id)>;
     // Trusted application mapping from entity identity to account subject. Empty
     // results deny owner-only calls; the default resolver denies all such calls.
-    void ownership(OwnerResolver);
-    // Updates existing contextual RPCs. Legacy bind_stateful handlers do not
+    void legacy_ownership(OwnerResolver);
+    // Updates existing contextual RPCs. Legacy bind_legacy_stateful handlers do not
     // receive authenticated caller identity and cannot acquire a policy here.
     void rpc_policy(const std::string&, RpcPolicy) override;
     void unbind(const std::string&) override;

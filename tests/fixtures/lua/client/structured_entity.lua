@@ -1,6 +1,6 @@
 -- Bundle shared/structured_entity.lua first; run with fsnet-client.
 runtime.start(function()
-    local entity=StructuredEntity:watch('alice')
+    local entity=StructuredEntity:legacy_watch('alice')
 
     -- Both forms automatically submit a proposal and await server validation.
     -- The server commits before broadcasting to other authorized observers.

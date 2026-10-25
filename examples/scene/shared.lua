@@ -1,5 +1,5 @@
 -- The same Player type runs on the server and supplies client prediction rules.
-Player=fsnet.Entity:extend('Player',{owner='id'})
+Player=fsnet.Entity:extend('Player')
 Player:attr('name',{type='string',default='',sync='observers'})
 Player:attr('position',{type='vec3',authority='driver',sync='observers'})
 Player:attr('processed_input',{type='int64',default=0,sync='owner'})
@@ -23,6 +23,8 @@ function Player:input(payload)
     self:advance(tostring(delta));self.processed_input=sequence
 end
 Player:method('describe',{runs_on='server'})
+Player:rpc('configure',{callers={'server'}})
+function Player:configure(name) self.name=name end
 Player:rpc('describe',{callers={'client'},access='owner'})
 function Player:describe() return self.name end
 Player:define()

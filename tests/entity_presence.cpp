@@ -8,7 +8,7 @@
 using namespace std::chrono_literals;
 #define CHECK(x) do { if(!(x)) throw std::runtime_error(std::string(__FILE__)+':'+std::to_string(__LINE__)+" " #x); } while(false)
 const char* shared=R"(
-    local Player=fsnet.Entity:extend('Player',{owner='id'})
+    local Player=fsnet.Entity:extend('Player',{owner='legacy_id'})
     Player:attr('name',{type='string',default='',sync='observers'})
     Player:attr('x',{type='int32',default=0,authority='driver',sync='observers'})
     Player:attr('gold',{type='int32',default=7,sync='owner'})
@@ -54,17 +54,17 @@ const char* client_script=R"(
     runtime.start(function()
         assert(runtime.request(peer,'login','forged-account')==account)
     end)
-    runtime.rpc('arm',function() fail_factory=true; return '' end)
-    runtime.rpc('inspect',function()
+    runtime.legacy_rpc('arm',function() fail_factory=true; return '' end)
+    runtime.legacy_rpc('inspect',function()
         local other=fsnet.entities:get('Player',account=='alice' and 'bob' or 'alice')
         local own=fsnet.entities:get('Player',account)
         if own then assert(own.entity.name==account and own.entity.session==9) end
         return table.concat({camera or '-',log.spawn,log.remote,log.possess,log.unpossess,log.despawn,
             own and own.entity.x or -1,other and other.entity.x or -1},':')
     end)
-    runtime.rpc('command',function(payload)
+    runtime.legacy_rpc('command',function(payload)
         if payload=='unauthorized' then return pcall(Player.watch,Player,'bob') and 'allowed' or 'denied' end
-        if payload=='step' then return Player:ref(account,{peer=peer}):step('') end
+        if payload=='step' then return Player:legacy_ref(account,{peer=peer}):step('') end
         return runtime.request(peer,payload,'')
     end)
 )";
@@ -85,51 +85,51 @@ int main() {
         authority.load(std::string(shared)+R"(
             Player:register(); Drone:register()
             local sessions={}
-            runtime.rpc('login',{callers={'client'},handler=function(ctx,payload)
+            runtime.legacy_rpc('login',{callers={'client'},handler=function(ctx,payload)
                 assert(ctx.subject~='' and not sessions[ctx.subject])
-                local player=Player:spawn_or_restore(ctx.subject,{name=ctx.subject,session=9})
+                local player=Player:legacy_spawn_or_restore(ctx.subject,{name=ctx.subject,session=9})
                 player:show_to(ctx.peer)
                 player:show_to(ctx.peer) -- idempotent, no duplicate client factory
                 for subject,peer in pairs(sessions) do
                     player:show_to(peer)
-                    Player:ref(subject):show_to(ctx.peer)
+                    Player:legacy_ref(subject):show_to(ctx.peer)
                 end
                 player:possess(ctx.peer)
                 sessions[ctx.subject]=ctx.peer
                 return ctx.subject
             end})
-            runtime.rpc('restore',{callers={'client'},handler=function(ctx)
-                Player:spawn_or_restore(ctx.subject,{name='must-not-overwrite',x=999,session=1})
+            runtime.legacy_rpc('restore',{callers={'client'},handler=function(ctx)
+                Player:legacy_spawn_or_restore(ctx.subject,{name='must-not-overwrite',x=999,session=1})
                 return ''
             end})
-            runtime.rpc('switch',{callers={'client'},handler=function(ctx)
-                local drone=Drone:spawn_or_restore(ctx.subject,{name=ctx.subject})
+            runtime.legacy_rpc('switch',{callers={'client'},handler=function(ctx)
+                local drone=Drone:legacy_spawn_or_restore(ctx.subject,{name=ctx.subject})
                 drone:show_to(ctx.peer); drone:possess(ctx.peer); drone:possess(ctx.peer)
                 return ''
             end})
-            runtime.rpc('limits',{callers={'client'},handler=function(ctx)
-                assert(not pcall(function() Player:ref('missing'):show_to(ctx.peer) end))
-                local extra=Player:spawn_or_restore('extra',{name='extra'})
+            runtime.legacy_rpc('limits',{callers={'client'},handler=function(ctx)
+                assert(not pcall(function() Player:legacy_ref('missing'):show_to(ctx.peer) end))
+                local extra=Player:legacy_spawn_or_restore('extra',{name='extra'})
                 assert(not pcall(function() extra:show_to(ctx.peer) end))
                 return ''
             end})
-            runtime.rpc('fault',{callers={'client'},handler=function(ctx)
-                Player:ref('alice'):hide_from(ctx.peer)
-                Player:ref('alice'):show_to(ctx.peer)
+            runtime.legacy_rpc('fault',{callers={'client'},handler=function(ctx)
+                Player:legacy_ref('alice'):hide_from(ctx.peer)
+                Player:legacy_ref('alice'):show_to(ctx.peer)
                 return ''
             end})
-            runtime.rpc('back',{callers={'client'},handler=function(ctx)
-                Player:ref(ctx.subject):possess(ctx.peer)
-                Drone:ref(ctx.subject):hide_from(ctx.peer)
+            runtime.legacy_rpc('back',{callers={'client'},handler=function(ctx)
+                Player:legacy_ref(ctx.subject):possess(ctx.peer)
+                Drone:legacy_ref(ctx.subject):hide_from(ctx.peer)
                 return ''
             end})
-            runtime.rpc('hide',{callers={'client'},handler=function(ctx)
-                Player:ref('bob'):hide_from(ctx.peer); Player:ref('bob'):hide_from(ctx.peer)
+            runtime.legacy_rpc('hide',{callers={'client'},handler=function(ctx)
+                Player:legacy_ref('bob'):hide_from(ctx.peer); Player:legacy_ref('bob'):hide_from(ctx.peer)
                 return ''
             end})
-            runtime.rpc('show',{callers={'client'},handler=function(ctx)
-                Player:ref('bob'):show_to(ctx.peer)
-                assert(not pcall(function() Player:ref('bob'):possess(ctx.peer) end))
+            runtime.legacy_rpc('show',{callers={'client'},handler=function(ctx)
+                Player:legacy_ref('bob'):show_to(ctx.peer)
+                assert(not pcall(function() Player:legacy_ref('bob'):possess(ctx.peer) end))
                 return ''
             end})
         )");

@@ -1,7 +1,7 @@
 -- Shared typed declarations; no gameplay types are compiled into C++.
 local Vec3=fsnet.struct('Vec3',{x='number',y='number',z='number'})
 local Pose=fsnet.struct('Pose',{position=Vec3,rotation=Vec3})
-StructuredEntity=fsnet.Entity:extend('StructuredDemo',{owner='id'})
+StructuredEntity=fsnet.Entity:extend('StructuredDemo',{owner='legacy_id'})
 StructuredEntity:attr('position',{
     type=Vec3, default={x=0,y=0,z=0},
     authority='driver', client='rw', sync='observers',

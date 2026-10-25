@@ -59,9 +59,11 @@ int main(int argc,char** argv){try{
     ae.load(source,"global-flow");be.load(source,"global-flow");
     front.identify([](std::uint64_t,const std::string&)->std::optional<CallIdentity>{return CallIdentity{Caller::client,"account-1"};});
     GatewayLimits limits;limits.refresh=5ms;ClientGateway gateway(front,back,db,endpoints,limits);
+    CHECK(!a.has_route("Player.move") && !b.has_route("Player.move"));
     gateway.bind_entity("Manager",{"discover","spawn_remote"});
     gateway.bind_entity("LoginEntity",{"login"});
     gateway.bind_entity("Player",{"move","arm_timer","reward"});
+    CHECK(!front.has_route("Player.move"));
     auto port=front.listen("127.0.0.1",0);ClientOptions config;config.token="test";Client client(config),other_client(config);
     auto pump=[&]{a.poll();b.poll();front.poll();back.poll();client.poll();other_client.poll();ah->poll();bh->poll();ae.poll();be.poll();ad.poll();bd.poll();ar.poll();br.poll();ra.poll();rb.poll();at.poll();bt.poll();da.poll();db_delivery.poll();ta.poll();tb.poll();gateway.poll();};
     auto until=[&](auto done,std::source_location where=std::source_location::current()){
@@ -95,7 +97,8 @@ int main(int argc,char** argv){try{
     if(argc==3) {
         // Same actor, storage, payload and connections; only addressing differs.
         // Legacy type+id is explicitly exposed solely as a comparison fixture.
-        gateway.bind_entity("Player",{"move"});
+        gateway.bind_legacy_entity("Player",{"move"});
+        ah->enable_legacy_routes();bh->enable_legacy_routes();
         for(bool global:{false,true}) {
             constexpr unsigned rounds=2000,concurrency=8;unsigned sent=0,done=0;std::vector<double> latency;
             auto start=std::chrono::steady_clock::now();auto deadline=start+20s;

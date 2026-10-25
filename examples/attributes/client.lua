@@ -3,7 +3,7 @@ function View:on_spawn() print('profile',self.id) end
 fsnet.entities:register(Profile,{owned=View,observed={}})
 fsnet.entities:start()
 runtime.start(function()
-    local id=runtime.server_request('open_profile','')
+    local id=fsnet.ref(entry_id):call('open','')
     while not fsnet.entities:get('Profile',id) do runtime.sleep(1) end
     local entity=fsnet.entities:get('Profile',id).entity
     entity.position={x=1,y=2,z=3}

@@ -7,7 +7,7 @@
 using namespace std::chrono_literals;
 #define CHECK(x) do { if(!(x)) throw std::runtime_error(std::string(__FILE__)+':'+std::to_string(__LINE__)+" " #x); } while(false)
 const char* model=R"(
-    local Life=fsnet.Entity:extend('Life',{owner='id'})
+    local Life=fsnet.Entity:extend('Life',{owner='legacy_id'})
     Life:attr('created',{type='int32',default=0})
     Life:attr('activated',{type='int32',default=0})
     Life:attr('deactivated',{type='int32',default=0})
@@ -29,9 +29,9 @@ const char* model=R"(
     Life:rpc('fail',{callers={'server'}})
     function Life:fail() self.value=999; error('abort') end
     Life:register()
-    runtime.rpc('config',{callers={'server'},handler=function(ctx,value) fail_create=value=='fail'; fail_deactivate=value=='deactivate-fail'; return '' end})
-    runtime.rpc('deactivate',{callers={'server'},handler=function(ctx,id) Life:deactivate(id); return '' end})
-    runtime.rpc('destroy',{callers={'server'},handler=function(ctx,id) Life:destroy(id); return '' end})
+    runtime.legacy_rpc('config',{callers={'server'},handler=function(ctx,value) fail_create=value=='fail'; fail_deactivate=value=='deactivate-fail'; return '' end})
+    runtime.legacy_rpc('deactivate',{callers={'server'},handler=function(ctx,id) Life:deactivate(id); return '' end})
+    runtime.legacy_rpc('destroy',{callers={'server'},handler=function(ctx,id) Life:destroy(id); return '' end})
 )";
 int main() {
     try {

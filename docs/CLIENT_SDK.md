@@ -23,9 +23,10 @@ target_link_libraries(game PRIVATE fsnet::client)
 fsnet::ClientOptions options;
 options.tls = {"ca.pem", "client.pem", "client.key", "gateway.example"};
 fsnet::Client client(std::move(options));
+fsnet::EntityId login_hub(configured_login_id); // 可信服务发现/启动配置提供
 client.on_event([&](const fsnet::ClientEvent& event) {
     if (event.kind == fsnet::ClientEvent::Kind::connected) {
-        client.request("login", "display name", [](fsnet::Result result) {
+        client.call(login_hub, "login", "display name", [](fsnet::Result result) {
             // 服务器根据可信认证上下文选择账号；display name不决定账号或角色。
         });
     }
@@ -39,7 +40,7 @@ ClientState为disconnected/connecting/connected。connected表示Node传输认�
 远端连接必须使用mTLS；明文仅允许loopback。Endpoint当前接收数字IP，server_name只控制
 证书名验证，不执行DNS解析。token/TLS策略与Node相同，不把cluster token视为玩家身份。
 
-`request(route, bytes, reply, timeout)` 是普通RPC；`call(EntityKey, method, bytes, reply, options)`
+`request(route, bytes, reply, timeout)` 是底层控制/兼容 RPC；业务调用使用实体。`call(EntityKey, method, bytes, reply, options)`
 是共用FSE实体调用，options支持timeout/request_id。超时结果可能不确定，SDK不会自动重放。
 安全重试须保留同一request_id和完全相同输入，并遵守服务端持久回执保留窗口。
 
@@ -70,7 +71,7 @@ enter/changed/control/leave事件与连接事件都在所属线程处理。SDK�
 手动watch不携带owner/controlled元数据，因此owned为nullopt；不要靠手动watch推断角色归属。
 
 ```cpp
-client.watch({"Profile", "alice"}, [&](fsnet::Status status, fsnet::ClientEntityHandle handle) {
+client.watch({"Profile", saved_profile_id}, [&](fsnet::Status status, fsnet::ClientEntityHandle handle) {
     if (status != fsnet::Status::ok) return;
     auto image = client.entity(handle);
     client.write(handle, {{"position", fsnet::AttributeStruct{
@@ -95,7 +96,7 @@ scripts.stop();
 client.disconnect();
 ```
 
-Lua继续使用 `runtime.server_request`、实体引用、`fsnet.entities`、字段/容器赋值、batch和
+Lua使用 `fsnet.ref(login_hub_id):call('login',...)`、实体引用、`fsnet.entities`、字段/容器赋值、batch和
 显式预测输入确认。Native与Lua读取同一同步投影，没有并行差量/回放实现。
 一条连接只接一个Lua事件消费者；在poll之外取得script_host，可为已有自动实体补发初始表现事件。
 断线后旧宿主停止并释放其路由与额外连接；旧宿主不能解绑新会话的同名路由。重新连接必须先停止旧LuaEngine，再取得新host并重载脚本。

@@ -27,7 +27,7 @@ struct FaultStorage final:fsnet::Storage {
     }
 };
 const char* model=R"(
-local Receiver=fsnet.Entity:extend('Receiver',{owner='id'})
+local Receiver=fsnet.Entity:extend('Receiver',{owner='legacy_id'})
 Receiver:attr('gold',{type='int64',default=0,sync='owner'})
 Receiver:attr('calls',{type='int32',default=0,sync='owner'})
 Receiver:rpc('reward',{callers={'server'}})
@@ -35,38 +35,38 @@ function Receiver:reward(data) self.gold=self.gold+assert(tonumber(data));self.c
 Receiver:rpc('read',{callers={'server'}})
 function Receiver:read() return tostring(self.gold)..':'..tostring(self.calls) end
 Receiver:rpc('deny',{callers={'server'}})
-function Receiver:deny(data) self.gold=999999;Receiver:ref('bob'):send('reward','10000');runtime.reject() end
+function Receiver:deny(data) self.gold=999999;Receiver:legacy_ref('bob'):send('reward','10000');runtime.reject() end
 Receiver:rpc('client_only',{callers={'client'}})
 function Receiver:client_only() self.gold=999999;return '' end
 Receiver:register()
-local Source=fsnet.Entity:extend('Source',{owner='id'})
+local Source=fsnet.Entity:extend('Source',{owner='legacy_id'})
 Source:attr('issued',{type='int32',default=0,sync='owner'})
 Source:attr('activations',{type='int32',default=0,sync='owner'})
 Source:attr('destroy_sends',{type='bool',default=false,sync='none'})
 Source:attr('temporary',{type='int32',default=0,persist=false,sync='owner'})
 Source:attr('ticket',{type='string',default='',sync='owner'})
 function Source:on_activate() self.activations=self.activations+1 end
-function Source:on_destroy() if self.destroy_sends then Receiver:ref('bob'):send('reward','10000') end end
+function Source:on_destroy() if self.destroy_sends then Receiver:legacy_ref('bob'):send('reward','10000') end end
 Source:rpc('arm_destroy',{callers={'server'}})
 function Source:arm_destroy(data) self.destroy_sends=data~='no';return '' end
 Source:rpc('issue',{callers={'server'}})
 function Source:issue(data)
-    self.ticket=Receiver:ref('bob'):send('reward',data);self.issued=self.issued+1;self.temporary=self.temporary+1;return self.ticket
+    self.ticket=Receiver:legacy_ref('bob'):send('reward',data);self.issued=self.issued+1;self.temporary=self.temporary+1;return self.ticket
 end
 Source:rpc('temporary_value',{callers={'server'}})
 function Source:temporary_value() return tostring(self.temporary) end
 Source:rpc('abort',{callers={'server'}})
-function Source:abort(data) Receiver:ref('bob'):send('reward',data);self.issued=999;error('rollback') end
+function Source:abort(data) Receiver:legacy_ref('bob'):send('reward',data);self.issued=999;error('rollback') end
 Source:rpc('flood',{callers={'server'}})
-function Source:flood() for i=1,100 do Receiver:ref('bob'):send('reward','1') end return '' end
+function Source:flood() for i=1,100 do Receiver:legacy_ref('bob'):send('reward','1') end return '' end
 Source:rpc('denied',{callers={'server'}})
 function Source:denied(data)
-    self.ticket=Receiver:ref('bob'):send('deny',data);return self.ticket
+    self.ticket=Receiver:legacy_ref('bob'):send('deny',data);return self.ticket
 end
 Source:rpc('wrong_policy',{callers={'server'}})
-function Source:wrong_policy() self.ticket=Receiver:ref('bob'):send('client_only','');return self.ticket end
+function Source:wrong_policy() self.ticket=Receiver:legacy_ref('bob'):send('client_only','');return self.ticket end
 Source:rpc('missing_method',{callers={'server'}})
-function Source:missing_method() self.ticket=Source:reference('Receiver','bob'):send('missing','');return self.ticket end
+function Source:missing_method() self.ticket=Source:legacy_reference('Receiver','bob'):send('missing','');return self.ticket end
 Source:rpc('status',{callers={'server'}})
 function Source:status(ticket)
     local phase,status,response=runtime.delivery_status(ticket~='' and ticket or self.ticket)
@@ -75,8 +75,8 @@ end
 Source:rpc('forget',{callers={'server'}})
 function Source:forget(ticket) return tostring(runtime.delivery_forget(ticket~='' and ticket or self.ticket)) end
 Source:register()
-runtime.rpc('init_source',{callers={'server'},handler=function() Source:spawn_or_restore('alice');return 'ok' end})
-runtime.rpc('init_target',{callers={'server'},handler=function() Receiver:spawn_or_restore('bob');return 'ok' end})
+runtime.legacy_rpc('init_source',{callers={'server'},handler=function() Source:legacy_spawn_or_restore('alice');return 'ok' end})
+runtime.legacy_rpc('init_target',{callers={'server'},handler=function() Receiver:legacy_spawn_or_restore('bob');return 'ok' end})
 )";
 std::optional<fsnet::CallIdentity> identity(std::uint64_t,const std::string&){return fsnet::CallIdentity{fsnet::Caller::server,"owner"};}
 bool trust(const fsnet::CallIdentity& who){return who.caller==fsnet::Caller::server&&who.subject=="owner";}

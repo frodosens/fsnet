@@ -1,6 +1,6 @@
 -- Embed with EntityScriptHost + AttributeReplication (docs/OBJECT_API.md).
 local Entity = fsnet.Entity
-local Player = Entity:extend('Player', {owner='id'})
+local Player = Entity:extend('Player', {owner='legacy_id'})
 
 Player:attr('hp', {type='int32', default=100, server='rw', client='r', sync='observers'})
 Player:attr('gold', {type='int64', default=0, server='rw', client='r', sync='owner'})

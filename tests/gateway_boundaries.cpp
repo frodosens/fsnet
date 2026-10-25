@@ -28,7 +28,7 @@ void control_confirmation_race(){
  owner.bind("system.gateway.unpossess",[](auto,auto reply){reply({fsnet::Status::ok,{}});});
  auto port=owner.listen("127.0.0.1",0);
  fsnet::GatewayLimits limits;limits.refresh=5ms;limits.request_timeout=500ms;limits.migration_timeout=3s;
- fsnet::ClientGateway gateway(front,back,db,{{"a","127.0.0.1",port,{"Actor","Pet"}}},limits);gateway.bind_account("login","Actor");
+ fsnet::ClientGateway gateway(front,back,db,{{"a","127.0.0.1",port,{"Actor","Pet"}}},limits);gateway.bind_legacy_account("login","Actor");
  auto peer=client.connect("127.0.0.1",front.listen("127.0.0.1",0));std::uint64_t actor=0,pet=0;unsigned actor_leaves=0;bool pet_controlled=false;
  fsnet::AttributeClient attributes(client,peer,{},[&](const fsnet::EntityPresence& p){if(p.type=="Actor"){if(p.kind==fsnet::EntityPresence::Kind::enter)actor=p.subscription;if(p.kind==fsnet::EntityPresence::Kind::leave)++actor_leaves;}else {pet=p.subscription;pet_controlled=p.controlled;}});
  auto pump=[&]{owner.poll();front.poll();back.poll();client.poll();gateway.poll();attributes.poll();};
@@ -43,7 +43,7 @@ void control_confirmation_race(){
  std::cout<<"restore_sent_control="<<actor_intent<<" pet_controlled="<<pet_controlled<<" actor_before_confirmation="<<actor_before<<" actor_after_confirmation="<<bool(attributes.get(actor))<<" actor_leaves="<<actor_leaves<<" gateway_subscriptions="<<gateway.stats().subscriptions<<"\n";
 }
 const char* migration_model=R"(
-    local Actor=fsnet.Entity:extend('Actor',{owner='id'})
+    local Actor=fsnet.Entity:extend('Actor',{owner='legacy_id'})
     Actor:attr('position',{type='vec3',client='rw',sync='observers'})
     Actor:attr('gold',{type='int32',default=0,sync='owner'})
     Actor:attr('activations',{type='int32',default=0,sync='owner'})
@@ -55,9 +55,9 @@ const char* migration_model=R"(
     function Actor:validate_write(values) return not values.position or values.position.x<=20 end
     Actor:register()
     local Pet=Actor:extend('Pet'); Pet:register()
-    runtime.rpc('pet_login',{callers={'client'},handler=function(ctx) local actor=Pet:spawn_or_restore(ctx.subject); actor:show_to(ctx.peer); actor:possess(ctx.peer); return actor.id end})
-    runtime.rpc('login',{callers={'client'},handler=function(ctx,name)
-        local actor=Actor:spawn_or_restore(ctx.subject)
+    runtime.legacy_rpc('pet_login',{callers={'client'},handler=function(ctx) local actor=Pet:legacy_spawn_or_restore(ctx.subject); actor:show_to(ctx.peer); actor:possess(ctx.peer); return actor.id end})
+    runtime.legacy_rpc('login',{callers={'client'},handler=function(ctx,name)
+        local actor=Actor:legacy_spawn_or_restore(ctx.subject)
         actor:show_to(ctx.peer); actor:possess(ctx.peer); return actor.id
     end})
 )";
@@ -75,7 +75,7 @@ void control_during_handoff(){
  front.identify([](std::uint64_t,const std::string&)->std::optional<fsnet::CallIdentity>{return fsnet::CallIdentity{fsnet::Caller::client,"alice"};});
  fsnet::GatewayLimits limits;limits.refresh=5ms;
  std::vector<fsnet::EntityEndpoint> endpoints={{"a","127.0.0.1",ap,{"Actor","Pet"}},{"b","127.0.0.1",bp,{"Actor","Pet"}}};
- fsnet::ClientGateway gateway(front,back,db,endpoints,limits);gateway.bind_account("login","Actor");gateway.bind_account("pet_login","Pet");
+ fsnet::ClientGateway gateway(front,back,db,endpoints,limits);gateway.bind_legacy_account("login","Actor");gateway.bind_legacy_account("pet_login","Pet");
  auto transfer_trust=[](const auto& who){return who.caller==fsnet::Caller::server&&who.subject=="gateway";};
  fsnet::EntityTransfer at(a,ah,db,endpoints,transfer_trust),bt(b,bh,db,endpoints,transfer_trust);
  auto peer=client.connect("127.0.0.1",front.listen("127.0.0.1",0));std::uint64_t actor=0,pet=0;bool actor_control=false;
@@ -94,7 +94,7 @@ void control_during_handoff(){
  CHECK(connected_before&&pet_status==fsnet::Status::ok&&client.connected(peer)&&bh->active("Actor","alice"));
 }
 const char* manual_model=R"(
-    local Actor=fsnet.Entity:extend('Actor',{owner='id'})
+    local Actor=fsnet.Entity:extend('Actor',{owner='legacy_id'})
     Actor:attr('position',{type='vec3',client='rw',sync='observers'})
     Actor:attr('gold',{type='int32',default=0,sync='owner'})
     Actor:attr('activations',{type='int32',default=0,sync='owner'})
@@ -106,9 +106,9 @@ const char* manual_model=R"(
     function Actor:validate_write(values) return not values.position or values.position.x<=20 end
     Actor:register()
     local Pet=Actor:extend('Pet'); Pet:register()
-    runtime.rpc('pet_login',{callers={'client'},handler=function(ctx) local actor=Pet:spawn_or_restore(ctx.subject); actor:show_to(ctx.peer); actor:possess(ctx.peer); return actor.id end})
-    runtime.rpc('login',{callers={'client'},handler=function(ctx,name)
-        local actor=Actor:spawn_or_restore(ctx.subject)
+    runtime.legacy_rpc('pet_login',{callers={'client'},handler=function(ctx) local actor=Pet:legacy_spawn_or_restore(ctx.subject); actor:show_to(ctx.peer); actor:possess(ctx.peer); return actor.id end})
+    runtime.legacy_rpc('login',{callers={'client'},handler=function(ctx,name)
+        local actor=Actor:legacy_spawn_or_restore(ctx.subject)
         actor:show_to(ctx.peer); actor:possess(ctx.peer); return actor.id
     end})
 )";
@@ -126,7 +126,7 @@ void restored_route_expires_old_lookup(){
     front.identify([](std::uint64_t,const std::string&)->std::optional<fsnet::CallIdentity>{return fsnet::CallIdentity{fsnet::Caller::client,"alice"};});
     fsnet::GatewayLimits limits;limits.refresh=2s;
     fsnet::ClientGateway gateway(front,back,database,{{"a","127.0.0.1",ap,{"Actor"}},{"b","127.0.0.1",bp,{"Actor"}}},limits);
-    gateway.bind_account("login","Actor");gateway.bind_entity("Actor",{"move"});
+    gateway.bind_legacy_account("login","Actor");gateway.bind_legacy_entity("Actor",{"move"});
     auto port=front.listen("127.0.0.1",0);auto peer=client.connect("127.0.0.1",port);
     std::uint64_t owned=0;fsnet::AttributeClient attributes(client,peer);
     auto pump=[&]{a.poll();b.poll();front.poll();back.poll();client.poll();ah->poll();bh->poll();ae.poll();be.poll();ad.poll();bd.poll();ar.poll();br.poll();gateway.poll();attributes.poll();};
@@ -164,7 +164,7 @@ void timeout_detaches_waiters(){
  fsnet::Node front("x"),back("y"),client("x");
  front.identify([](auto,const auto&){return std::optional(fsnet::CallIdentity{fsnet::Caller::client,"alice"});});
  fsnet::GatewayLimits limits;limits.requests=4;limits.bytes=1024*1024;limits.request_timeout=50ms;
- fsnet::ClientGateway gateway(front,back,db,{{"owner","127.0.0.1",1,{"Actor"}}},limits);gateway.bind_entity("Actor",{"echo"});
+ fsnet::ClientGateway gateway(front,back,db,{{"owner","127.0.0.1",1,{"Actor"}}},limits);gateway.bind_legacy_entity("Actor",{"echo"});
  struct Unblock { std::shared_ptr<BlockingDb> db; ~Unblock(){db->unblock();} } release{db};
  auto peer=client.connect("127.0.0.1",front.listen("127.0.0.1",0));
  auto pump=[&]{front.poll();back.poll();client.poll();gateway.poll();};
@@ -185,7 +185,7 @@ void coalesced_request_order(){
  fsnet::Reply delegated;std::vector<std::string> order;
  owner.bind("system.gateway.delegate",[&](auto,auto reply){delegated=std::move(reply);});
  owner.bind("Actor.echo",[&](std::string input,auto reply){auto entity=fsnet::parse_entity_message(input);CHECK(entity);order.push_back(entity->payload);reply({fsnet::Status::ok,{}});});
- auto port=owner.listen("127.0.0.1",0);fsnet::ClientGateway gateway(front,back,db,{{"owner","127.0.0.1",port,{"Actor"}}});gateway.bind_entity("Actor",{"echo"});
+ auto port=owner.listen("127.0.0.1",0);fsnet::ClientGateway gateway(front,back,db,{{"owner","127.0.0.1",port,{"Actor"}}});gateway.bind_legacy_entity("Actor",{"echo"});
  struct Unblock {std::shared_ptr<BlockingDb> db;~Unblock(){db->unblock();}} release{db};
  auto peer=client.connect("127.0.0.1",front.listen("127.0.0.1",0));unsigned completed=0;
  auto pump=[&]{owner.poll();front.poll();back.poll();client.poll();gateway.poll();};

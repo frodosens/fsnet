@@ -1,5 +1,5 @@
 -- Bundle shared/magic_circle.lua before this class. Both peers load this file.
-MagicCircle = fsnet.Entity:extend('MagicCircle', {owner='id'})
+MagicCircle = fsnet.Entity:extend('MagicCircle', {owner='legacy_id'})
 MagicCircle:attr('radius', {type='number', default=0, authority='driver', client='r', sync='observers', persist=false})
 MagicCircle:attr('duration', {type='number', default=5, authority='driver', client='r', sync='observers', persist=false})
 

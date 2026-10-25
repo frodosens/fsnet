@@ -16,9 +16,9 @@ int main(int argc,char**){
  auto parent=std::make_shared<Parent>();fsnet::EntityRuntimeLimits limits;limits.requests=1;limits.idle_timeout=1h;
  fsnet::EntityScriptHost host(parent,fsnet::memory_database(),"owner/boot",limits);
  auto noop=[](std::string input,fsnet::Reply reply){auto s=fsnet::parse_state_message(fsnet::parse_entity_message(input)->payload);reply({fsnet::Status::ok,fsnet::state_message(s->state,"")});};
- host.bind_stateful("Actor.read","Actor","",noop);host.bind_stateful("Actor.$deactivate","Actor","",noop);
+ host.bind_legacy_stateful("Actor.read","Actor","",noop);host.bind_legacy_stateful("Actor.$deactivate","Actor","",noop);
  fsnet::Reply held;
- host.bind_stateful("Actor.hold","Actor","",[&](std::string,fsnet::Reply reply){held=std::move(reply);});
+ host.bind_legacy_stateful("Actor.hold","Actor","",[&](std::string,fsnet::Reply reply){held=std::move(reply);});
  auto pump=[&](auto done){auto end=std::chrono::steady_clock::now()+1s;while(!done()){host.poll();if(std::chrono::steady_clock::now()>end)throw std::runtime_error("timeout");std::this_thread::sleep_for(1ms);}};
  auto invoke=[&](std::string method,std::string id){std::optional<fsnet::Result> r;parent->handlers.at("Actor."+method)(fsnet::entity_message(id,""),[&](auto value){r=std::move(value);});pump([&]{return bool(r);});return *r;};
  invoke("read","a");invoke("read","b");auto handle=*host.handle("Actor","b");

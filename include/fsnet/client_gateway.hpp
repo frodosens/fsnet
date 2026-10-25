@@ -28,8 +28,9 @@ public:
     ClientGateway(Node& front,Node& back,std::shared_ptr<Database>,std::vector<EntityEndpoint>,GatewayLimits = {});
     ~ClientGateway();
     void bind_entity(std::string type,std::vector<std::string> methods);
+    void bind_legacy_entity(std::string type,std::vector<std::string> methods);
     // Stateless login/scene endpoints route by authenticated account subject.
-    void bind_account(std::string route,std::string entity_type);
+    void bind_legacy_account(std::string route,std::string entity_type);
     void poll(std::size_t budget=64);
     GatewayStats stats() const;
     void drain(); // reject new requests; poll accepted requests before stop

@@ -33,3 +33,19 @@ Debug timers、global-flow、gateway、gateway-boundaries、timer-process、exam
   获取/续租阶段仍保留必要的状态副本，强异常保证的注册草稿也仍保留。
 
 Debug 全量 CTest 49/49 通过，包含二进制协议、队列持有、迁移/重启/ACK 丢失和客户端预测。
+
+## 第三阶段：默认入口收口
+
+- R4：scene/attributes 改为全局 SceneHub/ProfileHub 实体入口，启动器取得入口 EntityId
+  后配置客户端；原生客户端也使用该 ID 调用 login/logout，不再发独立 login RPC。
+- 默认 Lua ref/watch、原生 Client::call 与 EntityRouter::call 要求全局 ID，不自动回退。
+  原始注册、任意 ID 创建、owner-from-id、类型化 RPC 与账号路由改为显式 legacy 名称，
+  兼容夹具、诊断和性能程序已迁移。具体入口见 [兼容适配器](LEGACY_ADAPTERS.md)。
+- 普通实体类不再向传输注册 Type.method；只有显式 enable_legacy_routes/legacy 注册启用。
+  Gateway 的 bind_entity 只配置 @ 白名单，旧路由使用 bind_legacy_entity/account。
+- 当前 API 指南、全局架构、SDK、Gateway 和部署配置已同步，历史机制文档明确标注兼容夹具。
+  原生内部字段 owner_binding/owner_key 不再把连接授权称为 account。
+- 注册/查询等兼容包装器仍遵守预测外部副作用约束；新增默认入口无旧路由及 SDK 不接受
+  旧 ID 的断言。C++ 接口改变须重编，不能混用旧头文件/库。
+
+Debug 全量 49/49 再次通过；安装消费者、真实进程恢复和所有交付示例包含在其中。

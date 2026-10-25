@@ -21,7 +21,7 @@ int main(){try {
  owner.bind("system.gateway.unpossess",[](auto,auto reply){reply({fsnet::Status::ok,{}});});
  auto port=owner.listen("127.0.0.1",0);
  fsnet::GatewayLimits limits;limits.refresh=5ms;limits.request_timeout=500ms;limits.migration_timeout=3s;
- fsnet::ClientGateway gateway(front,back,db,{{"a","127.0.0.1",port,{"Actor","Pet"}}},limits);gateway.bind_account("login","Actor");
+ fsnet::ClientGateway gateway(front,back,db,{{"a","127.0.0.1",port,{"Actor","Pet"}}},limits);gateway.bind_legacy_account("login","Actor");
  auto peer=client.connect("127.0.0.1",front.listen("127.0.0.1",0));std::uint64_t actor=0,pet=0;unsigned actor_leaves=0;bool pet_controlled=false;
  fsnet::AttributeClient attributes(client,peer,{},[&](const fsnet::EntityPresence& p){if(p.type=="Actor"){if(p.kind==fsnet::EntityPresence::Kind::enter)actor=p.subscription;if(p.kind==fsnet::EntityPresence::Kind::leave)++actor_leaves;}else {pet=p.subscription;pet_controlled=p.controlled;}});
  auto pump=[&]{owner.poll();front.poll();back.poll();client.poll();gateway.poll();attributes.poll();};

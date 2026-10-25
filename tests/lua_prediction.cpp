@@ -9,7 +9,7 @@
 using namespace std::chrono_literals;
 #define CHECK(x) do { if(!(x)) throw std::runtime_error(std::string(__FILE__)+':'+std::to_string(__LINE__)+" " #x); } while(false)
 const char* model=R"(
-    local Actor=fsnet.Entity:extend('Actor',{owner='id'})
+    local Actor=fsnet.Entity:extend('Actor',{owner='legacy_id'})
     Actor:attr('x',{type='int32',default=100,authority='driver',sync='owner'})
     Actor:attr('ack',{type='int32',default=0,sync='owner'})
     Actor:attr('secret',{type='int32',default=42,client='none',sync='none'})
@@ -75,12 +75,12 @@ void prediction_budget() {
         function C:advance() self.x=self.x+1 end
         C:define()
         local prediction
-        runtime.start(function() prediction=(C:watch('alice')):prediction() end)
-        runtime.rpc('spin',function()
+        runtime.start(function() prediction=(C:legacy_watch('alice')):prediction() end)
+        runtime.legacy_rpc('spin',function()
             pcall(prediction.push,prediction,1,'spin','')
             return 'must not succeed'
         end)
-        runtime.rpc('healthy',function()
+        runtime.legacy_rpc('healthy',function()
             assert(prediction.pending==0 and prediction.state.x==0)
             prediction:push(1,'advance','')
             assert(prediction.state.x==1)
@@ -118,7 +118,7 @@ int main() {
         frontend.load("local peer="+std::to_string(peer)+"\n"+model+R"(
             Actor:define()
             runtime.start(function()
-                local confirmed=Actor:watch('alice')
+                local confirmed=Actor:legacy_watch('alice')
                 other=Actor:spawn_local({x=10})
                 assert(not pcall(other.prediction,other))
                 assert(not pcall(confirmed.prediction,confirmed,{max_inputs=129}))
@@ -141,7 +141,7 @@ int main() {
                 assert(prediction.state.x==112 and confirmed.x==100 and prediction.pending==2)
                 assert(not pcall(prediction.push,prediction,2,'move','7'))
                 assert(not pcall(prediction.push,prediction,3,'move','1'))
-                Actor:ref('alice',{peer=peer}):correct('1:3')
+                Actor:legacy_ref('alice',{peer=peer}):correct('1:3')
                 while confirmed.ack<1 do runtime.sleep(1) end
                 assert(confirmed.x==103 and prediction.state.x==112)
                 assert(not pcall(prediction.reconcile,prediction,1,confirmed.revision+1))
@@ -153,7 +153,7 @@ int main() {
                 assert(prediction.state.x==110 and confirmed.x==103 and prediction.pending==1 and effects==2)
                 prediction:reconcile(1,confirmed.revision) -- duplicate confirmation is harmless
                 assert(prediction.state.x==110 and effects==2)
-                Actor:ref('alice',{peer=peer}):correct('2:4')
+                Actor:legacy_ref('alice',{peer=peer}):correct('2:4')
                 while confirmed.ack<2 do runtime.sleep(1) end
                 prediction:reconcile(2,confirmed.revision)
                 assert(prediction.state.x==107 and prediction.pending==0 and prediction.acknowledged==2 and effects==2)

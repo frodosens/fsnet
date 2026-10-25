@@ -1,5 +1,5 @@
 -- Bundle this class before either host entry point.
-PredictedActor=fsnet.Entity:extend('PredictedActor',{owner='id'})
+PredictedActor=fsnet.Entity:extend('PredictedActor',{owner='legacy_id'})
 PredictedActor:attr('x',{type='int32',default=0,authority='driver',sync='owner'})
 PredictedActor:attr('processed_input',{type='int64',default=0,sync='owner'})
 function PredictedActor:advance(payload)

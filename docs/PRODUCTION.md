@@ -55,11 +55,11 @@ serverAuth/clientAuth，玩家需 clientAuth。端点 TLS 名称必须匹配证�
 | gateway-pins.tsv | `sha256:<64位小写十六进制> gateway-a`，owner 允许的 Gateway 证书及身份 |
 | clients.tsv | `sha256:<64位小写十六进制> alice`，Gateway 认证账号映射 |
 | endpoints.tsv | `owner-a 10.0.0.11 7001 Player owner-a.example`，节点/地址/端口/类型列表/TLS名称 |
-| routes.tsv | `account login Player`、`entity Player move,read`，仅暴露列出的业务入口 |
+| routes.tsv | `entity Manager discover`、`entity LoginEntity login`、`entity Player move`，对 @ 按权威类型校验白名单；默认不开放 Type.method |
 
 可用 `openssl x509 -in CERT.pem -noout -fingerprint -sha256` 获取指纹，删除冒号并转为小写，
 添加 `sha256:` 前缀。清单更新需滚动重启；没有在线证书吊销和配置热加载。
-启动器默认只恢复账号自己所属的实体；观察者/AOI 恢复需在宿主中提供 Restore 策略。
+启动器默认只恢复原逻辑连接仍获授权的实体；观察者/AOI 恢复需在宿主中提供 Restore 策略。
 
 `file:` 仅用于同机共享 POSIX 文件目录，本机测试不支持把本地目录复制到不同机器冒充共享存储。
 跨机必须使用所有节点可见、提供相同 CAS 合同的存储，例如可选 PostgreSQL；数据库的复制、
@@ -67,8 +67,11 @@ serverAuth/clientAuth，玩家需 clientAuth。端点 TLS 名称必须匹配证�
 
 指定目标交接与持久命令可选配置 `FSNET_ENTITY_ENDPOINTS` 与 `FSNET_OWNER_PINS`，使 owner 能按独立的
 owner 证书白名单互连；与 Gateway pins 分开，owner 证书同时需要 clientAuth/serverAuth。
-启用前须升级全部 owner/Gateway 以读取 FER3/FSP2，见[交接部署与升级合同](ENTITY_TRANSFER.md)及[持久命令](ENTITY_DELIVERY.md)。
+启用前须一起升级全部 owner/Gateway 以读取 FER5/FSP3/FTI2，见[交接部署与升级合同](ENTITY_TRANSFER.md)及[持久命令](ENTITY_DELIVERY.md)。
 owner pins 应包含参与投递的 owner，包括自身证书；端点类型列表必须同时包含发送与接收实体类型，确认也需要路由回源。
+
+工具 validate_delivery.py 的旧协议夹具显式使用 legacy-account/legacy-entity；
+新业务不配置独立 login 路由。Manager/LoginEntity 的全局入口 ID 由可信启动/服务发现提供。
 
 ## 健康、排空与升级
 
@@ -80,7 +83,7 @@ owner pins 应包含参与投递的 owner，包括自身证书；端点类型列
 SIGTERM/SIGINT 将 readiness 置 false。owner 停止接单、等待现有请求、运行卸载 hook、
 提交并释放租约，最多 35 秒，超时退出非零；Gateway 停止新请求并等待最多 4 秒后关闭。
 systemd 停止时限分别配置 45/10 秒，避免正常 drain 被过早 SIGKILL。先从负载均衡摘除再停止。
-稳定账号、实体类型和 ID 必须跨版本一致。
+稳定 Node ID、实体类型和 EntityId 必须跨版本一致。重连需要业务显式重新绑定新的逻辑连接。
 
 FER2 初始化标记不能被旧可执行程序读取。首次从旧版本升级时，先备份并排空旧 writer，再启动
 新 writer；回滚前必须确认存储兼容，不能把旧二进制直接连接到含 FER2 的存储。

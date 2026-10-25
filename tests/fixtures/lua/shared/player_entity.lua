@@ -1,5 +1,5 @@
 -- Both peers load the same authoritative entity type.
-PlayerEntity=fsnet.Entity:extend('Player',{owner='id'})
+PlayerEntity=fsnet.Entity:extend('Player',{owner='legacy_id'})
 PlayerEntity:attr('name',{type='string',default='',sync='observers'})
 PlayerEntity:attr('x',{type='int32',default=0,authority='driver',sync='observers'})
 PlayerEntity:attr('gold',{type='int64',default=0,sync='owner'})

@@ -2,7 +2,7 @@
 local Item=fsnet.struct('SampleItem',{id='string',count='int32'})
 local Task=fsnet.struct('SampleTask',{progress='int32',done='bool'})
 local Pose=fsnet.struct('SamplePose',{origin='vec3',label='string'})
-Profile=fsnet.Entity:extend('Profile',{owner='id'})
+Profile=fsnet.Entity:extend('Profile')
 Profile:attr('position',{type='vec3',client='rw',sync='owner'})
 Profile:attr('transform',{type='mat4x4',client='rw',sync='owner'})
 Profile:attr('pose',{type=Pose,client='rw',sync='owner'})

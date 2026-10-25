@@ -3,11 +3,11 @@ local classes = setmetatable({}, {__mode='k'})
 local names = setmetatable({}, {__mode='v'})
 local refs = setmetatable({}, {__mode='k'})
 local Class, class_mt, ref_mt = {}, {}, {}
-local register_entity=runtime.entity
-local reserved = {id=true, type=true, context=true, reject=true, attr=true, rpc=true,
+local register_entity=runtime._entity
+local reserved = {legacy_ref=true,legacy_reference=true,legacy_watch=true,id=true, type=true, context=true, reject=true, attr=true, rpc=true,
                   private=true, extend=true, register=true, ref=true, reference=true,
                   define=true, spawn_local=true, watch=true, write=true, close=true,
-                  revision=true, mode=true, method=true, batch=true, prediction=true, spawn_or_restore=true, spawn=true,
+                  revision=true, mode=true, method=true, batch=true, prediction=true, legacy_spawn_or_restore=true, spawn=true,
                   deactivate=true, destroy=true, show_to=true, hide_from=true, possess=true, unpossess=true,
                   after=true,at=true,every=true,cancel_timer=true,timer=true,bind_owner=true}
 local unsupported_hooks = {new=true, init=true}
@@ -43,7 +43,7 @@ local function options(value)
     value=value or {}
     assert(type(value)=='table', 'options must be a table')
     for key in pairs(value) do assert(key=='owner', 'unknown entity option: '..tostring(key)) end
-    assert(value.owner==nil or value.owner=='id' or value.owner=='external', 'invalid owner option')
+    assert(value.owner==nil or value.owner=='legacy_id' or value.owner=='external', 'invalid owner option')
     return copy(value)
 end
 local function policy(value)
@@ -131,7 +131,7 @@ local function define(class)
     if data.flat then return data.flat end
     local flat,chain=flatten(class)
     assert(data.name,'cannot define abstract root')
-    runtime._attributes_define(data.name,flat.attrs,flat.options.owner=='id' and 'id' or nil,true)
+    runtime._attributes_define(data.name,flat.attrs,flat.options.owner=='legacy_id' and 'legacy_id' or nil,true)
     local members={}
     for key,fn in pairs(flat.methods) do
         members[key]=function(object,...)
@@ -188,13 +188,14 @@ local function construct(class,id,replica,subscription,values)
     runtime._object_attach(object,data.members,id,data.name,{entity_id=id,entity_type=data.name,caller='client',subject='',peer=0})
     return object
 end
-function Class:spawn_or_restore(id,values)
+function Class:legacy_spawn_or_restore(id,values)
+    runtime._enable_legacy_routes()
     local data=record(self)
     assert(data.registered,'spawn requires a registered server class')
     assert(type(id)=='string' and #id>0 and #id<=256,'invalid entity ID')
-    local _,status=runtime._spawn_entity(data.name,id,values or {})
+    local _,status=runtime._legacy_spawn_entity(data.name,id,values or {})
     assert(status==runtime.status.ok,'entity spawn failed: '..tostring(status))
-    return self:ref(id)
+    return self:legacy_ref(id)
 end
 function Class:spawn(values,opts)
     local data=record(self)
@@ -228,6 +229,11 @@ function Class:spawn_local(values,opts)
     return construct(self,opts.id or '',false,0,values or {})
 end
 function Class:watch(id,opts)
+    runtime._prediction_guard()
+    assert(runtime._global_entity_id(id),'global EntityId required; use legacy_watch only for fixtures')
+    return self:legacy_watch(id,opts)
+end
+function Class:legacy_watch(id,opts)
     local data=record(self); define(self)
     assert(type(id)=='string' and #id>0 and #id<=256,'invalid entity ID')
     opts=copy(opts or {})
@@ -255,7 +261,8 @@ function Class:register()
         runtime._object_attach(object,members,ctx.entity_id,data.name,ctx)
         return object
     end
-    local definition={attrs=flat.attrs,model=true,methods={},owner=flat.options.owner=='id' and 'id' or nil}
+    if flat.options.owner=='legacy_id' then runtime._enable_legacy_routes() end
+    local definition={attrs=flat.attrs,model=true,methods={},owner=flat.options.owner=='legacy_id' and 'legacy_id' or nil}
     for key,p in pairs(flat.rpcs) do
         local fn=members[key]
         definition.methods[key]={callers=p.callers,access=p.access,handler=function(object,ctx,payload)
@@ -311,6 +318,10 @@ local function reference(kind,id,defaults,exported)
     return object
 end
 function Class:ref(id,opts)
+    assert(runtime._global_entity_id(id),'global EntityId required; use legacy_ref only for fixtures')
+    return self:legacy_ref(id,opts)
+end
+function Class:legacy_ref(id,opts)
     local data=record(self); assert(data.name, 'use Entity:reference for an untyped reference')
     local exported=data.exported
     if not exported then
@@ -320,6 +331,10 @@ function Class:ref(id,opts)
     return reference(data.name,id,opts,exported)
 end
 function Class:reference(kind,id,opts)
+    assert(runtime._global_entity_id(id),'global EntityId required; use fsnet.ref(id)')
+    return self:legacy_reference(kind,id,opts)
+end
+function Class:legacy_reference(kind,id,opts)
     record(self)
     return reference(kind,id,opts,nil)
 end
@@ -591,7 +606,7 @@ function entities:start()
 end
 
 -- The client host resolves peer 0 to its configured authenticated owner endpoint.
-runtime.server_request=function(route,payload,timeout)
+runtime.legacy_server_request=function(route,payload,timeout)
     return runtime.request(0,route,payload,timeout)
 end
 

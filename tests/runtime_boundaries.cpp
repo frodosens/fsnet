@@ -28,8 +28,8 @@ auto noop=[](std::string input,fsnet::Reply reply){
 void admission(){
     auto parent=std::make_shared<Parent>();fsnet::EntityRuntimeLimits limits;limits.requests=1;
     fsnet::EntityScriptHost host(parent,fsnet::memory_database(),"owner/boot",limits);
-    host.bind_stateful("Actor.read","Actor","",noop);host.bind_stateful("Actor.$deactivate","Actor","",noop);
-    host.bind_stateful("Actor.$destroy","Actor","",noop);
+    host.bind_legacy_stateful("Actor.read","Actor","",noop);host.bind_legacy_stateful("Actor.$deactivate","Actor","",noop);
+    host.bind_legacy_stateful("Actor.$destroy","Actor","",noop);
     for(auto id:{"a","b"})CHECK(wait(host,[&](auto cb){parent->handlers.at("Actor.read")(fsnet::entity_message(id,""),cb);}).status==fsnet::Status::ok);
     auto first=wait(host,[&](auto cb){host.drain(cb);});CHECK(first.status==fsnet::Status::overloaded);
     CHECK(wait(host,[&](auto cb){host.drain(cb);}).status==fsnet::Status::ok);
@@ -37,7 +37,7 @@ void admission(){
 }
 void burst(){
     auto parent=std::make_shared<Parent>();fsnet::EntityScriptHost host(parent,fsnet::memory_database(),"owner/boot");
-    host.bind_stateful("Actor.read","Actor","",noop);unsigned completed=0;
+    host.bind_legacy_stateful("Actor.read","Actor","",noop);unsigned completed=0;
     for(unsigned i=0;i<64;++i)parent->handlers.at("Actor.read")(fsnet::entity_message(std::to_string(i),""),[&](auto r){CHECK(r.status==fsnet::Status::ok);++completed;});
     auto end=std::chrono::steady_clock::now()+3s;
     while(completed<64){host.poll();CHECK(std::chrono::steady_clock::now()<end);std::this_thread::sleep_for(1ms);}
@@ -47,7 +47,7 @@ void expired_control(){
     for(int action=0;action<3;++action){
         auto parent=std::make_shared<Parent>();fsnet::EntityRuntimeLimits limits;limits.request_timeout=100ms;limits.lease=1s;
         fsnet::EntityScriptHost host(parent,fsnet::memory_database(),"owner/boot",limits);
-        host.bind_stateful("Actor.read","Actor","",noop);host.bind_stateful("Actor.$deactivate","Actor","",noop);host.bind_stateful("Actor.$destroy","Actor","",noop);
+        host.bind_legacy_stateful("Actor.read","Actor","",noop);host.bind_legacy_stateful("Actor.$deactivate","Actor","",noop);host.bind_legacy_stateful("Actor.$destroy","Actor","",noop);
         CHECK(wait(host,[&](auto cb){parent->handlers.at("Actor.read")(fsnet::entity_message("a",""),cb);}).status==fsnet::Status::ok);
         auto handle=*host.handle("Actor","a");
         auto control=[&](auto cb){if(action==0)host.deactivate(handle,cb);else if(action==1)host.control_entity("Actor","a",true,cb);else host.handoff(handle,"other",cb);};
@@ -59,8 +59,8 @@ void expired_control(){
 }
 void opaque_delivery(){
     auto parent=std::make_shared<Parent>();auto db=fsnet::memory_database();fsnet::EntityScriptHost host(parent,db,"owner/boot");host.enable_delivery(true);
-    host.bind_stateful("Target.reward","Target","opaque",noop);
-    host.bind_stateful("Source.issue","Source","opaque",[&](std::string input,fsnet::Reply reply){
+    host.bind_legacy_stateful("Target.reward","Target","opaque",noop);
+    host.bind_legacy_stateful("Source.issue","Source","opaque",[&](std::string input,fsnet::Reply reply){
         auto state=fsnet::parse_state_message(fsnet::parse_entity_message(input)->payload);
         host.send_entity("Source","a","Target","b","reward","",[state,reply](auto r){CHECK(r.status==fsnet::Status::ok);reply({r.status,fsnet::state_message(state->state,r.data)});});
     });
@@ -80,7 +80,7 @@ void shutdown(){
         bool compare_exchange(std::string_view k,std::uint64_t v,std::string_view b)override{return base->compare_exchange(k,v,b);}
         bool erase(std::string_view k,std::uint64_t v)override{return base->erase(k,v);}
     };
-    auto parent=std::make_shared<Parent>();auto db=std::make_shared<Blocking>();fsnet::EntityScriptHost host(parent,db,"owner/boot");host.bind_stateful("Actor.read","Actor","",noop);
+    auto parent=std::make_shared<Parent>();auto db=std::make_shared<Blocking>();fsnet::EntityScriptHost host(parent,db,"owner/boot");host.bind_legacy_stateful("Actor.read","Actor","",noop);
     unsigned replies=0;parent->handlers.at("Actor.read")(fsnet::entity_message("a",""),[&](auto r){CHECK(r.status==fsnet::Status::disconnected);++replies;});host.poll();
     CHECK(db->entered.get_future().wait_for(2s)==std::future_status::ready);
     std::thread release([&]{std::this_thread::sleep_for(10ms);db->release.set_value();});host.stop();release.join();CHECK(replies==1&&host.stats().pending==0);

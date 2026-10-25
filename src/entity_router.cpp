@@ -146,6 +146,12 @@ void EntityRouter::call_encoded(std::string message,std::chrono::milliseconds ti
 }
 void EntityRouter::call(std::string type, std::string id, std::string method, std::string payload,
     std::chrono::milliseconds timeout, Reply reply, std::string request_id) {
+    if(!reply)throw std::invalid_argument("reply required");
+    if(!valid_entity_id(id))return reply({Status::rejected,{}});
+    call(EntityId(id),method,payload,timeout,std::move(reply),request_id,type);
+}
+void EntityRouter::legacy_call(std::string type, std::string id, std::string method, std::string payload,
+    std::chrono::milliseconds timeout, Reply reply, std::string request_id) {
     auto& self = *impl_;
     if (!reply) throw std::invalid_argument("reply required");
     if (self.stopped) return reply({Status::disconnected, {}});
@@ -192,7 +198,7 @@ void RoutedScriptHost::call_entity(std::string route, std::string data, std::chr
     }
     auto split = route.find('.'); auto message = parse_entity_message(data);
     if (split == std::string::npos || !message) return reply({Status::rejected, {}});
-    router_.call(route.substr(0, split), std::move(message->id), route.substr(split + 1), std::move(message->payload),
+    router_.legacy_call(route.substr(0, split), std::move(message->id), route.substr(split + 1), std::move(message->payload),
         timeout, std::move(reply), std::move(message->request_id));
 }
 }

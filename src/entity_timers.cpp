@@ -20,7 +20,7 @@ struct EntityTimers::Impl:std::enable_shared_from_this<Impl> {
     std::string owner,node;
     Impl(std::shared_ptr<EntityScriptHost> h,std::shared_ptr<Database> db,EntityTimerLimits settings)
         :host(std::move(h)),storage(std::move(db)),limits(settings) {
-        if(!host || limits.pending<2 || limits.pending>1024 || !limits.tracked || limits.tracked>timer_index::shards*timer_index::per_shard || limits.refresh.count()<=0 || limits.retry.count()<=0)throw std::invalid_argument("invalid entity timer service limits");
+        if(!host || limits.pending<2 || limits.pending>1024 || !limits.tracked || limits.tracked>timer_index::shards*timer_index::per_shard || limits.refresh.count()<=0 || limits.retry.count()<=0 || limits.refresh>std::chrono::hours(24) || limits.retry>std::chrono::hours(24))throw std::invalid_argument("invalid entity timer service limits");
         owner=host->owner_id();node=owner.substr(0,owner.find('/'));
         idle=limits.refresh;observed_revision=host->timer_revision();
     }

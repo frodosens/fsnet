@@ -12,7 +12,7 @@
 using namespace std::chrono_literals;
 #define CHECK(x) do{if(!(x))throw std::runtime_error(std::string(__FILE__)+':'+std::to_string(__LINE__)+" " #x);}while(false)
 const char* model=R"(
-    local Actor=fsnet.Entity:extend('Actor',{owner='id'})
+    local Actor=fsnet.Entity:extend('Actor',{owner='legacy_id'})
     Actor:attr('position',{type='vec3',client='rw',sync='observers'})
     Actor:attr('gold',{type='int32',default=0,sync='owner'})
     Actor:attr('activations',{type='int32',default=0,sync='owner'})
@@ -24,9 +24,9 @@ const char* model=R"(
     function Actor:validate_write(values) return not values.position or values.position.x<=20 end
     Actor:register()
     local Pet=Actor:extend('Pet'); Pet:register()
-    runtime.rpc('pet_login',{callers={'client'},handler=function(ctx) local actor=Pet:spawn_or_restore(ctx.subject); actor:show_to(ctx.peer); actor:possess(ctx.peer); return actor.id end})
-    runtime.rpc('login',{callers={'client'},handler=function(ctx,name)
-        local actor=Actor:spawn_or_restore(ctx.subject)
+    runtime.legacy_rpc('pet_login',{callers={'client'},handler=function(ctx) local actor=Pet:legacy_spawn_or_restore(ctx.subject); actor:show_to(ctx.peer); actor:possess(ctx.peer); return actor.id end})
+    runtime.legacy_rpc('login',{callers={'client'},handler=function(ctx,name)
+        local actor=Actor:legacy_spawn_or_restore(ctx.subject)
         actor:show_to(ctx.peer); actor:possess(ctx.peer); return actor.id
     end})
 )";
@@ -44,7 +44,7 @@ int main(){try{
  front.identify([](std::uint64_t,const std::string&)->std::optional<fsnet::CallIdentity>{return fsnet::CallIdentity{fsnet::Caller::client,"alice"};});
  fsnet::GatewayLimits limits;limits.refresh=5ms;
  std::vector<fsnet::EntityEndpoint> endpoints={{"a","127.0.0.1",ap,{"Actor","Pet"}},{"b","127.0.0.1",bp,{"Actor","Pet"}}};
- fsnet::ClientGateway gateway(front,back,db,endpoints,limits);gateway.bind_account("login","Actor");gateway.bind_account("pet_login","Pet");
+ fsnet::ClientGateway gateway(front,back,db,endpoints,limits);gateway.bind_legacy_account("login","Actor");gateway.bind_legacy_account("pet_login","Pet");
  auto transfer_trust=[](const auto& who){return who.caller==fsnet::Caller::server&&who.subject=="gateway";};
  fsnet::EntityTransfer at(a,ah,db,endpoints,transfer_trust),bt(b,bh,db,endpoints,transfer_trust);
  auto peer=client.connect("127.0.0.1",front.listen("127.0.0.1",0));std::uint64_t actor=0,pet=0;bool actor_control=false;

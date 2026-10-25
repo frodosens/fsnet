@@ -150,11 +150,15 @@ int main(){try{
     std::cout<<"{\"probe\":\"owner_policy_live_checks\",\"calls\":"<<live_calls<<"}\n";
     for(std::size_t size:{128,4096,65536}) {
         auto wire=entity_call_message(EntityId(1),"move",std::string(size,'p'));auto view=*parse_entity_call_view(wire);
-        measure("router_adapter_current_"+std::to_string(size),20000,[&]{
+        measure("router_adapter_prior_"+std::to_string(size),20000,[&]{
             auto method=std::string(view.method),payload=std::string(view.payload),request=std::string(view.request_id),type=std::string(view.expected_type);
             return entity_call_message(view.id,method,payload,request,type).size();
         });
         measure("router_adapter_borrowed_reencode_"+std::to_string(size),20000,[&]{return entity_call_message(view.id,view.method,view.payload,view.request_id,view.expected_type).size();});
     }
+    EntityTimerState state;state.sequence=1;state.token="token";
+    for(unsigned i=0;i<32;++i){auto key="timer-"+std::to_string(i);state.entries.emplace(key,EntityTimer{key,"callback",std::string(4096,'p'),"1.1",100,100,0});}
+    measure("timer_budget_prior_encode",2000,[&]{return encode_entity_timers(state).size();});
+    measure("timer_budget_current_size",2000,[&]{return entity_timers_wire_size(state);});
     timers(false,65536);timers(true,1);timers(true,2);gateway_routes();
 }catch(const std::exception& error){std::cerr<<error.what()<<'\n';return 1;}}

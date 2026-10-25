@@ -26,14 +26,14 @@ int main() {
         fsnet::Node server("test"), client("test");
         auto transport = std::make_shared<fsnet::NodeScriptHost>(server);
         auto entities = std::make_shared<fsnet::EntityScriptHost>(transport, storage, "attrs/boot-1");
-        entities->ownership([](const std::string&, const std::string&) { return "alice"; });
+        entities->legacy_ownership([](const std::string&, const std::string&) { return "alice"; });
         std::vector<fsnet::EntityScriptHost::AttributeCommit> events;
         entities->on_attributes([&](const auto& event) { events.push_back(event); });
         fsnet::CallIdentity who{fsnet::Caller::client, "alice"};
         server.identify([&](std::uint64_t, const std::string&) { return std::optional(who); });
         fsnet::LuaEngine engine(entities);
         engine.load(R"(
-            runtime.entity('player', {
+            runtime.legacy_entity('player', {
                 attrs = {
                     hp={type='int32', default=100, server='rw', client='r', sync='observers'},
                     gold={type='int64', default=10, server='rw', client='r', sync='owner'},

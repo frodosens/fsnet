@@ -372,8 +372,8 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
             EntitySchema schema;
             if (!lua_isnoneornil(L,3)) {
                 std::size_t length; const char* owner = luaL_checklstring(L,3,&length);
-                if (std::string_view(owner,length)!="id") throw std::invalid_argument("unsupported declarative entity owner");
-                schema.owner_from_id = true;
+                if (std::string_view(owner,length)!="legacy_id") throw std::invalid_argument("unsupported declarative entity owner");
+                schema.legacy_owner_from_id = true;
             }
             lua_pushnil(L);
             while (lua_next(L, 2)) {
@@ -1060,7 +1060,7 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
         return lua_yield(L,0);
     }
 
-    static int spawn_entity(lua_State* L) {
+    static int legacy_spawn_entity(lua_State* L) {
         prediction_external(L);
         auto& engine=self(L);
         std::size_t n,m; const char* kind=luaL_checklstring(L,1,&n); const char* id=luaL_checklstring(L,2,&m);
@@ -1296,6 +1296,11 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
             return 1;
         } catch(const std::exception& e) { return luaL_error(L,"%s",e.what()); }
     }
+    static int enable_legacy_routes(lua_State* L) {
+        prediction_external(L);
+        try{self(L).host->enable_legacy_routes();return 0;}
+        catch(const std::exception& error){return luaL_error(L,"%s",error.what());}
+    }
     static int rpc(lua_State* L) {
         luaL_checktype(L, 1, LUA_TSTRING); luaL_checktype(L, 2, LUA_TFUNCTION);
         std::size_t size = 0; const char* name = lua_tolstring(L, 1, &size);
@@ -1407,12 +1412,13 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
         lua_pushcfunction(L,connection_index);lua_setfield(L,-2,"__index");
         lua_pushboolean(L,false);lua_setfield(L,-2,"__metatable");lua_pop(L,1);
         lua_newtable(L);
+        lua_pushcfunction(L,enable_legacy_routes);lua_setfield(L,-2,"_enable_legacy_routes");
         lua_pushcfunction(L,start_task); lua_setfield(L,-2,"_start");
         lua_pushcfunction(L,sleep_task); lua_setfield(L,-2,"_sleep");
         lua_pushcfunction(L,watch_attributes); lua_setfield(L,-2,"_watch");
         lua_pushcfunction(L,unwatch_attributes); lua_setfield(L,-2,"_unwatch");
         lua_pushcfunction(L,write_attributes); lua_setfield(L,-2,"_write");
-        lua_pushcfunction(L,spawn_entity); lua_setfield(L,-2,"_spawn_entity");
+        lua_pushcfunction(L,legacy_spawn_entity); lua_setfield(L,-2,"_legacy_spawn_entity");
         lua_pushcfunction(L,create_entity); lua_setfield(L,-2,"_create_entity");
         lua_pushcfunction(L,bind_owner);lua_setfield(L,-2,"_bind_entity_owner");
         lua_pushcfunction(L,schedule_timer);lua_setfield(L,-2,"_schedule_timer");
@@ -1476,7 +1482,7 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
         lua_call(L, 0, 0);
         const char* entities = R"lua(
             local register_rpc = runtime.rpc
-            runtime.rpc = function(route, handler, kind, initial, policy)
+            runtime._rpc = function(route, handler, kind, initial, policy)
                 if type(handler) == 'table' then
                     local definition = handler
                     assert(kind == nil and initial == nil and policy == nil and definition.access == nil, 'invalid stateless RPC definition')
@@ -1490,14 +1496,19 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
                 end
                 return register_rpc(route, handler, kind, initial, policy)
             end
-            runtime.entity_rpc = function(kind, method, handler)
-                assert(type(method) == 'string' and #method > 0 and #method <= 127 and not method:find('[%.%z]'), 'invalid entity method')
-                runtime.rpc(kind .. '.' .. method, handler, kind)
+            runtime.legacy_rpc = function(...)
+                runtime._enable_legacy_routes()
+                return runtime._rpc(...)
             end
-            runtime.entity = function(kind, definition)
+            runtime.rpc = nil
+            runtime.legacy_entity_rpc = function(kind, method, handler)
+                assert(type(method) == 'string' and #method > 0 and #method <= 127 and not method:find('[%.%z]'), 'invalid entity method')
+                runtime.legacy_rpc(kind .. '.' .. method, handler, kind)
+            end
+            runtime._entity = function(kind, definition)
                 assert(type(definition) == 'table' and type(definition.methods) == 'table', 'entity definition required')
                 assert(not (definition.attrs and definition.initial), 'attribute entities cannot declare opaque initial state')
-                assert(definition.owner == nil or (definition.attrs and definition.owner == 'id'), 'unsupported entity owner declaration')
+                assert(definition.owner == nil or (definition.attrs and definition.owner == 'legacy_id'), 'unsupported entity owner declaration')
                 local initial = definition.attrs and (definition.model and runtime._model_publish(kind) or runtime._attributes_define(kind, definition.attrs, definition.owner)) or definition.initial or ''
                 local register = function(method, handler)
                     local policy
@@ -1514,7 +1525,7 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
                     end
                     assert(type(method) == 'string' and #method > 0 and #method <= 127 and not method:find('[%.%z]'), 'invalid entity method')
                     assert(type(handler) == 'function', 'entity handler required')
-                    runtime.rpc(kind .. '.' .. method, function(id, data, ctx)
+                    runtime._rpc(kind .. '.' .. method, function(id, data, ctx)
                         assert(data:sub(1, 4) == 'FSS1', 'invalid state boundary')
                         local size, offset = string.unpack('>I4', data, 5)
                         assert(#data >= offset + size - 1, 'truncated state')
@@ -1552,6 +1563,10 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
                 end
                 if definition.timer then register('$timer',{callers={'server'},handler=definition.timer}) end
                 if definition.tick then register('$tick', definition.attrs and {callers={'server'}, handler=definition.tick} or definition.tick) end
+            end
+            runtime.legacy_entity = function(...)
+                runtime._enable_legacy_routes()
+                return runtime._entity(...)
             end
             runtime.entity_call = function(kind, id, method, payload, timeout, request_id)
                 return runtime.entity_request(0, kind, id, method, payload, timeout, request_id)
@@ -1716,7 +1731,7 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
                         completion({status,std::move(result)});
                     },request.timeout);
             } else if(request.kind==Await::Kind::write) host->write_attributes(request.subscription,std::move(request.values),std::move(completion),std::move(request.options),request.timeout);
-            else if(request.kind==Await::Kind::spawn) host->spawn_entity(std::move(request.route),std::move(request.data),std::move(request.values),std::move(completion));
+            else if(request.kind==Await::Kind::spawn) host->legacy_spawn_entity(std::move(request.route),std::move(request.data),std::move(request.values),std::move(completion));
             else if(request.kind==Await::Kind::create) host->create_entity(std::move(request.route),std::move(request.values),std::move(request.creation),std::move(completion));
             else if(request.kind==Await::Kind::bind_owner)host->bind_entity_owner(std::move(request.route),std::move(request.data),std::move(request.creation.owner),std::move(completion));
             else if(request.kind==Await::Kind::send) host->send_entity(std::move(request.source_type),std::move(request.source_id),std::move(request.route),std::move(request.entity_id),std::move(request.target),std::move(request.data),std::move(completion));
@@ -1816,7 +1831,7 @@ void LuaEngine::load(std::string_view source, const std::string& name) {
                 else owner.host->bind_context(route, policy, std::move(handler));
             } else {
                 Handler legacy = [handler = std::move(handler)](std::string data, Reply reply) { handler({}, std::move(data), std::move(reply)); };
-                if (managed != owner.stateful_routes.end()) owner.host->bind_stateful(route, kind, managed->second, std::move(legacy));
+                if (managed != owner.stateful_routes.end()) owner.host->bind_legacy_stateful(route, kind, managed->second, std::move(legacy));
                 else owner.host->bind(route, std::move(legacy));
             }
         }

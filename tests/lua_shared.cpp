@@ -8,7 +8,7 @@
 using namespace std::chrono_literals;
 #define CHECK(x) do { if(!(x)) throw std::runtime_error(std::string(__FILE__)+':'+std::to_string(__LINE__)+" " #x); } while(false)
 const char* shared=R"(
-    local Circle=fsnet.Entity:extend('Circle',{owner='id'})
+    local Circle=fsnet.Entity:extend('Circle',{owner='legacy_id'})
     Circle:attr('hp',{type='int32',default=100,authority='driver',client='r',sync='observers'})
     Circle:attr('label',{type='string',default='initial',client='rw',sync='owner'})
     Circle:attr('secret',{type='int32',default=42,client='none',sync='none'})
@@ -51,7 +51,7 @@ int main() {
             local_circle:close()
             assert(not pcall(function() return local_circle.hp end))
             runtime.start(function()
-                local circle=Circle:watch('alice')
+                local circle=Circle:legacy_watch('alice')
                 assert(circle.hp==100 and circle.mode=='replica' and circle.type=='Circle')
                 assert(not pcall(function() return circle.secret end))
                 assert(not pcall(function() circle.hp=0 end))

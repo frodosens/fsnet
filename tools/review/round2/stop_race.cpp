@@ -27,7 +27,7 @@ struct Blocking : fsnet::Storage {
 int main() {
  auto p=std::make_shared<Host>(); auto db=std::make_shared<Blocking>();
  fsnet::EntityScriptHost host(p, db, "owner/boot");
- host.bind_stateful("Counter.add", "Counter", "0", [](std::string, fsnet::Reply r){r({fsnet::Status::ok,""});});
+ host.bind_legacy_stateful("Counter.add", "Counter", "0", [](std::string, fsnet::Reply r){r({fsnet::Status::ok,""});});
  bool replied=false;
  p->handlers.at("Counter.add")(fsnet::entity_message("1", ""),[&](auto){replied=true;});
  host.poll();

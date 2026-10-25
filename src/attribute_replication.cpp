@@ -47,7 +47,7 @@ struct AttributeReplication::Impl : std::enable_shared_from_this<Impl> {
         auto authenticated=node.identity(sub.identity.peer);
         if(!authenticated || authenticated->caller!=Caller::client || authenticated->subject!=sub.identity.subject || authenticated->connection!=sub.identity.connection || !sub.identity.live())
             throw std::runtime_error("connection identity changed");
-        auto owner=host->owner_subject(sub.type,sub.entity);
+        auto owner=host->owner_binding(sub.type,sub.entity);
         bool observes=sub.automatic; if(observer) { auto check=observer; observes=check(sub.identity,sub.type,sub.entity) || observes; }
         if(stopped || (!sub.identity.owns(owner) && !observes) || (!sub.identity.connection && sub.identity.subject.empty())) throw std::runtime_error("subscription denied");
         return {owner,std::to_string(owner.size())+":"+owner+(observes?"1":"0"),observes};
@@ -114,7 +114,7 @@ struct AttributeReplication::Impl : std::enable_shared_from_this<Impl> {
                     if(count>self->limits.image_bytes-self->bytes) return self->remove(id,Status::overloaded,false);
                     auto response=encode_replication_packet(id,sub->type,sub->entity,Status::ok,&next,static_cast<std::uint32_t>(self->limits.lease.count()));
                     auto handle=self->host->handle(sub->type,sub->entity); if(!handle) return self->remove(id,Status::rejected,false);
-                    sub->owned=sub->identity.owns(self->host->owner_subject(sub->type,sub->entity));
+                    sub->owned=sub->identity.owns(self->host->owner_binding(sub->type,sub->entity));
                     sub->generation=handle->generation; sub->permission=std::move(permission);
                     self->bytes+=count; sub->bytes=count; sub->last=std::move(next); sub->expires=Clock::now()+self->limits.lease;
                     auto reply=std::exchange(sub->pending,{}); reply({Status::ok,std::move(response)});
@@ -164,7 +164,7 @@ struct AttributeReplication::Impl : std::enable_shared_from_this<Impl> {
         if(!target || target->pending) return reply({Status::not_found,{}});
         try { (void)permission(*target); }
         catch(...) { return reply({Status::rejected,{}}); }
-        if(action==3 && !who->owns(host->owner_subject(type,entity))) return reply({Status::rejected,{}});
+        if(action==3 && !who->owns(host->owner_binding(type,entity))) return reply({Status::rejected,{}});
         auto set_control=[&](const std::shared_ptr<Subscription>& sub,bool value) {
             if(sub->controlled==value) return true;
             sub->controlled=value;
@@ -231,7 +231,7 @@ struct AttributeReplication::Impl : std::enable_shared_from_this<Impl> {
                 if(permission!=sub->permission) { remove(id,Status::rejected); continue; }
                 auto update=attribute_delta(sub->last,next);
                 if(!update.snapshot && update.values.empty() && update.patches.empty() &&
-                   (next.revision==sub->last.revision || !sub->identity.owns(host->owner_subject(sub->type,sub->entity)))) continue;
+                   (next.revision==sub->last.revision || !sub->identity.owns(host->owner_binding(sub->type,sub->entity)))) continue;
                 // Owners need even an empty delta to advance their optimistic-write
                 // revision after server-private changes. Observers may skip it.
                 auto count=attribute_wire_size(next)+attribute_image_bytes(next.values);

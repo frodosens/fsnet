@@ -20,7 +20,7 @@ int main(){try{
     auto peer_a=a.connect("127.0.0.1",port),peer_b=b.connect("127.0.0.1",port);
     std::uint64_t frontend=0;
     front.identify([&](std::uint64_t peer,const std::string&)->std::optional<CallIdentity>{frontend=peer;return CallIdentity{Caller::client,"same-account"};});
-    ClientGateway gateway(front,back,db,{{"server","127.0.0.1",port,{"Actor"}}});gateway.bind_account("who","Actor");
+    ClientGateway gateway(front,back,db,{{"server","127.0.0.1",port,{"Actor"}}});gateway.bind_legacy_account("who","Actor");
     auto gateway_port=front.listen("127.0.0.1",0);
     auto pump=[&]{server.poll();a.poll();b.poll();front.poll();back.poll();host->poll();delegation.poll();gateway.poll();};
     auto until=[&](auto done){auto end=std::chrono::steady_clock::now()+3s;while(!done()){pump();CHECK(std::chrono::steady_clock::now()<end);std::this_thread::sleep_for(1ms);}};

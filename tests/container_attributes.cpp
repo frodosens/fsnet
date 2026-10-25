@@ -11,7 +11,7 @@ template<class F> void denied(F f) { bool caught=false; try { f(); } catch(const
 const char* model=R"(
     local Item=fsnet.struct('Item',{id='string',count='int32'})
     local Task=fsnet.struct('Task',{progress='int32',done='bool'})
-    local E=fsnet.Entity:extend('Containers',{owner='id'})
+    local E=fsnet.Entity:extend('Containers',{owner='legacy_id'})
     E:attr('items',{type=fsnet.list(Item,4),authority='driver',client='rw',sync='observers'})
     E:attr('tasks',{type=fsnet.map(Task,4),authority='driver',client='rw',sync='observers'})
     E:attr('tags',{type=fsnet.set('string',4),authority='driver',client='rw',sync='observers'})
@@ -126,9 +126,9 @@ int main() {
             Invalid:attr('bad',{type=fsnet.set(Item,4)})
             assert(not pcall(Invalid.define,Invalid))
             runtime.start(function()
-                local replica=E:watch('alice'); assert(#replica.items==0 and #replica.tasks==0)
+                local replica=E:legacy_watch('alice'); assert(#replica.items==0 and #replica.tasks==0)
                 runtime.request(peer,'gate','')
-                local ref=E:ref('alice'); ref:add('')
+                local ref=E:legacy_ref('alice'); ref:add('')
                 assert(#replica.items==2 and replica.tasks['daily.1'].progress==0 and #replica.tags==1)
                 while runtime.request(peer,'status','')~='1' do runtime.sleep(1) end
                 assert(not pcall(ref.fail,ref,'')); assert(#replica.items==2)
@@ -182,7 +182,7 @@ int main() {
         auto b=observer.connect("127.0.0.1",port); bh=std::make_shared<fsnet::ClientScriptHost>(observer,b); be=std::make_unique<fsnet::LuaEngine>(bh);
         be->load("local peer="+std::to_string(b)+"\n"+model+R"(
             E:define(); runtime.start(function()
-                local replica=E:watch('alice')
+                local replica=E:legacy_watch('alice')
                 assert(not pcall(function() return #replica.private_tasks end))
                 assert(not pcall(function() replica.items:add({id='denied',count=1}) end))
                 assert(not pcall(function() replica:batch(function(draft) draft.items:add({id='denied',count=1}) end) end))

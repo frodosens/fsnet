@@ -22,15 +22,16 @@ struct EntityPresence {
 class ScriptHost {
 public:
     virtual ~ScriptHost() = default;
+    virtual void enable_legacy_routes() {} // explicit fixture/compatibility adapter
     virtual bool has_route(const std::string& route) const = 0;
     virtual void bind(std::string route, Handler handler) = 0;
-    virtual void bind_stateful(std::string, std::string, std::string, Handler) {
+    virtual void bind_legacy_stateful(std::string, std::string, std::string, Handler) {
         throw std::logic_error("stateful entities require EntityScriptHost");
     }
     virtual void define_schema(std::string, EntitySchema) {
         throw std::logic_error("entity schemas require an entity host");
     }
-    virtual void spawn_entity(std::string, std::string, EntityAttributes::Values, Reply reply) { reply({Status::rejected,{}}); }
+    virtual void legacy_spawn_entity(std::string, std::string, EntityAttributes::Values, Reply reply) { reply({Status::rejected,{}}); }
     virtual void create_entity(std::string,EntityAttributes::Values,EntitySpawnOptions,Reply reply) {reply({Status::rejected,{}});}
     virtual void bind_entity_owner(std::string,std::string,ConnectionRef,Reply reply) {reply({Status::rejected,{}});}
     virtual std::string schedule_timer(const std::string&,const std::string&,EntityTimerSpec){throw std::logic_error("timers require a managed durable entity");}

@@ -59,13 +59,13 @@ fsnet::Result invoke(fsnet::EntityScriptHost& runtime, Host& host, const std::st
     until(runtime, [&] { return result.has_value(); }); return *result;
 }
 void bind(fsnet::EntityScriptHost& runtime) {
-    runtime.bind_stateful("counter.append", "counter", "initial", [](std::string input, fsnet::Reply done) {
+    runtime.bind_legacy_stateful("counter.append", "counter", "initial", [](std::string input, fsnet::Reply done) {
         auto entity = fsnet::parse_entity_message(input); CHECK(entity);
         auto state = fsnet::parse_state_message(entity->payload); CHECK(state);
         auto next = state->state + state->payload;
         done({fsnet::Status::ok, fsnet::state_message(next, next)});
     });
-    runtime.bind_stateful("counter.fail", "counter", "initial", [](std::string, fsnet::Reply done) { done({fsnet::Status::internal, {}}); });
+    runtime.bind_legacy_stateful("counter.fail", "counter", "initial", [](std::string, fsnet::Reply done) { done({fsnet::Status::internal, {}}); });
 }
 void ownership() {
     auto db = std::make_shared<NoTransactions>();
@@ -77,7 +77,7 @@ void ownership() {
     CHECK(invoke(b, *parent_b, "counter.append", "42", "wrong").status == fsnet::Status::rejected);
     CHECK(invoke(a, *parent_a, "counter.fail", "42").status == fsnet::Status::internal);
     fsnet::Reply suspended;
-    a.bind_stateful("counter.wait", "counter", "initial", [&](std::string, fsnet::Reply done) { suspended = std::move(done); });
+    a.bind_legacy_stateful("counter.wait", "counter", "initial", [&](std::string, fsnet::Reply done) { suspended = std::move(done); });
     std::optional<fsnet::Result> stale;
     parent_a->handlers.at("counter.wait")(fsnet::entity_message("42", ""), [&](fsnet::Result result) { stale = std::move(result); });
     until(a, [&] { return bool(suspended); });
@@ -101,7 +101,7 @@ void fencing() {
     auto db = std::make_shared<NoTransactions>(); auto parent = std::make_shared<Host>();
     fsnet::EntityScriptHost runtime(parent, db, "owner");
     fsnet::Reply finish;
-    runtime.bind_stateful("counter.wait", "counter", "initial", [&](std::string, fsnet::Reply done) { finish = std::move(done); });
+    runtime.bind_legacy_stateful("counter.wait", "counter", "initial", [&](std::string, fsnet::Reply done) { finish = std::move(done); });
     std::optional<fsnet::Result> result;
     parent->handlers.at("counter.wait")(fsnet::entity_message("42", ""), [&](fsnet::Result value) { result = std::move(value); });
     until(runtime, [&] { return bool(finish); });
@@ -151,7 +151,7 @@ void ticks_and_limits() {
     limits.entities = 1; limits.requests = 1; limits.tick_interval = 2ms;
     fsnet::EntityScriptHost runtime(parent, fsnet::memory_database(), "owner", limits);
     bind(runtime);
-    runtime.bind_stateful("counter.$tick", "counter", "initial", [](std::string input, fsnet::Reply done) {
+    runtime.bind_legacy_stateful("counter.$tick", "counter", "initial", [](std::string input, fsnet::Reply done) {
         auto message = fsnet::parse_entity_message(input); CHECK(message);
         auto state = fsnet::parse_state_message(message->payload); CHECK(state && state->payload == "2");
         done({fsnet::Status::ok, fsnet::state_message(state->state + ".", "")});
@@ -168,11 +168,11 @@ void replay_activation() {
     auto db=fsnet::memory_database(); auto pa=std::make_shared<Host>(),pb=std::make_shared<Host>();
     fsnet::EntityScriptHost a(pa,db,"a"),b(pb,db,"b"); unsigned activations=0;
     auto bind_actor=[&](auto& host) {
-        host.bind_stateful("actor.$activate","actor","",[&](std::string input,fsnet::Reply reply) {
+        host.bind_legacy_stateful("actor.$activate","actor","",[&](std::string input,fsnet::Reply reply) {
             ++activations;auto state=fsnet::parse_state_message(fsnet::parse_entity_message(input)->payload);
             reply({fsnet::Status::ok,fsnet::state_message(state->state,"")});
         });
-        host.bind_stateful("actor.read","actor","",[](std::string input,fsnet::Reply reply) {
+        host.bind_legacy_stateful("actor.read","actor","",[](std::string input,fsnet::Reply reply) {
             auto state=fsnet::parse_state_message(fsnet::parse_entity_message(input)->payload);
             reply({fsnet::Status::ok,fsnet::state_message(state->state,"answer")});
         });
@@ -189,6 +189,7 @@ void replay_activation() {
 }
 void policy_recheck() {
     auto db=std::make_shared<UncertainStorage>();auto parent=std::make_shared<Host>();fsnet::EntityScriptHost host(parent,db,"owner");
+    host.enable_legacy_routes();
     host.enable_delivery(true);fsnet::EntitySchema schema;host.define_schema("Target",schema);
     unsigned executed=0;fsnet::Reply suspended;
     host.bind_stateful_context("Target.reward","Target",fsnet::encode_attributes({0,0,true,{}}),{false,true,false},
@@ -246,7 +247,7 @@ void policy_recheck() {
 void owner_recheck() {
     auto storage=std::make_shared<NoTransactions>(); auto parent=std::make_shared<Host>();
     fsnet::EntityScriptHost runtime(parent,storage,"context/boot"); std::string owner="alice";
-    runtime.ownership([&](const std::string&,const std::string&) { return owner; });
+    runtime.legacy_ownership([&](const std::string&,const std::string&) { return owner; });
     fsnet::Reply suspended;
     runtime.bind_stateful_context("counter.wait","counter","initial",{true,false,true},
         [&](const fsnet::CallIdentity&,std::string,fsnet::Reply reply) { suspended=std::move(reply); });

@@ -1,4 +1,4 @@
-# 客户端SDK示例
+# 客户端与实体SDK示例
 
 先看 [客户端SDK](../docs/CLIENT_SDK.md)。此目录保留应用接入示例；性能程序在
 [benchmarks](../benchmarks/README.md)，兼容脚本断言在 [tests/fixtures](../tests/fixtures/README.md)。
@@ -19,7 +19,7 @@ python3 examples/run.py timers
 ```
 
 其他构建位置使用 `--build /path/to/build`。启动器自动组合共享脚本，启动临时loopback服务端
-和客户端，退出后清理进程/脚本；不再需要手工cat多个文件。
+和客户端，等待启动入口实体后把 EntityId 注入客户端配置；退出后清理进程/脚本。
 scene/attributes 演示固定认证账号alice，使用临时token和内存存储，不继承生产TLS/存储设置。
 timers 使用临时文件存储和 timer-demo 演示身份，自动强制终止并重启服务端以展示持久恢复。
 它是单账号本机演示；真实账号由证书/可信登录系统映射，不能用展示名称替代认证。
@@ -33,7 +33,7 @@ timers 使用临时文件存储和 timer-demo 演示身份，自动强制终止�
 | [server/main.cpp](server/main.cpp) | fsnet-script开发宿主；通用机制配置，玩法全部来自Lua |
 | [server/service.cpp](server/service.cpp) | fsnet-service生产接入启动器：mTLS、账号委托、目录、指标和drain |
 | [scene/shared.lua](scene/shared.lua) | 共享Player类型、vec3位置、创建/激活、输入确认和可重放移动规则 |
-| [scene/server.lua](scene/server.lua) | 登录时spawn/restore、show/possess、同owner内可见性和登出 |
+| [scene/server.lua](scene/server.lua) | SceneHub 实体登录、全局 spawn/bind_owner、show/possess、可见性和登出 |
 | [scene/client.lua](scene/client.lua) | 自动LocalPlayer/RemotePlayer、镜头、预测/校正、效果去重、三次移动 |
 | [attributes/shared.lua](attributes/shared.lua) | vec3、mat4x4、嵌套结构、list/map/set声明与服务器校验 |
 | [attributes/client.lua](attributes/client.lua) | 整值/字段赋值、batch、拒写回滚、容器新增/修改/删除 |
@@ -70,4 +70,4 @@ CMake链接 `fsnet::client`，需要Lua时再链接 `fsnet::lua`。应用创建C
 `entities/shared.lua`、`entities/server.lua` 和 `entities/client.lua` 展示
 Manager → LoginEntity → Player → 地图 Node 的新模型。入口配置保存 Manager 的 EntityId；
 客户端通过 `fsnet.ref(id)` 调用，服务端通过 `Class:spawn` 自动分配全局 ID。
-创建、迁移、账号归属与稳定 ID 的合同及两节点运行命令见 [实施文档](../docs/GLOBAL_ENTITIES.md)。
+创建、迁移、逻辑连接授权与稳定 ID 的合同及两节点运行命令见 [实施文档](../docs/GLOBAL_ENTITIES.md)。

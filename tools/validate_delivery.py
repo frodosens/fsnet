@@ -74,7 +74,7 @@ with tempfile.TemporaryDirectory(prefix='fsnet-delivery-') as directory:
     (root/'gateways.tsv').write_text(f'{fingerprint("gateway")} gateway\n')
     (root/'owners.tsv').write_text(f'{fingerprint("ownera")} ownera\n{fingerprint("ownerb")} ownerb\n')
     (root/'clients.tsv').write_text(f'{fingerprint("alice")} alice\n')
-    (root/'routes.tsv').write_text('account login Actor\naccount travel Actor\naccount publish Actor\nentity Actor move\n')
+    (root/'routes.tsv').write_text('legacy-account login Actor\nlegacy-account travel Actor\nlegacy-account publish Actor\nlegacy-entity Actor move\n')
     base=dict(os.environ,FSNET_CLUSTER_TOKEN='',FSNET_STORAGE_URI='file:'+str(root/'state'),FSNET_BIND_ADDRESS='127.0.0.1',FSNET_ENTITY_LEASE_MS='2000')
     for key in ('FSNET_DATABASE_PATH','FSNET_TLS_CA','FSNET_TLS_CERTIFICATE','FSNET_TLS_KEY','FSNET_TLS_PEER_NAME','FSNET_METRICS_FILE','FSNET_ENTITY_ENDPOINTS','FSNET_OWNER_PINS'): base.pop(key,None)
     def environment(name,peer='',metric=None):
@@ -82,7 +82,7 @@ with tempfile.TemporaryDirectory(prefix='fsnet-delivery-') as directory:
         if metric: value['FSNET_METRICS_FILE']=str(metric)
         return value
     shared="""
-local Actor=fsnet.Entity:extend('Actor',{owner='id'})
+local Actor=fsnet.Entity:extend('Actor',{owner='legacy_id'})
 Actor:attr('position',{type='vec3',client='rw',sync='observers'})
 Actor:attr('payload',{type='string',default=string.rep('p',1024),sync='owner'})
 Actor:attr('activations',{type='int32',default=0,sync='owner'})
@@ -100,16 +100,16 @@ Actor:define()
     server_script=root/'server.lua'
     server_script.write_text(shared+"""
 Actor:register()
-local Journal=fsnet.Entity:extend('Journal',{owner='id'})
+local Journal=fsnet.Entity:extend('Journal',{owner='legacy_id'})
 Journal:attr('ticket',{type='string',default='',sync='none'})
-function Journal:on_create() self.ticket=Actor:ref(self.id):send('award','5') end
+function Journal:on_create() self.ticket=Actor:legacy_ref(self.id):send('award','5') end
 Journal:register()
-runtime.rpc('publish',{callers={'client'},handler=function(ctx) Journal:spawn_or_restore(ctx.subject);return 'accepted' end})
-runtime.rpc('login',{callers={'client'},handler=function(ctx,name)
-    local actor=Actor:spawn_or_restore(ctx.subject)
+runtime.legacy_rpc('publish',{callers={'client'},handler=function(ctx) Journal:legacy_spawn_or_restore(ctx.subject);return 'accepted' end})
+runtime.legacy_rpc('login',{callers={'client'},handler=function(ctx,name)
+    local actor=Actor:legacy_spawn_or_restore(ctx.subject)
     actor:show_to(ctx.peer);actor:possess(ctx.peer);return actor.id
 end})
-runtime.rpc('travel',{callers={'client'},handler=function(ctx,target)
+runtime.legacy_rpc('travel',{callers={'client'},handler=function(ctx,target)
     assert(target=='ownera' or target=='ownerb')
     return tostring(Actor:transfer(ctx.subject,target))
 end})
@@ -130,7 +130,7 @@ end})
         gateway_metric=root/'gateway.json';metrics_paths.append(gateway_metric)
         gateway=subprocess.Popen([str(args.service),'gateway','0',str(root/'endpoints.tsv'),str(root/'clients.tsv'),str(root/'routes.tsv')],env=environment('gateway',metric=gateway_metric),stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True)
         processes.append(gateway);text=line(gateway);assert text.startswith('listening '),text;gateway_port=int(text.split()[1])
-        denied=root/'denied.lua';denied.write_text("runtime.start(function() runtime.server_request('login',''); print('UNEXPECTED') end)")
+        denied=root/'denied.lua';denied.write_text("runtime.start(function() runtime.legacy_server_request('login',''); print('UNEXPECTED') end)")
         for identity in ('rogue','ownera'):
             result=run_client(denied,environment(identity,'gateway.fsnet'));assert result.returncode!=0 and 'UNEXPECTED' not in result.stdout,(identity,result.stdout,result.stderr)
         presentation="""
@@ -143,10 +143,10 @@ fsnet.entities:start()
         client_script=root/'client.lua'
         client_script.write_text(shared+presentation+"""
 runtime.start(function()
-    local id=runtime.server_request('login','Alice')
+    local id=runtime.legacy_server_request('login','Alice')
     while not fsnet.entities:get('Actor',id) do runtime.sleep(1) end
     local actor=fsnet.entities:get('Actor',id).entity
-    local ref=Actor:ref(id)
+    local ref=Actor:legacy_ref(id)
     ref:move('7',{request_id='checkpoint-move',timeout_ms=3000})
     assert(actor.position.x==7 and actor.created==1)
     print('checkpoint',actor.position.x)
@@ -186,7 +186,7 @@ end)
         handoff=root/'handoff.lua'
         handoff.write_text(shared+presentation+"""
 runtime.start(function()
-    local id=runtime.server_request('login','Alice')
+    local id=runtime.legacy_server_request('login','Alice')
     while not fsnet.entities:get('Actor',id) do runtime.sleep(1) end
     local actor=fsnet.entities:get('Actor',id).entity
     local previous=actor.activations;local value=actor.position.x
@@ -209,29 +209,29 @@ end)
         directed=root/'directed.lua'
         directed.write_text(shared+presentation+"""
 runtime.start(function()
-    local id=runtime.server_request('login','Alice')
+    local id=runtime.legacy_server_request('login','Alice')
     while not fsnet.entities:get('Actor',id) do runtime.sleep(1) end
     local actor=fsnet.entities:get('Actor',id).entity
     local previous=actor.activations;local value=actor.position.x
     local target='ownerb'
-    local result=runtime.server_request('travel',target)
+    local result=runtime.legacy_server_request('travel',target)
     if tonumber(result)~=runtime.status.ok then
-        target='ownera';result=runtime.server_request('travel',target)
+        target='ownera';result=runtime.legacy_server_request('travel',target)
     end
     assert(tonumber(result)==runtime.status.ok)
     while actor.activations<=previous do runtime.sleep(5) end
     assert(fsnet.entities:get('Actor',id).entity==actor and entered==1 and actor.created==1 and actor.position.x==value)
-    Actor:ref(id):move('1',{request_id='after-directed',timeout_ms=3000})
+    Actor:legacy_ref(id):move('1',{request_id='after-directed',timeout_ms=3000})
     assert(actor.position.x==value+1)
     previous=actor.activations
-    result=runtime.server_request('travel',target=='ownerb' and 'ownera' or 'ownerb')
+    result=runtime.legacy_server_request('travel',target=='ownerb' and 'ownera' or 'ownerb')
     assert(tonumber(result)==runtime.status.ok)
     while actor.activations<=previous do runtime.sleep(5) end
     assert(fsnet.entities:get('Actor',id).entity==actor and entered==1 and actor.position.x==value+1)
-    assert(runtime.server_request('publish','')=='accepted')
+    assert(runtime.legacy_server_request('publish','')=='accepted')
     while actor.credits<5 do runtime.sleep(5) end
     assert(actor.credits==5)
-    assert(runtime.server_request('publish','')=='accepted')
+    assert(runtime.legacy_server_request('publish','')=='accepted')
     assert(actor.credits==5) -- source creation marker prevents a second command
     print('durable_tls_complete')
     print('directed_complete')

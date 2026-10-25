@@ -9,7 +9,7 @@ int main(){try{
     fsnet::Node server("sdk-test");
     server.identify([](auto,const auto&){return std::optional(fsnet::CallIdentity{fsnet::Caller::client,"alice"});});
     auto host=std::make_shared<fsnet::EntityScriptHost>(std::make_shared<fsnet::NodeScriptHost>(server),fsnet::memory_database(),"owner/sdk");
-    fsnet::EntitySchema schema;schema.owner_from_id=true;
+    fsnet::EntitySchema schema;schema.legacy_owner_from_id=true;
     fsnet::AttributeDefinition text{fsnet::AttributeType::string,std::string("initial")};text.client=fsnet::Access::read_write;text.visibility=fsnet::Visibility::observers;
     schema.attributes.emplace("text",text);host->define_schema("Actor",schema);
     fsnet::EntityAttributes defaults(schema,"");auto initial=fsnet::encode_attributes({0,0,true,defaults.persistent()});
@@ -27,7 +27,7 @@ int main(){try{
     std::uint64_t physical=0;
     server.bind_rpc("login",{true,false,false},[&](const auto& who,std::string,fsnet::Reply reply){
         physical=who.peer;
-        host->spawn_entity("Actor",who.subject,{{"text",std::string("ready")}},[&,who,reply=std::move(reply)](auto result) mutable {
+        host->legacy_spawn_entity("Actor",who.subject,{{"text",std::string("ready")}},[&,who,reply=std::move(reply)](auto result) mutable {
             if(result.status!=fsnet::Status::ok)return reply(std::move(result));
             host->entity_visibility(who.peer,"Actor",who.subject,1,[&,who,reply=std::move(reply)](auto result) mutable {
                 if(result.status!=fsnet::Status::ok)return reply(std::move(result));
@@ -59,7 +59,8 @@ int main(){try{
     client->write(owned.handle,{{"text",std::string("changed")}},[&](auto r){reply=std::move(r);});
     until([&]{auto view=client->entity(owned.handle);return reply && view && std::get<std::string>(view->confirmed->values.at("text"))=="changed";});
     CHECK(reply->status==fsnet::Status::ok && std::get<std::string>(old->values.at("text"))=="ready");
-    reply.reset();client->call(owned.key,"echo",std::string("a\0b",3),[&](auto r){reply=std::move(r);},{"stable-id",2s});
+    reply.reset();client->call(owned.key,"echo","",[&](auto r){reply=std::move(r);});CHECK(reply && reply->status==fsnet::Status::rejected);
+    reply.reset();client->legacy_call(owned.key,"echo",std::string("a\0b",3),[&](auto r){reply=std::move(r);},{"stable-id",2s});
     until([&]{return reply.has_value();});CHECK(reply->data==std::string("a\0b",3));
     fsnet::ClientEntityHandle manual;
     client->watch({"Actor","bob"},[&](auto status,auto handle){CHECK(status==fsnet::Status::ok);manual=handle;CHECK(client->entity(handle));});

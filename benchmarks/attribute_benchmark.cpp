@@ -23,7 +23,7 @@ void result(const std::string& name,std::size_t n,Clock::time_point begin,std::s
     std::cout<<"}\n";
 }
 fsnet::EntitySchema schema() {
-    fsnet::EntitySchema s; s.owner_from_id=true;
+    fsnet::EntitySchema s; s.legacy_owner_from_id=true;
     fsnet::AttributeDefinition vec{fsnet::AttributeType::structure,fsnet::AttributeStruct{{"x",0.0},{"y",0.0},{"z",0.0}}};
     for(auto key:{"x","y","z"}) vec.fields.emplace(key,fsnet::AttributeDefinition{fsnet::AttributeType::number,0.0});
     vec.visibility=fsnet::Visibility::observers; vec.driver_authority=true; s.attributes.emplace("position",vec);
@@ -42,7 +42,7 @@ fsnet::EntitySchema schema() {
 }
 std::string lua_model() {
     std::string s=R"(
-        local E=fsnet.Entity:extend('Perf',{owner='id'})
+        local E=fsnet.Entity:extend('Perf',{owner='legacy_id'})
         E:attr('position',{type='vec3',authority='driver',sync='observers'})
         E:attr('matrix',{type='mat4x4',sync='observers'})
     )";
@@ -82,7 +82,7 @@ void lua(std::size_t n) {
         std::string body=std::string(mode)=="nested_read"?"local sum=0; for i=1,n do sum=sum+entity.position.x end; assert(sum==0)":
             std::string(mode)=="whole_write"?"for i=1,n do entity.position={x=i,y=0,z=0} end; assert(entity.position.x==n)":
             "for i=1,n do entity.position.x=i end; assert(entity.position.x==n)";
-        engine.load(lua_model()+"E:define(); local entity=E:spawn_local(); runtime.rpc('run',function(payload) local n=tonumber(payload); "+body+"; return 'done' end)");
+        engine.load(lua_model()+"E:define(); local entity=E:spawn_local(); runtime.legacy_rpc('run',function(payload) local n=tonumber(payload); "+body+"; return 'done' end)");
         std::optional<fsnet::Result> reply; auto begin=Clock::now();
         host->routes.at("run")(std::to_string(n),[&](fsnet::Result value) { reply=std::move(value); });
         while(!reply) { engine.poll(); require(Clock::now()-begin<30s,"Lua benchmark deadline"); }

@@ -9,7 +9,7 @@
 using namespace std::chrono_literals;
 #define CHECK(c) do { if (!(c)) throw std::runtime_error(std::string(__FILE__) + ":" + std::to_string(__LINE__) + " " #c); } while (false)
 void bind(fsnet::EntityScriptHost& host) {
-    host.bind_stateful("counter.append", "counter", "", [](std::string input, fsnet::Reply reply) {
+    host.bind_legacy_stateful("counter.append", "counter", "", [](std::string input, fsnet::Reply reply) {
         auto entity = fsnet::parse_entity_message(input); CHECK(entity);
         auto state = fsnet::parse_state_message(entity->payload); CHECK(state);
         auto next = state->state + state->payload;
@@ -80,7 +80,7 @@ void failover() {
     auto pump = [&] { a.poll(); b.poll(); client.poll(); ha.poll(); hb.poll(); router.poll(); };
     auto call = [&](const char* data, const char* request) {
         std::optional<fsnet::Result> result;
-        router.call("counter", "42", "append", data, 2s, [&](fsnet::Result value) { result = std::move(value); }, request);
+        router.legacy_call("counter", "42", "append", data, 2s, [&](fsnet::Result value) { result = std::move(value); }, request);
         until(pump, [&] { return result.has_value(); }); return *result;
     };
     CHECK(call("a", "one").data == "a"); CHECK(call("a", "one").data == "a");
@@ -91,7 +91,7 @@ void failover() {
     CHECK(call("b", "two").data == "ab");
     CHECK(router.pending() == 0);
     std::optional<fsnet::Result> cancelled;
-    router.call("counter", "new", "append", "c", 1s, [&](fsnet::Result result) { cancelled = std::move(result); }, "cancel");
+    router.legacy_call("counter", "new", "append", "c", 1s, [&](fsnet::Result result) { cancelled = std::move(result); }, "cancel");
     router.stop(); CHECK(cancelled && cancelled->status == fsnet::Status::disconnected);
     std::cout << "PASS entity routing: ownership lookup, token replay, dead-node backoff, lease takeover and cancellation\n";
 }
@@ -121,7 +121,7 @@ void lost_reply() {
     fsnet::EntityScriptHost host(parent, db, "server/boot-1"); bind(host);
     fsnet::EntityRouter router(client, db, {{"server", "127.0.0.1", server.listen("127.0.0.1", 0), {"counter"}}});
     std::optional<fsnet::Result> result;
-    router.call("counter", "42", "append", "once", 3s, [&](fsnet::Result value) { result = std::move(value); }, "request-1");
+    router.legacy_call("counter", "42", "append", "once", 3s, [&](fsnet::Result value) { result = std::move(value); }, "request-1");
     until([&] { server.poll(); client.poll(); host.poll(); router.poll(); }, [&] { return result.has_value(); });
     CHECK(result->status == fsnet::Status::ok && result->data == "once" && host.stats().replayed == 1);
     std::cout << "PASS entity retry: lost acknowledgement replays committed response without repeating the state transition\n";

@@ -22,7 +22,7 @@ struct Host:fsnet::ScriptHost {
 void watch_ownership() {
     const char* waiting=R"(
         local C=fsnet.Entity:extend('Watch'); C:attr('x',{type='string',default=''}); C:define()
-        runtime.start(function() C:watch('alice') end)
+        runtime.start(function() C:legacy_watch('alice') end)
     )";
     for(int mode=0;mode<3;++mode) {
         auto host=std::make_shared<Host>();fsnet::ScriptLimits limits;limits.task_timeout=50ms;
@@ -39,8 +39,8 @@ void watch_ownership() {
         fsnet::LuaEngine engine(host,limits);
         engine.load(R"(
             local C=fsnet.Entity:extend('Watch'); C:attr('x',{type='string',default=''}); C:define()
-            runtime.rpc('watch',function()
-                local ok,object=pcall(C.watch,C,'alice')
+            runtime.legacy_rpc('watch',function()
+                local ok,object=pcall(C.legacy_watch,C,'alice')
                 if ok then object:close();return 'adopted' end
                 return 'failed'
             end)
@@ -58,8 +58,8 @@ void watch_completion_budget() {
     host->image=std::make_shared<fsnet::AttributeUpdate>(fsnet::AttributeUpdate{0,0,true,{{"x",std::int64_t(0)}}});
     fsnet::LuaEngine engine(host,limits);engine.load(R"(
         local C=fsnet.Entity:extend('Watch');C:attr('x',{type='int32',default=0});C:define()
-        runtime.rpc('watch',function()
-            local ok,object=pcall(C.watch,C,'alice')
+        runtime.legacy_rpc('watch',function()
+            local ok,object=pcall(C.legacy_watch,C,'alice')
             if ok then object:close();return 'adopted' end
             return 'failed'
         end)
@@ -111,7 +111,7 @@ void prediction_gc() {
         function C:step() return '' end
         C:define()
         runtime.start(function()
-            local confirmed=C:watch('alice')
+            local confirmed=C:legacy_watch('alice')
             local prediction=confirmed:prediction()
             for i=1,16 do prediction:push(i,'step','') end
             assert(prediction.pending==16)
