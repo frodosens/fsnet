@@ -60,6 +60,7 @@ int main(int argc,char** argv){try{
     auto catchup=original;catchup.missed=TimerMissed::catch_up;CHECK(advance_entity_timer(catchup,135) && catchup.due_ms==110);
     auto delay=original;delay.fixed_delay=true;CHECK(advance_entity_timer(delay,135) && delay.due_ms==145);
     EntityTimerState state{1,"token",{{"key",original}}};auto encoded=encode_entity_timers(state);CHECK(decode_entity_timers(encoded).entries.at("key").payload=="bytes");
+    CHECK(entity_timers_wire_size(state)==encoded.size());CHECK(entity_timers_wire_size({})==encode_entity_timers({}).size());
     for(std::size_t i=0;i<encoded.size();++i)denied([&]{decode_entity_timers(std::string_view(encoded).substr(0,i));});
     denied([&]{advance_entity_timer(original,99);});
     auto time=std::make_shared<std::atomic<std::int64_t>>(10000);auto database=memory_database();

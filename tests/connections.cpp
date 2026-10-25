@@ -4,6 +4,12 @@
 using namespace fsnet;using namespace std::chrono_literals;
 #define CHECK(c) do{if(!(c))throw std::runtime_error(std::string(__FILE__)+":"+std::to_string(__LINE__)+" " #c);}while(false)
 int main(){try{
+    auto connection=ConnectionRef::create();CHECK(connection.matches_key(connection.key()));
+    CHECK(!connection.matches_key("connection/"+connection.id+"/01"));
+    CHECK(!connection.matches_key("connection/"+connection.id+"/2"));
+    CHECK(!connection.matches_key("connection/"+std::string(32,'z')+"/1"));
+    unsigned checks=0;CallIdentity permission{Caller::client,"fixture",0,connection,[&]{++checks;return true;}};
+    CHECK((RpcPolicy{true,false,true}.allows(permission,connection.key())));CHECK(checks==1);
     Node server("test"),a("test"),b("test"),front("test"),back("test");
     auto db=memory_database();auto host=std::make_shared<EntityScriptHost>(std::make_shared<NodeScriptHost>(server),db,"server/boot");
     auto base=[](std::uint64_t,const std::string&)->std::optional<CallIdentity>{return CallIdentity{Caller::server,"fixture"};};

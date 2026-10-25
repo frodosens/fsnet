@@ -32,6 +32,13 @@ struct ConnectionRef {
         if(!valid())throw std::invalid_argument("invalid logical connection");
         return "connection/"+id+'/'+std::to_string(generation);
     }
+    bool matches_key(std::string_view key)const noexcept {
+        if(!valid() || !valid_connection_key(key))return false;
+        key.remove_prefix(11);if(key.substr(0,32)!=id)return false;
+        key.remove_prefix(33);std::uint64_t value=0;
+        auto [end,error]=std::from_chars(key.data(),key.data()+key.size(),value);
+        return error==std::errc{} && end==key.data()+key.size() && value==generation;
+    }
     static ConnectionRef from_key(std::string_view key) {
         if(!valid_connection_key(key))throw std::invalid_argument("invalid connection key");
         key.remove_prefix(11);if(key.size()<34 || key[32]!='/')throw std::invalid_argument("invalid connection key");

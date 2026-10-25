@@ -78,6 +78,7 @@ struct EntityScriptHost::Impl : std::enable_shared_from_this<Impl> {
         EntityTimerState timers;
         std::optional<EntityTimerState> timer_rollback;
         std::optional<EntityTimerEvent> timer_event;
+        std::optional<timer_index::Entry> timer_index_entry;
         bool timer_dirty=false;
         std::size_t timer_charge=0;
     };
@@ -141,7 +142,7 @@ struct EntityScriptHost::Impl : std::enable_shared_from_this<Impl> {
     void publish_timers(const std::shared_ptr<Job>& job,EntityTimerState next) {
         if(next.sequence==UINT64_MAX)throw std::overflow_error("timer sequence exhausted");
         ++next.sequence;next.token=std::to_string(job->version)+'.'+std::to_string(next.sequence);
-        auto bytes=encode_entity_timers(next).size();
+        auto bytes=entity_timers_wire_size(next);
         if(next.entries.size()>limits.timers || bytes>limits.timer_bytes)throw std::length_error("entity timer capacity");
         auto charge=4*bytes;auto growth=charge>job->timer_charge?charge-job->timer_charge:0;
         if(growth>limits.resident_bytes-counters.state_bytes)throw std::length_error("entity timer resident budget");
@@ -189,7 +190,9 @@ struct EntityScriptHost::Impl : std::enable_shared_from_this<Impl> {
         auto call=parse_entity_call_view(data);if(!call)return reply({Status::rejected,{}});
         if(!call->expected_type.empty() && call->expected_type!=type)return reply({Status::rejected,{}});
         auto route=entity_route(type,call->method);
-        enqueue(route,entity_message(call->id.str(),call->payload,call->request_id),std::move(reply),false,std::move(identity),{},0,{},{},deadline);
+        EntityMessage message{call->id.str(),{},std::string(call->request_id)};
+        auto offset=static_cast<std::size_t>(call->payload.data()-data.data());data.erase(0,offset);message.payload=std::move(data);
+        enqueue(route,{},std::move(reply),false,std::move(identity),{},0,{},{},deadline,{},{},std::move(message));
     }
     void bind_owner(std::string type,std::string id,ConnectionRef connection,Reply reply) {
         if(!valid_entity_id(id) || ((!connection.id.empty() || connection.generation) && !connection.valid()))return reply({Status::rejected,{}});
@@ -323,16 +326,16 @@ struct EntityScriptHost::Impl : std::enable_shared_from_this<Impl> {
         };
         (*advance)();
     }
-    void enqueue(const std::string& route, std::string data, Reply reply, bool tick = false, CallIdentity identity = {Caller::server, {}}, std::string handoff_target={}, std::uint64_t accept_transfer=0, std::optional<DeliveryEnvelope> incoming={}, std::optional<DeliveryAck> ack={}, Clock::time_point deadline={},std::optional<ConnectionRef> new_owner={},std::optional<TimerFire> timer={}) {
+    void enqueue(const std::string& route, std::string data, Reply reply, bool tick = false, CallIdentity identity = {Caller::server, {}}, std::string handoff_target={}, std::uint64_t accept_transfer=0, std::optional<DeliveryEnvelope> incoming={}, std::optional<DeliveryAck> ack={}, Clock::time_point deadline={},std::optional<ConnectionRef> new_owner={},std::optional<TimerFire> timer={},std::optional<EntityMessage> decoded={}) {
         if (stopped) return reply({Status::disconnected, {}});
         auto method = methods.find(route);
         if (method == methods.end()) return reply({Status::not_found, {}});
         auto selected = method->second;
-        auto charged=data.size()+(incoming?encode_delivery(*incoming).size():0)+(ack?ack->result.data.size()+128:0)+(timer?timer_payload_limit+1024:0);
+        auto charged=(decoded?decoded->payload.capacity()+decoded->id.size()+decoded->request_id.size()+16:data.size())+(incoming?encode_delivery(*incoming).size():0)+(ack?ack->result.data.size()+128:0)+(timer?timer_payload_limit+1024:0);
         if(draining && !is_control(route,selected->type)) return reply({Status::overloaded,{}});
         if (counters.pending >= limits.requests || charged > limits.queued_bytes - counters.queued_bytes)
             return reply({Status::overloaded, {}});
-        auto message = parse_entity_message(data);
+        auto message = decoded?std::move(decoded):parse_entity_message(data);
         if (!message) return reply({Status::rejected, {}});
         if (!message->request_id.empty() && message->payload.size() + route.size() + message->request_id.size() + 16 > limits.receipt_bytes)
             return reply({Status::overloaded, {}});
@@ -449,7 +452,7 @@ struct EntityScriptHost::Impl : std::enable_shared_from_this<Impl> {
                     }
                     job->delivery=current.snapshot.delivery;
                     job->timers=current.snapshot.timers;
-                    if(job->timers.entries.size()>settings.timers || (!job->timers.token.empty() && encode_entity_timers(job->timers).size()>settings.timer_bytes)){job->status=Status::overloaded;return;}
+                    if(job->timers.entries.size()>settings.timers || (!job->timers.token.empty() && entity_timers_wire_size(job->timers)>settings.timer_bytes)){job->status=Status::overloaded;return;}
                     job->metadata_only=job->request.ack.has_value() || job->request.delivery_error.has_value() || job->request.new_owner.has_value();
                     if(job->request.timer) {
                         const auto& fire=*job->request.timer;auto found=job->timers.entries.find(fire.key);
@@ -541,7 +544,7 @@ struct EntityScriptHost::Impl : std::enable_shared_from_this<Impl> {
                     } catch (...) { return self->complete(job, {Status::rejected, {}}); }
                 }
                 if (job->replay) { ++self->counters.replayed; return self->complete(job, {Status::ok, std::move(job->output)}); }
-                job->timer_charge=job->timers.token.empty()?0:4*encode_entity_timers(job->timers).size();
+                job->timer_charge=job->timers.token.empty()?0:4*entity_timers_wire_size(job->timers);
                 std::size_t retained = job->state.size() + (job->delivery.epoch?2*encode_delivery_state(job->delivery).size():0) + job->timer_charge;
                 for (const auto& receipt : job->receipts) retained += receipt.bytes();
                 if (retained > self->limits.resident_bytes - self->counters.state_bytes)
@@ -682,15 +685,20 @@ struct EntityScriptHost::Impl : std::enable_shared_from_this<Impl> {
                     } catch(...) {return owner->complete(job,{Status::overloaded,{}});}
                     // Count the new inbox/result and the encoded ACK, not just
                     // the pre-delivery protocol image.
-                    const auto retained = (job->attributes ? 4*attribute_image_bytes(job->attributes->current.values)+4*attribute_image_bytes(job->attributes->previous.values) : 0) + (job->attributes ? 5 : 1) * job->state.size() + job->transient.size() * 4 + job->output.size() + receipt_bytes + 12 + (job->delivery.epoch?2*encode_delivery_state(job->delivery).size():0) + (job->timers.token.empty()?0:4*encode_entity_timers(job->timers).size());
+                    const auto retained = (job->attributes ? 4*attribute_image_bytes(job->attributes->current.values)+4*attribute_image_bytes(job->attributes->previous.values) : 0) + (job->attributes ? 5 : 1) * job->state.size() + job->transient.size() * 4 + job->output.size() + receipt_bytes + 12 + (job->delivery.epoch?2*encode_delivery_state(job->delivery).size():0) + (job->timers.token.empty()?0:4*entity_timers_wire_size(job->timers));
                     if (retained > owner->limits.resident_bytes - owner->counters.state_bytes + job->resident)
                         return owner->complete(job, {Status::overloaded, {}});
                     owner->counters.state_bytes = owner->counters.state_bytes - job->resident + retained;
                     job->resident = retained;
                     bool release=Impl::is_control(job->request.route,job->request.method->type);
-                    if(!job->timers.token.empty() && (!job->request.handoff_target.empty() || job->request.accept_transfer))job->timer_dirty=true;
+                    if(!job->timers.token.empty() && (!job->request.handoff_target.empty() || job->request.accept_transfer || job->request.route==job->request.method->type+".$destroy"))job->timer_dirty=true;
+                    if(job->timer_dirty){
+                        auto split=job->entity.find('\0');
+                        job->timer_index_entry=timer_index::Entry{job->request.method->type,job->entity.substr(split+1),job->timers.token,job->version,job->fence,next_entity_timer(job->timers),true,
+                            job->request.handoff_target.empty()?job->placement:job->request.handoff_target};
+                    }
                     EntityRecord committed{release?std::string{}:owner->owner,release?0:job->expires,job->fence,
-                        {std::move(job->state),std::move(job->receipts),std::move(job->delivery),job->timers},release?!job->created:true,
+                        {std::move(job->state),std::move(job->receipts),std::move(job->delivery),std::move(job->timers)},release?!job->created:true,
                         job->request.handoff_target.empty()?job->placement:job->request.handoff_target,
                         job->request.handoff_target.empty()?job->transfer_id:job->version,job->metadata};
                     if(job->request.new_owner) {
@@ -700,7 +708,6 @@ struct EntityScriptHost::Impl : std::enable_shared_from_this<Impl> {
                     }
                     if(committed.metadata && committed.metadata->rebuildable)committed.snapshot.state=committed.metadata->initial_state;
                     if(committed.metadata && job->request.route==job->request.method->type+".$destroy") {
-                        if(!job->timers.token.empty())job->timer_dirty=true;
                         committed.metadata->destroyed=true;committed.snapshot={};
                     }
                     job->persisted = encode_entity_record(committed);
@@ -710,9 +717,7 @@ struct EntityScriptHost::Impl : std::enable_shared_from_this<Impl> {
                         [job, clock](Database& db) {
                             if (clock() >= job->expires) { job->owner_lost=true; job->status = Status::rejected; return; }
                             if(job->timer_dirty) {
-                                auto split=job->entity.find('\0');
-                                timer_index::arm(db,{job->request.method->type,job->entity.substr(split+1),job->timers.token,job->version,job->fence,next_entity_timer(job->timers),true,
-                                    job->request.handoff_target.empty()?job->placement:job->request.handoff_target});
+                                timer_index::arm(db,*job->timer_index_entry);
                             }
                             if(clock()>=job->expires){job->owner_lost=true;job->status=Status::rejected;return;}
                             bool destroy=job->request.route==job->request.method->type+".$destroy";

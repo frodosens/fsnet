@@ -25,7 +25,8 @@ public:
     ~EntityRouter();
     void call(std::string type, std::string id, std::string method, std::string payload,
               std::chrono::milliseconds timeout, Reply, std::string request_id = {});
-    void call(EntityId,std::string method,std::string payload,std::chrono::milliseconds,Reply,std::string request_id={},std::string expected_type={});
+    void call(EntityId,std::string_view method,std::string_view payload,std::chrono::milliseconds,Reply,std::string_view request_id={},std::string_view expected_type={});
+    void call_encoded(std::string message,std::chrono::milliseconds,Reply); // takes ownership before returning
     void bind_owner(std::string type,std::string id,ConnectionRef,std::chrono::milliseconds,Reply);
     std::size_t poll(std::size_t budget = 64);
     std::size_t pending() const;

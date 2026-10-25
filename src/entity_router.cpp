@@ -127,16 +127,21 @@ void EntityRouter::bind_owner(std::string type,std::string id,ConnectionRef owne
     call->message=std::move(message);call->reply=std::move(reply);call->deadline=Clock::now()+timeout;call->bytes=bytes;
     self.calls.emplace(call->id,call);self.bytes+=bytes;
 }
-void EntityRouter::call(EntityId id,std::string method,std::string payload,std::chrono::milliseconds timeout,Reply reply,std::string request_id,std::string expected_type) {
-    auto& self=*impl_;if(!reply)throw std::invalid_argument("reply required");
-    if(self.stopped)return reply({Status::disconnected,{}});
+void EntityRouter::call(EntityId id,std::string_view method,std::string_view payload,std::chrono::milliseconds timeout,Reply reply,std::string_view request_id,std::string_view expected_type) {
+    if(!reply)throw std::invalid_argument("reply required");
     std::string message;
     try{message=entity_call_message(id,method,payload,request_id,expected_type);}catch(...){return reply({Status::rejected,{}});}
+    call_encoded(std::move(message),timeout,std::move(reply));
+}
+void EntityRouter::call_encoded(std::string message,std::chrono::milliseconds timeout,Reply reply) {
+    auto& self=*impl_;if(!reply)throw std::invalid_argument("reply required");
+    if(self.stopped)return reply({Status::disconnected,{}});
+    auto parsed=parse_entity_call_view(message);if(!parsed)return reply({Status::rejected,{}});
     if(timeout.count()<=0 || timeout>std::chrono::minutes(5))return reply({Status::rejected,{}});
-    auto bytes=message.size()+expected_type.size()+16;
+    auto bytes=message.size()+parsed->expected_type.size()+parsed->request_id.size()+16;
     if(self.serial==UINT64_MAX || self.calls.size()>=self.limits.requests || bytes>self.limits.bytes-self.bytes)return reply({Status::overloaded,{}});
-    auto call=std::make_shared<Impl::Call>();call->id=++self.serial;call->entity=id.str();call->type=std::move(expected_type);
-    call->route=entity_call_route;call->message=std::move(message);call->request_id=std::move(request_id);
+    auto call=std::make_shared<Impl::Call>();call->id=++self.serial;call->entity=parsed->id.str();call->type=parsed->expected_type;call->request_id=parsed->request_id;
+    call->route=entity_call_route;call->message=std::move(message);
     call->reply=std::move(reply);call->deadline=Clock::now()+timeout;call->bytes=bytes;self.calls.emplace(call->id,call);self.bytes+=bytes;
 }
 void EntityRouter::call(std::string type, std::string id, std::string method, std::string payload,
@@ -183,8 +188,7 @@ void EntityRouter::stop() {
 }
 void RoutedScriptHost::call_entity(std::string route, std::string data, std::chrono::milliseconds timeout, Reply reply) {
     if(route==entity_call_route) {
-        auto call=parse_entity_call_view(data);if(!call)return reply({Status::rejected,{}});
-        return router_.call(call->id,std::string(call->method),std::string(call->payload),timeout,std::move(reply),std::string(call->request_id),std::string(call->expected_type));
+        return router_.call_encoded(std::move(data),timeout,std::move(reply));
     }
     auto split = route.find('.'); auto message = parse_entity_message(data);
     if (split == std::string::npos || !message) return reply({Status::rejected, {}});

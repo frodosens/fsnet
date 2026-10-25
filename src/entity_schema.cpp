@@ -102,15 +102,16 @@ EntityAttributes::EntityAttributes(EntitySchema schema, std::string owner) : sch
 const AttributeValue& EntityAttributes::read(const std::string& name, const CallIdentity& who) const {
     const auto& d = schema_.attributes.at(name);
     if (!reads(who.caller == Caller::server ? d.server : d.client) ||
-        !who.live() || (who.caller == Caller::client && !visible(d, {who.subject, false,who.connection}))) throw std::runtime_error("attribute read denied");
+        (who.caller==Caller::server?!who.live():!who.owns(owner_)) ||
+        (who.caller==Caller::client && d.visibility==Visibility::none)) throw std::runtime_error("attribute read denied");
     return values_.at(name);
 }
 EntityAttributes::Mutation EntityAttributes::stage(const Values& values, const CallIdentity& who) const {
     if (values.size() > schema_.attributes.size()) throw std::invalid_argument("attribute update limit");
+    if(who.caller==Caller::server?!who.live():!who.owns(owner_))throw std::runtime_error("attribute write denied");
     for (const auto& [name, value] : values) {
         const auto& d = schema_.attributes.at(name);
-        if (!writes(who.caller == Caller::server ? d.server : d.client) ||
-            !who.live() || (who.caller == Caller::client && !who.owns(owner_)))
+        if (!writes(who.caller == Caller::server ? d.server : d.client))
             throw std::runtime_error("attribute write denied");
         if (!valid(d, value)) throw std::invalid_argument("attribute type or size mismatch");
     }
@@ -135,22 +136,26 @@ bool EntityAttributes::publish(const Mutation& mutation) {
     }
     return true;
 }
-bool EntityAttributes::visible(const AttributeDefinition& d, const AttributeView& view) const {
+bool EntityAttributes::owned(const AttributeView& view)const {
+    return owner_.starts_with("connection/")?view.connection.matches_key(owner_):(!view.subject.empty() && view.subject==owner_);
+}
+bool EntityAttributes::visible(const AttributeDefinition& d, bool owned, bool observer) {
     if (!reads(d.client)) return false;
-    bool owned=owner_.starts_with("connection/")?(view.connection && view.connection.key()==owner_):(!view.subject.empty() && view.subject==owner_);
     if (d.visibility == Visibility::owner) return owned;
-    return d.visibility == Visibility::observers && (view.observer || owned);
+    return d.visibility == Visibility::observers && (observer || owned);
 }
 AttributeUpdate EntityAttributes::snapshot(const AttributeView& view) const {
     AttributeUpdate update{0, revision_, true, {}};
-    for (const auto& [name, d] : schema_.attributes) if (visible(d, view)) update.values.emplace(name, values_.at(name));
+    const auto is_owned=owned(view);
+    for (const auto& [name, d] : schema_.attributes) if (visible(d, is_owned,view.observer)) update.values.emplace(name, values_.at(name));
     return update;
 }
 AttributeUpdate EntityAttributes::changes(std::uint64_t since, const AttributeView& view) const {
     if (since > revision_) return snapshot(view);
     AttributeUpdate update{since, revision_, false, {}};
+    const auto is_owned=owned(view);
     for (const auto& [name, d] : schema_.attributes)
-        if (visible(d, view) && modified_.at(name) > since) update.values.emplace(name, values_.at(name));
+        if (visible(d, is_owned,view.observer) && modified_.at(name) > since) update.values.emplace(name, values_.at(name));
     return update;
 }
 EntityAttributes::Values EntityAttributes::persistent() const {

@@ -39,9 +39,20 @@ bool advance_entity_timer(EntityTimer& timer,std::int64_t now) {
     timer.due_ms=base+static_cast<std::int64_t>(steps*static_cast<std::uint64_t>(timer.interval_ms));return true;
 }
 std::int64_t next_entity_timer(const EntityTimerState& state){auto due=INT64_MAX;for(const auto& [key,timer]:state.entries){(void)key;if(timer.due_ms<due)due=timer.due_ms;}return due;}
-std::string encode_entity_timers(const EntityTimerState& state){
+std::size_t entity_timers_wire_size(const EntityTimerState& state){
     if(state.entries.size()>1024 || state.token.size()>64 || ((state.sequence==0)!=state.token.empty()) || (!state.entries.empty() && !state.sequence))throw std::invalid_argument("invalid timer state");
-    std::string out="FST1";integer(out,state.sequence);blob(out,state.token);integer(out,state.entries.size());
+    std::size_t size=28+state.token.size();
+    for(const auto& [key,timer]:state.entries){
+        if(key!=timer.key)throw std::invalid_argument("timer key mismatch");
+        valid(timer);
+        size+=57+timer.key.size()+timer.method.size()+timer.payload.size()+timer.generation.size();
+    }
+    if(size>2*1024*1024)throw std::length_error("timer state budget");
+    return size;
+}
+std::string encode_entity_timers(const EntityTimerState& state){
+    auto size=entity_timers_wire_size(state);
+    std::string out="FST1";out.reserve(size);integer(out,state.sequence);blob(out,state.token);integer(out,state.entries.size());
     for(const auto& [key,timer]:state.entries){if(key!=timer.key)throw std::invalid_argument("timer key mismatch");put(out,timer);}
     if(out.size()>2*1024*1024)throw std::length_error("timer state budget");
     return out;

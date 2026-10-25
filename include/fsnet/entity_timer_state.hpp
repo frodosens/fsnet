@@ -31,6 +31,7 @@ inline constexpr std::size_t timer_payload_limit=65536;
 bool advance_entity_timer(EntityTimer&,std::int64_t now_ms);
 std::int64_t next_entity_timer(const EntityTimerState&);
 std::string encode_entity_timers(const EntityTimerState&);
+std::size_t entity_timers_wire_size(const EntityTimerState&); // validates without allocating
 EntityTimerState decode_entity_timers(std::string_view);
 std::string encode_timer_event(const EntityTimerEvent&);
 EntityTimerEvent decode_timer_event(std::string_view);

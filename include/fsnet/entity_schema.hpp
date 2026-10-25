@@ -22,7 +22,7 @@ struct CallIdentity {
     std::function<bool()> current{}; // owner-thread revalidation, never serialized
     bool live()const {try{return !current || current();}catch(...){return false;}}
     bool owns(const std::string& owner)const {
-        return live() && (owner.starts_with("connection/") ? (connection && connection.key()==owner) : (!subject.empty() && subject==owner));
+        return live() && (owner.starts_with("connection/") ? connection.matches_key(owner) : (!subject.empty() && subject==owner));
     }
 };
 enum class Access { none, read, write, read_write };
@@ -30,8 +30,7 @@ enum class Visibility { none, owner, observers };
 struct RpcPolicy {
     bool client = false, server = false, owner_only = false;
     bool allows(const CallIdentity& identity, const std::string& owner) const {
-        return identity.live() && (identity.caller == Caller::server ? server : client) &&
-            (!owner_only || identity.owns(owner));
+        return (identity.caller == Caller::server ? server : client) && (owner_only?identity.owns(owner):identity.live());
     }
 };
 struct AttributeValue;
@@ -115,6 +114,7 @@ private:
     Values values_;
     std::uint64_t revision_ = 0;
     std::map<std::string, std::uint64_t> modified_;
-    bool visible(const AttributeDefinition&, const AttributeView&) const;
+    static bool visible(const AttributeDefinition&, bool owned, bool observer);
+    bool owned(const AttributeView&)const;
 };
 }
