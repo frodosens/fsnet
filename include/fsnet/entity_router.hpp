@@ -21,7 +21,7 @@ struct EntityRouterLimits { std::size_t requests = 256, bytes = 4 * 1024 * 1024;
 // may retry until the deadline; receipt retention limits still apply.
 class EntityRouter {
 public:
-    EntityRouter(Node&, std::shared_ptr<Database>, std::vector<EntityEndpoint>, EntityRouterLimits = {});
+    EntityRouter(Node&, std::shared_ptr<Storage>, std::vector<EntityEndpoint>, EntityRouterLimits = {});
     ~EntityRouter();
     void call(std::string type, std::string id, std::string method, std::string payload,
               std::chrono::milliseconds timeout, Reply, std::string request_id = {});

@@ -1592,7 +1592,15 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
         // Release failed/suspended Lua frames before dropping the registry
         // root. Otherwise an OOM coroutine can retain its request carrier and
         // prevent the next entity operation from allocating its own frame.
-        if(task.thread)lua_resetthread(task.thread);
+        if(task.thread) {
+            // Cancellation must not run script cleanup. Entering a closer with
+            // the normal yielding budget hook creates a non-yieldable boundary
+            // where a pcall loop can swallow exhaustion. Stop before its first
+            // instruction/call; nil needs no allocation on the OOM path.
+            lua_sethook(task.thread, [](lua_State* L,lua_Debug*) { lua_pushnil(L);lua_error(L); }, LUA_MASKCALL | LUA_MASKCOUNT, 1);
+            lua_resetthread(task.thread);
+            lua_sethook(task.thread,nullptr,0,0);
+        }
         if (task.reference != LUA_NOREF) luaL_unref(state, LUA_REGISTRYINDEX, task.reference);
         if(task.background && task.function!=LUA_NOREF) luaL_unref(state,LUA_REGISTRYINDEX,task.function);
         if (!task.mailbox.empty()) busy.erase(task.mailbox);

@@ -1,4 +1,5 @@
 #include "fsnet/client.hpp"
+#include "fsnet/replication_wire.hpp"
 #include "fsnet/client_gateway.hpp"
 #include "fsnet/entity_transfer.hpp"
 #include "fsnet/entity_delivery.hpp"
@@ -81,6 +82,11 @@ int main(int argc,char** argv){try{
     auto remote=EntityId(std::get<std::string>(entries[1]));CHECK(bh->active("LoginEntity",remote.str()));
     auto retry=created;created.reset();ah->create_entity("Manager",{},{"fixture","manager",{},"node-a"},[&](Result value){created=std::move(value);});until([&]{return created.has_value();});CHECK(created->data==retry->data);
     client.connect({"127.0.0.1",port,{}});until([&]{return client.state()==ClientState::connected;});
+    auto forwarded_before=gateway.stats().forwarded;
+    std::optional<Result> invalid_watch;
+    client.request("system.attributes.watch",encode_entity_key("Player","unallocated-name"),[&](Result value){invalid_watch=std::move(value);});
+    until([&]{return invalid_watch.has_value();});
+    CHECK(invalid_watch->status==Status::rejected && gateway.stats().forwarded==forwarded_before && gateway.stats().subscriptions==0);
     auto call=[&](EntityId id,std::string method,std::string payload){std::optional<Result> result;client.call(id,method,payload,[&](Result value){result=std::move(value);});until([&]{return result.has_value();});return *result;};
     CHECK(call(manager,"unlisted","").status==Status::rejected);
     auto discovery=call(manager,"discover","");CHECK(discovery.status==Status::ok);auto login=EntityId(discovery.data);

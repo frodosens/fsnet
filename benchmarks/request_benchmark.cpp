@@ -23,11 +23,15 @@ int main(int argc,char** argv){try{
     fsnet::Node owner("benchmark"),front("benchmark"),back("benchmark"),client("benchmark");
     auto database=fsnet::memory_database();
     auto expires=std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count()+3600000;
-    if(!database->compare_exchange(fsnet::entity_record_key("Bench","alice"),0,fsnet::encode_entity_record({"owner/benchmark",expires,1,{"",{}}})))throw std::runtime_error("directory fixture failed");
+    fsnet::EntityCatalog catalog(*database);
+    auto id=catalog.create("benchmark","echo",{"Bench",{},"","owner"});
+    auto saved=catalog.find(id);auto record=saved->record;
+    record.owner="owner/benchmark";record.expires_ms=expires;record.fence=1;
+    if(!database->compare_exchange(fsnet::entity_record_key(id),saved->version,fsnet::encode_entity_record(record)))throw std::runtime_error("directory fixture failed");
     auto host=std::make_shared<fsnet::EntityScriptHost>(std::make_shared<fsnet::NodeScriptHost>(owner),database,"owner/benchmark");
     auto base=[&](std::uint64_t,const std::string&)->std::optional<fsnet::CallIdentity>{return fsnet::CallIdentity{mode=="gateway"?fsnet::Caller::server:fsnet::Caller::client,mode=="gateway"?"gateway":"alice"};};
     owner.identify(base);
-    owner.bind_rpc("Bench.echo",{true,false,false},[](const fsnet::CallIdentity& who,std::string data,fsnet::Reply reply){
+    owner.bind_rpc(fsnet::entity_call_route,{true,false,false},[](const fsnet::CallIdentity& who,std::string data,fsnet::Reply reply){
         if(who.caller!=fsnet::Caller::client||who.subject!="alice")throw std::runtime_error("incorrect benchmark delegation");
         reply({fsnet::Status::ok,std::move(data)});
     });
@@ -42,14 +46,14 @@ int main(int argc,char** argv){try{
         gateway->bind_entity("Bench",{"echo"});port=front.listen("127.0.0.1",0);
     }
     auto peer=client.connect("127.0.0.1",port);
-    auto payload=fsnet::entity_message("alice",std::string(bytes,'x'));
+    auto payload=fsnet::entity_call_message(id,"echo",std::string(bytes,'x'));
     auto pump=[&]{owner.poll();front.poll();back.poll();client.poll();host->poll();if(delegation)delegation->poll();if(gateway)gateway->poll();};
     // Establish the transport/delegation/route before measuring steady traffic.
-    bool warmed=false;client.call(peer,"Bench.echo",payload,5s,[&](auto result){if(result.status!=fsnet::Status::ok||result.data!=payload)throw std::runtime_error("warmup failed");warmed=true;});
+    bool warmed=false;client.call(peer,fsnet::entity_call_route,payload,5s,[&](auto result){if(result.status!=fsnet::Status::ok||result.data!=payload)throw std::runtime_error("warmup failed");warmed=true;});
     auto deadline=Clock::now()+10s;while(!warmed){pump();if(Clock::now()>deadline)throw std::runtime_error("warmup deadline");}
     std::size_t sent=0,completed=0;std::vector<double> latency;latency.reserve(count);
     std::function<void()> submit;
-    submit=[&]{if(sent>=count)return;++sent;auto begin=Clock::now();client.call(peer,"Bench.echo",payload,5s,[&,begin](auto result){
+    submit=[&]{if(sent>=count)return;++sent;auto begin=Clock::now();client.call(peer,fsnet::entity_call_route,payload,5s,[&,begin](auto result){
         if(result.status!=fsnet::Status::ok||result.data!=payload)throw std::runtime_error("RPC failed");
         latency.push_back(std::chrono::duration<double,std::micro>(Clock::now()-begin).count());++completed;submit();
     });};

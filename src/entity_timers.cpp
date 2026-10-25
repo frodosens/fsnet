@@ -18,7 +18,7 @@ struct EntityTimers::Impl:std::enable_shared_from_this<Impl> {
     Clock::time_point refresh{};unsigned cursor=0,remaining=0;bool stopped=false,polling=false;
     std::chrono::milliseconds idle{};std::uint64_t observed_revision=0,rounds=0;bool verify_hints=true;
     std::string owner,node;
-    Impl(std::shared_ptr<EntityScriptHost> h,std::shared_ptr<Database> db,EntityTimerLimits settings)
+    Impl(std::shared_ptr<EntityScriptHost> h,std::shared_ptr<Storage> db,EntityTimerLimits settings)
         :host(std::move(h)),storage(std::move(db)),limits(settings) {
         if(!host || limits.pending<2 || limits.pending>1024 || !limits.tracked || limits.tracked>timer_index::shards*timer_index::per_shard || limits.refresh.count()<=0 || limits.retry.count()<=0 || limits.refresh>std::chrono::hours(24) || limits.retry>std::chrono::hours(24))throw std::invalid_argument("invalid entity timer service limits");
         owner=host->owner_id();node=owner.substr(0,owner.find('/'));
@@ -65,7 +65,7 @@ struct EntityTimers::Impl:std::enable_shared_from_this<Impl> {
             }
             self->members[index]=std::move(seen);
         };
-        if(!storage.submit(3*1024*1024,[bucket,index,this_node=node,verify=verify_hints](Database& db){
+        if(!storage.submit(3*1024*1024,[bucket,index,this_node=node,verify=verify_hints](Storage& db){
             *bucket=timer_index::read(db,index);
             for(auto it=bucket->entries.begin();it!=bucket->entries.end();) {
                 auto placement=it->second.placement;
@@ -104,7 +104,7 @@ struct EntityTimers::Impl:std::enable_shared_from_this<Impl> {
             }
             self->finish(watch,revision,result->next,false);
         };
-        if(!storage.submit(5*1024*1024,[entry,result,time,this_owner,this_node](Database& db){
+        if(!storage.submit(5*1024*1024,[entry,result,time,this_owner,this_node](Storage& db){
             auto index=timer_index::shard(entry.id);auto bucket=timer_index::read(db,index);auto key=timer_index::identity(entry.type,entry.id);
             auto indexed=bucket.entries.find(key);if(indexed==bucket.entries.end()){result->next=INT64_MAX;return;}
             const auto observed=indexed->second;
@@ -132,7 +132,7 @@ struct EntityTimers::Impl:std::enable_shared_from_this<Impl> {
         },complete))complete(std::make_exception_ptr(std::runtime_error("timer scan queue pressure")));
     }
 };
-EntityTimers::EntityTimers(std::shared_ptr<EntityScriptHost> host,std::shared_ptr<Database> db,EntityTimerLimits limits):impl_(std::make_shared<Impl>(std::move(host),std::move(db),limits)){}
+EntityTimers::EntityTimers(std::shared_ptr<EntityScriptHost> host,std::shared_ptr<Storage> db,EntityTimerLimits limits):impl_(std::make_shared<Impl>(std::move(host),std::move(db),limits)){}
 EntityTimers::~EntityTimers(){stop();}
 std::size_t EntityTimers::poll(std::size_t budget) {
     auto keep=impl_;auto& self=*keep;if(self.stopped)return 0;if(self.polling)throw std::logic_error("recursive timer poll");

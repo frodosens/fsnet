@@ -125,7 +125,7 @@ struct ClientGateway::Impl:std::enable_shared_from_this<Impl>{
     std::deque<std::uint64_t> schedule;
     bool owns_attributes=false,owns_presence=false,owns_present=false;
     std::vector<Clock::time_point> retry;std::vector<std::string> bound;std::uint64_t serial=0;bool stopped=false,draining=false;
-    Impl(Node& f,Node& b,std::shared_ptr<Database> db,std::vector<EntityEndpoint> e,GatewayLimits l):front(f),back(b),storage(std::move(db)),endpoints(std::move(e)),limits(l){
+    Impl(Node& f,Node& b,std::shared_ptr<Storage> db,std::vector<EntityEndpoint> e,GatewayLimits l):front(f),back(b),storage(std::move(db)),endpoints(std::move(e)),limits(l){
         validate_entity_endpoints(endpoints);if(&f==&b||!l.clients||!l.links||!l.subscriptions||!l.per_client||!l.requests||!l.bytes||l.request_timeout.count()<=0||l.request_timeout>std::chrono::seconds(30)||l.refresh.count()<=0||l.migration_timeout<l.request_timeout)throw std::invalid_argument("invalid gateway limits");retry.resize(endpoints.size());
     }
     std::string remote_key(std::uint64_t peer,std::uint64_t id){return token(peer)+token(id);}
@@ -145,17 +145,18 @@ struct ClientGateway::Impl:std::enable_shared_from_this<Impl>{
         auto r=std::make_shared<Request>(Request{++serial,who.peer,who.subject,std::move(data),std::move(reply),Clock::now()+limits.request_timeout,0});r->bytes=r->data.size();counters.queued_bytes+=r->bytes;requests.emplace(r->id,r);return r;
     }
     void select(std::string type,std::string entity,std::function<void(Status,std::optional<std::size_t>,bool)> done,std::unordered_set<std::size_t> failed={},const std::shared_ptr<Request>& request={},const std::shared_ptr<Subscription>& subscription={}){
+        if(!valid_entity_id(entity))return done(Status::rejected,{},false);
         auto ready=[weak=weak_from_this(),type,entity,request,client=request?request->client:(subscription?subscription->client:0),done=std::move(done),failed=std::move(failed)](Status status,const std::optional<EntityLocation>& location){
             auto self=weak.lock();if(!self||self->stopped)return done(Status::disconnected,{},false);
             if(status!=Status::ok)return done(status,{},location.has_value());
-            if(valid_entity_id(entity) && !location)return done(Status::not_found,{},false);
-            if(location && valid_entity_id(entity) && !type.empty() && location->type!=type)return done(Status::rejected,{},true);
-            auto resolved_type=type.empty() && location?location->type:type;
+            if(!location)return done(Status::not_found,{},false);
+            if(!type.empty() && location->type!=type)return done(Status::rejected,{},true);
+            const auto& resolved_type=location->type;
             if(request)request->resolved_type=resolved_type;
             auto time=wall();
             // Live leases and directed placement remain authoritative. Only
             // unplaced failover tries other endpoints before retrying failures.
-            bool fixed=location&&(location->expires_ms>time||!location->placement.empty());
+            bool fixed=location->expires_ms>time||!location->placement.empty();
             auto eligible=[&](std::size_t i){
                 bool connected=false;auto session=self->sessions.find(client);
                 if(session!=self->sessions.end()){auto link=session->second.links.find(i);connected=link!=session->second.links.end() && link->second->ready && self->back.connected(link->second->peer);}
@@ -163,11 +164,11 @@ struct ClientGateway::Impl:std::enable_shared_from_this<Impl>{
             };
             auto index=select_entity_endpoint(self->endpoints,resolved_type,entity,location,time,eligible);
             bool untried=false;
-            if(!index&&!fixed&&!failed.empty())for(std::size_t i=0;i<self->endpoints.size();++i){const auto& types=self->endpoints[i].types;if(!failed.contains(i)&&std::find(types.begin(),types.end(),type)!=types.end()){untried=true;break;}}
-            if(!index&&!fixed&&!failed.empty()&&!untried)index=select_entity_endpoint(self->endpoints,type,entity,location,time,[&](std::size_t i){return Clock::now()>=self->retry[i];});
+            if(!index&&!fixed&&!failed.empty())for(std::size_t i=0;i<self->endpoints.size();++i){const auto& types=self->endpoints[i].types;if(!failed.contains(i)&&std::find(types.begin(),types.end(),resolved_type)!=types.end()){untried=true;break;}}
+            if(!index&&!fixed&&!failed.empty()&&!untried)index=select_entity_endpoint(self->endpoints,resolved_type,entity,location,time,[&](std::size_t i){return Clock::now()>=self->retry[i];});
             done(index?Status::ok:Status::disconnected,index,location.has_value());
         };
-        auto key=valid_entity_id(entity)?"global:"+entity:encode_entity_key(type,entity);auto found=lookups.find(key);
+        auto key="global:"+entity;auto found=lookups.find(key);
         // A login may create the entity immediately after its routing lookup.
         // Do not let that negative cache revoke the newly announced subscription.
         if(found!=lookups.end()&&!found->second->busy&&found->second->location.has_value()&&Clock::now()<found->second->expires){
@@ -179,14 +180,14 @@ struct ClientGateway::Impl:std::enable_shared_from_this<Impl>{
         if(!lookups.contains(key)&&lookups.size()>=limits.subscriptions+limits.requests)return ready(Status::overloaded,{});
         auto lookup=std::make_shared<Lookup>();lookup->busy=true;wait(lookup);lookups[key]=lookup;
         auto location=std::make_shared<std::optional<EntityLocation>>();
-        auto complete=[weak=weak_from_this(),lookup,location,type,entity](std::exception_ptr error){
+        auto complete=[weak=weak_from_this(),lookup,location](std::exception_ptr error){
             auto self=weak.lock();lookup->busy=false;auto waiting=std::move(lookup->waiters);
             if(!self||self->stopped){for(auto& [id,cb]:waiting){(void)id;cb(Status::disconnected,{});}return;}
             lookup->location=*location;lookup->expires=Clock::now()+self->limits.refresh;
             if(error){lookup->expires=Clock::now();for(auto& [id,cb]:waiting){(void)id;cb(Status::internal,*location);}return;}
             for(auto& [id,cb]:waiting){(void)id;cb(Status::ok,*location);}
         };
-        if(!storage.submit(type.size()+entity.size(),[location,type,entity](Database& db){*location=entity_location(db,type,entity);},complete))complete(std::make_exception_ptr(std::runtime_error("gateway lookup overloaded")));
+        if(!storage.submit(type.size()+entity.size(),[location,entity](Storage& db){*location=entity_location(db,{},entity);},complete))complete(std::make_exception_ptr(std::runtime_error("gateway lookup overloaded")));
     }
     void acquire(std::uint64_t client,std::size_t index,std::function<void(Status,std::shared_ptr<Link>)> ready,const std::shared_ptr<Request>& request={},const std::shared_ptr<Subscription>& subscription={}){
         auto session=sessions.find(client);if(session==sessions.end()||!authenticated(client,session->second.subject))return ready(Status::disconnected,{});
@@ -233,7 +234,7 @@ struct ClientGateway::Impl:std::enable_shared_from_this<Impl>{
         sub->next=Clock::now()+std::min(limits.refresh,std::chrono::milliseconds(100));
     }
     void expire_route(const Subscription& sub){
-        auto cached=lookups.find(valid_entity_id(sub.entity)?"global:"+sub.entity:encode_entity_key(sub.type,sub.entity));
+        auto cached=lookups.find("global:"+sub.entity);
         if(cached!=lookups.end())cached->second->expires=Clock::time_point{};
     }
     void routed(const CallIdentity& who,std::string input,Reply reply){
@@ -277,7 +278,7 @@ struct ClientGateway::Impl:std::enable_shared_from_this<Impl>{
         },{},request);
     }
     void watch(const CallIdentity& who,std::string input,Reply reply){
-        std::string type,entity;try{std::string_view in(input);auto key=decode_entity_key(in);if(!in.empty())throw std::invalid_argument("watch bytes");type=std::move(key.first);entity=std::move(key.second);}catch(...){return reply({Status::rejected,{}});}
+        std::string type,entity;try{std::string_view in(input);auto key=decode_entity_key(in);if(!in.empty() || !valid_entity_id(key.second))throw std::invalid_argument("watch bytes");type=std::move(key.first);entity=std::move(key.second);}catch(...){return reply({Status::rejected,{}});}
         if(subscriptions.size()>=limits.subscriptions||client_subscriptions(who.peer)>=limits.per_client)return reply({Status::overloaded,{}});
         auto r=request(who,std::move(input),std::move(reply));if(!r)return;
         auto sub=std::make_shared<Subscription>();sub->id=++serial;sub->client=who.peer;sub->type=type;sub->entity=entity;sub->busy=true;subscriptions[sub->id]=sub;schedule.push_back(sub->id);
@@ -409,7 +410,7 @@ struct ClientGateway::Impl:std::enable_shared_from_this<Impl>{
         auto req=requests;for(auto& [id,r]:req){(void)id;finish(r,{Status::disconnected,{}});}auto subs=subscriptions;for(auto& [id,s]:subs){(void)id;remove(s,Status::disconnected);}
         auto copy=links;for(auto& [peer,l]:copy){(void)l;back.close(peer);}links.clear();sessions.clear();storage.stop();}
 };
-ClientGateway::ClientGateway(Node& front,Node& back,std::shared_ptr<Database> db,std::vector<EntityEndpoint> endpoints,GatewayLimits limits):impl_(std::make_shared<Impl>(front,back,std::move(db),std::move(endpoints),limits)){
+ClientGateway::ClientGateway(Node& front,Node& back,std::shared_ptr<Storage> db,std::vector<EntityEndpoint> endpoints,GatewayLimits limits):impl_(std::make_shared<Impl>(front,back,std::move(db),std::move(endpoints),limits)){
     auto weak=std::weak_ptr(impl_);
     for(const auto* name:{"system.attributes.watch","system.attributes.unwatch","system.attributes.renew","system.attributes.write"})if(front.has_route(name))throw std::logic_error("gateway attribute routes already bound");
     if(back.has_route("system.gateway.present"))throw std::logic_error("gateway presentation route already bound");

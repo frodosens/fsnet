@@ -28,7 +28,7 @@ int main(int argc, char** argv) {
         const std::string binary_key("key\0bytes\xff", 10), binary_value("value\0bytes\xff", 12);
         CHECK(db->compare_exchange(binary_key, 0, binary_value)); CHECK(db->get(binary_key)->value == binary_value);
         CHECK(db->compare_exchange("cross-client", 0, "0"));
-        std::vector<std::shared_ptr<fsnet::Database>> clients;
+        std::vector<std::shared_ptr<fsnet::Storage>> clients;
         for (int i = 0; i < 4; ++i) clients.push_back(fsnet::postgres_database(uri));
         std::atomic<bool> failed = false; std::vector<std::thread> workers;
         for (auto client : clients) workers.emplace_back([client, &failed] {

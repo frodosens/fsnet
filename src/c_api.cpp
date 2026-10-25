@@ -30,9 +30,9 @@ Runtime& runtime(void* node) {
     if (self.destroying) throw std::logic_error("node is closing");
     return self;
 }
-fsnet::Database& database(void* db) {
+fsnet::Storage& database(void* db) {
     if (!db) throw std::invalid_argument("null database");
-    return **static_cast<std::shared_ptr<fsnet::Database>*>(db);
+    return **static_cast<std::shared_ptr<fsnet::Storage>*>(db);
 }
 std::string_view byte_view(const char* data,size_t length) {
     if (length > 16 * 1024 * 1024 || (!data && length)) throw std::invalid_argument("invalid bytes");
@@ -130,7 +130,7 @@ void* fsnet_db_open(const char* filename) {
     void* result = nullptr;
     guard([&] {
         auto file = std::string(text(filename));
-        result = new std::shared_ptr<fsnet::Database>(file.empty() ? fsnet::memory_database() : fsnet::sqlite_database(file));
+        result = new std::shared_ptr<fsnet::Storage>(file.empty() ? fsnet::memory_database() : fsnet::sqlite_database(file));
         return 0;
     }); return result;
 }
@@ -138,7 +138,7 @@ void* fsnet_store_open(const char* uri) {
     std::shared_ptr<fsnet::Storage>* result = nullptr;
     guard([&] { result = new std::shared_ptr<fsnet::Storage>(fsnet::open_storage(text(uri))); return 0; }); return result;
 }
-void fsnet_db_close(void* db) { delete static_cast<std::shared_ptr<fsnet::Database>*>(db); }
+void fsnet_db_close(void* db) { delete static_cast<std::shared_ptr<fsnet::Storage>*>(db); }
 char* fsnet_db_get(void* db, const char* key, size_t key_length, size_t* length, uint64_t* version) {
     char* result = nullptr;
     guard([&] {

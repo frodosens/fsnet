@@ -55,7 +55,7 @@ struct EntityRouter::Impl : std::enable_shared_from_this<Impl> {
     std::size_t bytes = 0;
     std::uint64_t serial = 0;
     bool stopped = false, polling = false;
-    Impl(Node& transport, std::shared_ptr<Database> database, std::vector<EntityEndpoint> endpoints, EntityRouterLimits settings)
+    Impl(Node& transport, std::shared_ptr<Storage> database, std::vector<EntityEndpoint> endpoints, EntityRouterLimits settings)
       : node(transport), storage(std::move(database)), limits(settings) {
         validate_entity_endpoints(endpoints);
         if(!limits.requests || !limits.bytes) throw std::invalid_argument("invalid entity router limits");
@@ -76,18 +76,16 @@ struct EntityRouter::Impl : std::enable_shared_from_this<Impl> {
     void attempt(const std::shared_ptr<Call>& call) {
         auto location = std::make_shared<std::optional<EntityLocation>>();
         call->busy = true;
-        if (!storage.submit(call->type.size() + call->entity.size(), [location, call](Database& db) {
-            *location = entity_location(db, (call->route==entity_call_route || call->route=="system.entity.owner")?std::string{}:call->type, call->entity);
+        if (!storage.submit(call->type.size() + call->entity.size(), [location, call](Storage& db) {
+            *location = entity_location(db, {}, call->entity);
         }, [weak = weak_from_this(), location, call](std::exception_ptr error) {
             auto self = weak.lock();
             if (!self || self->stopped || call->done) return;
             if (Clock::now() >= call->deadline) return self->finish(call, {Status::timeout, {}});
             if (error) return self->finish(call, {Status::internal, {}});
-            if(call->route==entity_call_route || call->route=="system.entity.owner") {
-                if(!*location)return self->finish(call,{Status::not_found,{}});
-                if(!call->type.empty() && call->type!=(*location)->type)return self->finish(call,{Status::rejected,{}});
-            }
-            auto selected=select_entity_endpoint(self->endpoints,(call->route==entity_call_route || call->route=="system.entity.owner")?(*location)->type:call->type,call->entity,*location,wall_time(),
+            if(!*location)return self->finish(call,{Status::not_found,{}});
+            if(!call->type.empty() && call->type!=(*location)->type)return self->finish(call,{Status::rejected,{}});
+            auto selected=select_entity_endpoint(self->endpoints,(*location)->type,call->entity,*location,wall_time(),
                 [&](std::size_t i) {return Clock::now()>=self->members[i].retry;});
             if (!selected) return self->failed(call, Status::disconnected);
             auto& member = self->members[*selected];
@@ -112,7 +110,7 @@ struct EntityRouter::Impl : std::enable_shared_from_this<Impl> {
         })) { call->busy = false; failed(call, Status::overloaded); }
     }
 };
-EntityRouter::EntityRouter(Node& node, std::shared_ptr<Database> database, std::vector<EntityEndpoint> endpoints, EntityRouterLimits limits)
+EntityRouter::EntityRouter(Node& node, std::shared_ptr<Storage> database, std::vector<EntityEndpoint> endpoints, EntityRouterLimits limits)
   : impl_(std::make_shared<Impl>(node, std::move(database), std::move(endpoints), limits)) {}
 EntityRouter::~EntityRouter() { stop(); }
 void EntityRouter::bind_owner(std::string type,std::string id,ConnectionRef owner,std::chrono::milliseconds timeout,Reply reply) {

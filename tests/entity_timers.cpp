@@ -35,9 +35,9 @@ struct FaultStorage:Storage {
     }
 };
 struct Machine {
-    std::shared_ptr<Database> db;std::shared_ptr<std::atomic<std::int64_t>> time;
+    std::shared_ptr<Storage> db;std::shared_ptr<std::atomic<std::int64_t>> time;
     std::shared_ptr<Host> parent=std::make_shared<Host>();std::shared_ptr<EntityScriptHost> host;std::unique_ptr<LuaEngine> engine;std::unique_ptr<EntityTimers> timers;
-    Machine(std::shared_ptr<Database> database,std::shared_ptr<std::atomic<std::int64_t>> clock,const std::string& source,const std::string& boot):db(std::move(database)),time(std::move(clock)) {
+    Machine(std::shared_ptr<Storage> database,std::shared_ptr<std::atomic<std::int64_t>> clock,const std::string& source,const std::string& boot):db(std::move(database)),time(std::move(clock)) {
         EntityRuntimeLimits limits;limits.lease=2000ms;limits.request_timeout=500ms;
         host=std::make_shared<EntityScriptHost>(parent,db,"timers/"+boot,limits,StorageLimits{},[clock=time]{return clock->load();});
         engine=std::make_unique<LuaEngine>(host);engine->load(source,"timer-fixture");EntityTimerLimits scheduling;scheduling.refresh=2ms;scheduling.retry=2ms;

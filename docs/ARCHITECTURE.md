@@ -54,19 +54,20 @@ Gateway 使用独立后端连接委托可信账号，转发属性流并恢复迁
 | 确定性 Lua 业务函数可共享 | 首次效果播放由客户端处理，服务端独立验证输入，回放禁止外部副作用 |
 
 后续机制默认先检查现有公共实现，避免两端维护平行算法；业务类型与玩法继续留在 Lua。
-这里账号 owner（subject）与分片 owner（持有租约/fencing 的宿主进程）是不同概念。
+这里 owner 授权绑定逻辑 ConnectionRef；持有运行租约/fence 的 Node 与该连接是不同概念。账号 subject 仅供业务认证使用。
 
 ## 存储合同不依赖数据库事务
 
-最低要求是读取带版本的记录、按预期版本原子替换、按版本删除。版本在删除/重建后不能复用。Storage 不要求 SQL、多记录事务或数据库服务。Database 是旧接口名称的兼容别名。
+最低要求是读取带版本的记录、按预期版本原子替换、按版本删除。版本在删除/重建后不能复用。Storage 不要求 SQL、多记录事务或数据库服务。所有引擎边界统一使用 Storage，不提供旧类型别名。
 
-Memory/SQLite 可以提供可选的 transact 扩展，但实体宿主、目录路由、所有权和 EntityStore 不调用它。多实体变更不伪装成原子事务，业务用脚本定义补偿与状态推进；框架已提供[持久命令 outbox/inbox](ENTITY_DELIVERY.md)，状态与发送意图共同提交，确认后推进完成结果。
+Memory/SQLite 可以提供可选的 transact 扩展，但实体宿主、目录路由、EntityCatalog 和所有权 不调用它。多实体变更不伪装成原子事务，业务用脚本定义补偿与状态推进；框架已提供[持久命令 outbox/inbox](ENTITY_DELIVERY.md)，状态与发送意图共同提交，确认后推进完成结果。
 
-每个托管实体使用一个 FER1/FER2/FER3 记录：
+每个托管全局实体使用一个 FER5 记录：
 
 ```text
-entity-key = 类型 + 实体 ID
-record = owner incarnation + lease expiry + fencing counter
+entity-key = 全局 EntityId
+record = type + creation digest + owner connection/revision + placement
+       + owner incarnation + lease expiry + fencing counter
        + opaque script state + bounded request receipts
        + optional durable outbox / inbox cursors / channel counters
 ```

@@ -37,7 +37,7 @@ struct EntityRuntimeStats {
 class EntityScriptHost final : public ScriptHost {
 public:
     using WallClock = std::function<std::int64_t()>; // epoch milliseconds; for deterministic tests
-    EntityScriptHost(std::shared_ptr<ScriptHost> parent, std::shared_ptr<Database>,
+    EntityScriptHost(std::shared_ptr<ScriptHost> parent, std::shared_ptr<Storage>,
                      std::string owner_id, EntityRuntimeLimits = {}, StorageLimits = {}, WallClock = {});
     ~EntityScriptHost() override;
     bool has_route(const std::string&) const override;

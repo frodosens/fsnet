@@ -110,7 +110,7 @@ struct EntityScriptHost::Impl : std::enable_shared_from_this<Impl> {
     EntityRuntimeStats counters;
     std::uint64_t generation = 0;
     bool stopped = false, polling = false, draining = false, delivery_enabled = false;
-    Impl(std::shared_ptr<ScriptHost> host, std::shared_ptr<Database> db, std::string id,
+    Impl(std::shared_ptr<ScriptHost> host, std::shared_ptr<Storage> db, std::string id,
          EntityRuntimeLimits settings, StorageLimits storage_limits, WallClock time)
       : parent(std::move(host)), catalog(db?std::make_shared<EntityCatalog>(*db):nullptr), storage(std::move(db), storage_limits), owner(std::move(id)), limits(settings),
         now(time ? std::move(time) : WallClock(wall_time)) {
@@ -164,7 +164,7 @@ struct EntityScriptHost::Impl : std::enable_shared_from_this<Impl> {
         if(deadline!=Clock::time_point{})admission->deadline=std::min(admission->deadline,deadline);
         auto input=std::make_shared<std::string>(std::move(data));auto type=std::make_shared<std::string>();
         auto status=std::make_shared<Status>(Status::not_found);
-        if(!storage.submit(input->size()+limits.state_bytes,[id,type,status](Database& db){
+        if(!storage.submit(input->size()+limits.state_bytes,[id,type,status](Storage& db){
             auto record=db.get(entity_record_key(EntityId(id)));if(!record)return;
             auto view=decode_entity_record_view(record->value);
             if(!view.metadata || view.metadata->destroyed)return;
@@ -193,7 +193,7 @@ struct EntityScriptHost::Impl : std::enable_shared_from_this<Impl> {
         if(!type.empty())return enqueue(type+".$snapshot",entity_message(id,""),std::move(reply),false,{Caller::server,"framework:bind-owner"},{},0,{},{},{},std::move(connection));
         auto admission=admit(id.size()+64,std::move(reply));if(!admission)return;
         auto resolved=std::make_shared<std::string>();
-        if(!storage.submit(limits.state_bytes,[id,resolved](Database& db){
+        if(!storage.submit(limits.state_bytes,[id,resolved](Storage& db){
             auto record=db.get(entity_record_key(EntityId(id)));if(!record)return;auto value=decode_entity_record_view(record->value);
             if(value.metadata && !value.metadata->destroyed)*resolved=value.metadata->type;
         },[weak=weak_from_this(),admission,resolved,id,connection](std::exception_ptr error){
@@ -392,7 +392,7 @@ struct EntityScriptHost::Impl : std::enable_shared_from_this<Impl> {
         active.emplace(entity, job);
         auto owner_id = owner; auto clock = now; auto settings = limits;
         auto accepted = storage.submit(job->request.bytes + limits.state_bytes + limits.receipt_bytes + limits.delivery_bytes + 3*limits.timer_bytes,
-            [job, owner_id, clock, settings](Database& db) {
+            [job, owner_id, clock, settings](Storage& db) {
                 for (int attempt = 0; attempt < 4; ++attempt) {
                     auto record = db.get(record_key(job->entity));
                     EntityRecord current;
@@ -695,7 +695,7 @@ struct EntityScriptHost::Impl : std::enable_shared_from_this<Impl> {
                     if (!job->request.handoff_target.empty()) { job->output.clear(); entity_record_detail::integer(job->output,job->version); }
                     auto clock = owner->now;
                     bool accepted = owner->storage.submit(job->persisted.size() + job->output.size() + (job->timer_dirty?3*1024*1024:0),
-                        [job, clock](Database& db) {
+                        [job, clock](Storage& db) {
                             if (clock() >= job->expires) { job->owner_lost=true; job->status = Status::rejected; return; }
                             if(job->timer_dirty) {
                                 timer_index::arm(db,*job->timer_index_entry);
@@ -750,7 +750,7 @@ struct EntityScriptHost::Impl : std::enable_shared_from_this<Impl> {
 
     }
 };
-EntityScriptHost::EntityScriptHost(std::shared_ptr<ScriptHost> parent, std::shared_ptr<Database> db,
+EntityScriptHost::EntityScriptHost(std::shared_ptr<ScriptHost> parent, std::shared_ptr<Storage> db,
     std::string owner, EntityRuntimeLimits limits, StorageLimits storage, WallClock now)
   : impl_(std::make_shared<Impl>(std::move(parent), std::move(db), std::move(owner), limits, storage, std::move(now))) {}
 EntityScriptHost::~EntityScriptHost() { stop(); }
@@ -861,7 +861,7 @@ void EntityScriptHost::create_entity(std::string type,EntityAttributes::Values v
     if(!admission)return;
     struct Created {std::string id,type,target;Status status=Status::ok;bool initialized=false;};
     auto created=std::make_shared<Created>();auto catalog=self.catalog;
-    if(!self.storage.submit(state.size()*2+2048,[catalog,created,type=std::move(type),state=std::move(state),options=std::move(options)](Database&) {
+    if(!self.storage.submit(state.size()*2+2048,[catalog,created,type=std::move(type),state=std::move(state),options=std::move(options)](Storage&) {
         try {
             auto id=catalog->create(options.scope,options.creation_key,{type,options.owner?options.owner.key():std::string{},state,options.target_node,options.persistence});
             auto description=catalog->find(id);created->id=id.str();created->type=type;
@@ -1018,7 +1018,7 @@ void EntityScriptHost::deactivate(const EntityHandle& handle, Reply reply) {
         else if (auto it = owner->slots.find(entity); it != owner->slots.end()) { it->second.busy = false; it->second.releasing = false; }
         release->reply({error ? Status::internal : *status, {}});
     };
-    if (!self.storage.submit(entity.size() + id.size(), [entity, id, status](Database& db) {
+    if (!self.storage.submit(entity.size() + id.size(), [entity, id, status](Storage& db) {
         auto record = db.get(record_key(entity));
         if (!record) return;
         auto value = decode_entity_record(record->value);
@@ -1052,7 +1052,7 @@ void EntityScriptHost::send_entity(std::string source_type,std::string source_id
     auto source=std::make_pair(source_type,source_id);auto settings=self.limits;
     auto target_type=type,target_id=id;auto queued_bytes=payload.size()+1024;
     auto resolved_type=std::make_shared<std::string>(type);
-    if(!self.storage.submit(queued_bytes,[source,target_type,target_id,target_epoch,status,settings,resolved_type](Database& db) {
+    if(!self.storage.submit(queued_bytes,[source,target_type,target_id,target_epoch,status,settings,resolved_type](Storage& db) {
         auto target=db.get(entity_record_key(target_type,target_id));
         if(!target) {*status=Status::not_found;return;}
         auto value=decode_entity_record(target->value);

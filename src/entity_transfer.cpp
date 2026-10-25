@@ -30,7 +30,7 @@ struct EntityTransfer::Impl:std::enable_shared_from_this<Impl> {
     std::unordered_map<std::string,std::shared_ptr<Operation>> operations;
     std::vector<std::uint64_t> peers;
     bool stopped=false;
-    Impl(Node& n,std::shared_ptr<EntityScriptHost> h,std::shared_ptr<Database> db,
+    Impl(Node& n,std::shared_ptr<EntityScriptHost> h,std::shared_ptr<Storage> db,
          std::vector<EntityEndpoint> e,Trust t,EntityTransferLimits l)
         :node(n),host(std::move(h)),storage(std::move(db)),endpoints(std::move(e)),trust(std::move(t)),limits(l) {
         validate_entity_endpoints(endpoints);
@@ -105,7 +105,7 @@ struct EntityTransfer::Impl:std::enable_shared_from_this<Impl> {
         // Resume after lost acknowledgement, coordinator restart, or source crash
         // following the durable release. Never rewrite the destination here.
         auto record=std::make_shared<std::optional<EntityLocation>>();
-        if(!storage.submit(op->key.size(),[record,op](Database& db) {
+        if(!storage.submit(op->key.size(),[record,op](Storage& db) {
             *record=entity_location(db,op->type,op->id);
         },[weak=weak_from_this(),record,op](std::exception_ptr error) {
             auto self=weak.lock(); if(!self || self->stopped || op->done) return;
@@ -116,7 +116,7 @@ struct EntityTransfer::Impl:std::enable_shared_from_this<Impl> {
         })) finish(op,{Status::overloaded,{}});
     }
 };
-EntityTransfer::EntityTransfer(Node& node,std::shared_ptr<EntityScriptHost> host,std::shared_ptr<Database> db,
+EntityTransfer::EntityTransfer(Node& node,std::shared_ptr<EntityScriptHost> host,std::shared_ptr<Storage> db,
     std::vector<EntityEndpoint> endpoints,Trust trust,EntityTransferLimits limits)
     :impl_(std::make_shared<Impl>(node,std::move(host),std::move(db),std::move(endpoints),std::move(trust),limits)) {
     if(node.has_route(probe_route)||node.has_route(accept_route)||node.has_route(create_route)) throw std::logic_error("entity placement routes already bound");

@@ -3,7 +3,7 @@
 #include <thread>
 #include <vector>
 
-inline void database_contract(std::shared_ptr<fsnet::Database> db) {
+inline void database_contract(std::shared_ptr<fsnet::Storage> db) {
     const std::string binary("value\0data", 10);
     CHECK(!db->get("player"));
     CHECK(db->compare_exchange("player", 0, binary));

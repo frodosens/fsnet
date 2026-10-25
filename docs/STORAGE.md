@@ -28,7 +28,7 @@ delete 以 tombstone 替换记录，重建时沿用并增加版本；不能手�
 
 ## 实体记录与升级
 
-托管实体把 owner、租约、fencing、状态与请求结果保存在单个 FER1/FER2/FER3 记录中。提交与接管都只进行一次单记录 CAS。底层 EntityStore 同样采用单记录格式；其辅助记录与托管实体格式不同，不应混读。
+全局实体使用 FER5 保存 EntityId 对应的类型/创建摘要、逻辑连接归属、placement、运行节点租约/fence、快照和请求结果。提交与接管都使用单记录 CAS，创建 claim 由 EntityCatalog 持久保存；销毁保留身份墓碑。
 
 
 ## 跨实体业务

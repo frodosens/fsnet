@@ -11,7 +11,7 @@ struct EntityTimerStats {std::size_t tracked=0,pending=0;std::uint64_t fired=0,f
 // stopped/idle host and process restart; the host fences and serializes callbacks.
 class EntityTimers {
 public:
-    EntityTimers(std::shared_ptr<EntityScriptHost>,std::shared_ptr<Database>,EntityTimerLimits={});
+    EntityTimers(std::shared_ptr<EntityScriptHost>,std::shared_ptr<Storage>,EntityTimerLimits={});
     ~EntityTimers();
     EntityTimers(const EntityTimers&)=delete;
     EntityTimers& operator=(const EntityTimers&)=delete;

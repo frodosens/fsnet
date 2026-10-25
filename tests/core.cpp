@@ -34,7 +34,7 @@ void database_tests() {
     std::filesystem::remove(file + "-wal"); std::filesystem::remove(file + "-shm");
     std::cout << "PASS storage: interchangeable backends, CAS contention, deletion, restart persistence\n";
 }
-void fencing_test(std::shared_ptr<fsnet::Database> db) {
+void fencing_test(std::shared_ptr<fsnet::Storage> db) {
     fsnet::EntityCatalog catalog(*db);
     auto id=catalog.create("core","fence",{"Counter","","state","node-a"});
     auto key=fsnet::entity_record_key(id);auto old=db->get(key);auto record=fsnet::decode_entity_record(old->value);

@@ -12,7 +12,7 @@ namespace fsnet {
 namespace {
 struct ClearResult { void operator()(PGresult* result) const { if (result) PQclear(result); } };
 using Query = std::unique_ptr<PGresult, ClearResult>;
-class Postgres final : public Database {
+class Postgres final : public Storage {
     PGconn* connection_ = nullptr;
     std::mutex mutex_;
     std::string ssl_mode_;
@@ -117,10 +117,10 @@ public:
     }
 };
 }
-std::shared_ptr<Database> postgres_database(const std::string& options) { return std::make_shared<Postgres>(options); }
+std::shared_ptr<Storage> postgres_database(const std::string& options) { return std::make_shared<Postgres>(options); }
 }
 #else
 namespace fsnet {
-std::shared_ptr<Database> postgres_database(const std::string&) { throw std::runtime_error("PostgreSQL adapter requires FSNET_WITH_POSTGRES=ON"); }
+std::shared_ptr<Storage> postgres_database(const std::string&) { throw std::runtime_error("PostgreSQL adapter requires FSNET_WITH_POSTGRES=ON"); }
 }
 #endif

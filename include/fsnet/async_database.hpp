@@ -15,9 +15,9 @@ struct StorageLimits {
 // Node or caller-thread objects; capture owned input and a shared result instead.
 class AsyncDatabase {
 public:
-    using Operation = std::function<void(Database&)>;
+    using Operation = std::function<void(Storage&)>;
     using Completion = std::function<void(std::exception_ptr)>;
-    explicit AsyncDatabase(std::shared_ptr<Database>, StorageLimits = {});
+    explicit AsyncDatabase(std::shared_ptr<Storage>, StorageLimits = {});
     ~AsyncDatabase();
     AsyncDatabase(const AsyncDatabase&) = delete;
     AsyncDatabase& operator=(const AsyncDatabase&) = delete;

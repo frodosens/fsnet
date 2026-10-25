@@ -28,7 +28,6 @@ public:
     // Optional application extension. Framework ownership/state paths never call it.
     virtual bool transact(const std::vector<Mutation>&) { throw std::logic_error("storage does not support multi-record transactions"); }
 };
-using Database = Storage; // compatibility with the earlier database API
 std::shared_ptr<Storage> file_storage(const std::string& directory);
 std::shared_ptr<Storage> open_storage(const std::string& uri);
 }

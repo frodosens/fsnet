@@ -25,7 +25,7 @@ struct GatewayStats { std::size_t clients=0,links=0,subscriptions=0,pending=0,qu
 // TLS identity and the explicit delegation gate above.
 class ClientGateway {
 public:
-    ClientGateway(Node& front,Node& back,std::shared_ptr<Database>,std::vector<EntityEndpoint>,GatewayLimits = {});
+    ClientGateway(Node& front,Node& back,std::shared_ptr<Storage>,std::vector<EntityEndpoint>,GatewayLimits = {});
     ~ClientGateway();
     void bind_entity(std::string type,std::vector<std::string> methods);
     void poll(std::size_t budget=64);

@@ -18,7 +18,7 @@ struct EntityDeliveryStats {
 class EntityDelivery {
 public:
     using Trust=std::function<bool(const CallIdentity&)>;
-    EntityDelivery(Node&,std::shared_ptr<EntityScriptHost>,std::shared_ptr<Database>,
+    EntityDelivery(Node&,std::shared_ptr<EntityScriptHost>,std::shared_ptr<Storage>,
                    std::vector<EntityEndpoint>,Trust,EntityDeliveryLimits = {});
     ~EntityDelivery();
     EntityDelivery(const EntityDelivery&)=delete;

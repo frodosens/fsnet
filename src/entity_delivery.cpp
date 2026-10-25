@@ -18,7 +18,7 @@ struct EntityDelivery::Impl:std::enable_shared_from_this<Impl> {
     std::vector<std::pair<std::string,std::string>> sources;
     std::unordered_map<std::string,std::shared_ptr<Attempt>> active;
     std::size_t cursor=0,remaining=0;Clock::time_point next{},refresh{};bool stopped=false,loading=false,polling=false;
-    Impl(Node& n,std::shared_ptr<EntityScriptHost> h,std::shared_ptr<Database> db,std::vector<EntityEndpoint> e,Trust t,EntityDeliveryLimits l)
+    Impl(Node& n,std::shared_ptr<EntityScriptHost> h,std::shared_ptr<Storage> db,std::vector<EntityEndpoint> e,Trust t,EntityDeliveryLimits l)
         :node(n),host(std::move(h)),storage(std::move(db)),endpoints(std::move(e)),trust(std::move(t)),limits(l) {
         validate_entity_endpoints(endpoints);
         if(!host||!trust||!limits.requests||limits.requests>1024||limits.retry.count()<=0||limits.refresh.count()<=0||limits.timeout.count()<=0||limits.timeout>std::chrono::minutes(5))throw std::invalid_argument("invalid delivery settings");
@@ -27,7 +27,7 @@ struct EntityDelivery::Impl:std::enable_shared_from_this<Impl> {
     void finish(const std::shared_ptr<Attempt>& op,bool success=false){if(std::exchange(op->done,true))return;active.erase(op->key);if(success){if(!op->envelope.message.ticket.empty())++counters.acknowledged;}else ++counters.failures;}
     void send(const std::shared_ptr<Attempt>& op,const std::string& type,const std::string& id,std::string route,std::string payload,Reply reply) {
         auto location=std::make_shared<std::optional<EntityLocation>>();
-        if(!storage.submit(type.size()+id.size(),[location,type,id](Database& db){*location=entity_location(db,type,id);},
+        if(!storage.submit(type.size()+id.size(),[location,type,id](Storage& db){*location=entity_location(db,type,id);},
             [weak=weak_from_this(),location,op,type,id,route=std::move(route),payload=std::move(payload),reply=std::move(reply)](std::exception_ptr error) mutable {
                 auto self=weak.lock();if(!self||self->stopped||op->done)return;
                 if(error)return self->finish(op);
@@ -56,7 +56,7 @@ struct EntityDelivery::Impl:std::enable_shared_from_this<Impl> {
         auto key=encode_entity_key(source.first,source.second);if(active.contains(key))return;
         auto op=std::make_shared<Attempt>();op->key=key;active.emplace(key,op);
         auto envelope=std::make_shared<std::optional<DeliveryEnvelope>>();
-        if(!storage.submit(key.size(),[source,envelope](Database& db){
+        if(!storage.submit(key.size(),[source,envelope](Storage& db){
             auto record=db.get(entity_record_key(source.first,source.second));if(!record)return;
             auto state=decode_entity_record(record->value).snapshot.delivery;
             for(auto& m:state.outbox)if(!m.done){*envelope=DeliveryEnvelope{source.first,source.second,state.epoch,std::move(m)};break;}
@@ -69,11 +69,11 @@ struct EntityDelivery::Impl:std::enable_shared_from_this<Impl> {
     }
     void load(){
         loading=true;auto value=std::make_shared<std::vector<std::pair<std::string,std::string>>>();
-        if(!storage.submit(1024,[value](Database& db){if(auto record=db.get(delivery_registry_key))*value=decode_delivery_sources(record->value);},
+        if(!storage.submit(1024,[value](Storage& db){if(auto record=db.get(delivery_registry_key))*value=decode_delivery_sources(record->value);},
             [weak=weak_from_this(),value](std::exception_ptr error){auto self=weak.lock();if(!self||self->stopped)return;self->loading=false;self->refresh=Clock::now()+self->limits.refresh;if(!error){self->sources=std::move(*value);self->cursor=self->sources.empty()?0:self->cursor%self->sources.size();self->remaining=std::min(self->remaining,self->sources.size());}else ++self->counters.failures;})) {loading=false;refresh=Clock::now()+limits.refresh;++counters.failures;}
     }
 };
-EntityDelivery::EntityDelivery(Node& node,std::shared_ptr<EntityScriptHost> host,std::shared_ptr<Database> database,std::vector<EntityEndpoint> endpoints,Trust trust,EntityDeliveryLimits limits)
+EntityDelivery::EntityDelivery(Node& node,std::shared_ptr<EntityScriptHost> host,std::shared_ptr<Storage> database,std::vector<EntityEndpoint> endpoints,Trust trust,EntityDeliveryLimits limits)
     :impl_(std::make_shared<Impl>(node,std::move(host),std::move(database),std::move(endpoints),std::move(trust),limits)) {
     if(node.has_route(receive_route)||node.has_route(ack_route))throw std::logic_error("delivery routes already bound");
     auto weak=std::weak_ptr(impl_);

@@ -13,7 +13,7 @@ struct EntityTransferLimits {
 class EntityTransfer {
 public:
     using Trust=std::function<bool(const CallIdentity&)>;
-    EntityTransfer(Node&,std::shared_ptr<EntityScriptHost>,std::shared_ptr<Database>,
+    EntityTransfer(Node&,std::shared_ptr<EntityScriptHost>,std::shared_ptr<Storage>,
                    std::vector<EntityEndpoint>,Trust,EntityTransferLimits = {});
     ~EntityTransfer();
     EntityTransfer(const EntityTransfer&)=delete;

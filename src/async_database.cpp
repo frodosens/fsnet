@@ -9,7 +9,7 @@
 namespace fsnet {
 struct AsyncDatabase::Impl {
     struct Job { std::size_t bytes; Operation operation; Completion completion; std::exception_ptr error; };
-    std::shared_ptr<Database> database;
+    std::shared_ptr<Storage> database;
     StorageLimits limits;
     mutable std::mutex mutex;
     std::condition_variable ready;
@@ -17,7 +17,7 @@ struct AsyncDatabase::Impl {
     std::size_t count = 0, bytes = 0;
     bool stopped = false, polling = false;
     std::thread worker;
-    Impl(std::shared_ptr<Database> db, StorageLimits settings) : database(std::move(db)), limits(settings) {
+    Impl(std::shared_ptr<Storage> db, StorageLimits settings) : database(std::move(db)), limits(settings) {
         if (!database || !limits.jobs || !limits.bytes) throw std::invalid_argument("invalid storage executor");
         worker = std::thread([this] {
             for (;;) {
@@ -41,7 +41,7 @@ struct AsyncDatabase::Impl {
     }
     ~Impl() { stop(); }
 };
-AsyncDatabase::AsyncDatabase(std::shared_ptr<Database> db, StorageLimits limits)
+AsyncDatabase::AsyncDatabase(std::shared_ptr<Storage> db, StorageLimits limits)
     : impl_(std::make_shared<Impl>(std::move(db), limits)) {}
 AsyncDatabase::~AsyncDatabase() { stop(); }
 bool AsyncDatabase::submit(std::size_t bytes, Operation operation, Completion completion) {

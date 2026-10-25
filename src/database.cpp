@@ -19,7 +19,7 @@ void validate(const std::vector<Mutation>& mutations) {
         if (!keys.insert(mutation.key).second) throw std::invalid_argument("duplicate transaction key");
     }
 }
-class Memory final : public Database {
+class Memory final : public Storage {
     std::mutex mutex_;
     std::unordered_map<std::string, Record> records_;
     std::uint64_t revision_ = 0;
@@ -57,7 +57,7 @@ public:
         return true;
     }
 };
-class Sqlite final : public Database {
+class Sqlite final : public Storage {
     std::mutex mutex_;
     SQLite::Database db_;
     std::optional<Record> read(std::string_view key) {
@@ -117,6 +117,6 @@ public:
     }
 };
 }
-std::shared_ptr<Database> memory_database() { return std::make_shared<Memory>(); }
-std::shared_ptr<Database> sqlite_database(const std::string& file) { return std::make_shared<Sqlite>(file); }
+std::shared_ptr<Storage> memory_database() { return std::make_shared<Memory>(); }
+std::shared_ptr<Storage> sqlite_database(const std::string& file) { return std::make_shared<Sqlite>(file); }
 }
