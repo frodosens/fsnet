@@ -16,7 +16,7 @@ namespace snapshot_detail {
 inline void number(std::string& out, std::uint32_t value) {
     for (int shift = 24; shift >= 0; shift -= 8) out.push_back(static_cast<char>(value >> shift));
 }
-inline void blob(std::string& out, const std::string& value) {
+inline void blob(std::string& out, std::string_view value) {
     if (value.size() > UINT32_MAX) throw std::length_error("snapshot field too large");
     number(out, static_cast<std::uint32_t>(value.size())); out += value;
 }

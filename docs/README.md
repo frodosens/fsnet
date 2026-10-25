@@ -35,6 +35,8 @@ C++ 提供客户端/服务端共用的引擎机制，业务逻辑写在 Lua；�
 
 ## 实现状态与证据
 
+- [全局实体重构实施](GLOBAL_ENTITIES.md)：已对齐边界、已实现阶段与尚待接入范围。
+
 - [完成状态](ENGINE_COMPLETION.md)：当前能力与尚未交付项。
 - [路线图](ROADMAP.md)：后续阶段，不将计划视为已实现 API。
 - [全局实体与业务 RPC 规划](ENTITY_ADDRESSING_PLAN.md)：已确认的全局独立 EntityId、业务统一实体调用、多 LoginHub 与跨节点创建约束；尚未实现。
