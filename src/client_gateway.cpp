@@ -18,7 +18,7 @@ std::string token(std::uint64_t id){std::string out;put(out,id);return out;}
 std::int64_t wall(){return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();}
 }
 struct GatewayDelegation::Impl:std::enable_shared_from_this<Impl>{
-    struct Session{std::string subject,transport,certificate;};
+    struct Session{std::string subject,transport,certificate;ConnectionRef connection{};};
     Node& node;Node::IdentityResolver base;Trust trust;Restore restore;std::shared_ptr<EntityScriptHost> host;
     std::unordered_map<std::uint64_t,Session> sessions;std::size_t limit;bool stopped=false;
     Impl(Node& n,Node::IdentityResolver b,Trust t,std::shared_ptr<EntityScriptHost> h,Restore r,std::size_t l):node(n),base(std::move(b)),trust(std::move(t)),restore(std::move(r)),host(std::move(h)),limit(l){if(!base||!trust||!host||!limit)throw std::invalid_argument("gateway trust and entity host required");}
@@ -35,9 +35,14 @@ GatewayDelegation::GatewayDelegation(Node& node,Node::IdentityResolver base,Trus
             auto self=weak.lock();if(!self||self->stopped)return reply({Status::disconnected,{}});
             auto cert=self->node.peer_identity(who.peer);
             try{
+                ConnectionRef connection;
+                if(subject.starts_with("FSCN1")) {
+                    std::string_view input(subject);input.remove_prefix(5);auto name=snapshot_detail::blob(input);
+                    connection=ConnectionRef::from_key(snapshot_detail::blob_view(input));if(!input.empty())throw std::invalid_argument("trailing delegation");subject=std::move(name);
+                }
                 if(subject.empty()||subject.size()>256||!self->trust(who,cert)||self->sessions.contains(who.peer))return reply({Status::rejected,{}});
                 if(self->sessions.size()>=self->limit)return reply({Status::overloaded,{}});
-                self->sessions.emplace(who.peer,Impl::Session{std::move(subject),who.subject,std::move(cert)});reply({Status::ok,{}});
+                self->sessions.emplace(who.peer,Impl::Session{std::move(subject),who.subject,std::move(cert),std::move(connection)});reply({Status::ok,{}});
             }catch(...){reply({Status::rejected,{}});}
         });
         node.bind_rpc("system.gateway.restore",{true,false,false},[weak](const CallIdentity& who,std::string data,Reply reply){
@@ -74,7 +79,7 @@ GatewayDelegation::GatewayDelegation(Node& node,Node::IdentityResolver base,Trus
             auto it=self->sessions.find(peer);
             if(it==self->sessions.end())return self->base(peer,cert);
             if(!self->valid(peer,it->second,cert))return {};
-            return CallIdentity{Caller::client,it->second.subject,peer};
+            return CallIdentity{Caller::client,it->second.subject,peer,it->second.connection};
         });
     }catch(...){impl_->stop();throw;}
 }
@@ -84,7 +89,7 @@ void GatewayDelegation::stop(){impl_->stop();}
 
 struct ClientGateway::Impl:std::enable_shared_from_this<Impl>{
     struct Link{std::uint64_t client,peer=0;std::size_t index;bool ready=false,opening=false;std::map<std::uint64_t,std::function<void(Status,std::shared_ptr<Link>)>> waiters;};
-    struct Session{std::string subject;std::unordered_map<std::size_t,std::shared_ptr<Link>> links;std::uint64_t controlled=0;};
+    struct Session{std::string subject;std::unordered_map<std::size_t,std::shared_ptr<Link>> links;std::uint64_t controlled=0;ConnectionRef connection{};};
     struct Subscription{
         std::uint64_t id,client,remote=0,revision=0,control_epoch=0;std::string type,entity;std::shared_ptr<Link> link;
         bool automatic=false,owned=false,controlled=false,migrating=false,busy=false;
@@ -118,9 +123,9 @@ struct ClientGateway::Impl:std::enable_shared_from_this<Impl>{
         if(requests.size()>=limits.requests||data.size()>limits.bytes-counters.queued_bytes||serial>=UINT64_MAX-1){reply({Status::overloaded,{}});return {};}
         auto found=sessions.find(who.peer);if(found==sessions.end()){
             if(sessions.size()>=limits.clients){reply({Status::overloaded,{}});return {};}
-            found=sessions.emplace(who.peer,Session{who.subject,{}}).first;
+            found=sessions.emplace(who.peer,Session{who.subject,{},0,who.connection}).first;
         }
-        if(found->second.subject!=who.subject){front.close(who.peer);reply({Status::rejected,{}});return {};}
+        if(found->second.subject!=who.subject || found->second.connection!=who.connection){front.close(who.peer);reply({Status::rejected,{}});return {};}
         auto r=std::make_shared<Request>(Request{++serial,who.peer,who.subject,std::move(data),std::move(reply),Clock::now()+limits.request_timeout,0});r->bytes=r->data.size();counters.queued_bytes+=r->bytes;requests.emplace(r->id,r);return r;
     }
     void select(std::string type,std::string entity,std::function<void(Status,std::optional<std::size_t>,bool)> done,std::unordered_set<std::size_t> failed={},const std::shared_ptr<Request>& request={},const std::shared_ptr<Subscription>& subscription={}){
@@ -170,7 +175,8 @@ struct ClientGateway::Impl:std::enable_shared_from_this<Impl>{
         if(links.size()>=limits.links)return ready(Status::overloaded,{});
         auto link=std::make_shared<Link>();link->client=client;link->index=index;link->opening=true;wait(link);
         try{const auto& endpoint=endpoints[index];link->peer=back.connect(endpoint.address,endpoint.port,endpoint.tls_peer_name);session->second.links[index]=link;links[link->peer]=link;
-            back.call(link->peer,"system.gateway.delegate",session->second.subject,limits.request_timeout,[weak=weak_from_this(),link](Result result){auto self=weak.lock();if(!self)return;link->opening=false;link->ready=result.status==Status::ok;
+            std::string delegated="FSCN1";snapshot_detail::blob(delegated,session->second.subject);snapshot_detail::blob(delegated,session->second.connection.key());
+            back.call(link->peer,"system.gateway.delegate",std::move(delegated),limits.request_timeout,[weak=weak_from_this(),link](Result result){auto self=weak.lock();if(!self)return;link->opening=false;link->ready=result.status==Status::ok;
                 auto waiting=std::move(link->waiters);if(!link->ready){self->back.close(link->peer);self->links.erase(link->peer);self->retry[link->index]=Clock::now()+std::chrono::milliseconds(250);}
                 for(auto& [id,done]:waiting){(void)id;done(result.status,link->ready?link:nullptr);}
             });

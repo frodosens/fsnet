@@ -120,6 +120,7 @@ struct Node::Impl::Session : std::enable_shared_from_this<Session> {
     Tcp::socket socket;
     std::unique_ptr<asio::ssl::stream<Tcp::socket&>> tls;
     std::string identity;
+    ConnectionRef connection=ConnectionRef::create();
     asio::steady_timer idle;
     std::uint64_t id;
     bool closed = false, active = false, authenticated = false;
@@ -134,6 +135,24 @@ struct Node::Impl::Session : std::enable_shared_from_this<Session> {
         enqueue(frame(0, Status::ok, 0, {}, node->token));
     }
     ~Session() { release_body(); }
+    std::optional<CallIdentity> resolve_principal() {
+        auto node=owner.lock();if(!node || node->stopped || closed || !authenticated)return {};
+        std::optional<CallIdentity> result;
+        if(node->identity_resolver){auto resolve=node->identity_resolver;result=resolve(id,identity);}
+        else result=CallIdentity{Caller::client,identity,id};
+        if(!result || result->subject.size()>256 || (result->caller!=Caller::client && result->caller!=Caller::server) || closed || node->stopped)return {};
+        result->peer=id;if(!result->connection)result->connection=connection;
+        return result;
+    }
+    std::optional<CallIdentity> principal() {
+        auto result=resolve_principal();if(!result)return {};
+        auto previous=result->current;
+        result->current=[weak=weak_from_this(),caller=result->caller,subject=result->subject,connection=result->connection,previous]{
+            auto self=weak.lock();if(!self || (previous && !previous()))return false;
+            auto current=self->resolve_principal();return current && current->caller==caller && current->subject==subject && current->connection==connection;
+        };
+        return result;
+    }
     void release_body() {
         if (auto node = owner.lock()) node->receive_bytes -= receive_reserved;
         receive_reserved = 0;
@@ -280,9 +299,8 @@ struct Node::Impl::Session : std::enable_shared_from_this<Session> {
         if(registered.legacy || !node->identity_resolver) principal.subject=identity;
         if (!registered.legacy) {
             try {
-                if (node->identity_resolver) {
-                    auto resolve = node->identity_resolver;
-                    auto resolved = resolve(id, identity);
+                {
+                    auto resolved = this->principal();
                     if (!resolved) { if (!enqueue(frame(2, Status::rejected, call, {}, {}))) close(); return; }
                     principal = std::move(*resolved);
                 }
@@ -435,11 +453,7 @@ std::optional<CallIdentity> Node::identity(std::uint64_t peer) const {
     if (keep->stopped || it == keep->sessions.end() || !it->second->authenticated || it->second->closed) return {};
     auto session = it->second;
     try {
-        std::optional<CallIdentity> principal;
-        if (keep->identity_resolver) { auto resolve = keep->identity_resolver; principal = resolve(peer, session->identity); }
-        else principal=CallIdentity{Caller::client, session->identity, peer};
-        if (!principal || principal->subject.size() > 256 || (principal->caller != Caller::client && principal->caller != Caller::server) || keep->stopped || session->closed) return {};
-        principal->peer = peer; return principal;
+        return session->principal();
     } catch (...) { return {}; }
 }
 void Node::close(std::uint64_t peer) {

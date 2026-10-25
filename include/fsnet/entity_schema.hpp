@@ -9,6 +9,8 @@
 #include <string>
 #include <variant>
 #include <vector>
+#include <functional>
+#include "fsnet/connection.hpp"
 
 namespace fsnet {
 enum class Caller { client, server };
@@ -16,14 +18,20 @@ struct CallIdentity {
     Caller caller = Caller::client;
     std::string subject;
     std::uint64_t peer = 0; // transport-local connection; never serialized as identity
+    ConnectionRef connection{};
+    std::function<bool()> current{}; // owner-thread revalidation, never serialized
+    bool live()const {try{return !current || current();}catch(...){return false;}}
+    bool owns(const std::string& owner)const {
+        return live() && (owner.starts_with("connection/") ? (connection && connection.key()==owner) : (!subject.empty() && subject==owner));
+    }
 };
 enum class Access { none, read, write, read_write };
 enum class Visibility { none, owner, observers };
 struct RpcPolicy {
     bool client = false, server = false, owner_only = false;
     bool allows(const CallIdentity& identity, const std::string& owner) const {
-        return (identity.caller == Caller::server ? server : client) &&
-            (!owner_only || (!identity.subject.empty() && identity.subject == owner));
+        return identity.live() && (identity.caller == Caller::server ? server : client) &&
+            (!owner_only || identity.owns(owner));
     }
 };
 struct AttributeValue;
