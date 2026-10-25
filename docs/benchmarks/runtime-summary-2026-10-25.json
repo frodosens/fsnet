@@ -1,0 +1,1729 @@
+{
+  "source_revision": "7f7bcd9ed9513c829cc7dc7079c4c4999484e95a",
+  "runs_per_scenario": 5,
+  "aggregation": "median/min/max of per-run metrics; p99 is median of individual-run p99, not pooled",
+  "scenarios": [
+    {
+      "executable": "fsnet-benchmark",
+      "scenario": "node_echo",
+      "configuration": {
+        "payload_bytes": 128,
+        "concurrency": 128
+      },
+      "samples": 5,
+      "metrics": {
+        "requests": {
+          "median": 100000.0,
+          "min": 100000.0,
+          "max": 100000.0
+        },
+        "seconds": {
+          "median": 0.589973,
+          "min": 0.583736,
+          "max": 0.597763
+        },
+        "requests_per_second": {
+          "median": 169499.0,
+          "min": 167291.0,
+          "max": 171310.0
+        },
+        "p50_ms": {
+          "median": 0.729877,
+          "min": 0.727454,
+          "max": 0.733887
+        },
+        "p99_ms": {
+          "median": 1.06315,
+          "min": 1.04837,
+          "max": 1.30456
+        },
+        "payload_bytes": {
+          "median": 128,
+          "min": 128,
+          "max": 128
+        },
+        "concurrency": {
+          "median": 128,
+          "min": 128,
+          "max": 128
+        }
+      }
+    },
+    {
+      "executable": "fsnet-attribute-benchmark",
+      "scenario": "publish_scalar_32",
+      "configuration": {
+        "recipients": 0
+      },
+      "samples": 5,
+      "metrics": {
+        "iterations": {
+          "median": 20000,
+          "min": 20000,
+          "max": 20000
+        },
+        "seconds": {
+          "median": 0.003707486,
+          "min": 0.003549935,
+          "max": 0.003904658
+        },
+        "ns_per_op": {
+          "median": 185.3743,
+          "min": 177.49675,
+          "max": 195.2329
+        },
+        "wire_bytes": {
+          "median": 0,
+          "min": 0,
+          "max": 0
+        },
+        "recipients": {
+          "median": 0,
+          "min": 0,
+          "max": 0
+        }
+      }
+    },
+    {
+      "executable": "fsnet-attribute-benchmark",
+      "scenario": "publish_vec3_32",
+      "configuration": {
+        "recipients": 0
+      },
+      "samples": 5,
+      "metrics": {
+        "iterations": {
+          "median": 20000,
+          "min": 20000,
+          "max": 20000
+        },
+        "seconds": {
+          "median": 0.012497429,
+          "min": 0.012312052,
+          "max": 0.013191137
+        },
+        "ns_per_op": {
+          "median": 624.87145,
+          "min": 615.6026,
+          "max": 659.55685
+        },
+        "wire_bytes": {
+          "median": 0,
+          "min": 0,
+          "max": 0
+        },
+        "recipients": {
+          "median": 0,
+          "min": 0,
+          "max": 0
+        }
+      }
+    },
+    {
+      "executable": "fsnet-attribute-benchmark",
+      "scenario": "replica_delta_32",
+      "configuration": {
+        "recipients": 0
+      },
+      "samples": 5,
+      "metrics": {
+        "iterations": {
+          "median": 20000,
+          "min": 20000,
+          "max": 20000
+        },
+        "seconds": {
+          "median": 0.019830945,
+          "min": 0.019213011,
+          "max": 0.021289388
+        },
+        "ns_per_op": {
+          "median": 991.54725,
+          "min": 960.65055,
+          "max": 1064.4694
+        },
+        "wire_bytes": {
+          "median": 0,
+          "min": 0,
+          "max": 0
+        },
+        "recipients": {
+          "median": 0,
+          "min": 0,
+          "max": 0
+        }
+      }
+    },
+    {
+      "executable": "fsnet-attribute-benchmark",
+      "scenario": "codec_roundtrip_32",
+      "configuration": {
+        "recipients": 0
+      },
+      "samples": 5,
+      "metrics": {
+        "iterations": {
+          "median": 5000,
+          "min": 5000,
+          "max": 5000
+        },
+        "seconds": {
+          "median": 0.019913347,
+          "min": 0.019674644,
+          "max": 0.021599663
+        },
+        "ns_per_op": {
+          "median": 3982.6694,
+          "min": 3934.9288,
+          "max": 4319.9326
+        },
+        "wire_bytes": {
+          "median": 613,
+          "min": 613,
+          "max": 613
+        },
+        "recipients": {
+          "median": 0,
+          "min": 0,
+          "max": 0
+        }
+      }
+    },
+    {
+      "executable": "fsnet-attribute-benchmark",
+      "scenario": "payload_sizes",
+      "configuration": {},
+      "samples": 5,
+      "metrics": {
+        "full_bytes": {
+          "median": 613,
+          "min": 613,
+          "max": 613
+        },
+        "vec3_delta_bytes": {
+          "median": 67,
+          "min": 67,
+          "max": 67
+        }
+      }
+    },
+    {
+      "executable": "fsnet-attribute-benchmark",
+      "scenario": "lua_nested_read_32",
+      "configuration": {
+        "recipients": 0
+      },
+      "samples": 5,
+      "metrics": {
+        "iterations": {
+          "median": 20000,
+          "min": 20000,
+          "max": 20000
+        },
+        "seconds": {
+          "median": 0.013339584,
+          "min": 0.012824831,
+          "max": 0.014038218
+        },
+        "ns_per_op": {
+          "median": 666.9792,
+          "min": 641.24155,
+          "max": 701.9109
+        },
+        "wire_bytes": {
+          "median": 0,
+          "min": 0,
+          "max": 0
+        },
+        "recipients": {
+          "median": 0,
+          "min": 0,
+          "max": 0
+        }
+      }
+    },
+    {
+      "executable": "fsnet-attribute-benchmark",
+      "scenario": "lua_whole_write_32",
+      "configuration": {
+        "recipients": 0
+      },
+      "samples": 5,
+      "metrics": {
+        "iterations": {
+          "median": 20000,
+          "min": 20000,
+          "max": 20000
+        },
+        "seconds": {
+          "median": 0.057349954,
+          "min": 0.056912994,
+          "max": 0.060872684
+        },
+        "ns_per_op": {
+          "median": 2867.4977,
+          "min": 2845.6497,
+          "max": 3043.6342
+        },
+        "wire_bytes": {
+          "median": 0,
+          "min": 0,
+          "max": 0
+        },
+        "recipients": {
+          "median": 0,
+          "min": 0,
+          "max": 0
+        }
+      }
+    },
+    {
+      "executable": "fsnet-attribute-benchmark",
+      "scenario": "lua_nested_write_32",
+      "configuration": {
+        "recipients": 0
+      },
+      "samples": 5,
+      "metrics": {
+        "iterations": {
+          "median": 20000,
+          "min": 20000,
+          "max": 20000
+        },
+        "seconds": {
+          "median": 0.060731577,
+          "min": 0.059519504,
+          "max": 0.06204539
+        },
+        "ns_per_op": {
+          "median": 3036.57885,
+          "min": 2975.9752,
+          "max": 3102.2695
+        },
+        "wire_bytes": {
+          "median": 0,
+          "min": 0,
+          "max": 0
+        },
+        "recipients": {
+          "median": 0,
+          "min": 0,
+          "max": 0
+        }
+      }
+    },
+    {
+      "executable": "fsnet-attribute-benchmark",
+      "scenario": "fanout_1",
+      "configuration": {
+        "recipients": 1
+      },
+      "samples": 5,
+      "metrics": {
+        "iterations": {
+          "median": 1000,
+          "min": 1000,
+          "max": 1000
+        },
+        "seconds": {
+          "median": 0.190144758,
+          "min": 0.179834694,
+          "max": 0.19439918
+        },
+        "ns_per_op": {
+          "median": 190144.758,
+          "min": 179834.694,
+          "max": 194399.18
+        },
+        "wire_bytes": {
+          "median": 96,
+          "min": 96,
+          "max": 96
+        },
+        "recipients": {
+          "median": 1,
+          "min": 1,
+          "max": 1
+        },
+        "p50_us": {
+          "median": 162.283,
+          "min": 156.379,
+          "max": 164.517
+        },
+        "p99_us": {
+          "median": 488.603,
+          "min": 413.26,
+          "max": 510.44
+        }
+      }
+    },
+    {
+      "executable": "fsnet-attribute-benchmark",
+      "scenario": "fanout_8",
+      "configuration": {
+        "recipients": 8
+      },
+      "samples": 5,
+      "metrics": {
+        "iterations": {
+          "median": 1000,
+          "min": 1000,
+          "max": 1000
+        },
+        "seconds": {
+          "median": 0.301349762,
+          "min": 0.284049479,
+          "max": 0.407655602
+        },
+        "ns_per_op": {
+          "median": 301349.762,
+          "min": 284049.479,
+          "max": 407655.602
+        },
+        "wire_bytes": {
+          "median": 96,
+          "min": 96,
+          "max": 96
+        },
+        "recipients": {
+          "median": 8,
+          "min": 8,
+          "max": 8
+        },
+        "p50_us": {
+          "median": 272.37,
+          "min": 263.596,
+          "max": 388.623
+        },
+        "p99_us": {
+          "median": 648.609,
+          "min": 529.314,
+          "max": 726.688
+        }
+      }
+    },
+    {
+      "executable": "fsnet-attribute-benchmark",
+      "scenario": "fanout_32",
+      "configuration": {
+        "recipients": 32
+      },
+      "samples": 5,
+      "metrics": {
+        "iterations": {
+          "median": 1000,
+          "min": 1000,
+          "max": 1000
+        },
+        "seconds": {
+          "median": 0.708987988,
+          "min": 0.685084074,
+          "max": 0.737624235
+        },
+        "ns_per_op": {
+          "median": 708987.988,
+          "min": 685084.074,
+          "max": 737624.235
+        },
+        "wire_bytes": {
+          "median": 96,
+          "min": 96,
+          "max": 96
+        },
+        "recipients": {
+          "median": 32,
+          "min": 32,
+          "max": 32
+        },
+        "p50_us": {
+          "median": 665.426,
+          "min": 647.04,
+          "max": 677.409
+        },
+        "p99_us": {
+          "median": 1231.776,
+          "min": 1121.929,
+          "max": 1992.874
+        }
+      }
+    },
+    {
+      "executable": "fsnet-container-benchmark",
+      "scenario": "nested_struct_1kb",
+      "configuration": {},
+      "samples": 5,
+      "metrics": {
+        "full_fsa_bytes": {
+          "median": 1111,
+          "min": 1111,
+          "max": 1111
+        },
+        "patch_fsa_bytes": {
+          "median": 54,
+          "min": 54,
+          "max": 54
+        },
+        "uplink_fsa_bytes": {
+          "median": 54,
+          "min": 54,
+          "max": 54
+        },
+        "patches": {
+          "median": 1,
+          "min": 1,
+          "max": 1
+        }
+      }
+    },
+    {
+      "executable": "fsnet-container-benchmark",
+      "scenario": "position_x",
+      "configuration": {},
+      "samples": 5,
+      "metrics": {
+        "full_fsa_bytes": {
+          "median": 67,
+          "min": 67,
+          "max": 67
+        },
+        "patch_fsa_bytes": {
+          "median": 48,
+          "min": 48,
+          "max": 48
+        },
+        "uplink_fsa_bytes": {
+          "median": 48,
+          "min": 48,
+          "max": 48
+        },
+        "patches": {
+          "median": 1,
+          "min": 1,
+          "max": 1
+        }
+      }
+    },
+    {
+      "executable": "fsnet-container-benchmark",
+      "scenario": "list_replace",
+      "configuration": {},
+      "samples": 5,
+      "metrics": {
+        "full_fsa_bytes": {
+          "median": 4146,
+          "min": 4146,
+          "max": 4146
+        },
+        "patch_fsa_bytes": {
+          "median": 52,
+          "min": 52,
+          "max": 52
+        },
+        "uplink_fsa_bytes": {
+          "median": 52,
+          "min": 52,
+          "max": 52
+        },
+        "patches": {
+          "median": 1,
+          "min": 1,
+          "max": 1
+        }
+      }
+    },
+    {
+      "executable": "fsnet-container-benchmark",
+      "scenario": "list_append16",
+      "configuration": {},
+      "samples": 5,
+      "metrics": {
+        "full_fsa_bytes": {
+          "median": 4664,
+          "min": 4664,
+          "max": 4664
+        },
+        "patch_fsa_bytes": {
+          "median": 556,
+          "min": 556,
+          "max": 556
+        },
+        "uplink_fsa_bytes": {
+          "median": 556,
+          "min": 556,
+          "max": 556
+        },
+        "patches": {
+          "median": 1,
+          "min": 1,
+          "max": 1
+        }
+      }
+    },
+    {
+      "executable": "fsnet-container-benchmark",
+      "scenario": "map_add16",
+      "configuration": {},
+      "samples": 5,
+      "metrics": {
+        "full_fsa_bytes": {
+          "median": 5200,
+          "min": 5200,
+          "max": 5200
+        },
+        "patch_fsa_bytes": {
+          "median": 805,
+          "min": 805,
+          "max": 805
+        },
+        "uplink_fsa_bytes": {
+          "median": 805,
+          "min": 805,
+          "max": 805
+        },
+        "patches": {
+          "median": 16,
+          "min": 16,
+          "max": 16
+        }
+      }
+    },
+    {
+      "executable": "fsnet-container-benchmark",
+      "scenario": "map_erase16",
+      "configuration": {},
+      "samples": 5,
+      "metrics": {
+        "full_fsa_bytes": {
+          "median": 4008,
+          "min": 4008,
+          "max": 4008
+        },
+        "patch_fsa_bytes": {
+          "median": 191,
+          "min": 191,
+          "max": 191
+        },
+        "uplink_fsa_bytes": {
+          "median": 191,
+          "min": 191,
+          "max": 191
+        },
+        "patches": {
+          "median": 16,
+          "min": 16,
+          "max": 16
+        }
+      }
+    },
+    {
+      "executable": "fsnet-container-benchmark",
+      "scenario": "sequential16",
+      "configuration": {},
+      "samples": 5,
+      "metrics": {
+        "rounds": {
+          "median": 100,
+          "min": 100,
+          "max": 100
+        },
+        "us_per_round": {
+          "median": 25460.89924,
+          "min": 24870.65007,
+          "max": 26365.57551
+        },
+        "writes": {
+          "median": 1600,
+          "min": 1600,
+          "max": 1600
+        },
+        "commits": {
+          "median": 1600,
+          "min": 1600,
+          "max": 1600
+        },
+        "proposal_fsa_bytes": {
+          "median": 83200,
+          "min": 83200,
+          "max": 83200
+        }
+      }
+    },
+    {
+      "executable": "fsnet-container-benchmark",
+      "scenario": "batch16",
+      "configuration": {},
+      "samples": 5,
+      "metrics": {
+        "rounds": {
+          "median": 100,
+          "min": 100,
+          "max": 100
+        },
+        "us_per_round": {
+          "median": 2950.67935,
+          "min": 2820.59612,
+          "max": 4512.6325
+        },
+        "writes": {
+          "median": 100,
+          "min": 100,
+          "max": 100
+        },
+        "commits": {
+          "median": 100,
+          "min": 100,
+          "max": 100
+        },
+        "proposal_fsa_bytes": {
+          "median": 45700,
+          "min": 45700,
+          "max": 45700
+        }
+      }
+    },
+    {
+      "executable": "fsnet-envelope-benchmark",
+      "scenario": "owning_parser",
+      "configuration": {
+        "envelope_bytes": 152
+      },
+      "samples": 5,
+      "metrics": {
+        "envelope_bytes": {
+          "median": 152,
+          "min": 152,
+          "max": 152
+        },
+        "iterations": {
+          "median": 50000,
+          "min": 50000,
+          "max": 50000
+        },
+        "ns_per_op": {
+          "median": 20.6678,
+          "min": 20.2636,
+          "max": 22.3566
+        },
+        "allocations": {
+          "median": 50000,
+          "min": 50000,
+          "max": 50000
+        },
+        "allocated_bytes": {
+          "median": 6450000,
+          "min": 6450000,
+          "max": 6450000
+        },
+        "checksum": {
+          "median": 12650000,
+          "min": 12650000,
+          "max": 12650000
+        }
+      }
+    },
+    {
+      "executable": "fsnet-envelope-benchmark",
+      "scenario": "borrowed_parser",
+      "configuration": {
+        "envelope_bytes": 152
+      },
+      "samples": 5,
+      "metrics": {
+        "envelope_bytes": {
+          "median": 152,
+          "min": 152,
+          "max": 152
+        },
+        "iterations": {
+          "median": 50000,
+          "min": 50000,
+          "max": 50000
+        },
+        "ns_per_op": {
+          "median": 2.50826,
+          "min": 2.50744,
+          "max": 2.50974
+        },
+        "allocations": {
+          "median": 0,
+          "min": 0,
+          "max": 0
+        },
+        "allocated_bytes": {
+          "median": 0,
+          "min": 0,
+          "max": 0
+        },
+        "checksum": {
+          "median": 12650000,
+          "min": 12650000,
+          "max": 12650000
+        }
+      }
+    },
+    {
+      "executable": "fsnet-envelope-benchmark",
+      "scenario": "owning_parser",
+      "configuration": {
+        "envelope_bytes": 4120
+      },
+      "samples": 5,
+      "metrics": {
+        "envelope_bytes": {
+          "median": 4120,
+          "min": 4120,
+          "max": 4120
+        },
+        "iterations": {
+          "median": 50000,
+          "min": 50000,
+          "max": 50000
+        },
+        "ns_per_op": {
+          "median": 60.6164,
+          "min": 57.7453,
+          "max": 68.8937
+        },
+        "allocations": {
+          "median": 50000,
+          "min": 50000,
+          "max": 50000
+        },
+        "allocated_bytes": {
+          "median": 204850000,
+          "min": 204850000,
+          "max": 204850000
+        },
+        "checksum": {
+          "median": 211050000,
+          "min": 211050000,
+          "max": 211050000
+        }
+      }
+    },
+    {
+      "executable": "fsnet-envelope-benchmark",
+      "scenario": "borrowed_parser",
+      "configuration": {
+        "envelope_bytes": 4120
+      },
+      "samples": 5,
+      "metrics": {
+        "envelope_bytes": {
+          "median": 4120,
+          "min": 4120,
+          "max": 4120
+        },
+        "iterations": {
+          "median": 50000,
+          "min": 50000,
+          "max": 50000
+        },
+        "ns_per_op": {
+          "median": 2.50442,
+          "min": 2.50422,
+          "max": 2.5058
+        },
+        "allocations": {
+          "median": 0,
+          "min": 0,
+          "max": 0
+        },
+        "allocated_bytes": {
+          "median": 0,
+          "min": 0,
+          "max": 0
+        },
+        "checksum": {
+          "median": 211050000,
+          "min": 211050000,
+          "max": 211050000
+        }
+      }
+    },
+    {
+      "executable": "fsnet-envelope-benchmark",
+      "scenario": "owning_parser",
+      "configuration": {
+        "envelope_bytes": 65560
+      },
+      "samples": 5,
+      "metrics": {
+        "envelope_bytes": {
+          "median": 65560,
+          "min": 65560,
+          "max": 65560
+        },
+        "iterations": {
+          "median": 50000,
+          "min": 50000,
+          "max": 50000
+        },
+        "ns_per_op": {
+          "median": 1538.52,
+          "min": 1519,
+          "max": 1595
+        },
+        "allocations": {
+          "median": 50000,
+          "min": 50000,
+          "max": 50000
+        },
+        "allocated_bytes": {
+          "median": 3276850000,
+          "min": 3276850000,
+          "max": 3276850000
+        },
+        "checksum": {
+          "median": 3283050000,
+          "min": 3283050000,
+          "max": 3283050000
+        }
+      }
+    },
+    {
+      "executable": "fsnet-envelope-benchmark",
+      "scenario": "borrowed_parser",
+      "configuration": {
+        "envelope_bytes": 65560
+      },
+      "samples": 5,
+      "metrics": {
+        "envelope_bytes": {
+          "median": 65560,
+          "min": 65560,
+          "max": 65560
+        },
+        "iterations": {
+          "median": 50000,
+          "min": 50000,
+          "max": 50000
+        },
+        "ns_per_op": {
+          "median": 2.50658,
+          "min": 2.50624,
+          "max": 2.50818
+        },
+        "allocations": {
+          "median": 0,
+          "min": 0,
+          "max": 0
+        },
+        "allocated_bytes": {
+          "median": 0,
+          "min": 0,
+          "max": 0
+        },
+        "checksum": {
+          "median": 3283050000,
+          "min": 3283050000,
+          "max": 3283050000
+        }
+      }
+    },
+    {
+      "executable": "fsnet-replication-benchmark",
+      "scenario": "forward_decode_encode",
+      "configuration": {},
+      "samples": 5,
+      "metrics": {
+        "iterations": {
+          "median": 2000,
+          "min": 2000,
+          "max": 2000
+        },
+        "us_per_op": {
+          "median": 72.02,
+          "min": 71.7627,
+          "max": 73.2629
+        },
+        "checksum": {
+          "median": 154040000,
+          "min": 154040000,
+          "max": 154040000
+        }
+      }
+    },
+    {
+      "executable": "fsnet-replication-benchmark",
+      "scenario": "forward_validate_remap",
+      "configuration": {},
+      "samples": 5,
+      "metrics": {
+        "iterations": {
+          "median": 2000,
+          "min": 2000,
+          "max": 2000
+        },
+        "us_per_op": {
+          "median": 27.3312,
+          "min": 27.0597,
+          "max": 27.8101
+        },
+        "checksum": {
+          "median": 154040000,
+          "min": 154040000,
+          "max": 154040000
+        }
+      }
+    },
+    {
+      "executable": "fsnet-replication-benchmark",
+      "scenario": "eager_snapshot_clone",
+      "configuration": {},
+      "samples": 5,
+      "metrics": {
+        "iterations": {
+          "median": 2000,
+          "min": 2000,
+          "max": 2000
+        },
+        "us_per_op": {
+          "median": 18.1388,
+          "min": 17.6181,
+          "max": 19.3789
+        },
+        "checksum": {
+          "median": 2003000,
+          "min": 2003000,
+          "max": 2003000
+        }
+      }
+    },
+    {
+      "executable": "fsnet-replication-benchmark",
+      "scenario": "shared_snapshot_acquire",
+      "configuration": {},
+      "samples": 5,
+      "metrics": {
+        "iterations": {
+          "median": 2000,
+          "min": 2000,
+          "max": 2000
+        },
+        "us_per_op": {
+          "median": 4.30878,
+          "min": 4.08153,
+          "max": 6.37973
+        },
+        "checksum": {
+          "median": 2003000,
+          "min": 2003000,
+          "max": 2003000
+        }
+      }
+    },
+    {
+      "executable": "fsnet-request-benchmark",
+      "scenario": "direct",
+      "configuration": {
+        "payload_bytes": 128,
+        "concurrency": 32
+      },
+      "samples": 5,
+      "metrics": {
+        "requests": {
+          "median": 20000,
+          "min": 20000,
+          "max": 20000
+        },
+        "payload_bytes": {
+          "median": 128,
+          "min": 128,
+          "max": 128
+        },
+        "concurrency": {
+          "median": 32,
+          "min": 32,
+          "max": 32
+        },
+        "seconds": {
+          "median": 0.130936,
+          "min": 0.12848,
+          "max": 0.165926
+        },
+        "requests_per_second": {
+          "median": 152746,
+          "min": 120536,
+          "max": 155666
+        },
+        "p50_us": {
+          "median": 194.694,
+          "min": 193.867,
+          "max": 198.114
+        },
+        "p99_us": {
+          "median": 378.133,
+          "min": 300.226,
+          "max": 2417.72
+        }
+      }
+    },
+    {
+      "executable": "fsnet-request-benchmark",
+      "scenario": "gateway",
+      "configuration": {
+        "payload_bytes": 128,
+        "concurrency": 32
+      },
+      "samples": 5,
+      "metrics": {
+        "requests": {
+          "median": 20000,
+          "min": 20000,
+          "max": 20000
+        },
+        "payload_bytes": {
+          "median": 128,
+          "min": 128,
+          "max": 128
+        },
+        "concurrency": {
+          "median": 32,
+          "min": 32,
+          "max": 32
+        },
+        "seconds": {
+          "median": 0.286978,
+          "min": 0.278586,
+          "max": 0.318199
+        },
+        "requests_per_second": {
+          "median": 69691.9,
+          "min": 62853.8,
+          "max": 71791.1
+        },
+        "p50_us": {
+          "median": 449.16,
+          "min": 433.938,
+          "max": 451.642
+        },
+        "p99_us": {
+          "median": 747.101,
+          "min": 685.352,
+          "max": 909.359
+        }
+      }
+    },
+    {
+      "executable": "fsnet-request-benchmark",
+      "scenario": "direct",
+      "configuration": {
+        "payload_bytes": 4096,
+        "concurrency": 32
+      },
+      "samples": 5,
+      "metrics": {
+        "requests": {
+          "median": 10000,
+          "min": 10000,
+          "max": 10000
+        },
+        "payload_bytes": {
+          "median": 4096,
+          "min": 4096,
+          "max": 4096
+        },
+        "concurrency": {
+          "median": 32,
+          "min": 32,
+          "max": 32
+        },
+        "seconds": {
+          "median": 0.0775106,
+          "min": 0.0768534,
+          "max": 0.0798971
+        },
+        "requests_per_second": {
+          "median": 129015,
+          "min": 125161,
+          "max": 130118
+        },
+        "p50_us": {
+          "median": 232.038,
+          "min": 229.589,
+          "max": 233.944
+        },
+        "p99_us": {
+          "median": 421.466,
+          "min": 387.502,
+          "max": 468.403
+        }
+      }
+    },
+    {
+      "executable": "fsnet-request-benchmark",
+      "scenario": "gateway",
+      "configuration": {
+        "payload_bytes": 4096,
+        "concurrency": 32
+      },
+      "samples": 5,
+      "metrics": {
+        "requests": {
+          "median": 10000,
+          "min": 10000,
+          "max": 10000
+        },
+        "payload_bytes": {
+          "median": 4096,
+          "min": 4096,
+          "max": 4096
+        },
+        "concurrency": {
+          "median": 32,
+          "min": 32,
+          "max": 32
+        },
+        "seconds": {
+          "median": 0.180085,
+          "min": 0.174242,
+          "max": 0.217646
+        },
+        "requests_per_second": {
+          "median": 55529.5,
+          "min": 45946.2,
+          "max": 57391.5
+        },
+        "p50_us": {
+          "median": 555.342,
+          "min": 546.352,
+          "max": 570.107
+        },
+        "p99_us": {
+          "median": 938.181,
+          "min": 868.942,
+          "max": 2870.28
+        }
+      }
+    },
+    {
+      "executable": "fsnet-request-benchmark",
+      "scenario": "direct",
+      "configuration": {
+        "payload_bytes": 65536,
+        "concurrency": 32
+      },
+      "samples": 5,
+      "metrics": {
+        "requests": {
+          "median": 1000,
+          "min": 1000,
+          "max": 1000
+        },
+        "payload_bytes": {
+          "median": 65536,
+          "min": 65536,
+          "max": 65536
+        },
+        "concurrency": {
+          "median": 32,
+          "min": 32,
+          "max": 32
+        },
+        "seconds": {
+          "median": 0.0734073,
+          "min": 0.0592501,
+          "max": 0.0785456
+        },
+        "requests_per_second": {
+          "median": 13622.6,
+          "min": 12731.5,
+          "max": 16877.6
+        },
+        "p50_us": {
+          "median": 2240.81,
+          "min": 1825.5,
+          "max": 2420.78
+        },
+        "p99_us": {
+          "median": 2991.7,
+          "min": 2954.84,
+          "max": 5166.34
+        }
+      }
+    },
+    {
+      "executable": "fsnet-request-benchmark",
+      "scenario": "gateway",
+      "configuration": {
+        "payload_bytes": 65536,
+        "concurrency": 32
+      },
+      "samples": 5,
+      "metrics": {
+        "requests": {
+          "median": 1000,
+          "min": 1000,
+          "max": 1000
+        },
+        "payload_bytes": {
+          "median": 65536,
+          "min": 65536,
+          "max": 65536
+        },
+        "concurrency": {
+          "median": 32,
+          "min": 32,
+          "max": 32
+        },
+        "seconds": {
+          "median": 0.166462,
+          "min": 0.164867,
+          "max": 0.185249
+        },
+        "requests_per_second": {
+          "median": 6007.37,
+          "min": 5398.15,
+          "max": 6065.5
+        },
+        "p50_us": {
+          "median": 5343.62,
+          "min": 5219.33,
+          "max": 5631.07
+        },
+        "p99_us": {
+          "median": 8969.68,
+          "min": 6396.19,
+          "max": 13044.1
+        }
+      }
+    },
+    {
+      "executable": "fsnet-request-benchmark",
+      "scenario": "direct",
+      "configuration": {
+        "payload_bytes": 128,
+        "concurrency": 1
+      },
+      "samples": 5,
+      "metrics": {
+        "requests": {
+          "median": 5000,
+          "min": 5000,
+          "max": 5000
+        },
+        "payload_bytes": {
+          "median": 128,
+          "min": 128,
+          "max": 128
+        },
+        "concurrency": {
+          "median": 1,
+          "min": 1,
+          "max": 1
+        },
+        "seconds": {
+          "median": 0.0413359,
+          "min": 0.040988,
+          "max": 0.0456634
+        },
+        "requests_per_second": {
+          "median": 120960,
+          "min": 109497,
+          "max": 121987
+        },
+        "p50_us": {
+          "median": 7.644,
+          "min": 7.536,
+          "max": 7.802
+        },
+        "p99_us": {
+          "median": 25.218,
+          "min": 21.873,
+          "max": 29.983
+        }
+      }
+    },
+    {
+      "executable": "fsnet-request-benchmark",
+      "scenario": "gateway",
+      "configuration": {
+        "payload_bytes": 128,
+        "concurrency": 1
+      },
+      "samples": 5,
+      "metrics": {
+        "requests": {
+          "median": 5000,
+          "min": 5000,
+          "max": 5000
+        },
+        "payload_bytes": {
+          "median": 128,
+          "min": 128,
+          "max": 128
+        },
+        "concurrency": {
+          "median": 1,
+          "min": 1,
+          "max": 1
+        },
+        "seconds": {
+          "median": 0.0949292,
+          "min": 0.0924754,
+          "max": 0.0993142
+        },
+        "requests_per_second": {
+          "median": 52670.8,
+          "min": 50345.3,
+          "max": 54068.5
+        },
+        "p50_us": {
+          "median": 17.334,
+          "min": 17.19,
+          "max": 17.589
+        },
+        "p99_us": {
+          "median": 46.145,
+          "min": 41.965,
+          "max": 67.259
+        }
+      }
+    },
+    {
+      "executable": "fsnet-receiver-benchmark",
+      "scenario": "direct_apply",
+      "configuration": {
+        "unchanged_items": 0
+      },
+      "samples": 5,
+      "metrics": {
+        "unchanged_items": {
+          "median": 0,
+          "min": 0,
+          "max": 0
+        },
+        "iterations": {
+          "median": 1000,
+          "min": 1000,
+          "max": 1000
+        },
+        "ns_per_op": {
+          "median": 144.99,
+          "min": 139.443,
+          "max": 247.351
+        },
+        "allocations_per_op": {
+          "median": 2,
+          "min": 2,
+          "max": 2
+        },
+        "allocated_bytes_per_op": {
+          "median": 240,
+          "min": 240,
+          "max": 240
+        }
+      }
+    },
+    {
+      "executable": "fsnet-receiver-benchmark",
+      "scenario": "receive_candidate_pattern",
+      "configuration": {
+        "unchanged_items": 0
+      },
+      "samples": 5,
+      "metrics": {
+        "unchanged_items": {
+          "median": 0,
+          "min": 0,
+          "max": 0
+        },
+        "iterations": {
+          "median": 1000,
+          "min": 1000,
+          "max": 1000
+        },
+        "ns_per_op": {
+          "median": 209.191,
+          "min": 182.014,
+          "max": 259.878
+        },
+        "allocations_per_op": {
+          "median": 5,
+          "min": 5,
+          "max": 5
+        },
+        "allocated_bytes_per_op": {
+          "median": 592,
+          "min": 592,
+          "max": 592
+        }
+      }
+    },
+    {
+      "executable": "fsnet-receiver-benchmark",
+      "scenario": "native_attribute_client_receive",
+      "configuration": {
+        "unchanged_items": 0
+      },
+      "samples": 5,
+      "metrics": {
+        "unchanged_items": {
+          "median": 0,
+          "min": 0,
+          "max": 0
+        },
+        "iterations": {
+          "median": 1000,
+          "min": 1000,
+          "max": 1000
+        },
+        "ns_per_op": {
+          "median": 2824.62,
+          "min": 2721.71,
+          "max": 3126.39
+        },
+        "allocations_per_op": {
+          "median": 6,
+          "min": 6,
+          "max": 6
+        },
+        "allocated_bytes_per_op": {
+          "median": 455,
+          "min": 455,
+          "max": 455
+        }
+      }
+    },
+    {
+      "executable": "fsnet-receiver-benchmark",
+      "scenario": "direct_apply",
+      "configuration": {
+        "unchanged_items": 16
+      },
+      "samples": 5,
+      "metrics": {
+        "unchanged_items": {
+          "median": 16,
+          "min": 16,
+          "max": 16
+        },
+        "iterations": {
+          "median": 1000,
+          "min": 1000,
+          "max": 1000
+        },
+        "ns_per_op": {
+          "median": 179.932,
+          "min": 175.909,
+          "max": 357.957
+        },
+        "allocations_per_op": {
+          "median": 2,
+          "min": 2,
+          "max": 2
+        },
+        "allocated_bytes_per_op": {
+          "median": 240,
+          "min": 240,
+          "max": 240
+        }
+      }
+    },
+    {
+      "executable": "fsnet-receiver-benchmark",
+      "scenario": "receive_candidate_pattern",
+      "configuration": {
+        "unchanged_items": 16
+      },
+      "samples": 5,
+      "metrics": {
+        "unchanged_items": {
+          "median": 16,
+          "min": 16,
+          "max": 16
+        },
+        "iterations": {
+          "median": 1000,
+          "min": 1000,
+          "max": 1000
+        },
+        "ns_per_op": {
+          "median": 655.324,
+          "min": 604.907,
+          "max": 755.503
+        },
+        "allocations_per_op": {
+          "median": 22,
+          "min": 22,
+          "max": 22
+        },
+        "allocated_bytes_per_op": {
+          "median": 9696,
+          "min": 9696,
+          "max": 9696
+        }
+      }
+    },
+    {
+      "executable": "fsnet-receiver-benchmark",
+      "scenario": "native_attribute_client_receive",
+      "configuration": {
+        "unchanged_items": 16
+      },
+      "samples": 5,
+      "metrics": {
+        "unchanged_items": {
+          "median": 16,
+          "min": 16,
+          "max": 16
+        },
+        "iterations": {
+          "median": 1000,
+          "min": 1000,
+          "max": 1000
+        },
+        "ns_per_op": {
+          "median": 2753.58,
+          "min": 2739.06,
+          "max": 3101.52
+        },
+        "allocations_per_op": {
+          "median": 6,
+          "min": 6,
+          "max": 6
+        },
+        "allocated_bytes_per_op": {
+          "median": 455,
+          "min": 455,
+          "max": 455
+        }
+      }
+    },
+    {
+      "executable": "fsnet-receiver-benchmark",
+      "scenario": "direct_apply",
+      "configuration": {
+        "unchanged_items": 256
+      },
+      "samples": 5,
+      "metrics": {
+        "unchanged_items": {
+          "median": 256,
+          "min": 256,
+          "max": 256
+        },
+        "iterations": {
+          "median": 1000,
+          "min": 1000,
+          "max": 1000
+        },
+        "ns_per_op": {
+          "median": 1045.83,
+          "min": 1025.33,
+          "max": 1085.39
+        },
+        "allocations_per_op": {
+          "median": 2,
+          "min": 2,
+          "max": 2
+        },
+        "allocated_bytes_per_op": {
+          "median": 240,
+          "min": 240,
+          "max": 240
+        }
+      }
+    },
+    {
+      "executable": "fsnet-receiver-benchmark",
+      "scenario": "receive_candidate_pattern",
+      "configuration": {
+        "unchanged_items": 256
+      },
+      "samples": 5,
+      "metrics": {
+        "unchanged_items": {
+          "median": 256,
+          "min": 256,
+          "max": 256
+        },
+        "iterations": {
+          "median": 1000,
+          "min": 1000,
+          "max": 1000
+        },
+        "ns_per_op": {
+          "median": 10858.4,
+          "min": 10606.5,
+          "max": 11167.5
+        },
+        "allocations_per_op": {
+          "median": 262,
+          "min": 262,
+          "max": 262
+        },
+        "allocated_bytes_per_op": {
+          "median": 146256,
+          "min": 146256,
+          "max": 146256
+        }
+      }
+    },
+    {
+      "executable": "fsnet-receiver-benchmark",
+      "scenario": "native_attribute_client_receive",
+      "configuration": {
+        "unchanged_items": 256
+      },
+      "samples": 5,
+      "metrics": {
+        "unchanged_items": {
+          "median": 256,
+          "min": 256,
+          "max": 256
+        },
+        "iterations": {
+          "median": 1000,
+          "min": 1000,
+          "max": 1000
+        },
+        "ns_per_op": {
+          "median": 3879.95,
+          "min": 3793.66,
+          "max": 4394.25
+        },
+        "allocations_per_op": {
+          "median": 6,
+          "min": 6,
+          "max": 6
+        },
+        "allocated_bytes_per_op": {
+          "median": 455,
+          "min": 455,
+          "max": 455
+        }
+      }
+    }
+  ],
+  "delivery": {
+    "batch_seconds": {
+      "median": 5.974962934999894,
+      "min": 5.820942977999948,
+      "max": 7.384802387000036
+    },
+    "batch_rounds_per_second": {
+      "median": 167.36505495996315,
+      "min": 135.41323756480838,
+      "max": 171.79347122613385
+    },
+    "recovery_seconds": {
+      "median": 1.9660517339998478,
+      "min": 1.942540370000188,
+      "max": 1.969818165000106
+    },
+    "elapsed_seconds": {
+      "median": 11.052186619000167,
+      "min": 10.701252157999988,
+      "max": 12.798219468999832
+    }
+  },
+  "checks": {
+    "benchmark_commands": 70,
+    "benchmark_failures": 0,
+    "delivery_runs": 5,
+    "delivery_rounds_total": 5000,
+    "delivery_checks_per_run": 16
+  }
+}

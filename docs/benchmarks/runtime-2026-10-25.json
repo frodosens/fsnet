@@ -1,0 +1,1132 @@
+{
+  "platform": "Linux-6.18.55-x86_64-with-glibc2.41",
+  "source_revision": "7f7bcd9ed9513c829cc7dc7079c4c4999484e95a",
+  "cpu": "INTEL(R) XEON(R) PLATINUM 8573C",
+  "cpu_quota": "200000 100000",
+  "compiler": "c++ (Debian 14.2.0-19) 14.2.0",
+  "scope": "single polling thread loopback, no TLS; attribute network uses memory storage and a separate storage worker; gateway fixture echoes without per-request entity/Lua/commits; parser views use the common runtime parser; optional delivery runs use independent mTLS processes and POSIX file persistence",
+  "method": "one untimed warmup per benchmark command, then serial measured repetitions; summarize each metric with the median of per-run values; per-run p99 values are not pooled quantiles",
+  "sha256": {
+    "fsnet-benchmark": "683468ad12152e21f45e8ba473901d4ace562fd17f33e828b99f3b312ea6bcdd",
+    "fsnet-attribute-benchmark": "5d78ba57cf172d5a0e8da42c453cc5327f57f6de012169d976a0c3fc573bb88d",
+    "fsnet-container-benchmark": "87a302667ad80e3940f8d804970ff2d9bab4a8483b62ff0d8e3dd5090ace6934",
+    "fsnet-envelope-benchmark": "8925eb1f108742e1fa3c41d79ce910f14168dc577596480d98f53607567f138c",
+    "fsnet-replication-benchmark": "7b897adf2e2c8f199161f4b14be92d59efd6d7a8386c966c3263f2f9606dc87f",
+    "fsnet-request-benchmark": "93dc413c7d63dd605300137c39d3f76a7cf5f4f16c16ed8548589c3a15ac33e6",
+    "fsnet-receiver-benchmark": "42ac5f6b30d36908700655dd447af8f03b27f5fd4d61e7b6634cde359732fc75",
+    "libfsnet.so": "f8ee231c25bd27b9461bc0a97f5e166cc4db424257de2272039160669acfa0d0"
+  },
+  "runs": [
+    {
+      "repeat": 1,
+      "command": [
+        "fsnet-benchmark",
+        "100000"
+      ],
+      "elapsed_seconds": 0.6059098109999468,
+      "returncode": 0,
+      "stdout": "loopback TCP, one thread, two nodes, payload=128 bytes, concurrency=128\nrequests=100000 seconds=0.596548 requests_per_second=167631 p50_ms=0.733887 p99_ms=1.14969\n",
+      "stderr": ""
+    },
+    {
+      "repeat": 1,
+      "command": [
+        "fsnet-attribute-benchmark",
+        "all",
+        "20000"
+      ],
+      "elapsed_seconds": 1.4960269589996642,
+      "returncode": 0,
+      "stdout": "{\"scenario\":\"build\",\"mode\":\"Release(NDEBUG)\",\"compiler\":\"14.2.0\"}\n{\"scenario\":\"publish_scalar_32\",\"iterations\":20000,\"seconds\":0.003708962,\"ns_per_op\":185.4481,\"wire_bytes\":0,\"recipients\":0}\n{\"scenario\":\"publish_vec3_32\",\"iterations\":20000,\"seconds\":0.012451729,\"ns_per_op\":622.58645,\"wire_bytes\":0,\"recipients\":0}\n{\"scenario\":\"replica_delta_32\",\"iterations\":20000,\"seconds\":0.019764787,\"ns_per_op\":988.23935,\"wire_bytes\":0,\"recipients\":0}\n{\"scenario\":\"codec_roundtrip_32\",\"iterations\":5000,\"seconds\":0.020863461,\"ns_per_op\":4172.6922,\"wire_bytes\":613,\"recipients\":0}\n{\"scenario\":\"payload_sizes\",\"full_bytes\":613,\"vec3_delta_bytes\":67}\n{\"scenario\":\"lua_nested_read_32\",\"iterations\":20000,\"seconds\":0.014038218,\"ns_per_op\":701.9109,\"wire_bytes\":0,\"recipients\":0}\n{\"scenario\":\"lua_whole_write_32\",\"iterations\":20000,\"seconds\":0.057135559,\"ns_per_op\":2856.77795,\"wire_bytes\":0,\"recipients\":0}\n{\"scenario\":\"lua_nested_write_32\",\"iterations\":20000,\"seconds\":0.060731577,\"ns_per_op\":3036.57885,\"wire_bytes\":0,\"recipients\":0}\n{\"scenario\":\"fanout_1\",\"iterations\":1000,\"seconds\":0.19439918,\"ns_per_op\":194399.18,\"wire_bytes\":96,\"recipients\":1,\"p50_us\":164.517,\"p99_us\":433.265}\n{\"scenario\":\"fanout_8\",\"iterations\":1000,\"seconds\":0.29305346,\"ns_per_op\":293053.46,\"wire_bytes\":96,\"recipients\":8,\"p50_us\":270.393,\"p99_us\":558.796}\n{\"scenario\":\"fanout_32\",\"iterations\":1000,\"seconds\":0.737624235,\"ns_per_op\":737624.235,\"wire_bytes\":96,\"recipients\":32,\"p50_us\":677.409,\"p99_us\":1992.874}\n",
+      "stderr": ""
+    },
+    {
+      "repeat": 1,
+      "command": [
+        "fsnet-container-benchmark",
+        "all",
+        "100"
+      ],
+      "elapsed_seconds": 2.8662495009998565,
+      "returncode": 0,
+      "stdout": "{\"scenario\":\"nested_struct_1kb\",\"full_fsa_bytes\":1111,\"patch_fsa_bytes\":54,\"uplink_fsa_bytes\":54,\"patches\":1}\n{\"scenario\":\"position_x\",\"full_fsa_bytes\":67,\"patch_fsa_bytes\":48,\"uplink_fsa_bytes\":48,\"patches\":1}\n{\"scenario\":\"list_replace\",\"full_fsa_bytes\":4146,\"patch_fsa_bytes\":52,\"uplink_fsa_bytes\":52,\"patches\":1}\n{\"scenario\":\"list_append16\",\"full_fsa_bytes\":4664,\"patch_fsa_bytes\":556,\"uplink_fsa_bytes\":556,\"patches\":1}\n{\"scenario\":\"map_add16\",\"full_fsa_bytes\":5200,\"patch_fsa_bytes\":805,\"uplink_fsa_bytes\":805,\"patches\":16}\n{\"scenario\":\"map_erase16\",\"full_fsa_bytes\":4008,\"patch_fsa_bytes\":191,\"uplink_fsa_bytes\":191,\"patches\":16}\n{\"scenario\":\"sequential16\",\"rounds\":100,\"us_per_round\":25527.10288,\"writes\":1600,\"commits\":1600,\"proposal_fsa_bytes\":83200}\n{\"scenario\":\"batch16\",\"rounds\":100,\"us_per_round\":2950.67935,\"writes\":100,\"commits\":100,\"proposal_fsa_bytes\":45700}\n",
+      "stderr": ""
+    },
+    {
+      "repeat": 1,
+      "command": [
+        "fsnet-envelope-benchmark"
+      ],
+      "elapsed_seconds": 0.08480855400011933,
+      "returncode": 0,
+      "stdout": "{\"scenario\":\"owning_parser\",\"envelope_bytes\":152,\"iterations\":50000,\"ns_per_op\":21.8732,\"allocations\":50000,\"allocated_bytes\":6450000,\"checksum\":12650000}\n{\"scenario\":\"borrowed_parser\",\"envelope_bytes\":152,\"iterations\":50000,\"ns_per_op\":2.50846,\"allocations\":0,\"allocated_bytes\":0,\"checksum\":12650000}\n{\"scenario\":\"owning_parser\",\"envelope_bytes\":4120,\"iterations\":50000,\"ns_per_op\":68.8937,\"allocations\":50000,\"allocated_bytes\":204850000,\"checksum\":211050000}\n{\"scenario\":\"borrowed_parser\",\"envelope_bytes\":4120,\"iterations\":50000,\"ns_per_op\":2.50442,\"allocations\":0,\"allocated_bytes\":0,\"checksum\":211050000}\n{\"scenario\":\"owning_parser\",\"envelope_bytes\":65560,\"iterations\":50000,\"ns_per_op\":1535.21,\"allocations\":50000,\"allocated_bytes\":3276850000,\"checksum\":3283050000}\n{\"scenario\":\"borrowed_parser\",\"envelope_bytes\":65560,\"iterations\":50000,\"ns_per_op\":2.50818,\"allocations\":0,\"allocated_bytes\":0,\"checksum\":3283050000}\n",
+      "stderr": ""
+    },
+    {
+      "repeat": 1,
+      "command": [
+        "fsnet-replication-benchmark"
+      ],
+      "elapsed_seconds": 0.2525876980002977,
+      "returncode": 0,
+      "stdout": "{\"scenario\":\"forward_decode_encode\",\"iterations\":2000,\"us_per_op\":73.2629,\"checksum\":154040000}\n{\"scenario\":\"forward_validate_remap\",\"iterations\":2000,\"us_per_op\":27.8101,\"checksum\":154040000}\n{\"scenario\":\"eager_snapshot_clone\",\"iterations\":2000,\"us_per_op\":18.6512,\"checksum\":2003000}\n{\"scenario\":\"shared_snapshot_acquire\",\"iterations\":2000,\"us_per_op\":4.28831,\"checksum\":2003000}\n",
+      "stderr": ""
+    },
+    {
+      "repeat": 1,
+      "command": [
+        "fsnet-request-benchmark",
+        "direct",
+        "20000",
+        "128",
+        "32"
+      ],
+      "elapsed_seconds": 0.17163336099974913,
+      "returncode": 0,
+      "stdout": "{\"scenario\":\"direct\",\"requests\":20000,\"payload_bytes\":128,\"concurrency\":32,\"seconds\":0.165926,\"requests_per_second\":120536,\"p50_us\":198.114,\"p99_us\":2417.72}\n",
+      "stderr": ""
+    },
+    {
+      "repeat": 1,
+      "command": [
+        "fsnet-request-benchmark",
+        "gateway",
+        "20000",
+        "128",
+        "32"
+      ],
+      "elapsed_seconds": 0.2989463000003525,
+      "returncode": 0,
+      "stdout": "{\"scenario\":\"gateway\",\"requests\":20000,\"payload_bytes\":128,\"concurrency\":32,\"seconds\":0.291235,\"requests_per_second\":68673.1,\"p50_us\":449.16,\"p99_us\":743.669}\n",
+      "stderr": ""
+    },
+    {
+      "repeat": 1,
+      "command": [
+        "fsnet-request-benchmark",
+        "direct",
+        "10000",
+        "4096",
+        "32"
+      ],
+      "elapsed_seconds": 0.08567038799992588,
+      "returncode": 0,
+      "stdout": "{\"scenario\":\"direct\",\"requests\":10000,\"payload_bytes\":4096,\"concurrency\":32,\"seconds\":0.0798971,\"requests_per_second\":125161,\"p50_us\":232.038,\"p99_us\":468.403}\n",
+      "stderr": ""
+    },
+    {
+      "repeat": 1,
+      "command": [
+        "fsnet-request-benchmark",
+        "gateway",
+        "10000",
+        "4096",
+        "32"
+      ],
+      "elapsed_seconds": 0.19166937800036976,
+      "returncode": 0,
+      "stdout": "{\"scenario\":\"gateway\",\"requests\":10000,\"payload_bytes\":4096,\"concurrency\":32,\"seconds\":0.186765,\"requests_per_second\":53543.3,\"p50_us\":562.195,\"p99_us\":1064.31}\n",
+      "stderr": ""
+    },
+    {
+      "repeat": 1,
+      "command": [
+        "fsnet-request-benchmark",
+        "direct",
+        "1000",
+        "65536",
+        "32"
+      ],
+      "elapsed_seconds": 0.07785652800021126,
+      "returncode": 0,
+      "stdout": "{\"scenario\":\"direct\",\"requests\":1000,\"payload_bytes\":65536,\"concurrency\":32,\"seconds\":0.0734073,\"requests_per_second\":13622.6,\"p50_us\":2208.34,\"p99_us\":4085.66}\n",
+      "stderr": ""
+    },
+    {
+      "repeat": 1,
+      "command": [
+        "fsnet-request-benchmark",
+        "gateway",
+        "1000",
+        "65536",
+        "32"
+      ],
+      "elapsed_seconds": 0.1695170819998566,
+      "returncode": 0,
+      "stdout": "{\"scenario\":\"gateway\",\"requests\":1000,\"payload_bytes\":65536,\"concurrency\":32,\"seconds\":0.164867,\"requests_per_second\":6065.5,\"p50_us\":5219.33,\"p99_us\":10201.4}\n",
+      "stderr": ""
+    },
+    {
+      "repeat": 1,
+      "command": [
+        "fsnet-request-benchmark",
+        "direct",
+        "5000",
+        "128",
+        "1"
+      ],
+      "elapsed_seconds": 0.047542338000312157,
+      "returncode": 0,
+      "stdout": "{\"scenario\":\"direct\",\"requests\":5000,\"payload_bytes\":128,\"concurrency\":1,\"seconds\":0.0430188,\"requests_per_second\":116228,\"p50_us\":7.536,\"p99_us\":29.983}\n",
+      "stderr": ""
+    },
+    {
+      "repeat": 1,
+      "command": [
+        "fsnet-request-benchmark",
+        "gateway",
+        "5000",
+        "128",
+        "1"
+      ],
+      "elapsed_seconds": 0.10397702099999151,
+      "returncode": 0,
+      "stdout": "{\"scenario\":\"gateway\",\"requests\":5000,\"payload_bytes\":128,\"concurrency\":1,\"seconds\":0.0993142,\"requests_per_second\":50345.3,\"p50_us\":17.523,\"p99_us\":46.145}\n",
+      "stderr": ""
+    },
+    {
+      "repeat": 1,
+      "command": [
+        "fsnet-receiver-benchmark"
+      ],
+      "elapsed_seconds": 0.036221011000179715,
+      "returncode": 0,
+      "stdout": "{\"scenario\":\"direct_apply\",\"unchanged_items\":0,\"iterations\":1000,\"ns_per_op\":247.351,\"allocations_per_op\":2,\"allocated_bytes_per_op\":240}\n{\"scenario\":\"receive_candidate_pattern\",\"unchanged_items\":0,\"iterations\":1000,\"ns_per_op\":219.493,\"allocations_per_op\":5,\"allocated_bytes_per_op\":592}\n{\"scenario\":\"native_attribute_client_receive\",\"unchanged_items\":0,\"iterations\":1000,\"ns_per_op\":3126.39,\"allocations_per_op\":6,\"allocated_bytes_per_op\":455}\n{\"scenario\":\"direct_apply\",\"unchanged_items\":16,\"iterations\":1000,\"ns_per_op\":290.029,\"allocations_per_op\":2,\"allocated_bytes_per_op\":240}\n{\"scenario\":\"receive_candidate_pattern\",\"unchanged_items\":16,\"iterations\":1000,\"ns_per_op\":755.503,\"allocations_per_op\":22,\"allocated_bytes_per_op\":9696}\n{\"scenario\":\"native_attribute_client_receive\",\"unchanged_items\":16,\"iterations\":1000,\"ns_per_op\":2999.4,\"allocations_per_op\":6,\"allocated_bytes_per_op\":455}\n{\"scenario\":\"direct_apply\",\"unchanged_items\":256,\"iterations\":1000,\"ns_per_op\":1085.39,\"allocations_per_op\":2,\"allocated_bytes_per_op\":240}\n{\"scenario\":\"receive_candidate_pattern\",\"unchanged_items\":256,\"iterations\":1000,\"ns_per_op\":10858.4,\"allocations_per_op\":262,\"allocated_bytes_per_op\":146256}\n{\"scenario\":\"native_attribute_client_receive\",\"unchanged_items\":256,\"iterations\":1000,\"ns_per_op\":4394.25,\"allocations_per_op\":6,\"allocated_bytes_per_op\":455}\n",
+      "stderr": ""
+    },
+    {
+      "repeat": 2,
+      "command": [
+        "fsnet-benchmark",
+        "100000"
+      ],
+      "elapsed_seconds": 0.598902647000159,
+      "returncode": 0,
+      "stdout": "loopback TCP, one thread, two nodes, payload=128 bytes, concurrency=128\nrequests=100000 seconds=0.589973 requests_per_second=169499 p50_ms=0.728248 p99_ms=1.05457\n",
+      "stderr": ""
+    },
+    {
+      "repeat": 2,
+      "command": [
+        "fsnet-attribute-benchmark",
+        "all",
+        "20000"
+      ],
+      "elapsed_seconds": 1.5859376500002327,
+      "returncode": 0,
+      "stdout": "{\"scenario\":\"build\",\"mode\":\"Release(NDEBUG)\",\"compiler\":\"14.2.0\"}\n{\"scenario\":\"publish_scalar_32\",\"iterations\":20000,\"seconds\":0.003904658,\"ns_per_op\":195.2329,\"wire_bytes\":0,\"recipients\":0}\n{\"scenario\":\"publish_vec3_32\",\"iterations\":20000,\"seconds\":0.012705023,\"ns_per_op\":635.25115,\"wire_bytes\":0,\"recipients\":0}\n{\"scenario\":\"replica_delta_32\",\"iterations\":20000,\"seconds\":0.020624837,\"ns_per_op\":1031.24185,\"wire_bytes\":0,\"recipients\":0}\n{\"scenario\":\"codec_roundtrip_32\",\"iterations\":5000,\"seconds\":0.021599663,\"ns_per_op\":4319.9326,\"wire_bytes\":613,\"recipients\":0}\n{\"scenario\":\"payload_sizes\",\"full_bytes\":613,\"vec3_delta_bytes\":67}\n{\"scenario\":\"lua_nested_read_32\",\"iterations\":20000,\"seconds\":0.013895438,\"ns_per_op\":694.7719,\"wire_bytes\":0,\"recipients\":0}\n{\"scenario\":\"lua_whole_write_32\",\"iterations\":20000,\"seconds\":0.057548267,\"ns_per_op\":2877.41335,\"wire_bytes\":0,\"recipients\":0}\n{\"scenario\":\"lua_nested_write_32\",\"iterations\":20000,\"seconds\":0.06100286,\"ns_per_op\":3050.143,\"wire_bytes\":0,\"recipients\":0}\n{\"scenario\":\"fanout_1\",\"iterations\":1000,\"seconds\":0.190144758,\"ns_per_op\":190144.758,\"wire_bytes\":96,\"recipients\":1,\"p50_us\":162.605,\"p99_us\":499.809}\n{\"scenario\":\"fanout_8\",\"iterations\":1000,\"seconds\":0.407655602,\"ns_per_op\":407655.602,\"wire_bytes\":96,\"recipients\":8,\"p50_us\":388.623,\"p99_us\":709.219}\n{\"scenario\":\"fanout_32\",\"iterations\":1000,\"seconds\":0.708987988,\"ns_per_op\":708987.988,\"wire_bytes\":96,\"recipients\":32,\"p50_us\":665.426,\"p99_us\":1209.43}\n",
+      "stderr": ""
+    },
+    {
+      "repeat": 2,
+      "command": [
+        "fsnet-container-benchmark",
+        "all",
+        "100"
+      ],
+      "elapsed_seconds": 3.0102862160001678,
+      "returncode": 0,
+      "stdout": "{\"scenario\":\"nested_struct_1kb\",\"full_fsa_bytes\":1111,\"patch_fsa_bytes\":54,\"uplink_fsa_bytes\":54,\"patches\":1}\n{\"scenario\":\"position_x\",\"full_fsa_bytes\":67,\"patch_fsa_bytes\":48,\"uplink_fsa_bytes\":48,\"patches\":1}\n{\"scenario\":\"list_replace\",\"full_fsa_bytes\":4146,\"patch_fsa_bytes\":52,\"uplink_fsa_bytes\":52,\"patches\":1}\n{\"scenario\":\"list_append16\",\"full_fsa_bytes\":4664,\"patch_fsa_bytes\":556,\"uplink_fsa_bytes\":556,\"patches\":1}\n{\"scenario\":\"map_add16\",\"full_fsa_bytes\":5200,\"patch_fsa_bytes\":805,\"uplink_fsa_bytes\":805,\"patches\":16}\n{\"scenario\":\"map_erase16\",\"full_fsa_bytes\":4008,\"patch_fsa_bytes\":191,\"uplink_fsa_bytes\":191,\"patches\":16}\n{\"scenario\":\"sequential16\",\"rounds\":100,\"us_per_round\":25383.02959,\"writes\":1600,\"commits\":1600,\"proposal_fsa_bytes\":83200}\n{\"scenario\":\"batch16\",\"rounds\":100,\"us_per_round\":4512.6325,\"writes\":100,\"commits\":100,\"proposal_fsa_bytes\":45700}\n",
+      "stderr": ""
+    },
+    {
+      "repeat": 2,
+      "command": [
+        "fsnet-envelope-benchmark"
+      ],
+      "elapsed_seconds": 0.08603416599999036,
+      "returncode": 0,
+      "stdout": "{\"scenario\":\"owning_parser\",\"envelope_bytes\":152,\"iterations\":50000,\"ns_per_op\":22.3566,\"allocations\":50000,\"allocated_bytes\":6450000,\"checksum\":12650000}\n{\"scenario\":\"borrowed_parser\",\"envelope_bytes\":152,\"iterations\":50000,\"ns_per_op\":2.50744,\"allocations\":0,\"allocated_bytes\":0,\"checksum\":12650000}\n{\"scenario\":\"owning_parser\",\"envelope_bytes\":4120,\"iterations\":50000,\"ns_per_op\":63.6694,\"allocations\":50000,\"allocated_bytes\":204850000,\"checksum\":211050000}\n{\"scenario\":\"borrowed_parser\",\"envelope_bytes\":4120,\"iterations\":50000,\"ns_per_op\":2.50422,\"allocations\":0,\"allocated_bytes\":0,\"checksum\":211050000}\n{\"scenario\":\"owning_parser\",\"envelope_bytes\":65560,\"iterations\":50000,\"ns_per_op\":1546.89,\"allocations\":50000,\"allocated_bytes\":3276850000,\"checksum\":3283050000}\n{\"scenario\":\"borrowed_parser\",\"envelope_bytes\":65560,\"iterations\":50000,\"ns_per_op\":2.50624,\"allocations\":0,\"allocated_bytes\":0,\"checksum\":3283050000}\n",
+      "stderr": ""
+    },
+    {
+      "repeat": 2,
+      "command": [
+        "fsnet-replication-benchmark"
+      ],
+      "elapsed_seconds": 0.2570868530001462,
+      "returncode": 0,
+      "stdout": "{\"scenario\":\"forward_decode_encode\",\"iterations\":2000,\"us_per_op\":71.8746,\"checksum\":154040000}\n{\"scenario\":\"forward_validate_remap\",\"iterations\":2000,\"us_per_op\":27.1917,\"checksum\":154040000}\n{\"scenario\":\"eager_snapshot_clone\",\"iterations\":2000,\"us_per_op\":19.3789,\"checksum\":2003000}\n{\"scenario\":\"shared_snapshot_acquire\",\"iterations\":2000,\"us_per_op\":6.37973,\"checksum\":2003000}\n",
+      "stderr": ""
+    },
+    {
+      "repeat": 2,
+      "command": [
+        "fsnet-request-benchmark",
+        "direct",
+        "20000",
+        "128",
+        "32"
+      ],
+      "elapsed_seconds": 0.13815049300001192,
+      "returncode": 0,
+      "stdout": "{\"scenario\":\"direct\",\"requests\":20000,\"payload_bytes\":128,\"concurrency\":32,\"seconds\":0.132026,\"requests_per_second\":151485,\"p50_us\":194.528,\"p99_us\":431.92}\n",
+      "stderr": ""
+    },
+    {
+      "repeat": 2,
+      "command": [
+        "fsnet-request-benchmark",
+        "gateway",
+        "20000",
+        "128",
+        "32"
+      ],
+      "elapsed_seconds": 0.29073225599995567,
+      "returncode": 0,
+      "stdout": "{\"scenario\":\"gateway\",\"requests\":20000,\"payload_bytes\":128,\"concurrency\":32,\"seconds\":0.285375,\"requests_per_second\":70083.2,\"p50_us\":451.642,\"p99_us\":750.766}\n",
+      "stderr": ""
+    },
+    {
+      "repeat": 2,
+      "command": [
+        "fsnet-request-benchmark",
+        "direct",
+        "10000",
+        "4096",
+        "32"
+      ],
+      "elapsed_seconds": 0.08222923399989668,
+      "returncode": 0,
+      "stdout": "{\"scenario\":\"direct\",\"requests\":10000,\"payload_bytes\":4096,\"concurrency\":32,\"seconds\":0.0776154,\"requests_per_second\":128840,\"p50_us\":230.499,\"p99_us\":404.059}\n",
+      "stderr": ""
+    },
+    {
+      "repeat": 2,
+      "command": [
+        "fsnet-request-benchmark",
+        "gateway",
+        "10000",
+        "4096",
+        "32"
+      ],
+      "elapsed_seconds": 0.22231462499985355,
+      "returncode": 0,
+      "stdout": "{\"scenario\":\"gateway\",\"requests\":10000,\"payload_bytes\":4096,\"concurrency\":32,\"seconds\":0.217646,\"requests_per_second\":45946.2,\"p50_us\":570.107,\"p99_us\":2870.28}\n",
+      "stderr": ""
+    },
+    {
+      "repeat": 2,
+      "command": [
+        "fsnet-request-benchmark",
+        "direct",
+        "1000",
+        "65536",
+        "32"
+      ],
+      "elapsed_seconds": 0.0814662769998904,
+      "returncode": 0,
+      "stdout": "{\"scenario\":\"direct\",\"requests\":1000,\"payload_bytes\":65536,\"concurrency\":32,\"seconds\":0.0774387,\"requests_per_second\":12913.4,\"p50_us\":2420.78,\"p99_us\":2954.84}\n",
+      "stderr": ""
+    },
+    {
+      "repeat": 2,
+      "command": [
+        "fsnet-request-benchmark",
+        "gateway",
+        "1000",
+        "65536",
+        "32"
+      ],
+      "elapsed_seconds": 0.19005558699973335,
+      "returncode": 0,
+      "stdout": "{\"scenario\":\"gateway\",\"requests\":1000,\"payload_bytes\":65536,\"concurrency\":32,\"seconds\":0.185249,\"requests_per_second\":5398.15,\"p50_us\":5631.07,\"p99_us\":13044.1}\n",
+      "stderr": ""
+    },
+    {
+      "repeat": 2,
+      "command": [
+        "fsnet-request-benchmark",
+        "direct",
+        "5000",
+        "128",
+        "1"
+      ],
+      "elapsed_seconds": 0.04967174600005819,
+      "returncode": 0,
+      "stdout": "{\"scenario\":\"direct\",\"requests\":5000,\"payload_bytes\":128,\"concurrency\":1,\"seconds\":0.0456634,\"requests_per_second\":109497,\"p50_us\":7.664,\"p99_us\":26.933}\n",
+      "stderr": ""
+    },
+    {
+      "repeat": 2,
+      "command": [
+        "fsnet-request-benchmark",
+        "gateway",
+        "5000",
+        "128",
+        "1"
+      ],
+      "elapsed_seconds": 0.09951346900015778,
+      "returncode": 0,
+      "stdout": "{\"scenario\":\"gateway\",\"requests\":5000,\"payload_bytes\":128,\"concurrency\":1,\"seconds\":0.0949292,\"requests_per_second\":52670.8,\"p50_us\":17.19,\"p99_us\":67.259}\n",
+      "stderr": ""
+    },
+    {
+      "repeat": 2,
+      "command": [
+        "fsnet-receiver-benchmark"
+      ],
+      "elapsed_seconds": 0.03337175800015757,
+      "returncode": 0,
+      "stdout": "{\"scenario\":\"direct_apply\",\"unchanged_items\":0,\"iterations\":1000,\"ns_per_op\":145.995,\"allocations_per_op\":2,\"allocated_bytes_per_op\":240}\n{\"scenario\":\"receive_candidate_pattern\",\"unchanged_items\":0,\"iterations\":1000,\"ns_per_op\":259.878,\"allocations_per_op\":5,\"allocated_bytes_per_op\":592}\n{\"scenario\":\"native_attribute_client_receive\",\"unchanged_items\":0,\"iterations\":1000,\"ns_per_op\":2849.7,\"allocations_per_op\":6,\"allocated_bytes_per_op\":455}\n{\"scenario\":\"direct_apply\",\"unchanged_items\":16,\"iterations\":1000,\"ns_per_op\":179.932,\"allocations_per_op\":2,\"allocated_bytes_per_op\":240}\n{\"scenario\":\"receive_candidate_pattern\",\"unchanged_items\":16,\"iterations\":1000,\"ns_per_op\":655.324,\"allocations_per_op\":22,\"allocated_bytes_per_op\":9696}\n{\"scenario\":\"native_attribute_client_receive\",\"unchanged_items\":16,\"iterations\":1000,\"ns_per_op\":2739.06,\"allocations_per_op\":6,\"allocated_bytes_per_op\":455}\n{\"scenario\":\"direct_apply\",\"unchanged_items\":256,\"iterations\":1000,\"ns_per_op\":1029.03,\"allocations_per_op\":2,\"allocated_bytes_per_op\":240}\n{\"scenario\":\"receive_candidate_pattern\",\"unchanged_items\":256,\"iterations\":1000,\"ns_per_op\":10839.2,\"allocations_per_op\":262,\"allocated_bytes_per_op\":146256}\n{\"scenario\":\"native_attribute_client_receive\",\"unchanged_items\":256,\"iterations\":1000,\"ns_per_op\":3862.31,\"allocations_per_op\":6,\"allocated_bytes_per_op\":455}\n",
+      "stderr": ""
+    },
+    {
+      "repeat": 3,
+      "command": [
+        "fsnet-benchmark",
+        "100000"
+      ],
+      "elapsed_seconds": 0.5942518080000809,
+      "returncode": 0,
+      "stdout": "loopback TCP, one thread, two nodes, payload=128 bytes, concurrency=128\nrequests=100000 seconds=0.586915 requests_per_second=170382 p50_ms=0.731057 p99_ms=1.04837\n",
+      "stderr": ""
+    },
+    {
+      "repeat": 3,
+      "command": [
+        "fsnet-attribute-benchmark",
+        "all",
+        "20000"
+      ],
+      "elapsed_seconds": 1.4950735890001852,
+      "returncode": 0,
+      "stdout": "{\"scenario\":\"build\",\"mode\":\"Release(NDEBUG)\",\"compiler\":\"14.2.0\"}\n{\"scenario\":\"publish_scalar_32\",\"iterations\":20000,\"seconds\":0.003664756,\"ns_per_op\":183.2378,\"wire_bytes\":0,\"recipients\":0}\n{\"scenario\":\"publish_vec3_32\",\"iterations\":20000,\"seconds\":0.012312052,\"ns_per_op\":615.6026,\"wire_bytes\":0,\"recipients\":0}\n{\"scenario\":\"replica_delta_32\",\"iterations\":20000,\"seconds\":0.019830945,\"ns_per_op\":991.54725,\"wire_bytes\":0,\"recipients\":0}\n{\"scenario\":\"codec_roundtrip_32\",\"iterations\":5000,\"seconds\":0.019913347,\"ns_per_op\":3982.6694,\"wire_bytes\":613,\"recipients\":0}\n{\"scenario\":\"payload_sizes\",\"full_bytes\":613,\"vec3_delta_bytes\":67}\n{\"scenario\":\"lua_nested_read_32\",\"iterations\":20000,\"seconds\":0.013339584,\"ns_per_op\":666.9792,\"wire_bytes\":0,\"recipients\":0}\n{\"scenario\":\"lua_whole_write_32\",\"iterations\":20000,\"seconds\":0.057349954,\"ns_per_op\":2867.4977,\"wire_bytes\":0,\"recipients\":0}\n{\"scenario\":\"lua_nested_write_32\",\"iterations\":20000,\"seconds\":0.06204539,\"ns_per_op\":3102.2695,\"wire_bytes\":0,\"recipients\":0}\n{\"scenario\":\"fanout_1\",\"iterations\":1000,\"seconds\":0.191422307,\"ns_per_op\":191422.307,\"wire_bytes\":96,\"recipients\":1,\"p50_us\":162.283,\"p99_us\":510.44}\n{\"scenario\":\"fanout_8\",\"iterations\":1000,\"seconds\":0.301349762,\"ns_per_op\":301349.762,\"wire_bytes\":96,\"recipients\":8,\"p50_us\":272.37,\"p99_us\":648.609}\n{\"scenario\":\"fanout_32\",\"iterations\":1000,\"seconds\":0.717871157,\"ns_per_op\":717871.157,\"wire_bytes\":96,\"recipients\":32,\"p50_us\":674.973,\"p99_us\":1246.913}\n",
+      "stderr": ""
+    },
+    {
+      "repeat": 3,
+      "command": [
+        "fsnet-container-benchmark",
+        "all",
+        "100"
+      ],
+      "elapsed_seconds": 2.9360145350001403,
+      "returncode": 0,
+      "stdout": "{\"scenario\":\"nested_struct_1kb\",\"full_fsa_bytes\":1111,\"patch_fsa_bytes\":54,\"uplink_fsa_bytes\":54,\"patches\":1}\n{\"scenario\":\"position_x\",\"full_fsa_bytes\":67,\"patch_fsa_bytes\":48,\"uplink_fsa_bytes\":48,\"patches\":1}\n{\"scenario\":\"list_replace\",\"full_fsa_bytes\":4146,\"patch_fsa_bytes\":52,\"uplink_fsa_bytes\":52,\"patches\":1}\n{\"scenario\":\"list_append16\",\"full_fsa_bytes\":4664,\"patch_fsa_bytes\":556,\"uplink_fsa_bytes\":556,\"patches\":1}\n{\"scenario\":\"map_add16\",\"full_fsa_bytes\":5200,\"patch_fsa_bytes\":805,\"uplink_fsa_bytes\":805,\"patches\":16}\n{\"scenario\":\"map_erase16\",\"full_fsa_bytes\":4008,\"patch_fsa_bytes\":191,\"uplink_fsa_bytes\":191,\"patches\":16}\n{\"scenario\":\"sequential16\",\"rounds\":100,\"us_per_round\":26365.57551,\"writes\":1600,\"commits\":1600,\"proposal_fsa_bytes\":83200}\n{\"scenario\":\"batch16\",\"rounds\":100,\"us_per_round\":2820.59612,\"writes\":100,\"commits\":100,\"proposal_fsa_bytes\":45700}\n",
+      "stderr": ""
+    },
+    {
+      "repeat": 3,
+      "command": [
+        "fsnet-envelope-benchmark"
+      ],
+      "elapsed_seconds": 0.0829065040002206,
+      "returncode": 0,
+      "stdout": "{\"scenario\":\"owning_parser\",\"envelope_bytes\":152,\"iterations\":50000,\"ns_per_op\":20.2706,\"allocations\":50000,\"allocated_bytes\":6450000,\"checksum\":12650000}\n{\"scenario\":\"borrowed_parser\",\"envelope_bytes\":152,\"iterations\":50000,\"ns_per_op\":2.50784,\"allocations\":0,\"allocated_bytes\":0,\"checksum\":12650000}\n{\"scenario\":\"owning_parser\",\"envelope_bytes\":4120,\"iterations\":50000,\"ns_per_op\":60.6164,\"allocations\":50000,\"allocated_bytes\":204850000,\"checksum\":211050000}\n{\"scenario\":\"borrowed_parser\",\"envelope_bytes\":4120,\"iterations\":50000,\"ns_per_op\":2.5058,\"allocations\":0,\"allocated_bytes\":0,\"checksum\":211050000}\n{\"scenario\":\"owning_parser\",\"envelope_bytes\":65560,\"iterations\":50000,\"ns_per_op\":1519,\"allocations\":50000,\"allocated_bytes\":3276850000,\"checksum\":3283050000}\n{\"scenario\":\"borrowed_parser\",\"envelope_bytes\":65560,\"iterations\":50000,\"ns_per_op\":2.50642,\"allocations\":0,\"allocated_bytes\":0,\"checksum\":3283050000}\n",
+      "stderr": ""
+    },
+    {
+      "repeat": 3,
+      "command": [
+        "fsnet-replication-benchmark"
+      ],
+      "elapsed_seconds": 0.24609561600027519,
+      "returncode": 0,
+      "stdout": "{\"scenario\":\"forward_decode_encode\",\"iterations\":2000,\"us_per_op\":71.7627,\"checksum\":154040000}\n{\"scenario\":\"forward_validate_remap\",\"iterations\":2000,\"us_per_op\":27.5108,\"checksum\":154040000}\n{\"scenario\":\"eager_snapshot_clone\",\"iterations\":2000,\"us_per_op\":17.6181,\"checksum\":2003000}\n{\"scenario\":\"shared_snapshot_acquire\",\"iterations\":2000,\"us_per_op\":4.08153,\"checksum\":2003000}\n",
+      "stderr": ""
+    },
+    {
+      "repeat": 3,
+      "command": [
+        "fsnet-request-benchmark",
+        "direct",
+        "20000",
+        "128",
+        "32"
+      ],
+      "elapsed_seconds": 0.13616734700008237,
+      "returncode": 0,
+      "stdout": "{\"scenario\":\"direct\",\"requests\":20000,\"payload_bytes\":128,\"concurrency\":32,\"seconds\":0.130936,\"requests_per_second\":152746,\"p50_us\":193.867,\"p99_us\":376.426}\n",
+      "stderr": ""
+    },
+    {
+      "repeat": 3,
+      "command": [
+        "fsnet-request-benchmark",
+        "gateway",
+        "20000",
+        "128",
+        "32"
+      ],
+      "elapsed_seconds": 0.29226201199981006,
+      "returncode": 0,
+      "stdout": "{\"scenario\":\"gateway\",\"requests\":20000,\"payload_bytes\":128,\"concurrency\":32,\"seconds\":0.286978,\"requests_per_second\":69691.9,\"p50_us\":448.167,\"p99_us\":747.101}\n",
+      "stderr": ""
+    },
+    {
+      "repeat": 3,
+      "command": [
+        "fsnet-request-benchmark",
+        "direct",
+        "10000",
+        "4096",
+        "32"
+      ],
+      "elapsed_seconds": 0.08174698999982866,
+      "returncode": 0,
+      "stdout": "{\"scenario\":\"direct\",\"requests\":10000,\"payload_bytes\":4096,\"concurrency\":32,\"seconds\":0.0775106,\"requests_per_second\":129015,\"p50_us\":233.899,\"p99_us\":421.466}\n",
+      "stderr": ""
+    },
+    {
+      "repeat": 3,
+      "command": [
+        "fsnet-request-benchmark",
+        "gateway",
+        "10000",
+        "4096",
+        "32"
+      ],
+      "elapsed_seconds": 0.17892298200013101,
+      "returncode": 0,
+      "stdout": "{\"scenario\":\"gateway\",\"requests\":10000,\"payload_bytes\":4096,\"concurrency\":32,\"seconds\":0.174242,\"requests_per_second\":57391.5,\"p50_us\":546.352,\"p99_us\":868.942}\n",
+      "stderr": ""
+    },
+    {
+      "repeat": 3,
+      "command": [
+        "fsnet-request-benchmark",
+        "direct",
+        "1000",
+        "65536",
+        "32"
+      ],
+      "elapsed_seconds": 0.07538113100008559,
+      "returncode": 0,
+      "stdout": "{\"scenario\":\"direct\",\"requests\":1000,\"payload_bytes\":65536,\"concurrency\":32,\"seconds\":0.0716863,\"requests_per_second\":13949.7,\"p50_us\":2240.81,\"p99_us\":2974.99}\n",
+      "stderr": ""
+    },
+    {
+      "repeat": 3,
+      "command": [
+        "fsnet-request-benchmark",
+        "gateway",
+        "1000",
+        "65536",
+        "32"
+      ],
+      "elapsed_seconds": 0.17036597700007405,
+      "returncode": 0,
+      "stdout": "{\"scenario\":\"gateway\",\"requests\":1000,\"payload_bytes\":65536,\"concurrency\":32,\"seconds\":0.165358,\"requests_per_second\":6047.48,\"p50_us\":5282.73,\"p99_us\":8969.68}\n",
+      "stderr": ""
+    },
+    {
+      "repeat": 3,
+      "command": [
+        "fsnet-request-benchmark",
+        "direct",
+        "5000",
+        "128",
+        "1"
+      ],
+      "elapsed_seconds": 0.04486283300002469,
+      "returncode": 0,
+      "stdout": "{\"scenario\":\"direct\",\"requests\":5000,\"payload_bytes\":128,\"concurrency\":1,\"seconds\":0.040988,\"requests_per_second\":121987,\"p50_us\":7.642,\"p99_us\":23.548}\n",
+      "stderr": ""
+    },
+    {
+      "repeat": 3,
+      "command": [
+        "fsnet-request-benchmark",
+        "gateway",
+        "5000",
+        "128",
+        "1"
+      ],
+      "elapsed_seconds": 0.09690671799990014,
+      "returncode": 0,
+      "stdout": "{\"scenario\":\"gateway\",\"requests\":5000,\"payload_bytes\":128,\"concurrency\":1,\"seconds\":0.0924754,\"requests_per_second\":54068.5,\"p50_us\":17.334,\"p99_us\":44.158}\n",
+      "stderr": ""
+    },
+    {
+      "repeat": 3,
+      "command": [
+        "fsnet-receiver-benchmark"
+      ],
+      "elapsed_seconds": 0.033398982000107935,
+      "returncode": 0,
+      "stdout": "{\"scenario\":\"direct_apply\",\"unchanged_items\":0,\"iterations\":1000,\"ns_per_op\":144.066,\"allocations_per_op\":2,\"allocated_bytes_per_op\":240}\n{\"scenario\":\"receive_candidate_pattern\",\"unchanged_items\":0,\"iterations\":1000,\"ns_per_op\":183.812,\"allocations_per_op\":5,\"allocated_bytes_per_op\":592}\n{\"scenario\":\"native_attribute_client_receive\",\"unchanged_items\":0,\"iterations\":1000,\"ns_per_op\":2722.53,\"allocations_per_op\":6,\"allocated_bytes_per_op\":455}\n{\"scenario\":\"direct_apply\",\"unchanged_items\":16,\"iterations\":1000,\"ns_per_op\":177.675,\"allocations_per_op\":2,\"allocated_bytes_per_op\":240}\n{\"scenario\":\"receive_candidate_pattern\",\"unchanged_items\":16,\"iterations\":1000,\"ns_per_op\":674.754,\"allocations_per_op\":22,\"allocated_bytes_per_op\":9696}\n{\"scenario\":\"native_attribute_client_receive\",\"unchanged_items\":16,\"iterations\":1000,\"ns_per_op\":2751.29,\"allocations_per_op\":6,\"allocated_bytes_per_op\":455}\n{\"scenario\":\"direct_apply\",\"unchanged_items\":256,\"iterations\":1000,\"ns_per_op\":1025.33,\"allocations_per_op\":2,\"allocated_bytes_per_op\":240}\n{\"scenario\":\"receive_candidate_pattern\",\"unchanged_items\":256,\"iterations\":1000,\"ns_per_op\":11011.6,\"allocations_per_op\":262,\"allocated_bytes_per_op\":146256}\n{\"scenario\":\"native_attribute_client_receive\",\"unchanged_items\":256,\"iterations\":1000,\"ns_per_op\":3879.95,\"allocations_per_op\":6,\"allocated_bytes_per_op\":455}\n",
+      "stderr": ""
+    },
+    {
+      "repeat": 4,
+      "command": [
+        "fsnet-benchmark",
+        "100000"
+      ],
+      "elapsed_seconds": 0.5912359899998592,
+      "returncode": 0,
+      "stdout": "loopback TCP, one thread, two nodes, payload=128 bytes, concurrency=128\nrequests=100000 seconds=0.583736 requests_per_second=171310 p50_ms=0.727454 p99_ms=1.06315\n",
+      "stderr": ""
+    },
+    {
+      "repeat": 4,
+      "command": [
+        "fsnet-attribute-benchmark",
+        "all",
+        "20000"
+      ],
+      "elapsed_seconds": 1.4095266060003269,
+      "returncode": 0,
+      "stdout": "{\"scenario\":\"build\",\"mode\":\"Release(NDEBUG)\",\"compiler\":\"14.2.0\"}\n{\"scenario\":\"publish_scalar_32\",\"iterations\":20000,\"seconds\":0.003707486,\"ns_per_op\":185.3743,\"wire_bytes\":0,\"recipients\":0}\n{\"scenario\":\"publish_vec3_32\",\"iterations\":20000,\"seconds\":0.012497429,\"ns_per_op\":624.87145,\"wire_bytes\":0,\"recipients\":0}\n{\"scenario\":\"replica_delta_32\",\"iterations\":20000,\"seconds\":0.019213011,\"ns_per_op\":960.65055,\"wire_bytes\":0,\"recipients\":0}\n{\"scenario\":\"codec_roundtrip_32\",\"iterations\":5000,\"seconds\":0.019674644,\"ns_per_op\":3934.9288,\"wire_bytes\":613,\"recipients\":0}\n{\"scenario\":\"payload_sizes\",\"full_bytes\":613,\"vec3_delta_bytes\":67}\n{\"scenario\":\"lua_nested_read_32\",\"iterations\":20000,\"seconds\":0.013101001,\"ns_per_op\":655.05005,\"wire_bytes\":0,\"recipients\":0}\n{\"scenario\":\"lua_whole_write_32\",\"iterations\":20000,\"seconds\":0.056912994,\"ns_per_op\":2845.6497,\"wire_bytes\":0,\"recipients\":0}\n{\"scenario\":\"lua_nested_write_32\",\"iterations\":20000,\"seconds\":0.059991979,\"ns_per_op\":2999.59895,\"wire_bytes\":0,\"recipients\":0}\n{\"scenario\":\"fanout_1\",\"iterations\":1000,\"seconds\":0.179834694,\"ns_per_op\":179834.694,\"wire_bytes\":96,\"recipients\":1,\"p50_us\":156.379,\"p99_us\":413.26}\n{\"scenario\":\"fanout_8\",\"iterations\":1000,\"seconds\":0.284049479,\"ns_per_op\":284049.479,\"wire_bytes\":96,\"recipients\":8,\"p50_us\":263.596,\"p99_us\":529.314}\n{\"scenario\":\"fanout_32\",\"iterations\":1000,\"seconds\":0.685084074,\"ns_per_op\":685084.074,\"wire_bytes\":96,\"recipients\":32,\"p50_us\":647.04,\"p99_us\":1121.929}\n",
+      "stderr": ""
+    },
+    {
+      "repeat": 4,
+      "command": [
+        "fsnet-container-benchmark",
+        "all",
+        "100"
+      ],
+      "elapsed_seconds": 2.855567057999906,
+      "returncode": 0,
+      "stdout": "{\"scenario\":\"nested_struct_1kb\",\"full_fsa_bytes\":1111,\"patch_fsa_bytes\":54,\"uplink_fsa_bytes\":54,\"patches\":1}\n{\"scenario\":\"position_x\",\"full_fsa_bytes\":67,\"patch_fsa_bytes\":48,\"uplink_fsa_bytes\":48,\"patches\":1}\n{\"scenario\":\"list_replace\",\"full_fsa_bytes\":4146,\"patch_fsa_bytes\":52,\"uplink_fsa_bytes\":52,\"patches\":1}\n{\"scenario\":\"list_append16\",\"full_fsa_bytes\":4664,\"patch_fsa_bytes\":556,\"uplink_fsa_bytes\":556,\"patches\":1}\n{\"scenario\":\"map_add16\",\"full_fsa_bytes\":5200,\"patch_fsa_bytes\":805,\"uplink_fsa_bytes\":805,\"patches\":16}\n{\"scenario\":\"map_erase16\",\"full_fsa_bytes\":4008,\"patch_fsa_bytes\":191,\"uplink_fsa_bytes\":191,\"patches\":16}\n{\"scenario\":\"sequential16\",\"rounds\":100,\"us_per_round\":25460.89924,\"writes\":1600,\"commits\":1600,\"proposal_fsa_bytes\":83200}\n{\"scenario\":\"batch16\",\"rounds\":100,\"us_per_round\":2926.31994,\"writes\":100,\"commits\":100,\"proposal_fsa_bytes\":45700}\n",
+      "stderr": ""
+    },
+    {
+      "repeat": 4,
+      "command": [
+        "fsnet-envelope-benchmark"
+      ],
+      "elapsed_seconds": 0.0866238449998491,
+      "returncode": 0,
+      "stdout": "{\"scenario\":\"owning_parser\",\"envelope_bytes\":152,\"iterations\":50000,\"ns_per_op\":20.6678,\"allocations\":50000,\"allocated_bytes\":6450000,\"checksum\":12650000}\n{\"scenario\":\"borrowed_parser\",\"envelope_bytes\":152,\"iterations\":50000,\"ns_per_op\":2.50826,\"allocations\":0,\"allocated_bytes\":0,\"checksum\":12650000}\n{\"scenario\":\"owning_parser\",\"envelope_bytes\":4120,\"iterations\":50000,\"ns_per_op\":59.0813,\"allocations\":50000,\"allocated_bytes\":204850000,\"checksum\":211050000}\n{\"scenario\":\"borrowed_parser\",\"envelope_bytes\":4120,\"iterations\":50000,\"ns_per_op\":2.50422,\"allocations\":0,\"allocated_bytes\":0,\"checksum\":211050000}\n{\"scenario\":\"owning_parser\",\"envelope_bytes\":65560,\"iterations\":50000,\"ns_per_op\":1595,\"allocations\":50000,\"allocated_bytes\":3276850000,\"checksum\":3283050000}\n{\"scenario\":\"borrowed_parser\",\"envelope_bytes\":65560,\"iterations\":50000,\"ns_per_op\":2.50658,\"allocations\":0,\"allocated_bytes\":0,\"checksum\":3283050000}\n",
+      "stderr": ""
+    },
+    {
+      "repeat": 4,
+      "command": [
+        "fsnet-replication-benchmark"
+      ],
+      "elapsed_seconds": 0.24979073799977414,
+      "returncode": 0,
+      "stdout": "{\"scenario\":\"forward_decode_encode\",\"iterations\":2000,\"us_per_op\":72.959,\"checksum\":154040000}\n{\"scenario\":\"forward_validate_remap\",\"iterations\":2000,\"us_per_op\":27.3312,\"checksum\":154040000}\n{\"scenario\":\"eager_snapshot_clone\",\"iterations\":2000,\"us_per_op\":18.1388,\"checksum\":2003000}\n{\"scenario\":\"shared_snapshot_acquire\",\"iterations\":2000,\"us_per_op\":4.45989,\"checksum\":2003000}\n",
+      "stderr": ""
+    },
+    {
+      "repeat": 4,
+      "command": [
+        "fsnet-request-benchmark",
+        "direct",
+        "20000",
+        "128",
+        "32"
+      ],
+      "elapsed_seconds": 0.13338116399972932,
+      "returncode": 0,
+      "stdout": "{\"scenario\":\"direct\",\"requests\":20000,\"payload_bytes\":128,\"concurrency\":32,\"seconds\":0.12848,\"requests_per_second\":155666,\"p50_us\":196.693,\"p99_us\":300.226}\n",
+      "stderr": ""
+    },
+    {
+      "repeat": 4,
+      "command": [
+        "fsnet-request-benchmark",
+        "gateway",
+        "20000",
+        "128",
+        "32"
+      ],
+      "elapsed_seconds": 0.32396152699993763,
+      "returncode": 0,
+      "stdout": "{\"scenario\":\"gateway\",\"requests\":20000,\"payload_bytes\":128,\"concurrency\":32,\"seconds\":0.318199,\"requests_per_second\":62853.8,\"p50_us\":450.214,\"p99_us\":909.359}\n",
+      "stderr": ""
+    },
+    {
+      "repeat": 4,
+      "command": [
+        "fsnet-request-benchmark",
+        "direct",
+        "10000",
+        "4096",
+        "32"
+      ],
+      "elapsed_seconds": 0.08127472999967722,
+      "returncode": 0,
+      "stdout": "{\"scenario\":\"direct\",\"requests\":10000,\"payload_bytes\":4096,\"concurrency\":32,\"seconds\":0.0768534,\"requests_per_second\":130118,\"p50_us\":229.589,\"p99_us\":436.644}\n",
+      "stderr": ""
+    },
+    {
+      "repeat": 4,
+      "command": [
+        "fsnet-request-benchmark",
+        "gateway",
+        "10000",
+        "4096",
+        "32"
+      ],
+      "elapsed_seconds": 0.18131975799997235,
+      "returncode": 0,
+      "stdout": "{\"scenario\":\"gateway\",\"requests\":10000,\"payload_bytes\":4096,\"concurrency\":32,\"seconds\":0.176848,\"requests_per_second\":56545.8,\"p50_us\":555.342,\"p99_us\":870.505}\n",
+      "stderr": ""
+    },
+    {
+      "repeat": 4,
+      "command": [
+        "fsnet-request-benchmark",
+        "direct",
+        "1000",
+        "65536",
+        "32"
+      ],
+      "elapsed_seconds": 0.08279717200002779,
+      "returncode": 0,
+      "stdout": "{\"scenario\":\"direct\",\"requests\":1000,\"payload_bytes\":65536,\"concurrency\":32,\"seconds\":0.0785456,\"requests_per_second\":12731.5,\"p50_us\":2242.36,\"p99_us\":5166.34}\n",
+      "stderr": ""
+    },
+    {
+      "repeat": 4,
+      "command": [
+        "fsnet-request-benchmark",
+        "gateway",
+        "1000",
+        "65536",
+        "32"
+      ],
+      "elapsed_seconds": 0.17101919000015187,
+      "returncode": 0,
+      "stdout": "{\"scenario\":\"gateway\",\"requests\":1000,\"payload_bytes\":65536,\"concurrency\":32,\"seconds\":0.166462,\"requests_per_second\":6007.37,\"p50_us\":5343.62,\"p99_us\":6396.19}\n",
+      "stderr": ""
+    },
+    {
+      "repeat": 4,
+      "command": [
+        "fsnet-request-benchmark",
+        "direct",
+        "5000",
+        "128",
+        "1"
+      ],
+      "elapsed_seconds": 0.04545052699995722,
+      "returncode": 0,
+      "stdout": "{\"scenario\":\"direct\",\"requests\":5000,\"payload_bytes\":128,\"concurrency\":1,\"seconds\":0.0411084,\"requests_per_second\":121630,\"p50_us\":7.644,\"p99_us\":25.218}\n",
+      "stderr": ""
+    },
+    {
+      "repeat": 4,
+      "command": [
+        "fsnet-request-benchmark",
+        "gateway",
+        "5000",
+        "128",
+        "1"
+      ],
+      "elapsed_seconds": 0.09797558299987941,
+      "returncode": 0,
+      "stdout": "{\"scenario\":\"gateway\",\"requests\":5000,\"payload_bytes\":128,\"concurrency\":1,\"seconds\":0.0936427,\"requests_per_second\":53394.4,\"p50_us\":17.589,\"p99_us\":41.965}\n",
+      "stderr": ""
+    },
+    {
+      "repeat": 4,
+      "command": [
+        "fsnet-receiver-benchmark"
+      ],
+      "elapsed_seconds": 0.03560465900000054,
+      "returncode": 0,
+      "stdout": "{\"scenario\":\"direct_apply\",\"unchanged_items\":0,\"iterations\":1000,\"ns_per_op\":139.443,\"allocations_per_op\":2,\"allocated_bytes_per_op\":240}\n{\"scenario\":\"receive_candidate_pattern\",\"unchanged_items\":0,\"iterations\":1000,\"ns_per_op\":182.014,\"allocations_per_op\":5,\"allocated_bytes_per_op\":592}\n{\"scenario\":\"native_attribute_client_receive\",\"unchanged_items\":0,\"iterations\":1000,\"ns_per_op\":2721.71,\"allocations_per_op\":6,\"allocated_bytes_per_op\":455}\n{\"scenario\":\"direct_apply\",\"unchanged_items\":16,\"iterations\":1000,\"ns_per_op\":357.957,\"allocations_per_op\":2,\"allocated_bytes_per_op\":240}\n{\"scenario\":\"receive_candidate_pattern\",\"unchanged_items\":16,\"iterations\":1000,\"ns_per_op\":604.907,\"allocations_per_op\":22,\"allocated_bytes_per_op\":9696}\n{\"scenario\":\"native_attribute_client_receive\",\"unchanged_items\":16,\"iterations\":1000,\"ns_per_op\":3101.52,\"allocations_per_op\":6,\"allocated_bytes_per_op\":455}\n{\"scenario\":\"direct_apply\",\"unchanged_items\":256,\"iterations\":1000,\"ns_per_op\":1076.45,\"allocations_per_op\":2,\"allocated_bytes_per_op\":240}\n{\"scenario\":\"receive_candidate_pattern\",\"unchanged_items\":256,\"iterations\":1000,\"ns_per_op\":11167.5,\"allocations_per_op\":262,\"allocated_bytes_per_op\":146256}\n{\"scenario\":\"native_attribute_client_receive\",\"unchanged_items\":256,\"iterations\":1000,\"ns_per_op\":4330.81,\"allocations_per_op\":6,\"allocated_bytes_per_op\":455}\n",
+      "stderr": ""
+    },
+    {
+      "repeat": 5,
+      "command": [
+        "fsnet-benchmark",
+        "100000"
+      ],
+      "elapsed_seconds": 0.6061695710000095,
+      "returncode": 0,
+      "stdout": "loopback TCP, one thread, two nodes, payload=128 bytes, concurrency=128\nrequests=100000 seconds=0.597763 requests_per_second=167291 p50_ms=0.729877 p99_ms=1.30456\n",
+      "stderr": ""
+    },
+    {
+      "repeat": 5,
+      "command": [
+        "fsnet-attribute-benchmark",
+        "all",
+        "20000"
+      ],
+      "elapsed_seconds": 1.556748718000108,
+      "returncode": 0,
+      "stdout": "{\"scenario\":\"build\",\"mode\":\"Release(NDEBUG)\",\"compiler\":\"14.2.0\"}\n{\"scenario\":\"publish_scalar_32\",\"iterations\":20000,\"seconds\":0.003549935,\"ns_per_op\":177.49675,\"wire_bytes\":0,\"recipients\":0}\n{\"scenario\":\"publish_vec3_32\",\"iterations\":20000,\"seconds\":0.013191137,\"ns_per_op\":659.55685,\"wire_bytes\":0,\"recipients\":0}\n{\"scenario\":\"replica_delta_32\",\"iterations\":20000,\"seconds\":0.021289388,\"ns_per_op\":1064.4694,\"wire_bytes\":0,\"recipients\":0}\n{\"scenario\":\"codec_roundtrip_32\",\"iterations\":5000,\"seconds\":0.019756704,\"ns_per_op\":3951.3408,\"wire_bytes\":613,\"recipients\":0}\n{\"scenario\":\"payload_sizes\",\"full_bytes\":613,\"vec3_delta_bytes\":67}\n{\"scenario\":\"lua_nested_read_32\",\"iterations\":20000,\"seconds\":0.012824831,\"ns_per_op\":641.24155,\"wire_bytes\":0,\"recipients\":0}\n{\"scenario\":\"lua_whole_write_32\",\"iterations\":20000,\"seconds\":0.060872684,\"ns_per_op\":3043.6342,\"wire_bytes\":0,\"recipients\":0}\n{\"scenario\":\"lua_nested_write_32\",\"iterations\":20000,\"seconds\":0.059519504,\"ns_per_op\":2975.9752,\"wire_bytes\":0,\"recipients\":0}\n{\"scenario\":\"fanout_1\",\"iterations\":1000,\"seconds\":0.184406505,\"ns_per_op\":184406.505,\"wire_bytes\":96,\"recipients\":1,\"p50_us\":158.869,\"p99_us\":488.603}\n{\"scenario\":\"fanout_8\",\"iterations\":1000,\"seconds\":0.403109487,\"ns_per_op\":403109.487,\"wire_bytes\":96,\"recipients\":8,\"p50_us\":381.968,\"p99_us\":726.688}\n{\"scenario\":\"fanout_32\",\"iterations\":1000,\"seconds\":0.692381968,\"ns_per_op\":692381.968,\"wire_bytes\":96,\"recipients\":32,\"p50_us\":649.341,\"p99_us\":1231.776}\n",
+      "stderr": ""
+    },
+    {
+      "repeat": 5,
+      "command": [
+        "fsnet-container-benchmark",
+        "all",
+        "100"
+      ],
+      "elapsed_seconds": 2.804280873999687,
+      "returncode": 0,
+      "stdout": "{\"scenario\":\"nested_struct_1kb\",\"full_fsa_bytes\":1111,\"patch_fsa_bytes\":54,\"uplink_fsa_bytes\":54,\"patches\":1}\n{\"scenario\":\"position_x\",\"full_fsa_bytes\":67,\"patch_fsa_bytes\":48,\"uplink_fsa_bytes\":48,\"patches\":1}\n{\"scenario\":\"list_replace\",\"full_fsa_bytes\":4146,\"patch_fsa_bytes\":52,\"uplink_fsa_bytes\":52,\"patches\":1}\n{\"scenario\":\"list_append16\",\"full_fsa_bytes\":4664,\"patch_fsa_bytes\":556,\"uplink_fsa_bytes\":556,\"patches\":1}\n{\"scenario\":\"map_add16\",\"full_fsa_bytes\":5200,\"patch_fsa_bytes\":805,\"uplink_fsa_bytes\":805,\"patches\":16}\n{\"scenario\":\"map_erase16\",\"full_fsa_bytes\":4008,\"patch_fsa_bytes\":191,\"uplink_fsa_bytes\":191,\"patches\":16}\n{\"scenario\":\"sequential16\",\"rounds\":100,\"us_per_round\":24870.65007,\"writes\":1600,\"commits\":1600,\"proposal_fsa_bytes\":83200}\n{\"scenario\":\"batch16\",\"rounds\":100,\"us_per_round\":3005.25217,\"writes\":100,\"commits\":100,\"proposal_fsa_bytes\":45700}\n",
+      "stderr": ""
+    },
+    {
+      "repeat": 5,
+      "command": [
+        "fsnet-envelope-benchmark"
+      ],
+      "elapsed_seconds": 0.0838873960001365,
+      "returncode": 0,
+      "stdout": "{\"scenario\":\"owning_parser\",\"envelope_bytes\":152,\"iterations\":50000,\"ns_per_op\":20.2636,\"allocations\":50000,\"allocated_bytes\":6450000,\"checksum\":12650000}\n{\"scenario\":\"borrowed_parser\",\"envelope_bytes\":152,\"iterations\":50000,\"ns_per_op\":2.50974,\"allocations\":0,\"allocated_bytes\":0,\"checksum\":12650000}\n{\"scenario\":\"owning_parser\",\"envelope_bytes\":4120,\"iterations\":50000,\"ns_per_op\":57.7453,\"allocations\":50000,\"allocated_bytes\":204850000,\"checksum\":211050000}\n{\"scenario\":\"borrowed_parser\",\"envelope_bytes\":4120,\"iterations\":50000,\"ns_per_op\":2.50454,\"allocations\":0,\"allocated_bytes\":0,\"checksum\":211050000}\n{\"scenario\":\"owning_parser\",\"envelope_bytes\":65560,\"iterations\":50000,\"ns_per_op\":1538.52,\"allocations\":50000,\"allocated_bytes\":3276850000,\"checksum\":3283050000}\n{\"scenario\":\"borrowed_parser\",\"envelope_bytes\":65560,\"iterations\":50000,\"ns_per_op\":2.50662,\"allocations\":0,\"allocated_bytes\":0,\"checksum\":3283050000}\n",
+      "stderr": ""
+    },
+    {
+      "repeat": 5,
+      "command": [
+        "fsnet-replication-benchmark"
+      ],
+      "elapsed_seconds": 0.2465423980002015,
+      "returncode": 0,
+      "stdout": "{\"scenario\":\"forward_decode_encode\",\"iterations\":2000,\"us_per_op\":72.02,\"checksum\":154040000}\n{\"scenario\":\"forward_validate_remap\",\"iterations\":2000,\"us_per_op\":27.0597,\"checksum\":154040000}\n{\"scenario\":\"eager_snapshot_clone\",\"iterations\":2000,\"us_per_op\":17.701,\"checksum\":2003000}\n{\"scenario\":\"shared_snapshot_acquire\",\"iterations\":2000,\"us_per_op\":4.30878,\"checksum\":2003000}\n",
+      "stderr": ""
+    },
+    {
+      "repeat": 5,
+      "command": [
+        "fsnet-request-benchmark",
+        "direct",
+        "20000",
+        "128",
+        "32"
+      ],
+      "elapsed_seconds": 0.13477366200004326,
+      "returncode": 0,
+      "stdout": "{\"scenario\":\"direct\",\"requests\":20000,\"payload_bytes\":128,\"concurrency\":32,\"seconds\":0.129492,\"requests_per_second\":154449,\"p50_us\":194.694,\"p99_us\":378.133}\n",
+      "stderr": ""
+    },
+    {
+      "repeat": 5,
+      "command": [
+        "fsnet-request-benchmark",
+        "gateway",
+        "20000",
+        "128",
+        "32"
+      ],
+      "elapsed_seconds": 0.2844423259998621,
+      "returncode": 0,
+      "stdout": "{\"scenario\":\"gateway\",\"requests\":20000,\"payload_bytes\":128,\"concurrency\":32,\"seconds\":0.278586,\"requests_per_second\":71791.1,\"p50_us\":433.938,\"p99_us\":685.352}\n",
+      "stderr": ""
+    },
+    {
+      "repeat": 5,
+      "command": [
+        "fsnet-request-benchmark",
+        "direct",
+        "10000",
+        "4096",
+        "32"
+      ],
+      "elapsed_seconds": 0.08158128300010503,
+      "returncode": 0,
+      "stdout": "{\"scenario\":\"direct\",\"requests\":10000,\"payload_bytes\":4096,\"concurrency\":32,\"seconds\":0.0772148,\"requests_per_second\":129509,\"p50_us\":233.944,\"p99_us\":387.502}\n",
+      "stderr": ""
+    },
+    {
+      "repeat": 5,
+      "command": [
+        "fsnet-request-benchmark",
+        "gateway",
+        "10000",
+        "4096",
+        "32"
+      ],
+      "elapsed_seconds": 0.18480540299970016,
+      "returncode": 0,
+      "stdout": "{\"scenario\":\"gateway\",\"requests\":10000,\"payload_bytes\":4096,\"concurrency\":32,\"seconds\":0.180085,\"requests_per_second\":55529.5,\"p50_us\":555.009,\"p99_us\":938.181}\n",
+      "stderr": ""
+    },
+    {
+      "repeat": 5,
+      "command": [
+        "fsnet-request-benchmark",
+        "direct",
+        "1000",
+        "65536",
+        "32"
+      ],
+      "elapsed_seconds": 0.06346110599997701,
+      "returncode": 0,
+      "stdout": "{\"scenario\":\"direct\",\"requests\":1000,\"payload_bytes\":65536,\"concurrency\":32,\"seconds\":0.0592501,\"requests_per_second\":16877.6,\"p50_us\":1825.5,\"p99_us\":2991.7}\n",
+      "stderr": ""
+    },
+    {
+      "repeat": 5,
+      "command": [
+        "fsnet-request-benchmark",
+        "gateway",
+        "1000",
+        "65536",
+        "32"
+      ],
+      "elapsed_seconds": 0.1815004210002371,
+      "returncode": 0,
+      "stdout": "{\"scenario\":\"gateway\",\"requests\":1000,\"payload_bytes\":65536,\"concurrency\":32,\"seconds\":0.176713,\"requests_per_second\":5658.9,\"p50_us\":5583.63,\"p99_us\":6517.67}\n",
+      "stderr": ""
+    },
+    {
+      "repeat": 5,
+      "command": [
+        "fsnet-request-benchmark",
+        "direct",
+        "5000",
+        "128",
+        "1"
+      ],
+      "elapsed_seconds": 0.04515283999990061,
+      "returncode": 0,
+      "stdout": "{\"scenario\":\"direct\",\"requests\":5000,\"payload_bytes\":128,\"concurrency\":1,\"seconds\":0.0413359,\"requests_per_second\":120960,\"p50_us\":7.802,\"p99_us\":21.873}\n",
+      "stderr": ""
+    },
+    {
+      "repeat": 5,
+      "command": [
+        "fsnet-request-benchmark",
+        "gateway",
+        "5000",
+        "128",
+        "1"
+      ],
+      "elapsed_seconds": 0.09924938199992539,
+      "returncode": 0,
+      "stdout": "{\"scenario\":\"gateway\",\"requests\":5000,\"payload_bytes\":128,\"concurrency\":1,\"seconds\":0.095027,\"requests_per_second\":52616.6,\"p50_us\":17.262,\"p99_us\":61.956}\n",
+      "stderr": ""
+    },
+    {
+      "repeat": 5,
+      "command": [
+        "fsnet-receiver-benchmark"
+      ],
+      "elapsed_seconds": 0.03312062099985269,
+      "returncode": 0,
+      "stdout": "{\"scenario\":\"direct_apply\",\"unchanged_items\":0,\"iterations\":1000,\"ns_per_op\":144.99,\"allocations_per_op\":2,\"allocated_bytes_per_op\":240}\n{\"scenario\":\"receive_candidate_pattern\",\"unchanged_items\":0,\"iterations\":1000,\"ns_per_op\":209.191,\"allocations_per_op\":5,\"allocated_bytes_per_op\":592}\n{\"scenario\":\"native_attribute_client_receive\",\"unchanged_items\":0,\"iterations\":1000,\"ns_per_op\":2824.62,\"allocations_per_op\":6,\"allocated_bytes_per_op\":455}\n{\"scenario\":\"direct_apply\",\"unchanged_items\":16,\"iterations\":1000,\"ns_per_op\":175.909,\"allocations_per_op\":2,\"allocated_bytes_per_op\":240}\n{\"scenario\":\"receive_candidate_pattern\",\"unchanged_items\":16,\"iterations\":1000,\"ns_per_op\":651.236,\"allocations_per_op\":22,\"allocated_bytes_per_op\":9696}\n{\"scenario\":\"native_attribute_client_receive\",\"unchanged_items\":16,\"iterations\":1000,\"ns_per_op\":2753.58,\"allocations_per_op\":6,\"allocated_bytes_per_op\":455}\n{\"scenario\":\"direct_apply\",\"unchanged_items\":256,\"iterations\":1000,\"ns_per_op\":1045.83,\"allocations_per_op\":2,\"allocated_bytes_per_op\":240}\n{\"scenario\":\"receive_candidate_pattern\",\"unchanged_items\":256,\"iterations\":1000,\"ns_per_op\":10606.5,\"allocations_per_op\":262,\"allocated_bytes_per_op\":146256}\n{\"scenario\":\"native_attribute_client_receive\",\"unchanged_items\":256,\"iterations\":1000,\"ns_per_op\":3793.66,\"allocations_per_op\":6,\"allocated_bytes_per_op\":455}\n",
+      "stderr": ""
+    }
+  ],
+  "runner_sha256": "0ddb8983f5d012d2853713b0b5083adc234257fb8a4a3c416b755398f39e2b84",
+  "cgroup_before": {
+    "cpu.stat": "usage_usec 2946409750\nuser_usec 2622676125\nsystem_usec 323733625\nnice_usec 0\nnr_periods 18070\nnr_throttled 12963\nthrottled_usec 1219666482\nnr_bursts 0\nburst_usec 0",
+    "memory.current": "3114946560"
+  },
+  "delivery_runs": [
+    {
+      "checks": [
+        "unsafe launcher configuration rejected",
+        "mutual TLS",
+        "untrusted CA rejected",
+        "unmapped certificate rejected",
+        "authenticated account delegation",
+        "automatic subscription",
+        "SIGKILL takeover with confirmed state",
+        "same RPC ID replay across owners",
+        "shared field batch load",
+        "graceful owner handoff",
+        "directed owner handoff over mutual TLS",
+        "directed round trip preserves Lua object",
+        "durable command over mutual TLS with pinned owner roles",
+        "stable frontend entity",
+        "resource cleanup",
+        "readiness and metrics"
+      ],
+      "rounds": 1000,
+      "batch_seconds": 5.873951139999917,
+      "batch_rounds_per_second": 170.2431593600239,
+      "batch_timing_scope": "parent observes recovered to load_done; one serial Lua vec3 batch per persistent commit, includes replication, no startup/crash recovery",
+      "recovery_seconds": 1.9660517339998478,
+      "elapsed_seconds": 10.832773212999655,
+      "peaks": {
+        "ownera.pending": 1,
+        "ownera.queued_bytes": 133,
+        "ownera.resident_bytes": 45511,
+        "ownera.lua_bytes": 2135627,
+        "ownerb.pending": 3,
+        "ownerb.queued_bytes": 330,
+        "ownerb.resident_bytes": 0,
+        "ownerb.lua_bytes": 569782,
+        "gateway.pending": 1,
+        "gateway.queued_bytes": 130,
+        "gateway.backend_pending": 1
+      },
+      "scope": "local processes, shared POSIX file storage, ephemeral PKI; not cross-machine HA or a production SLO",
+      "service_sha256": "821eefbfd41c30cd7fa1863712cb5026b76668a90ff4c7c28175e4284ef22273",
+      "client_sha256": "783a3e83f7e08f3374b83cb5a3273bc93b7e69feeaaeb96d7a6bff0189145b07",
+      "library_sha256": "f8ee231c25bd27b9461bc0a97f5e166cc4db424257de2272039160669acfa0d0"
+    },
+    {
+      "checks": [
+        "unsafe launcher configuration rejected",
+        "mutual TLS",
+        "untrusted CA rejected",
+        "unmapped certificate rejected",
+        "authenticated account delegation",
+        "automatic subscription",
+        "SIGKILL takeover with confirmed state",
+        "same RPC ID replay across owners",
+        "shared field batch load",
+        "graceful owner handoff",
+        "directed owner handoff over mutual TLS",
+        "directed round trip preserves Lua object",
+        "durable command over mutual TLS with pinned owner roles",
+        "stable frontend entity",
+        "resource cleanup",
+        "readiness and metrics"
+      ],
+      "rounds": 1000,
+      "batch_seconds": 5.820942977999948,
+      "batch_rounds_per_second": 171.79347122613385,
+      "batch_timing_scope": "parent observes recovered to load_done; one serial Lua vec3 batch per persistent commit, includes replication, no startup/crash recovery",
+      "recovery_seconds": 1.969818165000106,
+      "elapsed_seconds": 10.701252157999988,
+      "peaks": {
+        "ownera.pending": 1,
+        "ownera.queued_bytes": 134,
+        "ownera.resident_bytes": 45511,
+        "ownera.lua_bytes": 2135627,
+        "ownerb.pending": 0,
+        "ownerb.queued_bytes": 0,
+        "ownerb.resident_bytes": 0,
+        "ownerb.lua_bytes": 568294,
+        "gateway.pending": 1,
+        "gateway.queued_bytes": 131,
+        "gateway.backend_pending": 1
+      },
+      "scope": "local processes, shared POSIX file storage, ephemeral PKI; not cross-machine HA or a production SLO",
+      "service_sha256": "821eefbfd41c30cd7fa1863712cb5026b76668a90ff4c7c28175e4284ef22273",
+      "client_sha256": "783a3e83f7e08f3374b83cb5a3273bc93b7e69feeaaeb96d7a6bff0189145b07",
+      "library_sha256": "f8ee231c25bd27b9461bc0a97f5e166cc4db424257de2272039160669acfa0d0"
+    },
+    {
+      "checks": [
+        "unsafe launcher configuration rejected",
+        "mutual TLS",
+        "untrusted CA rejected",
+        "unmapped certificate rejected",
+        "authenticated account delegation",
+        "automatic subscription",
+        "SIGKILL takeover with confirmed state",
+        "same RPC ID replay across owners",
+        "shared field batch load",
+        "graceful owner handoff",
+        "directed owner handoff over mutual TLS",
+        "directed round trip preserves Lua object",
+        "durable command over mutual TLS with pinned owner roles",
+        "stable frontend entity",
+        "resource cleanup",
+        "readiness and metrics"
+      ],
+      "rounds": 1000,
+      "batch_seconds": 7.384802387000036,
+      "batch_rounds_per_second": 135.41323756480838,
+      "batch_timing_scope": "parent observes recovered to load_done; one serial Lua vec3 batch per persistent commit, includes replication, no startup/crash recovery",
+      "recovery_seconds": 1.9673514070000238,
+      "elapsed_seconds": 12.798219468999832,
+      "peaks": {
+        "ownera.pending": 1,
+        "ownera.queued_bytes": 135,
+        "ownera.resident_bytes": 45511,
+        "ownera.lua_bytes": 2142654,
+        "ownerb.pending": 0,
+        "ownerb.queued_bytes": 0,
+        "ownerb.resident_bytes": 0,
+        "ownerb.lua_bytes": 570946,
+        "gateway.pending": 1,
+        "gateway.queued_bytes": 132,
+        "gateway.backend_pending": 1
+      },
+      "scope": "local processes, shared POSIX file storage, ephemeral PKI; not cross-machine HA or a production SLO",
+      "service_sha256": "821eefbfd41c30cd7fa1863712cb5026b76668a90ff4c7c28175e4284ef22273",
+      "client_sha256": "783a3e83f7e08f3374b83cb5a3273bc93b7e69feeaaeb96d7a6bff0189145b07",
+      "library_sha256": "f8ee231c25bd27b9461bc0a97f5e166cc4db424257de2272039160669acfa0d0"
+    },
+    {
+      "checks": [
+        "unsafe launcher configuration rejected",
+        "mutual TLS",
+        "untrusted CA rejected",
+        "unmapped certificate rejected",
+        "authenticated account delegation",
+        "automatic subscription",
+        "SIGKILL takeover with confirmed state",
+        "same RPC ID replay across owners",
+        "shared field batch load",
+        "graceful owner handoff",
+        "directed owner handoff over mutual TLS",
+        "directed round trip preserves Lua object",
+        "durable command over mutual TLS with pinned owner roles",
+        "stable frontend entity",
+        "resource cleanup",
+        "readiness and metrics"
+      ],
+      "rounds": 1000,
+      "batch_seconds": 6.441979131000153,
+      "batch_rounds_per_second": 155.2317975057992,
+      "batch_timing_scope": "parent observes recovered to load_done; one serial Lua vec3 batch per persistent commit, includes replication, no startup/crash recovery",
+      "recovery_seconds": 1.942540370000188,
+      "elapsed_seconds": 11.768280964999576,
+      "peaks": {
+        "ownera.pending": 1,
+        "ownera.queued_bytes": 135,
+        "ownera.resident_bytes": 46670,
+        "ownera.lua_bytes": 2135627,
+        "ownerb.pending": 1,
+        "ownerb.queued_bytes": 140,
+        "ownerb.resident_bytes": 0,
+        "ownerb.lua_bytes": 568294,
+        "gateway.pending": 1,
+        "gateway.queued_bytes": 132,
+        "gateway.backend_pending": 1
+      },
+      "scope": "local processes, shared POSIX file storage, ephemeral PKI; not cross-machine HA or a production SLO",
+      "service_sha256": "821eefbfd41c30cd7fa1863712cb5026b76668a90ff4c7c28175e4284ef22273",
+      "client_sha256": "783a3e83f7e08f3374b83cb5a3273bc93b7e69feeaaeb96d7a6bff0189145b07",
+      "library_sha256": "f8ee231c25bd27b9461bc0a97f5e166cc4db424257de2272039160669acfa0d0"
+    },
+    {
+      "checks": [
+        "unsafe launcher configuration rejected",
+        "mutual TLS",
+        "untrusted CA rejected",
+        "unmapped certificate rejected",
+        "authenticated account delegation",
+        "automatic subscription",
+        "SIGKILL takeover with confirmed state",
+        "same RPC ID replay across owners",
+        "shared field batch load",
+        "graceful owner handoff",
+        "directed owner handoff over mutual TLS",
+        "directed round trip preserves Lua object",
+        "durable command over mutual TLS with pinned owner roles",
+        "stable frontend entity",
+        "resource cleanup",
+        "readiness and metrics"
+      ],
+      "rounds": 1000,
+      "batch_seconds": 5.974962934999894,
+      "batch_rounds_per_second": 167.36505495996315,
+      "batch_timing_scope": "parent observes recovered to load_done; one serial Lua vec3 batch per persistent commit, includes replication, no startup/crash recovery",
+      "recovery_seconds": 1.9643761060001452,
+      "elapsed_seconds": 11.052186619000167,
+      "peaks": {
+        "ownera.pending": 1,
+        "ownera.queued_bytes": 136,
+        "ownera.resident_bytes": 45511,
+        "ownera.lua_bytes": 2142654,
+        "ownerb.pending": 1,
+        "ownerb.queued_bytes": 156,
+        "ownerb.resident_bytes": 45792,
+        "ownerb.lua_bytes": 570946,
+        "gateway.pending": 1,
+        "gateway.queued_bytes": 133,
+        "gateway.backend_pending": 1
+      },
+      "scope": "local processes, shared POSIX file storage, ephemeral PKI; not cross-machine HA or a production SLO",
+      "service_sha256": "821eefbfd41c30cd7fa1863712cb5026b76668a90ff4c7c28175e4284ef22273",
+      "client_sha256": "783a3e83f7e08f3374b83cb5a3273bc93b7e69feeaaeb96d7a6bff0189145b07",
+      "library_sha256": "f8ee231c25bd27b9461bc0a97f5e166cc4db424257de2272039160669acfa0d0"
+    }
+  ],
+  "cgroup_after": {
+    "cpu.stat": "usage_usec 3001751828\nuser_usec 2665842513\nsystem_usec 335909315\nnice_usec 0\nnr_periods 19039\nnr_throttled 12971\nthrottled_usec 1219858059\nnr_bursts 0\nburst_usec 0",
+    "memory.current": "3115335680"
+  }
+}
