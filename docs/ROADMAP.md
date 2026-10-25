@@ -4,6 +4,9 @@
 
 分支：`refactor/script-runtime`。每个阶段形成可检查的改动，完成相关验证后 commit + push；不将未实现计划标为已交付。
 
+2026-10-25 新确认的下一优先阶段：[全局实体身份与业务 RPC](ENTITY_ADDRESSING_PLAN.md)。
+业务调用统一以实体为目标，EntityId 全局唯一且与账号、类型和节点解耦；多 LoginHub 与创建目标可以分布在不同机器。
+
 | 阶段 | 范围 | 验收边界 |
 | --- | --- | --- |
 | 0：基础重构（已提交） | 审查、CMake、网络 RPC、可替换存储、fencing、健康路由、ICE/TURN、测试 | 当前本机验证记录见 VALIDATION.md；不代表完整生产级框架 |
@@ -14,6 +17,7 @@
 | 2.2：结构属性（已实现） | 通用 struct、固定数组、vec3/mat4x4、整值/嵌套赋值、自动客户端提案与服务器提交后同步 | STRUCTURED_ATTRIBUTES.md；路径 delta 由 2.4 补齐，仍不含字段级 ACL、自动冲突合并或在线结构迁移 |
 | 2.3：变长容器（已实现） | list、字符串键 map、标量 set，结构/容器嵌套、增删改同步 | CONTAINER_ATTRIBUTES.md；有类型/容量/总预算，不是逐笔业务操作日志 |
 | 2.4：共用差量与合批（已实现） | 客户端 batch、递归字段/容器差量、默认上下行共用生成器、候选补丁应用 | ATTRIBUTE_BATCHING.md、FIELD_PATH_DELTAS.md、SHARED_ATTRIBUTE_DELTAS.md；固定 ID 全值回退，无公共前缀树、定时帧合包或跨实体事务 |
+| 2.5：全局实体与业务 RPC（设计已确认，未实现） | 公共 EntityId/EntityRef、独立账号归属、实体方法分发、入口发现、多 LoginHub 与跨节点幂等创建；SDK/存储/迁移/投递统一引用 | ENTITY_ADDRESSING_PLAN.md；先固定分配、版本和历史数据迁移合同，再验证并发创建、权限、故障恢复和性能 |
 | 3：持久化与接管 | 异步存储执行器（已实现）、生产数据库适配器、单记录 CAS/幂等、fencing 与恢复编排 | 独立进程接管、旧 owner 写入拒绝、存储失败与重试边界 |
 | 3.1：生命周期与跨节点客户端接入（已实现） | create/activate/deactivate/destroy、drain；Gateway 可信账号委托、订阅转发、指定目标交接与 owner 迁移 | ENTITY_LIFECYCLE.md、CLIENT_GATEWAY.md、ENTITY_TRANSFER.md；默认只自动恢复账号所属实体，AOI 需可信策略 |
 | 3.2：持久实体命令（已实现） | 原子 outbox/inbox、每源 FIFO、持久水位去重、迁移/重启补投、结果查询与显式清理 | ENTITY_DELIVERY.md；有资源上限，普通 call/外部副作用不自动纳入，不承诺跨源顺序或跨实体事务 |

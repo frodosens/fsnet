@@ -37,10 +37,11 @@ C++ 提供客户端/服务端共用的引擎机制，业务逻辑写在 Lua；�
 
 - [完成状态](ENGINE_COMPLETION.md)：当前能力与尚未交付项。
 - [路线图](ROADMAP.md)：后续阶段，不将计划视为已实现 API。
+- [全局实体与业务 RPC 规划](ENTITY_ADDRESSING_PLAN.md)：已确认的全局独立 EntityId、业务统一实体调用、多 LoginHub 与跨节点创建约束；尚未实现。
 - [验证记录](VALIDATION.md)：各阶段配置、测试数量与未验证场景；最新配置为 Lua ON、PostgreSQL OFF；当前结果见验证记录末节。
 - [Copy 优化实施](COPY_OPTIMIZATION.md)：借用解析、同步组帧、Gateway属性字节转发和确认版本共享。
 - [当前性能与字符串复制 review](PERFORMANCE_REVIEW.md)：RPC/Gateway、Lua/属性、mTLS持久化链路和 copy 审阅；本轮没有修改运行时。
-- [第二轮架构与实现审查](CODE_REVIEW_ROUND2_2026-10-24.md)：基线 9de3218；停止/排空竞争、迁移控制、超时与 Lua 资源回收、实际接收成本及独立复现；所列问题尚未修复。
+- [第二轮架构与实现审查](CODE_REVIEW_ROUND2_2026-10-24.md)：保留基线 9de3218 的复现；13 项确认问题及回调边界已修复，修复机制与验证见文档首节。
 - [属性复制开销优化](ATTRIBUTE_PERFORMANCE.md)、[合批性能](CONTAINER_BATCHING_PERFORMANCE.md)：历史提交、测量方法与原始数据。
 - [字段字节样本](benchmarks/field-paths-2026-10-24.json)、[双向字节样本](benchmarks/shared-deltas-2026-10-24.json)：编码大小，不是网络延迟/在线人数结论。
 
