@@ -1,0 +1,116 @@
+{
+  "date_utc": "2026-10-25T07:03:06Z",
+  "command": [
+    "/workspace/fsnet/.dev/build/release/fsnet-global-flow-tests",
+    "/workspace/fsnet",
+    "--benchmark"
+  ],
+  "binary_sha256": "23567f6b7364743f820d1b006f74c08f6000e8146d7250d82c050169752ecc00",
+  "runs": 5,
+  "warmup_runs": 1,
+  "samples": [
+    [
+      {
+        "scenario": "legacy_type_id",
+        "requests": 2000,
+        "concurrency": 8,
+        "rps": 10223.6,
+        "p50_us": 683.689,
+        "p99_us": 1160.2
+      },
+      {
+        "scenario": "global_id",
+        "requests": 2000,
+        "concurrency": 8,
+        "rps": 9737.74,
+        "p50_us": 699.258,
+        "p99_us": 1290.88
+      }
+    ],
+    [
+      {
+        "scenario": "legacy_type_id",
+        "requests": 2000,
+        "concurrency": 8,
+        "rps": 10096.4,
+        "p50_us": 691.974,
+        "p99_us": 1163.51
+      },
+      {
+        "scenario": "global_id",
+        "requests": 2000,
+        "concurrency": 8,
+        "rps": 9444.05,
+        "p50_us": 697.587,
+        "p99_us": 2704.39
+      }
+    ],
+    [
+      {
+        "scenario": "legacy_type_id",
+        "requests": 2000,
+        "concurrency": 8,
+        "rps": 10044.7,
+        "p50_us": 691.516,
+        "p99_us": 1154.25
+      },
+      {
+        "scenario": "global_id",
+        "requests": 2000,
+        "concurrency": 8,
+        "rps": 9693.49,
+        "p50_us": 700.69,
+        "p99_us": 1883.3
+      }
+    ],
+    [
+      {
+        "scenario": "legacy_type_id",
+        "requests": 2000,
+        "concurrency": 8,
+        "rps": 10169.1,
+        "p50_us": 677.698,
+        "p99_us": 1194.64
+      },
+      {
+        "scenario": "global_id",
+        "requests": 2000,
+        "concurrency": 8,
+        "rps": 10213.3,
+        "p50_us": 686.385,
+        "p99_us": 1088.01
+      }
+    ],
+    [
+      {
+        "scenario": "legacy_type_id",
+        "requests": 2000,
+        "concurrency": 8,
+        "rps": 10019.5,
+        "p50_us": 680.962,
+        "p99_us": 1135.09
+      },
+      {
+        "scenario": "global_id",
+        "requests": 2000,
+        "concurrency": 8,
+        "rps": 10198.7,
+        "p50_us": 688.857,
+        "p99_us": 1146.86
+      }
+    ]
+  ],
+  "median": {
+    "legacy_type_id": {
+      "rps": 10096.4,
+      "p50_us": 683.689,
+      "p99_us": 1160.2
+    },
+    "global_id": {
+      "rps": 9737.74,
+      "p50_us": 697.587,
+      "p99_us": 1290.88
+    }
+  },
+  "scope": "Release loopback Gateway + Lua actor + memory Storage, same actor, 2000 requests, concurrency 8, explicit pump/yield, one polling thread; legacy first, global second in each run; no TLS or disk I/O"
+}

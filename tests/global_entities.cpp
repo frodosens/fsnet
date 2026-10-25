@@ -3,6 +3,7 @@
 #include <iostream>
 #include <thread>
 #include <unordered_map>
+#include <atomic>
 using namespace fsnet;
 using namespace std::chrono_literals;
 #define CHECK(c) do{if(!(c))throw std::runtime_error(std::string(__FILE__)+":"+std::to_string(__LINE__)+" " #c);}while(false)
@@ -15,6 +16,16 @@ struct Host final:ScriptHost {
     void unbind(const std::string& name)override{handlers.erase(name);contexts.erase(name);}
     std::uint64_t connect(const std::string&,std::uint16_t)override{return 1;}
     void call(std::uint64_t,std::string,std::string,std::chrono::milliseconds,Reply reply)override{reply({Status::not_found,{}});}
+};
+struct Uncertain final:Storage {
+    std::shared_ptr<Storage> db=memory_database();std::atomic<bool> armed=false;
+    std::optional<Record> get(std::string_view key)override{return db->get(key);}
+    bool erase(std::string_view key,std::uint64_t version)override{return db->erase(key,version);}
+    bool compare_exchange(std::string_view key,std::uint64_t version,std::string_view value)override{
+        auto accepted=db->compare_exchange(key,version,value);
+        if(accepted && key.starts_with("fsnet/entity/v2/") && armed.exchange(false))throw std::runtime_error("committed; ACK lost");
+        return accepted;
+    }
 };
 template<class F> Result wait(EntityScriptHost& runtime,F start){
     std::optional<Result> result;unsigned count=0;start([&](Result value){CHECK(++count==1);result=std::move(value);});
@@ -34,11 +45,11 @@ void define(EntityScriptHost& runtime,const std::string& type){
     });
 }
 int main(){try{
-    auto db=memory_database();auto parent=std::make_shared<Host>();std::int64_t now=10000;
+    auto db=std::make_shared<Uncertain>();auto parent=std::make_shared<Host>();std::int64_t now=10000;
     EntityScriptHost runtime(parent,db,"node-a/boot-1",{},{},[&]{return now;});define(runtime,"Player");define(runtime,"LoginEntity");
     EntitySpawnOptions options{"manager-1","player-1","account-1","node-a"};
     auto created=wait(runtime,[&](Reply reply){runtime.create_entity("Player",{},options,std::move(reply));});CHECK(created.status==Status::ok);auto id=EntityId(created.data);
-    auto call=[&](EntityId target,std::string subject,std::string expected={}){return wait(runtime,[&](Reply reply){parent->contexts.at("@")({Caller::client,subject,1},entity_call_message(target,"increment","","",expected),std::move(reply));});};
+    auto call=[&](EntityId target,std::string subject,std::string expected={},std::string request={}){return wait(runtime,[&](Reply reply){parent->contexts.at("@")({Caller::client,subject,1},entity_call_message(target,"increment","",request,expected),std::move(reply));});};
     CHECK(call(id,"account-1").data=="1");CHECK(call(id,"account-2").status==Status::rejected);
     CHECK(call(id,"account-1","LoginEntity").status==Status::rejected);CHECK(call(EntityId(UINT64_MAX),"account-1").status==Status::not_found);
     CHECK(!db->get(entity_record_key(EntityId(UINT64_MAX))));CHECK(call(id,"account-1").data=="2");
@@ -47,6 +58,11 @@ int main(){try{
     options.creation_key="login-1";options.persistence=EntityPersistence::rebuildable;
     auto login=wait(runtime,[&](Reply reply){runtime.create_entity("LoginEntity",{},options,std::move(reply));});CHECK(login.status==Status::ok);auto login_id=EntityId(login.data);
     CHECK(call(login_id,"account-1").data=="1");CHECK(call(login_id,"account-1").data=="2");
+    CHECK(call(login_id,"account-1","","cached-response").data=="3");
+    db->armed=true;CHECK(call(login_id,"account-1").status==Status::internal);
+    // Losing a volatile image invalidates its receipts even when the durable
+    // lease still names this process. Replaying "3" over reset state is wrong.
+    CHECK(call(login_id,"account-1","","cached-response").data=="1");
     auto encoded=entity_call_message(id,"increment","","token","Player");for(std::size_t n=0;n<encoded.size();++n)CHECK(!parse_entity_call_view(std::string_view(encoded).substr(0,n)));
     runtime.stop();now+=120000;auto second_parent=std::make_shared<Host>();EntityScriptHost second(second_parent,db,"node-a/boot-2",{},{},[&]{return now;});define(second,"Player");define(second,"LoginEntity");
     auto second_call=[&](EntityId target){return wait(second,[&](Reply reply){second_parent->contexts.at("@")({Caller::client,"account-1",1},entity_call_message(target,"increment",""),std::move(reply));});};

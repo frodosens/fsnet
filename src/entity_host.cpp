@@ -59,6 +59,7 @@ struct EntityScriptHost::Impl : std::enable_shared_from_this<Impl> {
         Request request;
         bool responded = false, committing = false, previously_owned = false;
         std::uint64_t previous_fence = 0;
+        std::uint64_t cached_fence = 0;
         std::optional<AttributeCommit> attributes;
         std::string transient, placement;
         std::uint64_t transfer_id=0;
@@ -133,11 +134,12 @@ struct EntityScriptHost::Impl : std::enable_shared_from_this<Impl> {
         admissions.erase(admission->id);--counters.pending;counters.queued_bytes-=admission->bytes;return std::move(admission->reply);
     }
     void finish(const std::shared_ptr<Admission>& admission,Result result) {if(auto reply=take(admission))reply(std::move(result));}
-    void dispatch(CallIdentity identity,std::string data,Reply reply) {
+    void dispatch(CallIdentity identity,std::string data,Reply reply,Clock::time_point deadline={}) {
         auto call=parse_entity_call_view(data);if(!call)return reply({Status::rejected,{}});
         auto id=call->id.str();auto cached=resolved_types.find(id);
-        if(cached!=resolved_types.end())return dispatch_resolved(std::move(identity),std::move(data),cached->second,std::move(reply));
+        if(cached!=resolved_types.end())return dispatch_resolved(std::move(identity),std::move(data),cached->second,std::move(reply),deadline);
         auto admission=admit(data.size(),std::move(reply));if(!admission)return;
+        if(deadline!=Clock::time_point{})admission->deadline=std::min(admission->deadline,deadline);
         auto input=std::make_shared<std::string>(std::move(data));auto type=std::make_shared<std::string>();
         auto status=std::make_shared<Status>(Status::not_found);
         if(!storage.submit(input->size()+limits.state_bytes,[id,type,status](Database& db){
@@ -341,6 +343,7 @@ struct EntityScriptHost::Impl : std::enable_shared_from_this<Impl> {
     }
     void acquire(const std::string& entity, Slot& slot) {
         auto job = std::make_shared<Job>(); job->entity = entity;
+        job->cached_fence=slot.transient.empty()?0:slot.transient_fence;
         job->request = std::move(slot.queue.front()); slot.queue.pop_front(); slot.busy = true;
         job->preserve_activation=job->request.incoming.has_value() || job->request.ack.has_value();
         active.emplace(entity, job);
@@ -394,7 +397,7 @@ struct EntityScriptHost::Impl : std::enable_shared_from_this<Impl> {
                         job->owner_lost=true; job->wrong_node=true;
                         job->status=(!job->request.accept_transfer && job->request.route==job->request.method->type+".$snapshot")?Status::overloaded:Status::rejected; return;
                     }
-                    if(current.metadata && current.metadata->rebuildable && current.owner!=owner_id) {
+                    if(current.metadata && current.metadata->rebuildable && (current.owner!=owner_id || job->cached_fence!=current.fence)) {
                         current.snapshot.state=current.metadata->initial_state;current.snapshot.receipts.clear();
                     }
                     job->delivery=current.snapshot.delivery;
@@ -854,8 +857,8 @@ void EntityScriptHost::unbind(const std::string& route) {
 }
 void EntityScriptHost::call_entity(std::string route, std::string data, std::chrono::milliseconds timeout, Reply reply) {
     if(route==entity_call_route) {
-        if(timeout.count()<=0)return reply({Status::rejected,{}});
-        return impl_->dispatch({Caller::server,"script:"+impl_->owner},std::move(data),std::move(reply));
+        if(timeout.count()<=0 || timeout>std::chrono::minutes(5))return reply({Status::rejected,{}});
+        return impl_->dispatch({Caller::server,"script:"+impl_->owner},std::move(data),std::move(reply),Clock::now()+timeout);
     }
     impl_->parent->call_entity(std::move(route), std::move(data), timeout, std::move(reply));
 }

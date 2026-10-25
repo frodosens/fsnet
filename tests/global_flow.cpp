@@ -4,6 +4,8 @@
 #include "fsnet/entity_delivery.hpp"
 #include "fsnet/attribute_replication.hpp"
 #include "fsnet/lua_engine.hpp"
+#include "fsnet/entity_message.hpp"
+#include <algorithm>
 #include <fstream>
 #include <iostream>
 #include <source_location>
@@ -13,7 +15,7 @@ using namespace std::chrono_literals;
 #define CHECK(c) do{if(!(c))throw std::runtime_error(std::string(__FILE__)+":"+std::to_string(__LINE__)+" " #c);}while(false)
 std::string read(const std::string& path){std::ifstream in(path);CHECK(in);return {std::istreambuf_iterator<char>(in),{}};}
 int main(int argc,char** argv){try{
-    CHECK(argc==2);auto source=read(std::string(argv[1])+"/examples/entities/shared.lua")+read(std::string(argv[1])+"/examples/entities/server.lua");
+    CHECK(argc==2 || (argc==3 && std::string(argv[2])=="--benchmark"));auto source=read(std::string(argv[1])+"/examples/entities/shared.lua")+read(std::string(argv[1])+"/examples/entities/server.lua");
     // Select the source-node login deterministically so this fixture always
     // exercises handoff. The example itself chooses randomly.
     auto random=source.find("math.random(#self.logins)");CHECK(random!=std::string::npos);source.replace(random,25,"1");
@@ -70,6 +72,26 @@ int main(int argc,char** argv){try{
     std::optional<Result> moved;bt.transfer("Player",player.str(),"node-a",[&](Result value){moved=std::move(value);});until([&]{return moved.has_value();});CHECK(moved->status==Status::ok);
     until([&]{return gateway.stats().migrations>=2 && !gateway.stats().migrating;});CHECK(client.entity(player)->handle==original);
     CHECK(call(EntityId(player.str()),"move","2").data=="6.0");
+    if(argc==3) {
+        // Same actor, storage, payload and connections; only addressing differs.
+        // Legacy type+id is explicitly exposed solely as a comparison fixture.
+        gateway.bind_entity("Player",{"move"});
+        for(bool global:{false,true}) {
+            constexpr unsigned rounds=2000,concurrency=8;unsigned sent=0,done=0;std::vector<double> latency;
+            auto start=std::chrono::steady_clock::now();auto deadline=start+20s;
+            while(done<rounds) {
+                while(sent<rounds && sent-done<concurrency) {
+                    ++sent;auto began=std::chrono::steady_clock::now();
+                    auto reply=[&,began](Result result){CHECK(result.status==Status::ok);latency.push_back(std::chrono::duration<double,std::micro>(std::chrono::steady_clock::now()-began).count());++done;};
+                    if(global)client.call(player,"move","0",std::move(reply));
+                    else client.request("Player.move",entity_message(player.str(),"0"),std::move(reply));
+                }
+                pump();CHECK(std::chrono::steady_clock::now()<deadline);std::this_thread::yield();
+            }
+            auto seconds=std::chrono::duration<double>(std::chrono::steady_clock::now()-start).count();std::sort(latency.begin(),latency.end());
+            std::cout<<"{\"scenario\":\""<<(global?"global_id":"legacy_type_id")<<"\",\"requests\":"<<rounds<<",\"concurrency\":"<<concurrency<<",\"rps\":"<<rounds/seconds<<",\"p50_us\":"<<latency[rounds/2]<<",\"p99_us\":"<<latency[rounds*99/100]<<"}\n";
+        }
+    }
     CHECK(ae.last_error().empty() && be.last_error().empty());
     client.disconnect();ae.stop();be.stop();da.stop();db_delivery.stop();at.stop();bt.stop();ra.stop();rb.stop();gateway.stop();ar.stop();br.stop();ad.stop();bd.stop();ah->stop();bh->stop();a.stop();b.stop();front.stop();back.stop();
     std::cout<<"PASS global flow: Manager, remote LoginEntity creation, Gateway RPC, Player handoff, stable serialized ID and client view\n";

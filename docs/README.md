@@ -36,6 +36,7 @@ C++ 提供客户端/服务端共用的引擎机制，业务逻辑写在 Lua；�
 ## 实现状态与证据
 
 - [全局实体重构实施](GLOBAL_ENTITIES.md)：已对齐边界、已实现阶段与尚待接入范围。
+- [全局实体寻址性能](BENCHMARK_GLOBAL_ENTITIES_2026-10-25.md)：相同 Lua/CAS 链路的五轮比较及完整帧字节。
 
 - [完成状态](ENGINE_COMPLETION.md)：当前能力与尚未交付项。
 - [路线图](ROADMAP.md)：后续阶段，不将计划视为已实现 API。
