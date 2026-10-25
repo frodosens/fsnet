@@ -95,7 +95,7 @@ struct AttributeReplication::Impl : std::enable_shared_from_this<Impl> {
         auto definition=host->schema(type); if(!definition) return reply({Status::not_found,{}});
         // Check permission before creating or loading an entity. The completion
         // rechecks it and filters against the then-current ownership/AOI mapping.
-        try { (void)permission(Subscription{0,identity,type,id,{}, {}, {},0,{},0,automatic,false}); }
+        try { if(!valid_entity_id(id)) (void)permission(Subscription{0,identity,type,id,{}, {}, {},0,{},0,automatic,false}); }
         catch(...) { return reply({Status::rejected,{}}); }
         auto sub=std::make_shared<Subscription>(Subscription{++serial,identity,std::move(type),std::move(id),Clock::now()+limits.pending_timeout,std::move(reply),{},0,{},0,automatic,false});
         subscriptions.emplace(sub->id,sub); by_entity[encode_entity_key(sub->type,sub->entity)].insert(sub->id); ++peer_counts[identity.peer]; schedule.push_back(sub->id);

@@ -57,6 +57,7 @@ inline std::uint64_t integer(std::string_view& input) {
 }
 }
 inline std::string entity_record_key(const std::string& type, const std::string& id) {
+    if(valid_entity_id(id)) return "fsnet/entity/v2/"+id;
     return "fsnet/entity/" + type + '\0' + id;
 }
 inline std::string entity_record_key(EntityId id) { return "fsnet/entity/v2/"+id.str(); }

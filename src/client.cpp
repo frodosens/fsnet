@@ -166,9 +166,22 @@ void Client::call(const EntityKey& key,std::string_view method,std::string_view 
     // Only envelope construction is caught; do not invoke a callback twice if
     // user code itself throws. guarded() contains application callback failures.
     std::string route,message;
-    try {route=entity_route(key.type,method);message=entity_message(key.id,payload,options.request_id);}
+    try {
+        if(valid_entity_id(key.id)){route=entity_call_route;message=entity_call_message(EntityId(key.id),method,payload,options.request_id,key.type);}
+        else {route=entity_route(key.type,method);message=entity_message(key.id,payload,options.request_id);}
+    }
     catch(const std::exception&){auto self=impl_;return self->guarded(std::move(reply))({Status::rejected,{}});}
     request(route,message,std::move(reply),options.timeout);
+}
+void Client::call(EntityId id,std::string_view method,std::string_view payload,Reply reply,ClientRequestOptions options) {
+    std::string message;
+    try{message=entity_call_message(id,method,payload,options.request_id);}
+    catch(...){return impl_->guarded(std::move(reply))({Status::rejected,{}});}
+    request(entity_call_route,message,std::move(reply),options.timeout);
+}
+std::optional<ClientEntity> Client::entity(EntityId id) const {
+    auto text=id.str();for(const auto& [subscription,binding]:impl_->bindings)if(binding.key.id==text)return entity(ClientEntityHandle{impl_->generation,subscription});
+    return {};
 }
 void Client::watch(EntityKey key,Ready reply,std::chrono::milliseconds timeout){
     if(!reply)throw std::invalid_argument("missing watch callback");

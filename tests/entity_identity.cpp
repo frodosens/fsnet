@@ -31,7 +31,11 @@ struct FaultStorage final : Storage {
 };
 int main() {
     try {
-        for(auto value:{1ULL,9007199254740993ULL,18446744073709551615ULL}) CHECK(EntityId(EntityId(value).str()).value()==value);
+        for(auto value:{1ULL,9007199254740993ULL,18446744073709551615ULL}) {
+            CHECK(EntityId(EntityId(value).str()).value()==value);
+            CHECK(EntityId::from_bytes(EntityId(value).bytes()).value()==value);
+        }
+        throws([]{EntityId::from_bytes("short");});throws([]{EntityId::from_bytes(std::string(8,'\0'));});
         for(auto bad:{"","0","0000000000000000","FFFFFFFFFFFFFFFF","000000000000000g"," 000000000000001"}) throws([&] {EntityId ignored(bad);});
         auto db=memory_database(); std::mutex mutex; std::unordered_set<std::uint64_t> ids;
         std::exception_ptr error; std::vector<std::thread> workers;

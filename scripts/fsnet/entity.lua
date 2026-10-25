@@ -7,7 +7,7 @@ local register_entity=runtime.entity
 local reserved = {id=true, type=true, context=true, reject=true, attr=true, rpc=true,
                   private=true, extend=true, register=true, ref=true, reference=true,
                   define=true, spawn_local=true, watch=true, write=true, close=true,
-                  revision=true, mode=true, method=true, batch=true, prediction=true, spawn_or_restore=true,
+                  revision=true, mode=true, method=true, batch=true, prediction=true, spawn_or_restore=true, spawn=true,
                   deactivate=true, destroy=true, show_to=true, hide_from=true, possess=true, unpossess=true}
 local unsupported_hooks = {new=true, init=true}
 local lifecycle_hooks = {on_create=true,on_activate=true,on_deactivate=true,on_destroy=true}
@@ -183,6 +183,17 @@ function Class:spawn_or_restore(id,values)
     assert(status==runtime.status.ok,'entity spawn failed: '..tostring(status))
     return self:ref(id)
 end
+function Class:spawn(values,opts)
+    local data=record(self)
+    assert(data.registered,'spawn requires a registered server class')
+    opts=copy(opts or {})
+    for key in pairs(opts) do
+        assert(key=='creation_key' or key=='owner_account_id' or key=='target_node' or key=='persistence' or key=='bootstrap_scope','invalid spawn option')
+    end
+    local id,status=runtime._create_entity(data.name,values or {},opts)
+    assert(status==runtime.status.ok,'entity creation failed: '..tostring(status))
+    return self:ref(id)
+end
 local function lifecycle_control(class,id,destroy)
     local data=record(class)
     assert(data.registered,'lifecycle requires a registered server class')
@@ -273,7 +284,7 @@ function Class:register()
     return self
 end
 local function reference(kind,id,defaults,exported)
-    name(kind)
+    if kind then name(kind) end
     assert(type(id)=='string' and #id>0 and #id<=256, 'invalid entity ID')
     defaults=copy(defaults or {})
     for key in pairs(defaults) do assert(key=='peer' or key=='timeout_ms', 'invalid reference option') end
@@ -294,6 +305,10 @@ function Class:reference(kind,id,opts)
     record(self)
     return reference(kind,id,opts,nil)
 end
+local function global_reference(id,opts)
+    assert(type(id)=='string' and runtime._global_entity_id(id),'global EntityId required')
+    return reference(nil,id,opts,nil)
+end
 local function call(ref,method,payload,opts)
     local data=assert(refs[ref],'expected an entity reference'); name(method)
     assert(not data.exported or data.exported[method], 'method is not an exported RPC: '..method)
@@ -301,7 +316,7 @@ local function call(ref,method,payload,opts)
     opts=copy(opts or {})
     for key in pairs(opts) do assert(key=='timeout_ms' or key=='request_id', 'invalid RPC option') end
     local kind,id=runtime._current_entity()
-    assert(kind~=data.type or id~=data.id, 'cannot await an RPC to the current entity; use a local method')
+    assert(id~=data.id or (not runtime._global_entity_id(id) and kind~=data.type), 'cannot await an RPC to the current entity; use a local method')
     local timeout=opts.timeout_ms or data.defaults.timeout_ms or 1000
     local request_id=opts.request_id
     if data.defaults.peer then return runtime.entity_request(data.defaults.peer,data.type,data.id,method,payload,timeout,request_id) end
@@ -355,7 +370,7 @@ end
 class_mt.__metatable=false
 local Entity=setmetatable({},class_mt)
 classes[Entity]={sealed=true,attrs={},methods={},rpcs={},domains={},options={}}
-fsnet={Entity=Entity}
+fsnet={Entity=Entity,ref=global_reference}
 runtime.start=function(fn)
     assert(type(fn)=='function','start requires a function')
     runtime._start(function() fn(); return '' end)

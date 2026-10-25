@@ -47,11 +47,14 @@ GatewayDelegation::GatewayDelegation(Node& node,Node::IdentityResolver base,Trus
                 std::string_view in(data);auto [type,id]=decode_entity_key(in);auto control=get(in,1);if(!in.empty()||control>1)throw std::invalid_argument("invalid restore");
                 bool allowed=self->host->owner_subject(type,id)==who.subject;
                 if(self->restore)allowed=self->restore(who,type,id,control!=0);
-                if(!allowed)return reply({Status::rejected,{}});
+                if(!allowed && !valid_entity_id(id))return reply({Status::rejected,{}});
                 self->host->read_attributes(type,id,[weak,who,type,id,control,reply=std::move(reply)](Result result)mutable{
                     auto self=weak.lock();if(!self||self->stopped)return reply({Status::disconnected,{}});
                     if(result.status!=Status::ok)return reply(std::move(result));
                     auto identity=self->node.identity(who.peer);if(!identity||identity->caller!=Caller::client||identity->subject!=who.subject)return reply({Status::rejected,{}});
+                    bool allowed=self->host->owner_subject(type,id)==who.subject;
+                    if(self->restore)allowed=self->restore(who,type,id,control!=0);
+                    if(!allowed)return reply({Status::rejected,{}});
                     self->host->entity_visibility(who.peer,type,id,1,[weak,who,type,id,control,reply=std::move(reply)](Result result)mutable{
                         auto self=weak.lock();if(!self||self->stopped)return reply({Status::disconnected,{}});
                         if(result.status!=Status::ok)return reply(std::move(result));
@@ -124,17 +127,20 @@ struct ClientGateway::Impl:std::enable_shared_from_this<Impl>{
         auto ready=[weak=weak_from_this(),type,entity,done=std::move(done),failed=std::move(failed)](Status status,const std::optional<EntityLocation>& location){
             auto self=weak.lock();if(!self||self->stopped)return done(Status::disconnected,{},false);
             if(status!=Status::ok)return done(status,{},location.has_value());
+            if(valid_entity_id(entity) && !location)return done(Status::not_found,{},false);
+            if(location && valid_entity_id(entity) && !type.empty() && location->type!=type)return done(Status::rejected,{},true);
+            auto resolved_type=type.empty() && location?location->type:type;
             auto time=wall();
             // Live leases and directed placement remain authoritative. Only
             // unplaced failover tries other endpoints before retrying failures.
             bool fixed=location&&(location->expires_ms>time||!location->placement.empty());
-            auto index=select_entity_endpoint(self->endpoints,type,entity,location,time,[&](std::size_t i){return Clock::now()>=self->retry[i]&&(fixed||!failed.contains(i));});
+            auto index=select_entity_endpoint(self->endpoints,resolved_type,entity,location,time,[&](std::size_t i){return Clock::now()>=self->retry[i]&&(fixed||!failed.contains(i));});
             bool untried=false;
             if(!index&&!fixed&&!failed.empty())for(std::size_t i=0;i<self->endpoints.size();++i){const auto& types=self->endpoints[i].types;if(!failed.contains(i)&&std::find(types.begin(),types.end(),type)!=types.end()){untried=true;break;}}
             if(!index&&!fixed&&!failed.empty()&&!untried)index=select_entity_endpoint(self->endpoints,type,entity,location,time,[&](std::size_t i){return Clock::now()>=self->retry[i];});
             done(index?Status::ok:Status::disconnected,index,location.has_value());
         };
-        auto key=encode_entity_key(type,entity);auto found=lookups.find(key);
+        auto key=valid_entity_id(entity)?"global:"+entity:encode_entity_key(type,entity);auto found=lookups.find(key);
         // A login may create the entity immediately after its routing lookup.
         // Do not let that negative cache revoke the newly announced subscription.
         if(found!=lookups.end()&&!found->second->busy&&found->second->location.has_value()&&Clock::now()<found->second->expires){
@@ -199,12 +205,13 @@ struct ClientGateway::Impl:std::enable_shared_from_this<Impl>{
         sub->next=Clock::now()+std::min(limits.refresh,std::chrono::milliseconds(100));
     }
     void expire_route(const Subscription& sub){
-        auto cached=lookups.find(encode_entity_key(sub.type,sub.entity));
+        auto cached=lookups.find(valid_entity_id(sub.entity)?"global:"+sub.entity:encode_entity_key(sub.type,sub.entity));
         if(cached!=lookups.end())cached->second->expires=Clock::time_point{};
     }
     void routed(const CallIdentity& who,std::string type,std::string route,std::string input,bool account,Reply reply){
         std::string entity;
-        try{if(account)entity=who.subject;else{auto parsed=parse_entity_message_view(input);if(!parsed)throw std::invalid_argument("invalid entity request");entity=parsed->id;}}catch(...){return reply({Status::rejected,{}});}
+        try{if(route==entity_call_route){auto parsed=parse_entity_call_view(input);if(!parsed)throw std::invalid_argument("invalid entity call");entity=parsed->id.str();}
+            else if(account)entity=who.subject;else{auto parsed=parse_entity_message_view(input);if(!parsed)throw std::invalid_argument("invalid entity request");entity=parsed->id;}}catch(...){return reply({Status::rejected,{}});}
         auto r=request(who,std::move(input),std::move(reply));if(!r)return;
         select(std::move(type),std::move(entity),[weak=weak_from_this(),r,route](Status status,std::optional<std::size_t> index,bool){auto self=weak.lock();if(!self||r->done)return;if(status!=Status::ok)return self->finish(r,{status,{}});
             self->acquire(r->client,*index,[weak,r,route](Status status,std::shared_ptr<Link> link){auto self=weak.lock();if(!self||r->done)return;if(status!=Status::ok)return self->finish(r,{status,{}});++self->counters.forwarded;
@@ -348,7 +355,11 @@ struct ClientGateway::Impl:std::enable_shared_from_this<Impl>{
 ClientGateway::ClientGateway(Node& front,Node& back,std::shared_ptr<Database> db,std::vector<EntityEndpoint> endpoints,GatewayLimits limits):impl_(std::make_shared<Impl>(front,back,std::move(db),std::move(endpoints),limits)){
     auto weak=std::weak_ptr(impl_);
     for(const auto* name:{"system.attributes.watch","system.attributes.unwatch","system.attributes.renew","system.attributes.write"})if(front.has_route(name))throw std::logic_error("gateway attribute routes already bound");
-    try{for(const auto* name:{"system.attributes.watch","system.attributes.unwatch","system.attributes.renew","system.attributes.write"}){
+    try{
+        front.bind_rpc(entity_call_route,{true,false,false},[weak](const CallIdentity& who,std::string data,Reply reply){
+            if(auto self=weak.lock())self->routed(who,{},entity_call_route,std::move(data),false,std::move(reply));else reply({Status::disconnected,{}});
+        });impl_->bound.emplace_back(entity_call_route);
+        for(const auto* name:{"system.attributes.watch","system.attributes.unwatch","system.attributes.renew","system.attributes.write"}){
         std::string route=name;front.bind_rpc(route,{true,false,false},[weak,route](const CallIdentity& who,std::string data,Reply reply){auto self=weak.lock();if(!self)return reply({Status::disconnected,{}});if(route=="system.attributes.watch")self->watch(who,std::move(data),std::move(reply));else self->control(who,route,std::move(data),std::move(reply));});impl_->bound.push_back(route);}
         back.on_notification(attributes,[weak](std::uint64_t peer,const std::string&,std::string data){if(auto self=weak.lock())self->notice(peer,attributes,std::move(data));});impl_->owns_attributes=true;
         back.on_notification(presence,[weak](std::uint64_t peer,const std::string&,std::string data){if(auto self=weak.lock())self->notice(peer,presence,std::move(data));});impl_->owns_presence=true;

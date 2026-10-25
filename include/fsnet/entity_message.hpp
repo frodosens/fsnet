@@ -4,8 +4,48 @@
 #include <string_view>
 #include <optional>
 #include <cstdint>
+#include "fsnet/entity_id.hpp"
 
 namespace fsnet {
+inline constexpr const char* entity_call_route="@";
+inline bool valid_entity_method(std::string_view method) {
+    return !method.empty() && method.size()<=127 && method.front()!='$' && method.find_first_of(".\0",0,2)==std::string_view::npos;
+}
+// FSE3: u64 logical ID, flags, u8 method length/method, optional u8 request
+// length/request and u8 expected-type length/type, then opaque bytes. Both
+// clients and server routers use this codec; the outer Node route is "@".
+inline std::string entity_call_message(EntityId id,std::string_view method,std::string_view payload,
+                                      std::string_view request_id={},std::string_view expected_type={}) {
+    if(!valid_entity_method(method) || request_id.size()>128 ||
+       (!expected_type.empty() && (expected_type.size()>127 || expected_type.find_first_of(".\0",0,2)!=std::string_view::npos)))
+        throw std::invalid_argument("invalid global entity call");
+    std::string out="FSE3";out.reserve(14+method.size()+payload.size()+request_id.size()+expected_type.size()+2);
+    for(int shift=56;shift>=0;shift-=8)out.push_back(static_cast<char>(id.value()>>shift));
+    out.push_back(static_cast<char>((request_id.empty()?0:1)|(expected_type.empty()?0:2)));
+    out.push_back(static_cast<char>(method.size()));out.append(method);
+    if(!request_id.empty()){out.push_back(static_cast<char>(request_id.size()));out.append(request_id);}
+    if(!expected_type.empty()){out.push_back(static_cast<char>(expected_type.size()));out.append(expected_type);}
+    out.append(payload);return out;
+}
+struct EntityCallView {EntityId id;std::string_view method,payload,request_id,expected_type;};
+inline std::optional<EntityCallView> parse_entity_call_view(std::string_view input) {
+    if(input.size()<15 || !input.starts_with("FSE3"))return {};
+    input.remove_prefix(4);std::uint64_t value=0;
+    for(unsigned i=0;i<8;++i)value=(value<<8)|static_cast<unsigned char>(input[i]);
+    input.remove_prefix(8);if(!value)return {};
+    auto flags=static_cast<unsigned char>(input.front());input.remove_prefix(1);if(flags>3)return {};
+    auto text=[&](std::size_t maximum)->std::optional<std::string_view>{
+        if(input.empty())return {};
+        auto n=static_cast<unsigned char>(input.front());input.remove_prefix(1);
+        if(!n || n>maximum || n>input.size())return {};
+        auto part=input.substr(0,n);input.remove_prefix(n);return part;
+    };
+    auto method=text(127);if(!method || !valid_entity_method(*method))return {};
+    std::string_view request,type;
+    if(flags&1){auto part=text(128);if(!part)return {};request=*part;}
+    if(flags&2){auto part=text(127);if(!part || part->find_first_of(".\0",0,2)!=std::string_view::npos)return {};type=*part;}
+    return EntityCallView{EntityId(value),*method,input,request,type};
+}
 // Shared route validation for native clients and inter-node entity routing.
 inline std::string entity_route(std::string_view type,std::string_view method) {
     for(auto part:{type,method})if(part.empty()||part.size()>127||part.find_first_of(".\0",0,2)!=std::string_view::npos)

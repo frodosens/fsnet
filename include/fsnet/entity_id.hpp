@@ -27,6 +27,16 @@ public:
         if (!value_) throw std::invalid_argument("zero entity identity");
     }
     std::uint64_t value() const noexcept { return value_; }
+    std::string bytes() const {
+        std::string out;out.reserve(8);
+        for(int shift=56;shift>=0;shift-=8)out.push_back(static_cast<char>(value_>>shift));
+        return out;
+    }
+    static EntityId from_bytes(std::string_view bytes) {
+        if(bytes.size()!=8)throw std::invalid_argument("entity identity requires exactly eight bytes");
+        std::uint64_t value=0;for(unsigned char byte:bytes)value=(value<<8)|byte;
+        return EntityId(value);
+    }
     std::string str() const {
         constexpr char hex[]="0123456789abcdef";
         std::string out(16,'0'); auto value=value_;

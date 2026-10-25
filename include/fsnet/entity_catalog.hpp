@@ -21,6 +21,10 @@ struct EntityCreation {
     std::string type, owner_account, state, target_node;
     EntityPersistence persistence=EntityPersistence::durable;
 };
+struct EntitySpawnOptions {
+    std::string scope, creation_key, owner_account_id, target_node;
+    EntityPersistence persistence=EntityPersistence::durable;
+};
 struct EntityDescription {
     EntityId id;
     EntityRecord record;

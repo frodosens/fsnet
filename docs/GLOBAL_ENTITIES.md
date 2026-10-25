@@ -14,12 +14,17 @@
 ## 阶段一：身份与创建目录
 
 已实现公共 `EntityId`、`EntityIdAllocator`、`EntityCatalog` 和 FER4 元数据编解码。
-这一步尚未切换现有宿主、SDK、Gateway 和示例的业务调用路径。
+第一阶段仅提供底层能力；后续调用路径接入见下节，既有演示仍待统一迁移。
 
 `EntityId` 为非零 u64，Lua/文本表示固定为 16 位小写十六进制，例如 `0000000000000001`。
 不使用 Lua 浮点数表示 ID。分配器使用同一权威 Storage 的单记录 CAS 预留号段，默认每段 4096 个；
 本地递增不依赖节点编号或机器时间。进程重启取得新号段，未使用的号不回收，耗尽明确报错。
 唯一性范围是共享同一权威 Storage 命名空间的集群，不能将两个独立恢复的数据库当作同一集群继续分配。
+
+EntityId 是可序列化的公开身份值，不是进程指针或临时订阅句柄。外部系统可以保存 16 位文本；
+C++ 通过 `str()` / `EntityId(text)` 和 `bytes()` / `EntityId::from_bytes(bytes)` 往返转换，
+二进制固定为大端 8 字节。RPC、数据库关联、任务和其他系统引用同一身份，迁移/重启/恢复不改变它。
+2026-10-25 用户澄清“序列号”指可序列化需求，不要求改成雪花分配算法；分配协议保持 CAS 号段。
 
 新记录按 `fsnet/entity/v2/<EntityId>` 定位，不以类型构成身份。FER4 保存类型、账号归属、
 创建摘要、持久化模式和终止标记，同时保留现有状态、回执、owner、租约、fence 与交接信息。
@@ -44,6 +49,40 @@ auto description = catalog.find(id);
 
 验收覆盖：并行分配、独立进程共享文件存储、重启后未用号段不重发、并发相同创建、
 三个持久化边界的 ACK 丢失、参数冲突、注入身份碰撞、终止身份重试、u64 耗尽与 FER4 截断拒绝。
+
+## 阶段二：公共调用与宿主
+
+接入宿主的全局创建、元数据分发、独立账号归属、终止墓碑与重建状态缓存。
+原生 SDK 新增 `call(EntityId,...)`；`EntityRouter`、Gateway 和 Lua 共用 FSE3 编码及 `@` 入口。
+类型化引用可附带 expected_type 约束，服务端始终读取权威类型，类型不符拒绝。
+未知 ID 不隐式创建，销毁后不再调用或复活。旧类型化底层夹具暂时保留，示例迁移仍在后续阶段。
+
+```lua
+-- 服务端异步任务；实体内的创建作用域自动使用 self.id。
+local player=Player:spawn({name='Alice'},{
+    creation_key='player-for-this-login',
+    owner_account_id=account_id,
+})
+-- player.id 是可以保存在属性、数据库或外部系统中的稳定字符串。
+local saved_id=player.id
+local restored=fsnet.ref(saved_id)
+restored:call('move',input_bytes)
+```
+
+```cpp
+std::string stored_id = id.str();
+fsnet::EntityId restored(stored_id);
+client.call(restored, "move", input_bytes, reply);
+```
+
+FSE3 布局为 `magic[4] + id[u64] + flags[u8] + method[u8 length,bytes]`，
+之后可选 request_id 和 expected_type（各 u8 长度），最后为不透明业务 bytes。
+request_id 最长 128 B，类型与方法最长 127 B；内部 `$` 方法不可通过此入口调用。
+
+重建实体在本进程内保留业务属性和 revision；记录中保存初始状态与身份/租约，接管或卸载后从初始状态恢复。
+仍进行存储 CAS 和 fencing，此阶段不宣称已经消除每次调用的存储成本。
+持久 outbox/inbox 投递及有状态交接拒绝重建实体，避免对可丢失业务状态承诺跨重启可靠性。
+持久 Player 的状态和回执继续按原合同提交。订阅和 Gateway 恢复在读取权威账号归属后再校验。
 
 ## 后续实施
 

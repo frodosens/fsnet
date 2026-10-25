@@ -44,6 +44,10 @@ public:
     void bind_stateful(std::string route, std::string type, std::string initial, Handler) override;
     void define_schema(std::string, EntitySchema) override;
     void spawn_entity(std::string type, std::string id, EntityAttributes::Values, Reply) override;
+    void create_entity(std::string type,EntityAttributes::Values,EntitySpawnOptions,Reply) override;
+    using CreateOnNode=std::function<void(std::string type,std::string id,std::string target,Reply)>;
+    void on_create_on_node(CreateOnNode);
+    void enable_global_entities();
     using Visibility = std::function<void(std::uint64_t,std::string,std::string,unsigned,Reply)>;
     void on_visibility(Visibility);
     void entity_visibility(std::uint64_t,std::string,std::string,unsigned,Reply) override;

@@ -1,5 +1,6 @@
 #include "fsnet/lua_engine.hpp"
 #include "fsnet/attribute_wire.hpp"
+#include "fsnet/entity_message.hpp"
 #include "fsnet_lua_object_api.hpp"
 #include "lua.h"
 #include "lauxlib.h"
@@ -24,11 +25,12 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
         std::uint64_t peer;
         std::string route, data, target, entity_id, source_type, source_id;
         std::chrono::milliseconds timeout;
-        enum class Kind { rpc, sleep, watch, write, spawn, control, transfer, send, visibility } kind = Kind::rpc;
+        enum class Kind { rpc, sleep, watch, write, spawn, create, control, transfer, send, visibility } kind = Kind::rpc;
         std::uint64_t subscription = 0;
         AttributeWriteOptions options;
         EntityAttributes::Values values;
         unsigned action=0;
+        EntitySpawnOptions creation;
     };
     struct WatchLease {
         std::weak_ptr<ScriptHost> host; std::uint64_t subscription;
@@ -1049,6 +1051,38 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
         } catch(const std::exception& e) { return luaL_error(L,"%s",e.what()); }
         return lua_yield(L,0);
     }
+    static int global_id(lua_State* L) {
+        std::size_t n;const char* id=luaL_checklstring(L,1,&n);lua_pushboolean(L,valid_entity_id(std::string_view(id,n)));return 1;
+    }
+    static int global_call_message(lua_State* L) {
+        prediction_external(L);
+        std::size_t a,b,c,d,e;const char* type=luaL_optlstring(L,1,"",&a);const char* id=luaL_checklstring(L,2,&b);
+        const char* method=luaL_checklstring(L,3,&c);const char* payload=luaL_checklstring(L,4,&d);const char* request=luaL_optlstring(L,5,"",&e);
+        try {
+            auto message=entity_call_message(EntityId(std::string_view(id,b)),std::string_view(method,c),std::string_view(payload,d),std::string_view(request,e),std::string_view(type,a));
+            lua_pushlstring(L,message.data(),message.size());return 1;
+        }catch(const std::exception& error){return luaL_error(L,"%s",error.what());}
+    }
+    static int create_entity(lua_State* L) {
+        prediction_external(L);auto& engine=self(L);
+        std::size_t n;const char* kind=luaL_checklstring(L,1,&n);luaL_checktype(L,3,LUA_TTABLE);
+        if(!engine.threads.contains(L))return luaL_error(L,"create requires an async server task");
+        try {
+            std::string type(kind,n);if(!engine.server_schemas.contains(type))throw std::logic_error("create requires a registered server class");
+            const auto& task=engine.tasks.at(engine.threads.at(L));Await request{};request.kind=Await::Kind::create;request.timeout=engine.limits.task_timeout;
+            request.route=type;request.values=values(L,2,engine.schemas.at(type));
+            auto string_option=[&](const char* name){lua_getfield(L,3,name);std::size_t size;auto text=luaL_optlstring(L,-1,"",&size);std::string out(text,size);lua_pop(L,1);return out;};
+            request.creation.creation_key=string_option("creation_key");request.creation.owner_account_id=string_option("owner_account_id");
+            request.creation.target_node=string_option("target_node");auto scope=string_option("bootstrap_scope");
+            if(!scope.empty() && !task.entity_id.empty())throw std::logic_error("bootstrap_scope is only valid outside an entity");
+            request.creation.scope=task.entity_id.empty()?"bootstrap:"+(scope.empty()?engine.chunk_name:scope):task.entity_id;
+            auto persistence=string_option("persistence");
+            if(!persistence.empty() && persistence!="durable" && persistence!="rebuildable")throw std::invalid_argument("invalid entity persistence");
+            request.creation.persistence=persistence=="rebuildable"?EntityPersistence::rebuildable:EntityPersistence::durable;
+            engine.tasks.at(engine.threads.at(L)).await=std::move(request);
+        }catch(const std::exception& error){return luaL_error(L,"%s",error.what());}
+        return lua_yield(L,0);
+    }
     static int control_entity(lua_State* L) {
         prediction_external(L); auto& engine=self(L);
         std::size_t n,m; const char* kind=luaL_checklstring(L,1,&n); const char* id=luaL_checklstring(L,2,&m);
@@ -1272,6 +1306,9 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
         lua_pushcfunction(L,unwatch_attributes); lua_setfield(L,-2,"_unwatch");
         lua_pushcfunction(L,write_attributes); lua_setfield(L,-2,"_write");
         lua_pushcfunction(L,spawn_entity); lua_setfield(L,-2,"_spawn_entity");
+        lua_pushcfunction(L,create_entity); lua_setfield(L,-2,"_create_entity");
+        lua_pushcfunction(L,global_id); lua_setfield(L,-2,"_global_entity_id");
+        lua_pushcfunction(L,global_call_message); lua_setfield(L,-2,"_entity_call_message");
         lua_pushcfunction(L,control_entity); lua_setfield(L,-2,"_control_entity");
         lua_pushcfunction(L,transfer_entity); lua_setfield(L,-2,"_transfer_entity");
         lua_pushcfunction(L,send_entity); lua_setfield(L,-2,"_send_entity");
@@ -1408,6 +1445,10 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
             end
             runtime.entity_request = function(peer, kind, id, method, payload, timeout, request_id)
                 assert(type(id) == 'string' and #id > 0 and #id <= 256, 'invalid entity ID')
+                if runtime._global_entity_id(id) then
+                    return runtime.request(peer,'@',runtime._entity_call_message(kind,id,method,payload,request_id),timeout)
+                end
+                assert(kind,'generic references require a global EntityId')
                 local envelope
                 if request_id then
                     assert(type(request_id) == 'string' and #request_id > 0 and #request_id <= 128, 'invalid request ID')
@@ -1562,6 +1603,7 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
                     },request.timeout);
             } else if(request.kind==Await::Kind::write) host->write_attributes(request.subscription,std::move(request.values),std::move(completion),std::move(request.options),request.timeout);
             else if(request.kind==Await::Kind::spawn) host->spawn_entity(std::move(request.route),std::move(request.data),std::move(request.values),std::move(completion));
+            else if(request.kind==Await::Kind::create) host->create_entity(std::move(request.route),std::move(request.values),std::move(request.creation),std::move(completion));
             else if(request.kind==Await::Kind::send) host->send_entity(std::move(request.source_type),std::move(request.source_id),std::move(request.route),std::move(request.entity_id),std::move(request.target),std::move(request.data),std::move(completion));
             else if(request.kind==Await::Kind::transfer) host->transfer_entity(std::move(request.route),std::move(request.data),std::move(request.target),std::move(completion));
             else if(request.kind==Await::Kind::control) host->control_entity(std::move(request.route),std::move(request.data),request.action!=0,std::move(completion));

@@ -1,6 +1,7 @@
 #pragma once
 #include "fsnet/attribute_wire.hpp"
 #include "fsnet/node.hpp"
+#include "fsnet/entity_id.hpp"
 #include <optional>
 #include <vector>
 namespace fsnet {
@@ -62,12 +63,14 @@ public:
     void request(std::string_view route,std::string_view payload,Reply,
                  std::chrono::milliseconds timeout=std::chrono::milliseconds{0});
     void call(const EntityKey&,std::string_view method,std::string_view payload,Reply,ClientRequestOptions = {});
+    void call(EntityId,std::string_view method,std::string_view payload,Reply,ClientRequestOptions = {});
     void watch(EntityKey,Ready,std::chrono::milliseconds timeout=std::chrono::milliseconds{0});
     void write(ClientEntityHandle,EntityAttributes::Values,Reply,AttributeWriteOptions = {},
                std::chrono::milliseconds timeout=std::chrono::milliseconds{0});
     void unwatch(ClientEntityHandle);
     std::optional<ClientEntity> entity(ClientEntityHandle) const;
     std::optional<ClientEntity> entity(const EntityKey&) const;
+    std::optional<ClientEntity> entity(EntityId) const;
     std::optional<ClientEntity> controlled() const;
     std::vector<ClientEntity> entities() const;
     // One script consumer per connection. Acquire outside poll, then construct

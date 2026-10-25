@@ -77,13 +77,17 @@ struct EntityRouter::Impl : std::enable_shared_from_this<Impl> {
         auto location = std::make_shared<std::optional<EntityLocation>>();
         call->busy = true;
         if (!storage.submit(call->type.size() + call->entity.size(), [location, call](Database& db) {
-            *location = entity_location(db, call->type, call->entity);
+            *location = entity_location(db, call->route==entity_call_route?std::string{}:call->type, call->entity);
         }, [weak = weak_from_this(), location, call](std::exception_ptr error) {
             auto self = weak.lock();
             if (!self || self->stopped || call->done) return;
             if (Clock::now() >= call->deadline) return self->finish(call, {Status::timeout, {}});
             if (error) return self->finish(call, {Status::internal, {}});
-            auto selected=select_entity_endpoint(self->endpoints,call->type,call->entity,*location,wall_time(),
+            if(call->route==entity_call_route) {
+                if(!*location)return self->finish(call,{Status::not_found,{}});
+                if(!call->type.empty() && call->type!=(*location)->type)return self->finish(call,{Status::rejected,{}});
+            }
+            auto selected=select_entity_endpoint(self->endpoints,call->route==entity_call_route?(*location)->type:call->type,call->entity,*location,wall_time(),
                 [&](std::size_t i) {return Clock::now()>=self->members[i].retry;});
             if (!selected) return self->failed(call, Status::disconnected);
             auto& member = self->members[*selected];
@@ -111,6 +115,18 @@ struct EntityRouter::Impl : std::enable_shared_from_this<Impl> {
 EntityRouter::EntityRouter(Node& node, std::shared_ptr<Database> database, std::vector<EntityEndpoint> endpoints, EntityRouterLimits limits)
   : impl_(std::make_shared<Impl>(node, std::move(database), std::move(endpoints), limits)) {}
 EntityRouter::~EntityRouter() { stop(); }
+void EntityRouter::call(EntityId id,std::string method,std::string payload,std::chrono::milliseconds timeout,Reply reply,std::string request_id,std::string expected_type) {
+    auto& self=*impl_;if(!reply)throw std::invalid_argument("reply required");
+    if(self.stopped)return reply({Status::disconnected,{}});
+    std::string message;
+    try{message=entity_call_message(id,method,payload,request_id,expected_type);}catch(...){return reply({Status::rejected,{}});}
+    if(timeout.count()<=0 || timeout>std::chrono::minutes(5))return reply({Status::rejected,{}});
+    auto bytes=message.size()+expected_type.size()+16;
+    if(self.serial==UINT64_MAX || self.calls.size()>=self.limits.requests || bytes>self.limits.bytes-self.bytes)return reply({Status::overloaded,{}});
+    auto call=std::make_shared<Impl::Call>();call->id=++self.serial;call->entity=id.str();call->type=std::move(expected_type);
+    call->route=entity_call_route;call->message=std::move(message);call->request_id=std::move(request_id);
+    call->reply=std::move(reply);call->deadline=Clock::now()+timeout;call->bytes=bytes;self.calls.emplace(call->id,call);self.bytes+=bytes;
+}
 void EntityRouter::call(std::string type, std::string id, std::string method, std::string payload,
     std::chrono::milliseconds timeout, Reply reply, std::string request_id) {
     auto& self = *impl_;
@@ -154,6 +170,10 @@ void EntityRouter::stop() {
     self.storage.stop();
 }
 void RoutedScriptHost::call_entity(std::string route, std::string data, std::chrono::milliseconds timeout, Reply reply) {
+    if(route==entity_call_route) {
+        auto call=parse_entity_call_view(data);if(!call)return reply({Status::rejected,{}});
+        return router_.call(call->id,std::string(call->method),std::string(call->payload),timeout,std::move(reply),std::string(call->request_id),std::string(call->expected_type));
+    }
     auto split = route.find('.'); auto message = parse_entity_message(data);
     if (split == std::string::npos || !message) return reply({Status::rejected, {}});
     router_.call(route.substr(0, split), std::move(message->id), route.substr(split + 1), std::move(message->payload),

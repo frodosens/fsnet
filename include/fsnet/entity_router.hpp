@@ -25,6 +25,7 @@ public:
     ~EntityRouter();
     void call(std::string type, std::string id, std::string method, std::string payload,
               std::chrono::milliseconds timeout, Reply, std::string request_id = {});
+    void call(EntityId,std::string method,std::string payload,std::chrono::milliseconds,Reply,std::string request_id={},std::string expected_type={});
     std::size_t poll(std::size_t budget = 64);
     std::size_t pending() const;
     void stop();
@@ -47,6 +48,9 @@ public:
     void define_schema(std::string t, EntitySchema s) override { parent_->define_schema(std::move(t), std::move(s)); }
     void spawn_entity(std::string t,std::string id,EntityAttributes::Values values,Reply reply) override {
         parent_->spawn_entity(std::move(t),std::move(id),std::move(values),std::move(reply));
+    }
+    void create_entity(std::string type,EntityAttributes::Values values,EntitySpawnOptions options,Reply reply) override {
+        parent_->create_entity(std::move(type),std::move(values),std::move(options),std::move(reply));
     }
     void send_entity(std::string st,std::string sid,std::string t,std::string id,std::string m,std::string p,Reply r) override { parent_->send_entity(std::move(st),std::move(sid),std::move(t),std::move(id),std::move(m),std::move(p),std::move(r)); }
     std::optional<DeliveryMessage> delivery_status(const std::string& t,const std::string& id,const std::string& ticket) const override { return parent_->delivery_status(t,id,ticket); }

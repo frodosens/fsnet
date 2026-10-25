@@ -2,6 +2,7 @@
 #include "fsnet/node.hpp"
 #include "fsnet/entity_delivery_state.hpp"
 #include "fsnet/attribute_wire.hpp"
+#include "fsnet/entity_catalog.hpp"
 #include <cstddef>
 #include <string>
 #include <string_view>
@@ -30,6 +31,7 @@ public:
         throw std::logic_error("entity schemas require an entity host");
     }
     virtual void spawn_entity(std::string, std::string, EntityAttributes::Values, Reply reply) { reply({Status::rejected,{}}); }
+    virtual void create_entity(std::string,EntityAttributes::Values,EntitySpawnOptions,Reply reply) {reply({Status::rejected,{}});}
     virtual void send_entity(std::string,std::string,std::string,std::string,std::string,std::string,Reply reply) { reply({Status::rejected,{}}); }
     virtual std::optional<DeliveryMessage> delivery_status(const std::string&,const std::string&,const std::string&) const { return {}; }
     virtual bool forget_delivery(const std::string&,const std::string&,const std::string&) { return false; }
