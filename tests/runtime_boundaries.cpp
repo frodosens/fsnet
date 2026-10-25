@@ -43,6 +43,20 @@ void burst(){
     while(completed<64){host.poll();CHECK(std::chrono::steady_clock::now()<end);std::this_thread::sleep_for(1ms);}
     CHECK(host.stats().pending==0);
 }
+void expired_control(){
+    for(int action=0;action<3;++action){
+        auto parent=std::make_shared<Parent>();fsnet::EntityRuntimeLimits limits;limits.request_timeout=100ms;limits.lease=1s;
+        fsnet::EntityScriptHost host(parent,fsnet::memory_database(),"owner/boot",limits);
+        host.bind_stateful("Actor.read","Actor","",noop);host.bind_stateful("Actor.$deactivate","Actor","",noop);host.bind_stateful("Actor.$destroy","Actor","",noop);
+        CHECK(wait(host,[&](auto cb){parent->handlers.at("Actor.read")(fsnet::entity_message("a",""),cb);}).status==fsnet::Status::ok);
+        auto handle=*host.handle("Actor","a");
+        auto control=[&](auto cb){if(action==0)host.deactivate(handle,cb);else if(action==1)host.control_entity("Actor","a",true,cb);else host.handoff(handle,"other",cb);};
+        std::optional<fsnet::Result> expired;control([&](auto result){expired=std::move(result);});
+        std::this_thread::sleep_for(150ms);host.poll();
+        CHECK(expired&&expired->status==fsnet::Status::timeout&&host.active("Actor","a"));
+        CHECK(wait(host,control).status==fsnet::Status::ok&&host.stats().pending==0);
+    }
+}
 void opaque_delivery(){
     auto parent=std::make_shared<Parent>();auto db=fsnet::memory_database();fsnet::EntityScriptHost host(parent,db,"owner/boot");host.enable_delivery(true);
     host.bind_stateful("Target.reward","Target","opaque",noop);
@@ -76,4 +90,4 @@ void throwing_completion(){
     for(unsigned i=0;i<3;++i)node.call(peer,"echo","",1s,[&](auto r){CHECK(r.status==fsnet::Status::disconnected);++completions;throw std::runtime_error("application error");});
     node.stop();CHECK(completions==3&&node.pending()==0&&node.stats().callback_failures==3);
 }
-int main(){try{shutdown();admission();burst();opaque_delivery();throwing_completion();std::cout<<"PASS runtime shutdown, admission, burst fairness, opaque delivery and callback containment\n";}catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}}
+int main(){try{shutdown();admission();expired_control();burst();opaque_delivery();throwing_completion();std::cout<<"PASS runtime shutdown, admission, burst fairness, opaque delivery and callback containment\n";}catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}}

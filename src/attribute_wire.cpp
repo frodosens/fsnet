@@ -174,9 +174,10 @@ template<class Output> void encode_update(Output& out,const AttributeUpdate& upd
 }
 // Validate the merged image without copying unchanged values. Limits apply to
 // the accumulated replica too, not just to each individual incoming delta.
-void validate_overlay(const AttributeStruct& current, const AttributeStruct& delta) {
+std::size_t validate_overlay(const AttributeStruct& current, const AttributeStruct& delta) {
     SizeOnly out; out.bytes=23;
     std::size_t remaining=4096, count=0;
+    std::size_t native_bytes=256;
     auto old=current.begin(), changed=delta.begin();
     while (old!=current.end() || changed!=delta.end()) {
         const AttributeStruct::value_type* field;
@@ -188,7 +189,9 @@ void validate_overlay(const AttributeStruct& current, const AttributeStruct& del
         if (++count>256) throw std::invalid_argument("invalid attribute revision or count");
         check_name(field->first); put(out,field->first.size(),1); out+=field->first;
         encode_value(out,field->second,0,remaining);
+        native_bytes+=attribute_entry_bytes(field->first,field->second);
     }
+    return out.size()+native_bytes;
 }
 }
 std::string encode_attributes(const AttributeUpdate& update) {
@@ -411,6 +414,9 @@ EntityAttributes::Mutation stage_attribute_proposal(const EntityAttributes& mode
     return model.stage(roots,who);
 }
 bool AttributeReplica::apply(const AttributeUpdate& update) {
+    return apply(update,std::numeric_limits<std::size_t>::max());
+}
+bool AttributeReplica::apply(const AttributeUpdate& update,std::size_t max_image_bytes) {
     // Validate programmatic updates too; never apply partially on validation or allocation failure.
     (void)attribute_wire_size(update);
     if (!update.snapshot && (!initialized_ || update.base != revision_)) return false;
@@ -441,14 +447,15 @@ bool AttributeReplica::apply(const AttributeUpdate& update) {
                 items.insert(at,patch.insert.begin(),patch.insert.end());
             }
         }
-        return apply(materialized);
+        return apply(materialized,max_image_bytes);
     }
     const auto next_revision=update.revision;
+    auto count=update.snapshot?attribute_wire_size(update)+attribute_image_bytes(update.values):validate_overlay(values(),update.values);
+    if(count>max_image_bytes)throw AttributeReplicaBudget{};
     if (update.snapshot) {
         auto next=std::make_shared<AttributeUpdate>(AttributeUpdate{0,next_revision,true,update.values});
         image_=std::move(next);
     } else {
-        validate_overlay(values(),update.values);
         // Allocate before mutation; transfer new map nodes without allocation.
         static_assert(std::is_nothrow_swappable_v<AttributeValue>);
         auto prepared=update.values;
@@ -463,6 +470,6 @@ bool AttributeReplica::apply(const AttributeUpdate& update) {
             else { existing->second.swap(field->second); prepared.erase(field); }
         }
     }
-    image_->revision=next_revision; revision_ = next_revision; initialized_ = true; return true;
+    image_->revision=next_revision; revision_ = next_revision; initialized_ = true; bytes_=count; return true;
 }
 }

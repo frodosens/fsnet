@@ -76,6 +76,10 @@ owned 和 controlled 状态。后端先 show 再恢复控制时发出的中间 e
 controlled=false 会显式取消该副本的控制权。owner 与 Gateway 需要一起升级，新的 Gateway
 会拒绝旧版本的空成功回复，避免假报恢复完成。
 
+迁移恢复捕获控制意图的代次；期间另一个实体获得控制后，旧确认不会覆盖新意图或删除有效副本，
+Gateway 会先向新 owner 重新协调最终状态。旧 owner 上已不存在的实体视为完成解除控制；其他
+解除错误进入订阅恢复，不因此断开整个客户端。自动和手动订阅恢复均会使旧路由缓存过期。
+
 指定目标的交接使用服务端 `Player:transfer(id, target_node)`，原生组合、持久目标与失败重试见
 [实体交接协议](ENTITY_TRANSFER.md)。Gateway 与 EntityRouter 共用 placement 路由，指定目标在
 租约过期后也不会回退到其他节点。
@@ -85,6 +89,7 @@ controlled=false 会显式取消该副本的控制权。owner 与 Gateway 需要
 GatewayLimits 默认：256 客户端、1024 后端连接、1024 订阅、每客户端 32 订阅，
 256 待处理请求、4 MiB 请求载荷、单次 3 秒、目录刷新 100 ms。Node 还有独立帧/发送队列预算。
 `stats()` 提供当前资源、转发/失败/迁移计数；目录查询合并和有界缓存、轮转订阅检查防止饥饿。
+`lookup_waiters`、`link_waiters` 统计共享等待者；请求超时/取消或订阅移除时会解除对应等待者并释放输入容量。
 容量是资源保护配置，不能视为在线人数承诺。
 
 `drain()` 停止接收新请求，继续 poll 直到 pending 清空，再 stop；Node 必须比 Gateway 存活更久。

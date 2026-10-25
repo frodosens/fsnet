@@ -63,8 +63,11 @@ void definition_valid(const AttributeDefinition& d,unsigned depth,std::size_t& r
 }
 std::size_t attribute_image_bytes(const AttributeStruct& values) {
     std::size_t bytes=256;
-    for(const auto& [name,value]:values) {
-        bytes+=256+name.size();
+    for(const auto& [name,value]:values) bytes+=attribute_entry_bytes(name,value);
+    return bytes;
+}
+std::size_t attribute_entry_bytes(std::string_view name,const AttributeValue& value) {
+        std::size_t bytes=256+name.size();
         if(auto text=std::get_if<std::string>(&value)) bytes+=text->size();
         else if(auto fields=std::get_if<AttributeStruct>(&value)) bytes+=attribute_image_bytes(*fields);
         else if(auto entries=std::get_if<AttributeMap>(&value)) bytes+=attribute_image_bytes(*entries);
@@ -79,7 +82,6 @@ std::size_t attribute_image_bytes(const AttributeStruct& values) {
             };
             for(const auto& child:*items) bytes+=charge(charge,child);
         }
-    }
     return bytes;
 }
 void EntitySchema::validate() const {

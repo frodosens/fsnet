@@ -1,0 +1,331 @@
+{
+  "date": "2026-10-25",
+  "baseline": "9de32185f6c684b4e3dd4f1dae9efbc7889f8dc9",
+  "first_fix_commit": "161bfe10c1515d231ff7bf3eb3c5f26eb847b70a",
+  "first_fix_ci": "https://github.com/frodosens/fsnet/actions/runs/40150693855",
+  "platform": "Linux-6.18.55-x86_64-with-glibc2.41",
+  "compiler": "c++ (Debian 14.2.0-19) 14.2.0",
+  "source_sha256": {
+    "src/entity_host.cpp": "55d748a8dc75ced72bc19962cc9bc538b91e518a4beb8c3821daf5d726bb9b21",
+    "src/client_gateway.cpp": "e40879a943940ecc5a10e9eadc407a9012e1eef98c5cbba585a970acd8ba6599",
+    "src/lua_engine.cpp": "21a9aa75d16f441a226357296a9c405c4312249856dbd87f4c9982fdff2e4606",
+    "src/attribute_wire.cpp": "df8346cb0c99884b032c6870525533d475c190e135cec9b3f29d72985078210a",
+    "src/entity_schema.cpp": "b79a0af8bc127dec16c84741f7b72dae1bc254fc1257b3f5a0e8f5f054a09509",
+    "src/attribute_replication.cpp": "2b21d6c73982fe266cdbef1bf837fc9e32227b5884ce2d1dccd83d24b5bb9c3a",
+    "src/file_storage.cpp": "b23d96e0b0b6e8fd66aa180d245ec75de1f302ede0b145c827200592f82eab8b",
+    "src/node.cpp": "5224214348545219c2656b2c646010088521bc9d6259ac9ac0cca56a541065b0",
+    "src/postgres_database.cpp": "cca84f40ddaf3ee23ec3203cbf5fe6233b3f03706a3be772fcbd8dc81569cce9",
+    "include/fsnet/attribute_wire.hpp": "d833a7b1d88cedad89ff205f379009ed0dec9222316a9bcc8fd1b433f8fc275f",
+    "include/fsnet/entity_schema.hpp": "3a07c0fc7da41beb4cbccdfa991ad5776c19c63c3cf1b2623560318a555be7ec",
+    "include/fsnet/client_gateway.hpp": "264f2d1242f9958f39040bef9621d2c064d8b6c3cc68872a2e7424fb4509731e",
+    "include/fsnet/node.hpp": "e9a262b5018fe694a468fac32457750f33e3f3e4b3002852861ef7b6b5459325"
+  },
+  "measurement_scope": "Local allocator and behavior diagnostics. Builds ran concurrently: elapsed/RSS samples are raw observations, not production latency/capacity claims. Compare stable allocation counts only. Correctness assertions live in CTest.",
+  "baseline_native_receive_256_items": {
+    "allocations_per_op": 266,
+    "allocated_bytes_per_op": 146471
+  },
+  "release_allocator_runs": [
+    {
+      "returncode": 0,
+      "samples": [
+        {
+          "scenario": "direct_apply",
+          "unchanged_items": 0,
+          "iterations": 1000,
+          "ns_per_op": 186.085,
+          "allocations_per_op": 2,
+          "allocated_bytes_per_op": 240
+        },
+        {
+          "scenario": "receive_candidate_pattern",
+          "unchanged_items": 0,
+          "iterations": 1000,
+          "ns_per_op": 238.519,
+          "allocations_per_op": 5,
+          "allocated_bytes_per_op": 592
+        },
+        {
+          "scenario": "native_attribute_client_receive",
+          "unchanged_items": 0,
+          "iterations": 1000,
+          "ns_per_op": 5326.8,
+          "allocations_per_op": 6,
+          "allocated_bytes_per_op": 455
+        },
+        {
+          "scenario": "direct_apply",
+          "unchanged_items": 16,
+          "iterations": 1000,
+          "ns_per_op": 212.405,
+          "allocations_per_op": 2,
+          "allocated_bytes_per_op": 240
+        },
+        {
+          "scenario": "receive_candidate_pattern",
+          "unchanged_items": 16,
+          "iterations": 1000,
+          "ns_per_op": 1913.21,
+          "allocations_per_op": 22,
+          "allocated_bytes_per_op": 9696
+        },
+        {
+          "scenario": "native_attribute_client_receive",
+          "unchanged_items": 16,
+          "iterations": 1000,
+          "ns_per_op": 4881.51,
+          "allocations_per_op": 6,
+          "allocated_bytes_per_op": 455
+        },
+        {
+          "scenario": "direct_apply",
+          "unchanged_items": 256,
+          "iterations": 1000,
+          "ns_per_op": 2266.32,
+          "allocations_per_op": 2,
+          "allocated_bytes_per_op": 240
+        },
+        {
+          "scenario": "receive_candidate_pattern",
+          "unchanged_items": 256,
+          "iterations": 1000,
+          "ns_per_op": 57444.1,
+          "allocations_per_op": 262,
+          "allocated_bytes_per_op": 146256
+        },
+        {
+          "scenario": "native_attribute_client_receive",
+          "unchanged_items": 256,
+          "iterations": 1000,
+          "ns_per_op": 9406.35,
+          "allocations_per_op": 6,
+          "allocated_bytes_per_op": 455
+        }
+      ]
+    },
+    {
+      "returncode": 0,
+      "samples": [
+        {
+          "scenario": "direct_apply",
+          "unchanged_items": 0,
+          "iterations": 1000,
+          "ns_per_op": 8355.53,
+          "allocations_per_op": 2,
+          "allocated_bytes_per_op": 240
+        },
+        {
+          "scenario": "receive_candidate_pattern",
+          "unchanged_items": 0,
+          "iterations": 1000,
+          "ns_per_op": 324.403,
+          "allocations_per_op": 5,
+          "allocated_bytes_per_op": 592
+        },
+        {
+          "scenario": "native_attribute_client_receive",
+          "unchanged_items": 0,
+          "iterations": 1000,
+          "ns_per_op": 12362.5,
+          "allocations_per_op": 6,
+          "allocated_bytes_per_op": 455
+        },
+        {
+          "scenario": "direct_apply",
+          "unchanged_items": 16,
+          "iterations": 1000,
+          "ns_per_op": 298.239,
+          "allocations_per_op": 2,
+          "allocated_bytes_per_op": 240
+        },
+        {
+          "scenario": "receive_candidate_pattern",
+          "unchanged_items": 16,
+          "iterations": 1000,
+          "ns_per_op": 1247.11,
+          "allocations_per_op": 22,
+          "allocated_bytes_per_op": 9696
+        },
+        {
+          "scenario": "native_attribute_client_receive",
+          "unchanged_items": 16,
+          "iterations": 1000,
+          "ns_per_op": 4975.92,
+          "allocations_per_op": 6,
+          "allocated_bytes_per_op": 455
+        },
+        {
+          "scenario": "direct_apply",
+          "unchanged_items": 256,
+          "iterations": 1000,
+          "ns_per_op": 1707.72,
+          "allocations_per_op": 2,
+          "allocated_bytes_per_op": 240
+        },
+        {
+          "scenario": "receive_candidate_pattern",
+          "unchanged_items": 256,
+          "iterations": 1000,
+          "ns_per_op": 48098.7,
+          "allocations_per_op": 262,
+          "allocated_bytes_per_op": 146256
+        },
+        {
+          "scenario": "native_attribute_client_receive",
+          "unchanged_items": 256,
+          "iterations": 1000,
+          "ns_per_op": 66010,
+          "allocations_per_op": 6,
+          "allocated_bytes_per_op": 455
+        }
+      ]
+    },
+    {
+      "returncode": 0,
+      "samples": [
+        {
+          "scenario": "direct_apply",
+          "unchanged_items": 0,
+          "iterations": 1000,
+          "ns_per_op": 272.757,
+          "allocations_per_op": 2,
+          "allocated_bytes_per_op": 240
+        },
+        {
+          "scenario": "receive_candidate_pattern",
+          "unchanged_items": 0,
+          "iterations": 1000,
+          "ns_per_op": 378.669,
+          "allocations_per_op": 5,
+          "allocated_bytes_per_op": 592
+        },
+        {
+          "scenario": "native_attribute_client_receive",
+          "unchanged_items": 0,
+          "iterations": 1000,
+          "ns_per_op": 8594.08,
+          "allocations_per_op": 6,
+          "allocated_bytes_per_op": 455
+        },
+        {
+          "scenario": "direct_apply",
+          "unchanged_items": 16,
+          "iterations": 1000,
+          "ns_per_op": 295.992,
+          "allocations_per_op": 2,
+          "allocated_bytes_per_op": 240
+        },
+        {
+          "scenario": "receive_candidate_pattern",
+          "unchanged_items": 16,
+          "iterations": 1000,
+          "ns_per_op": 1225.65,
+          "allocations_per_op": 22,
+          "allocated_bytes_per_op": 9696
+        },
+        {
+          "scenario": "native_attribute_client_receive",
+          "unchanged_items": 16,
+          "iterations": 1000,
+          "ns_per_op": 44885.9,
+          "allocations_per_op": 6,
+          "allocated_bytes_per_op": 455
+        },
+        {
+          "scenario": "direct_apply",
+          "unchanged_items": 256,
+          "iterations": 1000,
+          "ns_per_op": 1721.07,
+          "allocations_per_op": 2,
+          "allocated_bytes_per_op": 240
+        },
+        {
+          "scenario": "receive_candidate_pattern",
+          "unchanged_items": 256,
+          "iterations": 1000,
+          "ns_per_op": 37029.1,
+          "allocations_per_op": 262,
+          "allocated_bytes_per_op": 146256
+        },
+        {
+          "scenario": "native_attribute_client_receive",
+          "unchanged_items": 256,
+          "iterations": 1000,
+          "ns_per_op": 10285.9,
+          "allocations_per_op": 6,
+          "allocated_bytes_per_op": 455
+        }
+      ]
+    }
+  ],
+  "debug_behavior_probes": [
+    {
+      "case": "gateway_retention",
+      "returncode": 0,
+      "stdout": "{\"round\":1,\"completed\":4,\"timeouts\":4,\"pending\":0,\"queued_bytes\":0,\"rss_kib\":11452,\"rss_delta_kib\":1420}\n{\"round\":10,\"completed\":40,\"timeouts\":40,\"pending\":0,\"queued_bytes\":0,\"rss_kib\":11456,\"rss_delta_kib\":1424}\n{\"round\":20,\"completed\":80,\"timeouts\":80,\"pending\":0,\"queued_bytes\":0,\"rss_kib\":11456,\"rss_delta_kib\":1424}\n{\"round\":30,\"completed\":120,\"timeouts\":120,\"pending\":0,\"queued_bytes\":0,\"rss_kib\":11456,\"rss_delta_kib\":1424}\n",
+      "stderr": ""
+    },
+    {
+      "case": "replica_cow",
+      "returncode": 0,
+      "stdout": "{\"scenario\":\"direct_apply\",\"unchanged_items\":0,\"iterations\":1000,\"ns_per_op\":2560.47,\"allocations_per_op\":2,\"allocated_bytes_per_op\":240}\n{\"scenario\":\"receive_candidate_pattern\",\"unchanged_items\":0,\"iterations\":1000,\"ns_per_op\":3314.27,\"allocations_per_op\":5,\"allocated_bytes_per_op\":592}\n{\"scenario\":\"native_attribute_client_receive\",\"unchanged_items\":0,\"iterations\":1000,\"ns_per_op\":121685,\"allocations_per_op\":6,\"allocated_bytes_per_op\":455}\n{\"scenario\":\"direct_apply\",\"unchanged_items\":16,\"iterations\":1000,\"ns_per_op\":11581.7,\"allocations_per_op\":2,\"allocated_bytes_per_op\":240}\n{\"scenario\":\"receive_candidate_pattern\",\"unchanged_items\":16,\"iterations\":1000,\"ns_per_op\":14855.6,\"allocations_per_op\":22,\"allocated_bytes_per_op\":9696}\n{\"scenario\":\"native_attribute_client_receive\",\"unchanged_items\":16,\"iterations\":1000,\"ns_per_op\":91848.7,\"allocations_per_op\":6,\"allocated_bytes_per_op\":455}\n{\"scenario\":\"direct_apply\",\"unchanged_items\":256,\"iterations\":1000,\"ns_per_op\":101699,\"allocations_per_op\":2,\"allocated_bytes_per_op\":240}\n{\"scenario\":\"receive_candidate_pattern\",\"unchanged_items\":256,\"iterations\":1000,\"ns_per_op\":213555,\"allocations_per_op\":262,\"allocated_bytes_per_op\":146256}\n{\"scenario\":\"native_attribute_client_receive\",\"unchanged_items\":256,\"iterations\":1000,\"ns_per_op\":248776,\"allocations_per_op\":6,\"allocated_bytes_per_op\":455}\n",
+      "stderr": ""
+    },
+    {
+      "case": "watch_timeout",
+      "returncode": 0,
+      "stdout": "watch_pending=1 active=1\nafter_timeout active=0 unwatches=1 error=background task failed: 3 \nafter_stop unwatches=1\n",
+      "stderr": ""
+    },
+    {
+      "case": "schema_memory",
+      "returncode": 0,
+      "stdout": "failed=fsnet/entity.lua:133: schema memory budget vm=0 rss_before_kib=10624 rss_after_kib=12636\nstopped_vm=0 rss_after_stop_kib=12636\n",
+      "stderr": ""
+    },
+    {
+      "case": "prediction_gc",
+      "returncode": 0,
+      "stdout": "loaded vm=2289751 rss_before_kib=10624 rss_after_kib=11620\n1\ttrue\t\n2\ttrue\t\n3\ttrue\t\n4\ttrue\t\n5\ttrue\t\n6\ttrue\t\n7\ttrue\t\n8\ttrue\t\n9\ttrue\t\n10\ttrue\t\n11\ttrue\t\n12\ttrue\t\n13\ttrue\t\n14\ttrue\t\n15\ttrue\t\n16\ttrue\t\npending\t16\nafter_poll_vm=20619270 active=0 error=\nstopped_vm=0 rss_after_stop_kib=14276\n",
+      "stderr": ""
+    },
+    {
+      "case": "entity_burst",
+      "returncode": 0,
+      "stdout": "{\"submitted_pending\":64,\"first_poll_completed\":0,\"first_poll_overloaded\":0}\n{\"final_completed\":64,\"success\":64,\"overloaded\":0}\n",
+      "stderr": ""
+    },
+    {
+      "case": "opaque_source",
+      "returncode": 0,
+      "stdout": "target_init=0 source_issue=0 receive=0 target_result=reward applied ack=0 pending=0\n",
+      "stderr": ""
+    },
+    {
+      "case": "manual_route",
+      "returncode": 0,
+      "stdout": "manual_migrations=1 followup_status=0\n",
+      "stderr": ""
+    },
+    {
+      "case": "actual_control_migration",
+      "returncode": 0,
+      "stdout": "connected_before_possess=1 pet_login_status=0 connected_after_possess=1 actor_active_on_target=1\n",
+      "stderr": ""
+    }
+  ],
+  "shutdown_tsan_and_tls_preflight": [
+    {
+      "case": "stop_race",
+      "returncode": 0,
+      "stdout": "stopped=1\n",
+      "stderr": ""
+    },
+    {
+      "case": "postgres_connect",
+      "returncode": 0,
+      "stdout": "{\"observed\": {\"fixture_end\": \"TimeoutError\"}, \"returncode\": 0, \"stdout\": \"rejected=remote PostgreSQL requires sslmode=verify-full\\n\", \"stderr\": \"\"}\n",
+      "stderr": ""
+    }
+  ]
+}

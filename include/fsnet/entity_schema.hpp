@@ -36,6 +36,7 @@ struct AttributeValue : std::variant<std::int64_t,double,bool,std::string,Attrib
     using variant::operator=;
 };
 std::size_t attribute_image_bytes(const AttributeStruct&); // conservative native value allocation charge
+std::size_t attribute_entry_bytes(std::string_view,const AttributeValue&); // one root, without copying its value
 enum class AttributeType { integer, number, boolean, string, structure, array, list, map, set };
 struct AttributeDefinition {
     AttributeType type;

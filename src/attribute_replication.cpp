@@ -389,11 +389,11 @@ struct AttributeClient::Impl : std::enable_shared_from_this<Impl> {
             auto projection=it->second;
             if(message.type!=projection->type || message.id!=projection->entity) throw std::runtime_error("subscription identity mismatch");
             if(message.status!=Status::ok) return remove(message.subscription,message.status,false);
-            auto next=projection->replica;
-            if(!next.apply(*message.update)) return remove(message.subscription,Status::rejected,true);
-            auto count=attribute_wire_size(next.values())+attribute_image_bytes(next.values());
-            if(count>16*1024*1024-bytes+projection->bytes) return remove(message.subscription,Status::overloaded,true);
-            bytes=bytes-projection->bytes+count; projection->bytes=count; projection->replica=std::move(next);
+            try {
+                if(!projection->replica.apply(*message.update,16*1024*1024-bytes+projection->bytes))return remove(message.subscription,Status::rejected,true);
+            }catch(const AttributeReplicaBudget&){return remove(message.subscription,Status::overloaded,true);}
+            auto count=projection->replica.image_bytes();
+            bytes=bytes-projection->bytes+count; projection->bytes=count;
             change(message.subscription,Status::ok,&projection->replica);
         } catch(...) { node.close(peer); stop(); }
     }

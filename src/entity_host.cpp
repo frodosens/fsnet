@@ -749,6 +749,7 @@ std::size_t EntityScriptHost::poll(std::size_t budget) {
         if (slot.queue.empty()) continue;
         if (slot.queue.front().deadline <= time) {
             auto request = std::move(slot.queue.front()); slot.queue.pop_front();
+            if(Impl::is_control(request.route,request.method->type))slot.releasing=false;
             --self.counters.pending; self.counters.queued_bytes -= request.bytes; ++self.counters.failed;
             request.reply({Status::timeout, {}});
         } else self.acquire(entity, slot);

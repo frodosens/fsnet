@@ -20,6 +20,10 @@ int main() {
         // Retained versions/copies stay immutable through edits, errors and reset.
         AttributeReplica versioned; CHECK(!versioned.snapshot()); CHECK(versioned.apply(large));
         auto retained=versioned.snapshot(); CHECK(retained==versioned.snapshot());
+        auto charge=attribute_wire_size(large)+attribute_image_bytes(large.values);
+        CHECK(versioned.image_bytes()==charge);
+        bool limited=false;try{versioned.apply(field,1);}catch(const AttributeReplicaBudget&){limited=true;}
+        CHECK(limited&&versioned.snapshot()==retained&&versioned.image_bytes()==charge);
         auto independent=versioned; CHECK(versioned.apply(field));
         CHECK(retained->values==large.values && retained->revision==1);
         CHECK(independent.values()==large.values && versioned.values()==changed.values);
@@ -171,6 +175,7 @@ int main() {
             if(action==0) map.erase(key); else map[key]=std::int64_t(round);
             auto update=attribute_delta(current,changed); auto encoded=encode_attributes(update);
             CHECK(replica.apply(decode_attributes(encoded))); CHECK(replica.values()==changed.values);
+            CHECK(replica.image_bytes()==attribute_wire_size(changed.values)+attribute_image_bytes(changed.values));
             current=std::move(changed);
         }
         auto empty=current; empty.values.at("items")=AttributeArray{}; empty.values.at("tasks")=AttributeMap{}; ++empty.revision;

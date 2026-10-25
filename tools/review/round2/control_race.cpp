@@ -13,10 +13,10 @@ int main(){try {
  front.identify([](auto,const auto&)->std::optional<fsnet::CallIdentity>{return fsnet::CallIdentity{fsnet::Caller::client,"alice"};});
  fsnet::AttributeUpdate image{0,1,true,{{"x",std::int32_t(7)}}};
  auto presence=[&](int kind,int flags,std::uint64_t id,std::string type){return std::string{char(kind),char(flags)}+fsnet::encode_replication_packet(id,type,"alice",fsnet::Status::ok,&image,30000);};
- std::uint64_t initial_peer=0,new_peer=0;fsnet::Reply actor_restore;bool actor_intent=false;
+ std::uint64_t initial_peer=0,new_peer=0;fsnet::Reply actor_restore;bool actor_intent=false;unsigned reconciled=0;
  owner.bind("system.gateway.delegate",[](auto,auto reply){reply({fsnet::Status::ok,{}});});
  owner.bind_rpc("login",{true,false,false},[&](const auto& who,auto,auto reply){initial_peer=who.peer;owner.notify(who.peer,"system.entities.presence",presence(1,3,11,"Actor"));owner.notify(who.peer,"system.entities.presence",presence(1,1,12,"Pet"));reply({fsnet::Status::ok,{}});});
- owner.bind_rpc("system.gateway.restore",{true,false,false},[&](const auto& who,std::string data,auto reply){std::string_view in(data);auto [type,id]=fsnet::decode_entity_key(in);new_peer=who.peer;if(type=="Actor"){actor_intent=in.front();actor_restore=std::move(reply);}else reply({fsnet::Status::ok,presence(1,1,22,"Pet")});});
+ owner.bind_rpc("system.gateway.restore",{true,false,false},[&](const auto& who,std::string data,auto reply){std::string_view in(data);auto [type,id]=fsnet::decode_entity_key(in);new_peer=who.peer;if(type=="Actor"){if(in.front()){actor_intent=true;actor_restore=std::move(reply);}else{++reconciled;reply({fsnet::Status::ok,presence(1,1,21,"Actor")});}}else reply({fsnet::Status::ok,presence(1,1,22,"Pet")});});
  owner.bind("system.attributes.unwatch",[](auto,auto reply){reply({fsnet::Status::ok,{}});});
  owner.bind("system.gateway.unpossess",[](auto,auto reply){reply({fsnet::Status::ok,{}});});
  auto port=owner.listen("127.0.0.1",0);
@@ -31,7 +31,7 @@ int main(){try {
  // Another entity becomes controlled while Actor's restore is still pending.
  owner.notify(new_peer,"system.entities.presence",presence(3,3,22,"Pet"));until([&]{return pet_controlled;});
  bool actor_before=attributes.get(actor)!=nullptr;
- actor_restore({fsnet::Status::ok,presence(1,3,21,"Actor")});until([&]{return actor_leaves>0;});
+ actor_restore({fsnet::Status::ok,presence(1,3,21,"Actor")});until([&]{return actor_leaves>0||gateway.stats().migrations==2;});
  std::cout<<"restore_sent_control="<<actor_intent<<" pet_controlled="<<pet_controlled<<" actor_before_confirmation="<<actor_before<<" actor_after_confirmation="<<bool(attributes.get(actor))<<" actor_leaves="<<actor_leaves<<" gateway_subscriptions="<<gateway.stats().subscriptions<<"\n";
  return 0;
 }catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}}

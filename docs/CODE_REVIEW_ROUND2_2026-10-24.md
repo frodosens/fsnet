@@ -5,8 +5,36 @@
 
 ## 修复进度（2026-10-25）
 
-- 已修复 1、2、4、7、11、13 及附录 Node 完成回调异常：停止时先同步存储线程；控制任务入队成功才锁定实体；连接前检查 libpq 环境/服务目标；文件 miss 不创建锁；opaque 实体具有独立持久协议入口；执行器压力下保留已接纳请求；Node 隔离完成回调异常并提供统计。
-- 验证：Debug 全量 40 项通过，新增 runtime-boundaries 回归；独立 ThreadSanitizer 停止复现已无竞争。PostgreSQL 连接前检查和其他条目仍在验证、修复中。
+第一批修复已由 `161bfe1` 推送，GitHub CI 五个任务全部通过。
+其余确认问题的实现和回归已补齐，正在进行最终全量验证；下面记录当前机制。
+
+| 条目 | 修复机制 | 回归 |
+| --- | --- | --- |
+| 1 | 停止时先同步存储线程，再取消活动 Job | runtime-boundaries、独立 TSAN |
+| 2 | 控制任务成功入队才锁住实体；排队超时退还控制标志 | runtime-boundaries 的 drain、卸载/销毁/交接超时重试 |
+| 3 | 请求和订阅分别持有可解除的等待者，结束时释放输入容量；保持请求顺序 | gateway-boundaries 的 120 次超时、查询/委托合并顺序 |
+| 4 | 认证前检查显式与 libpq 环境目标；service 必须验证 TLS | PostgreSQL 真实集成的连接前 socket 断言、独立协议探针 |
+| 5 | 控制意图带代次，过期确认重新协调；解除错误进入订阅恢复 | gateway-boundaries 的挂起确认与真实跨 owner 交接 |
+| 6 | 自动/手动迁移均使旧路由缓存过期 | gateway-boundaries 的手动 watch 后立即 RPC |
+| 7 | get 直接读取原子替换的不可变记录，不创建 miss 锁 | files 的 4096 个 miss、既有进程/CAS 合同 |
+| 8 | pending watch 资源令牌由任务持有，成功附着后交给 userdata | lua-resources 的超时、停止、晚回调、构造/预算失败及完成队列拒绝 |
+| 9 | schema 默认值和描述计入统一预算，失败注册退费 | lua-resources 的 schema 上限和注册回滚 |
+| 10 | 原生额度不足时先 GC，再判断是否拒绝；普通预测和本地对象共用 | lua-resources 的 16 次预测和重复本地创建/关闭 |
+| 11 | opaque 元数据入口独立于属性 schema | runtime-boundaries 的源/目标 opaque 投递和 ACK |
+| 12 | 共享应用器在修改前检查合并图像预算，接收不再复制整个候选 | patches 的预算原子性/随机回放、真实 Native 接收分配探针 |
+| 13 | 暂无执行器额度时保留已接纳 mailbox 请求和原始 deadline | runtime-boundaries 的 64 笔独立请求 |
+| 附录 | Node 隔离完成回调异常，统计 callback_failures | runtime-boundaries 的三个抛异常取消回调 |
+
+原始审查数据保留在下文；路线图和部署限制仍单列，不将其标为已实现能力。
+
+最终代码的本机 Debug 42 项、Release 42 项、PostgreSQL 43 项已全部通过；ASan/UBSan 和 Lua OFF 验证正在运行。
+PostgreSQL 包含真实 TLS、并发 CAS、WAL 崩溃恢复、实体进程恢复及认证前拒绝连接的断言。
+
+Release 三次真实接收测量均为每次 **6 次分配 / 455 字节**；原始 256×512 字节不变数组场景为
+266 次 / 146,471 字节，累计分配字节减少约 99.7%。这不代表 CPU 延迟同比降低；完整图像校验仍然遍历值。
+慢查询下 120 次超时观测的 RSS 增量稳定在约 1.4 MiB；64 笔突发请求全部成功，16 次预测全部成功，
+手动迁移后立即 RPC 成功，opaque 持久命令 ACK 后 pending=0。
+原始修复观测和源码指纹见 [验证记录](validation/round2-fixes-2026-10-25.json)。
 
 重点覆盖多进程共享存储、线程与进程停止、迁移和控制权交错、超时清理、Lua 原生资源预算、
 真实属性接收路径。P1 建议在生产交付前优先修复；P2 是明确的功能、资源或容量缺口。
@@ -253,8 +281,8 @@ Client SDK 的 guarded 回调有异常隔离，此处限定原生 Node；应明�
 
 独立探针和原始性能观测保存在 [tools/review/round2](../tools/review/round2/)。
 它们报告观测，不作为“缺陷仍存在即通过”的默认 CTest；输出退出码 0 仅表示诊断正常完成。
-本轮没有重建共享 preset 或修改引擎，仅编译独立可执行程序；TSAN 额外编译了原始 entity_host.cpp。
-既有异步存储、文件合同与独立进程 CAS/SIGKILL 测试也通过。
+原始审查没有修改引擎，仅编译独立程序；修复阶段已新增正确行为的 CTest 断言并重建 preset。
+TSAN 额外编译当前 entity_host.cpp，停止复现已返回 0 且无竞争报告。
 
 ```sh
 . tools/dev/activate.sh
@@ -267,8 +295,8 @@ python3 tools/review/round2/run.py --build .dev/build/debug --case stop_race --t
 python3 tools/review/round2/run.py --case postgres_connect --postgres-include /path/to/libpq/include
 ```
 
-计时/RSS/分配计数是本机诊断观测，不是部署容量承诺。TSAN 的非零退出与 Node 的退出码 73
-是所记录问题的预期观测；必须把对应探针改成“正确行为”的正式断言后，才能作为修复回归。
+计时/RSS/分配计数是本机诊断观测，不是部署容量承诺。TSAN 非零与 Node 退出码 73 是原始
+基线的缺陷观测；修复后的正式断言要求正常完成。control_race 探针同时接受正常协调或旧版删除，
+以输出区分；正确状态由 gateway-boundaries 严格断言。
 
-建议修复顺序：停止同步与生命周期入队 → Gateway 超时回收/控制意图协调 → PG 连接前 TLS 政策 →
-手动迁移缓存与 Lua 资源所有权 → 内存核算/回收 → 真实接收路径和执行器背压优化。
+修复覆盖本报告 13 项确认问题和附录回调边界；规划能力与跨机器生产验收仍见上面的独立限制。

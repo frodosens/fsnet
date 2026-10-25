@@ -45,6 +45,8 @@ end)
 - 默认 VM 分配预算 32 MiB、源码最多 1 MiB、256 个注册路由、128 个排队请求、128 个活动协程。入站排队与完成排队分别最多 4 MiB；这些原生队列不计入 VM 的 32 MiB。
 - 每次 resume 默认 100,000 条 Lua 指令，按 1,000 条指令粒度检查；耗尽时 hook 让出协程，宿主结束任务，不能用 pcall 吞掉预算错误后继续死循环。整个请求含排队/等待最多 30 秒，可通过 ScriptLimits 调低；宿主必须持续 poll 才能推进超时。
 - Lua 分配器拒绝超出预算的分配。OOM、预算超限和排队超限各有测试；一个失败任务不应损坏后续请求。
+- `memory_bytes` 同时计入 schema 默认值/类型描述和原生属性、预测载体的保守费用；`memory_used()` 返回合计。注册失败会退还 schema 费用，停止后归零。原生额度不足时先回收不可达 Lua 对象再拒绝，不会在每次预测输入上强制完整 GC。
+- watch 成功至 Lua 对象接管之间由任务持有订阅资源；超时、停止、完成队列拒绝或对象构造失败都会释放。对象成功接管后由 close/GC 负责，清理只执行一次。
 - Lua 从校验后的源代码以 C++ 模式构建，使用上游的 C++ 异常展开路径，避免 longjmp 跨过宿主 C++ 对象。Lua 类型与头文件不暴露在公共适配器接口中。
 
 默认开放 base/table/string/math/utf8，不开放 io/os/debug/package/coroutine，不提供 dofile/loadfile/load/collectgarbage。当前只加载文本 chunk；多文件模块资源加载尚未实现。
