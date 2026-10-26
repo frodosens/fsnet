@@ -1,0 +1,370 @@
+{
+  "source_commit": "f5fad66383e28124802e39a1b7e24fa12b7321f1",
+  "platform": "Linux-6.18.55-x86_64-with-glibc2.41",
+  "build": "/workspace/fsnet/.dev/build/release",
+  "library_sha256": "aac6cc4f628d5d3dd16e03add6f837b2e780c83e40bf21c19eb4590ee2b2d058",
+  "notes": [
+    "Local mechanism comparisons; not end-to-end throughput.",
+    "Native timer clock fixed at 100000ms; index refresh uses steady clock.",
+    "Capacity 1 and control 2 model admission saturation, not production capacity."
+  ],
+  "runs": [
+    [
+      {
+        "probe": "owns_current",
+        "iterations": 500000,
+        "ns_per_op": 46.1995,
+        "allocations_per_op": 0,
+        "allocated_bytes_per_op": 0
+      },
+      {
+        "probe": "owns_borrowed_candidate",
+        "iterations": 500000,
+        "ns_per_op": 48.7541,
+        "allocations_per_op": 0,
+        "allocated_bytes_per_op": 0
+      },
+      {
+        "probe": "owner_policy_live_checks",
+        "calls": 1
+      },
+      {
+        "probe": "router_adapter_prior_128",
+        "iterations": 20000,
+        "ns_per_op": 56.929,
+        "allocations_per_op": 2,
+        "allocated_bytes_per_op": 278
+      },
+      {
+        "probe": "router_adapter_borrowed_reencode_128",
+        "iterations": 20000,
+        "ns_per_op": 37.0418,
+        "allocations_per_op": 1,
+        "allocated_bytes_per_op": 149
+      },
+      {
+        "probe": "router_adapter_prior_4096",
+        "iterations": 20000,
+        "ns_per_op": 125.508,
+        "allocations_per_op": 2,
+        "allocated_bytes_per_op": 8214
+      },
+      {
+        "probe": "router_adapter_borrowed_reencode_4096",
+        "iterations": 20000,
+        "ns_per_op": 70.9456,
+        "allocations_per_op": 1,
+        "allocated_bytes_per_op": 4117
+      },
+      {
+        "probe": "router_adapter_prior_65536",
+        "iterations": 20000,
+        "ns_per_op": 3093.26,
+        "allocations_per_op": 2,
+        "allocated_bytes_per_op": 131094
+      },
+      {
+        "probe": "router_adapter_borrowed_reencode_65536",
+        "iterations": 20000,
+        "ns_per_op": 1505.33,
+        "allocations_per_op": 1,
+        "allocated_bytes_per_op": 65557
+      },
+      {
+        "probe": "timer_budget_prior_encode",
+        "iterations": 2000,
+        "ns_per_op": 6638.17,
+        "allocations_per_op": 1,
+        "allocated_bytes_per_op": 133528
+      },
+      {
+        "probe": "timer_budget_current_size",
+        "iterations": 2000,
+        "ns_per_op": 353.182,
+        "allocations_per_op": 0,
+        "allocated_bytes_per_op": 0
+      },
+      {
+        "probe": "timer_idle",
+        "tracked_limit": 65536,
+        "duration_ms": 1000,
+        "index_reads": 256,
+        "local_entity_reads": 0,
+        "foreign_entity_reads": 0,
+        "callbacks": 0,
+        "fired": 0,
+        "capacity_failures": 0
+      },
+      {
+        "probe": "timer_capacity",
+        "tracked_limit": 1,
+        "duration_ms": 1000,
+        "index_reads": 387,
+        "local_entity_reads": 5,
+        "foreign_entity_reads": 6,
+        "callbacks": 1,
+        "fired": 1,
+        "capacity_failures": 0
+      },
+      {
+        "probe": "timer_capacity",
+        "tracked_limit": 2,
+        "duration_ms": 1000,
+        "index_reads": 387,
+        "local_entity_reads": 5,
+        "foreign_entity_reads": 6,
+        "callbacks": 1,
+        "fired": 1,
+        "capacity_failures": 0
+      },
+      {
+        "probe": "gateway_allowlist",
+        "typed_status": 1,
+        "global_status": 5,
+        "server_only_status": 5,
+        "global_reply": ""
+      }
+    ],
+    [
+      {
+        "probe": "owns_current",
+        "iterations": 500000,
+        "ns_per_op": 47.228,
+        "allocations_per_op": 0,
+        "allocated_bytes_per_op": 0
+      },
+      {
+        "probe": "owns_borrowed_candidate",
+        "iterations": 500000,
+        "ns_per_op": 57.9442,
+        "allocations_per_op": 0,
+        "allocated_bytes_per_op": 0
+      },
+      {
+        "probe": "owner_policy_live_checks",
+        "calls": 1
+      },
+      {
+        "probe": "router_adapter_prior_128",
+        "iterations": 20000,
+        "ns_per_op": 62.5157,
+        "allocations_per_op": 2,
+        "allocated_bytes_per_op": 278
+      },
+      {
+        "probe": "router_adapter_borrowed_reencode_128",
+        "iterations": 20000,
+        "ns_per_op": 63.0106,
+        "allocations_per_op": 1,
+        "allocated_bytes_per_op": 149
+      },
+      {
+        "probe": "router_adapter_prior_4096",
+        "iterations": 20000,
+        "ns_per_op": 137.463,
+        "allocations_per_op": 2,
+        "allocated_bytes_per_op": 8214
+      },
+      {
+        "probe": "router_adapter_borrowed_reencode_4096",
+        "iterations": 20000,
+        "ns_per_op": 75.5861,
+        "allocations_per_op": 1,
+        "allocated_bytes_per_op": 4117
+      },
+      {
+        "probe": "router_adapter_prior_65536",
+        "iterations": 20000,
+        "ns_per_op": 3089.41,
+        "allocations_per_op": 2,
+        "allocated_bytes_per_op": 131094
+      },
+      {
+        "probe": "router_adapter_borrowed_reencode_65536",
+        "iterations": 20000,
+        "ns_per_op": 1528.28,
+        "allocations_per_op": 1,
+        "allocated_bytes_per_op": 65557
+      },
+      {
+        "probe": "timer_budget_prior_encode",
+        "iterations": 2000,
+        "ns_per_op": 6092.57,
+        "allocations_per_op": 1,
+        "allocated_bytes_per_op": 133528
+      },
+      {
+        "probe": "timer_budget_current_size",
+        "iterations": 2000,
+        "ns_per_op": 336.012,
+        "allocations_per_op": 0,
+        "allocated_bytes_per_op": 0
+      },
+      {
+        "probe": "timer_idle",
+        "tracked_limit": 65536,
+        "duration_ms": 1000,
+        "index_reads": 256,
+        "local_entity_reads": 0,
+        "foreign_entity_reads": 0,
+        "callbacks": 0,
+        "fired": 0,
+        "capacity_failures": 0
+      },
+      {
+        "probe": "timer_capacity",
+        "tracked_limit": 1,
+        "duration_ms": 1000,
+        "index_reads": 387,
+        "local_entity_reads": 5,
+        "foreign_entity_reads": 6,
+        "callbacks": 1,
+        "fired": 1,
+        "capacity_failures": 0
+      },
+      {
+        "probe": "timer_capacity",
+        "tracked_limit": 2,
+        "duration_ms": 1000,
+        "index_reads": 387,
+        "local_entity_reads": 5,
+        "foreign_entity_reads": 6,
+        "callbacks": 1,
+        "fired": 1,
+        "capacity_failures": 0
+      },
+      {
+        "probe": "gateway_allowlist",
+        "typed_status": 1,
+        "global_status": 5,
+        "server_only_status": 5,
+        "global_reply": ""
+      }
+    ],
+    [
+      {
+        "probe": "owns_current",
+        "iterations": 500000,
+        "ns_per_op": 44.6962,
+        "allocations_per_op": 0,
+        "allocated_bytes_per_op": 0
+      },
+      {
+        "probe": "owns_borrowed_candidate",
+        "iterations": 500000,
+        "ns_per_op": 45.3361,
+        "allocations_per_op": 0,
+        "allocated_bytes_per_op": 0
+      },
+      {
+        "probe": "owner_policy_live_checks",
+        "calls": 1
+      },
+      {
+        "probe": "router_adapter_prior_128",
+        "iterations": 20000,
+        "ns_per_op": 67.5555,
+        "allocations_per_op": 2,
+        "allocated_bytes_per_op": 278
+      },
+      {
+        "probe": "router_adapter_borrowed_reencode_128",
+        "iterations": 20000,
+        "ns_per_op": 40.7368,
+        "allocations_per_op": 1,
+        "allocated_bytes_per_op": 149
+      },
+      {
+        "probe": "router_adapter_prior_4096",
+        "iterations": 20000,
+        "ns_per_op": 125.209,
+        "allocations_per_op": 2,
+        "allocated_bytes_per_op": 8214
+      },
+      {
+        "probe": "router_adapter_borrowed_reencode_4096",
+        "iterations": 20000,
+        "ns_per_op": 78.488,
+        "allocations_per_op": 1,
+        "allocated_bytes_per_op": 4117
+      },
+      {
+        "probe": "router_adapter_prior_65536",
+        "iterations": 20000,
+        "ns_per_op": 3073.2,
+        "allocations_per_op": 2,
+        "allocated_bytes_per_op": 131094
+      },
+      {
+        "probe": "router_adapter_borrowed_reencode_65536",
+        "iterations": 20000,
+        "ns_per_op": 1518.94,
+        "allocations_per_op": 1,
+        "allocated_bytes_per_op": 65557
+      },
+      {
+        "probe": "timer_budget_prior_encode",
+        "iterations": 2000,
+        "ns_per_op": 6593.17,
+        "allocations_per_op": 1,
+        "allocated_bytes_per_op": 133528
+      },
+      {
+        "probe": "timer_budget_current_size",
+        "iterations": 2000,
+        "ns_per_op": 345.225,
+        "allocations_per_op": 0,
+        "allocated_bytes_per_op": 0
+      },
+      {
+        "probe": "timer_idle",
+        "tracked_limit": 65536,
+        "duration_ms": 1000,
+        "index_reads": 256,
+        "local_entity_reads": 0,
+        "foreign_entity_reads": 0,
+        "callbacks": 0,
+        "fired": 0,
+        "capacity_failures": 0
+      },
+      {
+        "probe": "timer_capacity",
+        "tracked_limit": 1,
+        "duration_ms": 1000,
+        "index_reads": 387,
+        "local_entity_reads": 5,
+        "foreign_entity_reads": 6,
+        "callbacks": 1,
+        "fired": 1,
+        "capacity_failures": 0
+      },
+      {
+        "probe": "timer_capacity",
+        "tracked_limit": 2,
+        "duration_ms": 1000,
+        "index_reads": 387,
+        "local_entity_reads": 5,
+        "foreign_entity_reads": 6,
+        "callbacks": 1,
+        "fired": 1,
+        "capacity_failures": 0
+      },
+      {
+        "probe": "gateway_allowlist",
+        "typed_status": 1,
+        "global_status": 5,
+        "server_only_status": 5,
+        "global_reply": ""
+      }
+    ]
+  ],
+  "login_reconnect": {
+    "probe": "example_login_reconnect",
+    "same_subject": "alice",
+    "results": [
+      "login-result true 0000000000000002",
+      "login-result true 0000000000000002"
+    ],
+    "isolation": "one local LoginEntity; home_node skips transfer"
+  }
+}

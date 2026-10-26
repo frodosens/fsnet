@@ -1,0 +1,54 @@
+{
+  "source_revision": "181ec93626b45fc6a94fb4b5250d06a915a007ee",
+  "scope": "loopback native Node/Gateway + Lua + memory Storage fenced commit; 2000 requests, concurrency 8; no TLS/file I/O, no production SLO",
+  "method": "one untimed whole-process warmup, three independent whole-process runs; each includes setup/handoff then timed RPC sample",
+  "sha256": {
+    "fsnet-global-flow-tests": "c189e8288027d0bef92d5e08f77626af354a13a551093319c90187ce96fdce1c",
+    "libfsnet.so": "aac6cc4f628d5d3dd16e03add6f837b2e780c83e40bf21c19eb4590ee2b2d058",
+    "libfsnet-lua.a": "f6d5aecd2576526277ce04868905af19c24c279b2619fd7a00b9ca74c757baf0"
+  },
+  "runs": [
+    {
+      "repeat": 1,
+      "rows": [
+        {
+          "scenario": "global_id",
+          "requests": 2000,
+          "concurrency": 8,
+          "rps": 11621.1,
+          "p50_us": 598.122,
+          "p99_us": 1076.99
+        }
+      ],
+      "stderr": ""
+    },
+    {
+      "repeat": 2,
+      "rows": [
+        {
+          "scenario": "global_id",
+          "requests": 2000,
+          "concurrency": 8,
+          "rps": 8735.5,
+          "p50_us": 807.315,
+          "p99_us": 1343.82
+        }
+      ],
+      "stderr": ""
+    },
+    {
+      "repeat": 3,
+      "rows": [
+        {
+          "scenario": "global_id",
+          "requests": 2000,
+          "concurrency": 8,
+          "rps": 11824.4,
+          "p50_us": 592.735,
+          "p99_us": 1032.81
+        }
+      ],
+      "stderr": ""
+    }
+  ]
+}

@@ -1,6 +1,6 @@
 # 文档导航
 
-当前实现快照：2026-10-24，`refactor/script-runtime`。
+当前实现快照：2026-10-26，`refactor/global-entities`。
 C++ 提供客户端/服务端共用的引擎机制，业务逻辑写在 Lua；文档中的“已实现”不代表完成生产容量或公网验收。
 
 ## 开始使用
@@ -41,6 +41,9 @@ C++ 提供客户端/服务端共用的引擎机制，业务逻辑写在 Lua；�
 
 ## 实现状态与证据
 
+- [删除适配层与验证](REMOVE_ADAPTERS_2026-10-25.md)：统一实体 API、Storage 与取消边界，含当前测试和基准样本。
+
+- [当前全局实体基准](BENCHMARK_CURRENT_ENTITIES_2026-10-26.md)：统一 API 后的三轮原始样本、测量范围与分配诊断。
 - [全局实体结构与复制审查](REVIEW_GLOBAL_STRUCTURE_AND_COPIES_2026-10-25.md)：旧入口残留、路由策略、计时器容量与字符串分配诊断。
 - [全局实体重构实施](GLOBAL_ENTITIES.md)：已对齐边界、已实现阶段与尚待接入范围。
 - [全局实体寻址性能](BENCHMARK_GLOBAL_ENTITIES_2026-10-25.md)：相同 Lua/CAS 链路的五轮比较及完整帧字节。

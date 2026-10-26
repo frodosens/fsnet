@@ -3,7 +3,7 @@
 使用 Release 构建，运行 `python3 tools/review_performance.py .dev/build/release --runs 3 --output report.json`。
 
 - `fsnet-benchmark`：原生协议吞吐。
-- `fsnet-request-benchmark`：直连和 Gateway 转发；不是完整实体持久提交耗时。
+- `fsnet-request-benchmark`：Catalog ID、@/FSE3 直连和 Gateway 转发；native echo 不执行每请求实体持久提交。
 - `fsnet-envelope-benchmark`：公共封包解析与持有成本。
 - `fsnet-attribute-benchmark all 20000`、`fsnet-container-benchmark all 20000`：同一公共值模型夹具，测量 stage/publish、64KiB 结构字段差量、投影应用及容器追加。
 - `fsnet-replication-benchmark`：复制转发。

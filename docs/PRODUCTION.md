@@ -104,7 +104,7 @@ ctest --preset postgres -R fsnet-postgres --output-on-failure
 - `fsnet-timer-process`：真实服务端 SIGKILL 后恢复延迟、有限周期、取消状态与稳定 EntityId；PostgreSQL fixture 也运行此流程。
 - `fsnet-global-flow`：真实 loopback Node/Gateway、远程创建、连接换绑、定向迁移、订阅、RPC 策略、投递与计时器。
 - `fsnet-tls`：临时 PKI、双向 TLS、身份映射与非法证书拒绝。
-- `fsnet-sdk-install` 与 examples：安装消费者和交付 API 的可用性。
+- `fsnet-sdk-package` 与 examples：安装消费者和交付 API 的可用性。
 
 依赖旧业务接口的整合验收工具已删除。以上测试分别覆盖 TLS 和全局实体故障流程，
 尚未提供将全局实体、mTLS、双 owner 故障和负载合并的一键生产验收工具。

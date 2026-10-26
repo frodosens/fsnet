@@ -55,5 +55,6 @@ current-delivery 及独立进程覆盖 outbox 回滚、角色检查、inbox 去�
 current-prediction 覆盖校正重放与副作用约束；current-lua-limits 覆盖沙箱、指令和内存失败后恢复。
 
 资源测试发现 OOM 结束后的协程栈仍保留临时对象，后续健康请求可能无法分配。
-结束任务时先 lua_resetthread 再释放 registry 引用，释放失败栈，并验证持久状态没有提交。
+结束任务时先用专用 CALL/COUNT(1) hook 阻止取消阶段运行用户 close，再 lua_resetthread、释放 registry 引用，
+释放失败栈，并验证持久状态没有提交。正常完成 close 仍执行，取消不能被清理中的 pcall 循环卡住。
 完整验证结果见 [删除适配层记录](REMOVE_ADAPTERS_2026-10-25.md)。

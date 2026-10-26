@@ -86,7 +86,7 @@ end
 ## 实体引用和异步 RPC
 
 ```lua
--- 在另一个实体或无状态 RPC 中：
+-- 在另一个实体或后台任务中：
 local player = Player:ref(player_id)
 local result = player:damage('10', {timeout_ms=1000, request_id='operation-123'})
 
@@ -106,7 +106,7 @@ local player = Player:ref(player_id, {peer=peer, timeout_ms=1000})
 
 等待调用当前实体的 RPC 会直接报错，应该使用 `self:local_method()`。跨实体的循环
 等待仍需要由业务避免并受 deadline 约束。request_id 的重试去重沿用有界实体回执合同。
-引用不会额外授予调用权限，也没有补齐跨 Gateway 的客户端身份委托功能。
+引用不会额外授予调用权限；跨 Gateway 的原始客户端身份由可信委托保留，见 [Gateway](CLIENT_GATEWAY.md)。
 
 ## 对象作用域和现有生命周期
 
