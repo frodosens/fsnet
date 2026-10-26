@@ -52,6 +52,25 @@ int main(int argc,char** argv){try{
     AttributeReplication ar(a,ah),br(b,bh);
     auto ap=a.listen("127.0.0.1",0),bp=b.listen("127.0.0.1",0);
     std::vector<EntityEndpoint> endpoints={{"node-a","127.0.0.1",ap,{"Manager","LoginEntity","Player"}},{"node-b","127.0.0.1",bp,{"Manager","LoginEntity","Player"}}};
+    // Reject impossible network phase deadlines before installing routes or
+    // enabling delivery. The maximum supported value remains constructible.
+    for (auto timeout : {0ms, -1ms, 30001ms, 300000ms}) {
+        bool transfer_rejected=false, delivery_rejected=false;
+        EntityTransferLimits transfer_limits;transfer_limits.timeout=timeout;
+        try { EntityTransfer invalid(a,ah,db,endpoints,owner_trust,transfer_limits); }
+        catch(const std::invalid_argument&) { transfer_rejected=true; }
+        EntityDeliveryLimits delivery_limits;delivery_limits.timeout=timeout;
+        try { EntityDelivery invalid(a,ah,db,endpoints,owner_trust,delivery_limits); }
+        catch(const std::invalid_argument&) { delivery_rejected=true; }
+        CHECK(transfer_rejected && delivery_rejected);
+        CHECK(!a.has_route("system.entity_transfer.probe") && !a.has_route("system.delivery.receive"));
+    }
+    {
+        EntityTransferLimits transfer_limits;transfer_limits.timeout=30s;
+        EntityDeliveryLimits delivery_limits;delivery_limits.timeout=30s;
+        EntityTransfer maximum(a,ah,db,endpoints,owner_trust,transfer_limits);
+        EntityDelivery maximum_delivery(a,ah,db,endpoints,owner_trust,delivery_limits);
+    }
     EntityTransfer at(a,ah,db,endpoints,owner_trust),bt(b,bh,db,endpoints,owner_trust);
     EntityDelivery da(a,ah,db,endpoints,owner_trust),db_delivery(b,bh,db,endpoints,owner_trust);
     EntityTimers ta(ah,db),tb(bh,db);

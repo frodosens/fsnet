@@ -124,7 +124,7 @@ EntityRouter::~EntityRouter() { stop(); }
 void EntityRouter::bind_owner(std::string type,std::string id,ConnectionRef owner,std::chrono::milliseconds timeout,Reply reply) {
     auto& self=*impl_;if(!reply)throw std::invalid_argument("reply required");
     if(self.stopped)return reply({Status::disconnected,{}});
-    if(!valid_entity_id(id) || type.size()>127 || timeout.count()<=0 || timeout>std::chrono::minutes(5))return reply({Status::rejected,{}});
+    if(!valid_entity_id(id) || type.size()>127 || timeout.count()<=0 || timeout>Node::max_call_timeout)return reply({Status::rejected,{}});
     std::string message;
     try{snapshot_detail::blob(message,type);snapshot_detail::blob(message,id);snapshot_detail::blob(message,owner?owner.key():std::string{});}catch(...){return reply({Status::rejected,{}});}
     auto bytes=message.size()+type.size()+id.size();
@@ -143,7 +143,7 @@ void EntityRouter::call_encoded(std::string message,std::chrono::milliseconds ti
     auto& self=*impl_;if(!reply)throw std::invalid_argument("reply required");
     if(self.stopped)return reply({Status::disconnected,{}});
     auto parsed=parse_entity_call_view(message);if(!parsed)return reply({Status::rejected,{}});
-    if(timeout.count()<=0 || timeout>std::chrono::minutes(5))return reply({Status::rejected,{}});
+    if(timeout.count()<=0 || timeout>Node::max_call_timeout)return reply({Status::rejected,{}});
     auto bytes=message.size()+parsed->expected_type.size()+parsed->request_id.size()+16;
     if(self.serial==UINT64_MAX || self.calls.size()>=self.limits.requests || bytes>self.limits.bytes-self.bytes)return reply({Status::overloaded,{}});
     auto call=std::make_shared<Impl::Call>();call->id=++self.serial;call->entity=parsed->id.str();call->type=parsed->expected_type;call->request_id=parsed->request_id;

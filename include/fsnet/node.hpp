@@ -39,6 +39,8 @@ struct TransportStats { std::size_t connections=0,pending=0,inflight=0,queued_by
 // separate threads/processes. No user code runs on a networking worker thread.
 class Node {
 public:
+    // Shared admission bound for RPCs and components built on this transport.
+    static constexpr std::chrono::milliseconds max_call_timeout{30000};
     explicit Node(std::string token, Limits limits = {}, TlsConfig tls = {});
     ~Node();
     Node(const Node&) = delete;

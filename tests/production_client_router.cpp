@@ -50,6 +50,25 @@ void router_deadlines() {
     });
     auto port = owner.listen("127.0.0.1", 0);
     EntityRouter router(caller, db, {{"owner", "127.0.0.1", port, {"Actor"}}});
+    // Above the transport deadline, keyed requests used to retry local
+    // rejection until the remaining time fell below 30s. Reject at admission,
+    // with no database/network work or retained queue capacity.
+    for (auto timeout : {0ms, -1ms, 30001ms, 300000ms}) {
+        for (auto key : {"", "deadline-receipt"}) {
+            unsigned completions = 0;
+            router.call(id, "medium", "invalid-timeout", timeout, [&](Result result) {
+                require(result.status == Status::rejected, "invalid router deadline rejected");
+                ++completions;
+            }, key);
+            require(completions == 1 && router.pending() == 0, "invalid router call rejected before admission");
+        }
+        unsigned completions = 0;
+        router.bind_owner("Actor", id.str(), {}, timeout, [&](Result result) {
+            require(result.status == Status::rejected, "invalid owner deadline rejected");
+            ++completions;
+        });
+        require(completions == 1 && router.pending() == 0, "invalid owner call rejected before admission");
+    }
     auto pump = [&] {
         owner.poll(); caller.poll(); router.poll();
         for (std::size_t i = 0; i < delayed.size();) {
@@ -65,6 +84,12 @@ void router_deadlines() {
         until(pump, [&] { return result.has_value(); }, 4s);
         return *result;
     };
+    std::optional<Result> boundary;
+    router.call(id, "medium", "maximum-timeout", 30s,
+        [&](Result result) { boundary = std::move(result); });
+    until(pump, [&] { return boundary.has_value(); });
+    require(boundary->status == Status::ok && executions["maximum-timeout"] == 1,
+            "maximum supported router deadline executes normally");
     require(call("slow", "unkeyed").status == Status::ok, "unkeyed RPC may use a three-second deadline");
     require(executions["unkeyed"] == 1, "unkeyed slow RPC executes once");
     require(call("slow", "keyed", "slow-receipt").status == Status::ok, "keyed slow RPC succeeds");

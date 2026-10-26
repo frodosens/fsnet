@@ -21,7 +21,7 @@ struct EntityDelivery::Impl:std::enable_shared_from_this<Impl> {
     Impl(Node& n,std::shared_ptr<EntityScriptHost> h,std::shared_ptr<Storage> db,std::vector<EntityEndpoint> e,Trust t,EntityDeliveryLimits l)
         :node(n),host(std::move(h)),storage(std::move(db)),endpoints(std::move(e)),trust(std::move(t)),limits(l) {
         validate_entity_endpoints(endpoints);
-        if(!host||!trust||!limits.requests||limits.requests>1024||limits.retry.count()<=0||limits.refresh.count()<=0||limits.timeout.count()<=0||limits.timeout>std::chrono::minutes(5))throw std::invalid_argument("invalid delivery settings");
+        if(!host||!trust||!limits.requests||limits.requests>1024||limits.retry.count()<=0||limits.refresh.count()<=0||limits.timeout.count()<=0||limits.timeout>Node::max_call_timeout)throw std::invalid_argument("invalid delivery settings");
         peers.resize(endpoints.size());
     }
     void finish(const std::shared_ptr<Attempt>& op,bool success=false){if(std::exchange(op->done,true))return;active.erase(op->key);if(success){if(!op->envelope.message.ticket.empty())++counters.acknowledged;}else ++counters.failures;}

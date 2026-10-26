@@ -43,6 +43,7 @@
 
 ## 验证与性能
 
+- [master 生产加固复核](MASTER_HARDENING_2026-10-26.md)：最新 master 边界修复、Release/sanitizer 复测与交替性能对照。
 - [生产审查修复与验证](PRODUCTION_REVIEW_FIXES_2026-10-26.md)：R01–R15 修复、投递源安全退休、接口变化与完整测试矩阵。
 - [生产审查基线](PRODUCTION_REVIEW_2026-10-26.md)：原始缺陷证据、能力边界与上线前验证要求；含旧基线复现夹具。
 - [当前接口与存储格式验证](REMOVE_ADAPTERS_2026-10-25.md)：各阶段源码版本、测试清单及证据，包含严格存储格式验证。
