@@ -70,7 +70,7 @@ cmake --build --preset debug
 ctest --preset debug
 cmake --preset release
 cmake --build --preset release
-python3 tools/review_performance.py .dev/build/release --delivery --output .dev/review.json
+python3 tools/review_performance.py .dev/build/release --runs 3 --output .dev/review.json
 ```
 
 激活默认令 FSNET_LIBRARY 指向 debug 的 libfsnet.so；选择其他配置时，在 source 前设置

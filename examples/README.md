@@ -1,7 +1,7 @@
-# 客户端与实体SDK示例
+# 客户端与实体 SDK 示例
 
-先看 [客户端SDK](../docs/CLIENT_SDK.md)。此目录保留应用接入示例；性能程序在
-[benchmarks](../benchmarks/README.md)，兼容脚本断言在 [tests/fixtures](../tests/fixtures/README.md)。
+这里提供共享 Lua 类、服务端和 Lua / C++ 客户端的完整接入流程。
+先看 [项目首页](../README.md) 或 [客户端 SDK](../docs/CLIENT_SDK.md)；性能程序另见 [benchmarks](../benchmarks/README.md)。
 
 ## 一键运行
 
@@ -70,4 +70,11 @@ CMake链接 `fsnet::client`，需要Lua时再链接 `fsnet::lua`。应用创建C
 `entities/shared.lua`、`entities/server.lua` 和 `entities/client.lua` 展示
 Manager → LoginEntity → Player → 地图 Node 的新模型。入口配置保存 Manager 的 EntityId；
 客户端通过 `fsnet.ref(id)` 调用，服务端通过 `Class:spawn` 自动分配全局 ID。
-创建、迁移、逻辑连接授权与稳定 ID 的合同及两节点运行命令见 [实施文档](../docs/GLOBAL_ENTITIES.md)。
+创建、迁移、逻辑连接授权与稳定 ID 的合同见 [全局实体](../docs/GLOBAL_ENTITIES.md)。
+两节点组合由 `fsnet-global-flow` 集成测试运行：
+
+```sh
+ctest --test-dir .dev/build/debug -R '^fsnet-global-flow$' --output-on-failure
+```
+
+它使用真实 loopback Node / Gateway 与内存存储，生产进程启动方式见 [部署手册](../docs/PRODUCTION.md)。

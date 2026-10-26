@@ -1,37 +1,109 @@
 # fsnet
 
-C++20 网络核心与 Lua 5.4 脚本宿主。当前版本提供有界 TCP RPC、可替换存储、服务路由与健康探测，以及客户端 ICE/STUN/TURN 互联。
+基于 C++20 和 Lua 5.4 的实体化网络游戏框架。C++ 提供网络、实体调度、同步与持久化机制，Lua 定义游戏规则；客户端与服务端共用实体 ID、属性模型、差量编解码和预测基础能力。
 
-目标边界：C++ 仅实现网络与分布式运行时、场景/实体载体及脚本宿主；游戏业务全部由脚本实现。Lua 承载游戏业务，已提供同实体串行调度和持久化属性载体。阶段计划见 [ROADMAP.md](docs/ROADMAP.md)。
+[快速开始](#快速开始) · [示例](examples/README.md) · [API 指南](docs/API_GUIDE.md) · [架构](docs/ARCHITECTURE.md) · [文档导航](docs/README.md)
 
-**当前是可运行的重构基础，不是已经验收的生产级 MMO 框架。** 已实现能力、测试和未完成的高可用/安全工作见 [架构与验收](docs/ARCHITECTURE.md)；旧实现的严重缺陷见 [代码审查](docs/REVIEW.md)。旧源码和原始文档保存在 [原始版本](https://github.com/frodosens/fsnet/tree/69a4b62e52ff1874d25f7e64cdb176829f2024be)。
+## 核心模型
 
-阅读当前设计与使用方法：[文档导航](docs/README.md) · [当前架构](docs/ARCHITECTURE.md) · [API 使用指南](docs/API_GUIDE.md) · [可运行示例](examples/README.md)。
+业务请求以实体为 RPC 载体：Manager、LoginEntity、Player 都拥有集群唯一的 `EntityId`，调用方使用实体 ID 和方法名发起请求。
 
-## 构建和测试
+```mermaid
+flowchart LR
+    Client["Client · C++ / Lua"] --> Gateway
+    Gateway --> A["Node A · Entities"]
+    Gateway --> B["Node B · Entities"]
+    A <-->|RPC / 创建 / 交接| B
+    A --> Storage["共享 Storage · 单记录 CAS"]
+    B --> Storage
+```
 
-需要 C/C++20 编译器、CMake 3.24+、make 或 Ninja。已在 Linux/GCC 14 上验证。
+- **Node 承载实体**：实体可在不同 Node 间迁移，ID 保持不变。客户端可以直连 Node，也可以通过 Gateway 接入。
+- **连接决定调用权限**：RPC 显式声明 client / server 调用角色，并可限制为 owner 访问；owner 绑定逻辑 `ConnectionRef`，账号映射由业务维护。
+- **客户端维护确认副本**：服务端控制可见性与操控目标，客户端据此创建 LocalPlayer / RemotePlayer 表现；预测状态与确认状态分开。
+- **状态通过 CAS 提交**：运行节点的租约、fence、实体状态与回执共同保存，失去所有权的旧节点不能继续提交。
+
+完整合同见 [全局实体](docs/GLOBAL_ENTITIES.md) 与 [连接授权](docs/CONNECTION_AUTHORITY_AND_TIMERS.md)。
+
+## 快速开始
+
+目前主要在 Linux / GCC 14 上验证。准备 C/C++20 编译器、CMake 3.24+、GNU make 和 Perl；可选用 Ninja。示例与进程测试需要 Python3，完整 TLS 测试还需要 `openssl` 命令。
+
+从仓库根目录构建：
 
 ```sh
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
-cmake --build build -j4
+cmake --build build -j2
 ctest --test-dir build --output-on-failure
 ```
 
-CMake 按固定版本与 SHA256 下载 Asio、SQLiteCpp（含 SQLite 源码）、libjuice 和 Lua，并从源码编译。应用不依赖 `/usr/local` 中的 libevent、jemalloc、SQLite 等本地应用库；仅保留编译器和操作系统运行库依赖。首次构建需要访问 `codeload.github.com`；后续可复用 build 中的下载缓存。离线构建需预先填充 FetchContent 源码，不自动使用未知系统库。
+CMake 下载固定版本并校验 SHA256，编译 Asio、SQLiteCpp / SQLite、libjuice、OpenSSL 和 Lua。首次构建需要网络；后续可复用构建目录中的依赖缓存。
+
+运行示例：
 
 ```sh
-cmake -S . -B build-asan -DCMAKE_BUILD_TYPE=Debug -DFSNET_SANITIZERS=ON
-cmake --build build-asan -j4
-ctest --test-dir build-asan --output-on-failure
+python3 examples/run.py scene --build build
+python3 examples/run.py scene --native --build build
+python3 examples/run.py attributes --build build
+python3 examples/run.py timers --build build
 ```
 
-Sanitizer 构建检查 C++ 核心、Lua 宿主和原生 C ABI。
+| 示例 | 展示内容 |
+| --- | --- |
+| scene / Lua | 登录实体 → 创建 Player → 自动客户端表现与控制 → 移动预测、确认与重放 |
+| scene / native | C++ SDK 连接、实体 RPC、确认快照与控制事件 |
+| attributes | vec3、mat4x4、嵌套结构、list / map / set、字段赋值与 batch |
+| timers | 延迟与周期任务、取消，以及服务端强制终止后的持久恢复 |
 
-## 云环境
+启动器自动组合脚本并清理临时进程。示例使用 loopback 演示身份和临时存储；镜头与效果用状态和打印表示，便于替换成图形引擎接口。源码与接入说明见 [examples](examples/README.md)。
 
-开发环境入口随源码保存，不依赖 `/workspace/fsnet-env` 等固定路径。CMake/Ninja 使用固定版本，
-工具和构建输出统一放在仓库内、被 Git 忽略的 `.dev/`：
+## 已实现能力
+
+| 能力 | 机制与使用入口 |
+| --- | --- |
+| 全局实体 | 全局 ID 分配、创建幂等、跨节点创建、稳定引用；[实体 API](docs/OBJECT_API.md) |
+| 属性同步 | 类型与权限校验、struct / vec3 / mat4x4、固定数组与有界容器；[属性 schema](docs/ENTITY_SCHEMA.md) |
+| 公共差量 | 上下行共用字段路径 patch、容器编辑与显式合批；[差量生成](docs/SHARED_ATTRIBUTE_DELTAS.md) |
+| 客户端预测 | 独立预测状态、服务器校正、未确认输入重放与副作用限制；[预测](docs/PREDICTION.md) |
+| 生命周期 | 创建、激活、卸载、销毁、空闲回收与 drain；[生命周期](docs/ENTITY_LIFECYCLE.md) |
+| 跨节点接入 | Gateway 身份委托、目录路由、属性订阅转发与恢复；[Gateway](docs/CLIENT_GATEWAY.md) |
+| 定向迁移 | 指定目标 Node 的交接、租约与 fence 切换、稳定 ID 和客户端投影；[实体交接](docs/ENTITY_TRANSFER.md) |
+| 持久命令 | outbox / inbox、重启重投与接收去重；[可靠投递](docs/ENTITY_DELIVERY.md) |
+| 持久计时器 | 命名回调、延迟 / 指定时间 / 周期、取消与重启恢复；[计时器](docs/ENTITY_TIMERS.md) |
+| 传输与运行边界 | 有界 TCP RPC、TLS 1.3 双向认证、超时 / 背压、Lua 内存与指令预算；[安全](docs/SECURITY.md) |
+
+`call` 是普通请求，SDK 不会自动重放不确定结果；可靠实体命令使用 `send`。迁移保持实体身份并恢复订阅，但输入自动缓存重发、渲染平滑和业务补偿仍需应用处理。
+
+## 客户端 SDK
+
+C++ 使用 `fsnet::Client` 管理连接、实体视图、不可变确认快照和控制事件；Lua 通过同一个 Client 的 `script_host()` 接入，复用同步与预测机制。
+
+安装到自己的目录：
+
+```sh
+cmake --install build --prefix "$PWD/.dev/install"
+```
+
+在消费项目中设置 `CMAKE_PREFIX_PATH` 指向该目录，然后使用导出的 CMake 目标：
+
+```cmake
+find_package(fsnet CONFIG REQUIRED COMPONENTS client lua)
+target_link_libraries(game PRIVATE fsnet::client fsnet::lua)
+```
+
+纯原生客户端只需要 `client` 组件和 `fsnet::client`；核心目标为 `fsnet::core`。连接、事件循环与 Lua 嵌入方式见 [客户端 SDK](docs/CLIENT_SDK.md)。
+
+## 存储与部署
+
+`fsnet::Storage` 的最低合同是带版本读取、单记录原子 CAS 和条件删除，不要求多记录数据库事务。支持 Memory、SQLite、本地 POSIX 文件和可选 PostgreSQL，也可实现自定义后端。
+
+启动器通过 `FSNET_STORAGE_URI` 选择后端，例如 `memory:`、`sqlite:/path/state.db`、`file:/path/records` 或 `postgresql://...`。多节点必须访问同一权威存储；本地文件后端用于同机多进程，跨机器共享存储的部署合同见 [存储](docs/STORAGE.md)。
+
+`fsnet-service` 提供 owner / gateway 启动模式、证书身份映射、指标和优雅排空。跨机器连接使用 mTLS，明文仅允许 loopback。安装包、证书与路由配置见 [部署手册](docs/PRODUCTION.md)，模板位于 [deploy](deploy/)。
+
+## 开发与验证
+
+仓库提供固定版本工具准备脚本，工具和输出保存在被 Git 忽略的 `.dev/`：
 
 ```sh
 bash tools/dev/bootstrap.sh
@@ -41,90 +113,29 @@ cmake --build --preset debug
 ctest --preset debug
 ```
 
-另有 `release`、`asan`、`core`、`postgres` presets。兼容入口 `bash tools/cloud-install.sh [preset]`
-会完成工具准备、构建和测试，默认 debug。无 sudo 的 Debian/Ubuntu 可用私有 APT 缓存补齐
-可选 PostgreSQL 的 bison/flex/m4，具体见 [开发环境与迁移](docs/DEV_ENVIRONMENT.md)。
+| 配置 | 用途 |
+| --- | --- |
+| `debug` / `release` | Lua ON，普通测试与交付示例 |
+| `asan` | ASan / UBSan |
+| `core` | Lua OFF |
+| `postgres` | PostgreSQL 存储与服务端集成测试 |
 
-复用当前 checkout；每个云任务已隔离，不需要新建 worktree。旧示例的本地诊断产物不属于新框架的运行依赖。
+也可直接用 CMake 选项：`FSNET_WITH_LUA=OFF` 关闭 Lua，`FSNET_SANITIZERS=ON` 开启 sanitizer，`FSNET_WITH_POSTGRES=ON` 构建 PostgreSQL 后端。PostgreSQL 额外需要 bison、flex、m4；私有服务端测试使用 `FSNET_POSTGRES_TEST_SERVER=ON`。详情见 [开发环境](docs/DEV_ENVIRONMENT.md)。
 
-## 可选脚本适配器
+当前测试覆盖实体权限与 fencing、字段 / 容器 patch、预测约束、迁移、投递 ACK 丢失、计时器进程重启与安装包接入。配置、结果和二进制哈希见 [验证记录](docs/REMOVE_ADAPTERS_2026-10-25.md)。
 
-默认构建 Lua 宿主；可以关闭脚本宿主，仅构建网络核心：
-
-```sh
-# 只构建网络/分布式核心，不下载或编译 Lua。
-cmake -S . -B build-core -DFSNET_WITH_LUA=OFF
-cmake --build build-core -j4
-ctest --test-dir build-core --output-on-failure
-```
-
-通用 C ABI 用于原生调用与协议测试。`FSNET_WITH_LUA=OFF` 不生成 `fsnet-lua` / `fsnet-script` 目标。
-
-## 客户端 SDK 与示例
-
-C++使用 `fsnet::Client` 管理连接、实体视图、不可变确认快照和控制事件；Lua通过同一Client的
-script_host运行现有实体、字段/容器合批和预测。安装后用 `find_package(fsnet CONFIG REQUIRED)`
-和 `fsnet::client` / `fsnet::lua` 接入，详见 [客户端SDK](docs/CLIENT_SDK.md)。
+性能测量使用 Release 构建：
 
 ```sh
-# 完成上面的debug构建后：
-python3 examples/run.py scene
-python3 examples/run.py scene --native
-python3 examples/run.py attributes
+python3 tools/review_performance.py build --runs 3 --output .dev/benchmark.json
 ```
 
-共享类、服务端、客户端分别位于 `examples/scene` 和 `examples/attributes`；启动器自动组合
-脚本并清理本机进程。例子包括登录spawn、自动LocalPlayer/RemotePlayer、镜头控制、vec3预测
-移动、结构/容器同步和写入校验。玩法在Lua，SDK只提供机制。
-[示例导航](examples/README.md)说明演示与生产接入边界；[脚本宿主合同](docs/SCRIPTING.md)
-保留底层接口说明。旧单项脚本迁入tests/fixtures，性能程序迁入benchmarks。
+各基准分别测量原生 RPC、Gateway 转发、编解码、属性值模型和复制；完整 Lua / CAS 链路单独记录。测量范围与原始样本见 [基准说明](benchmarks/README.md) 和 [实体性能报告](docs/BENCHMARK_CURRENT_ENTITIES_2026-10-26.md)。
 
-## 数据库
+## 当前范围
 
-`fsnet::Storage`（兼容别名 `Database`）定义读取、带版本的 compare_exchange 和条件删除；多记录事务只是可选扩展。Memory 与 SQLite 运行同一合同测试，可通过实现接口替换后端。SQLite 重开恢复已提交数据；版本不在删除后复用。业务必须使用读出的版本，不要假设版本固定递增 1。
+模块资源加载、安全热更新与状态迁移尚未交付。ICE / STUN / TURN 提供 P2P 原语，完整的加密传输、认证信令与后备链路仍待集成。自动 AOI、账号与会话策略、图形引擎适配由应用另行实现。
 
-存储最低要求是单记录原子 CAS，不要求数据库事务；可以使用 file:/目录 的 POSIX 文件后端。PostgreSQL 是可选后端，使用 FSNET_WITH_POSTGRES=ON 从固定源码构建。详见 [存储合同](docs/STORAGE.md)。
+本机测试覆盖运行机制；跨机器存储 HA、网络分区、长时间容量和公网跨 NAT 仍需部署环境验证。当前版本只支持当前存储格式，不提供旧存档兼容或迁移工具。
 
-`EntityCatalog / EntityScriptHost` 提供 owner 转移与 fenced save：将 owner、fencing 和实体状态保存在同一记录，通过单记录 CAS 提交，接管后旧 owner 的写入返回失败，不依赖数据库事务。接管时机由控制平面决定；此接口不把单机 SQLite 变成跨机器数据库集群。
-
-## 服务容错与 P2P
-
-C++ 的 `ClusterClient` 支持静态成员健康探测、指数退避重连、实体路由和幂等调用的一次故障重试。它不提供持久实体 owner 的一致性选举或跨机器数据复制。
-
-`fsnet::IcePeer` 提供 ICE 描述、candidate 交换、UDP 收发、STUN 和 TURN 配置；`TurnRelay` 提供带过期凭据和配额的中继。集成测试只交换 relay candidates 并实际传输数据，另有直连测试。真实跨 NAT 网络仍需部署验收。
-
-```sh
-# 通过安全环境配置提供 FSNET_TURN_USER / FSNET_TURN_PASSWORD（至少 16 字节）。
-./build/fsnet-relay 127.0.0.1
-```
-
-公网部署需设置实际 bind/external address、UDP 3478 和 UDP 49160–49200 的端口规则。TCP 已提供 TLS 1.3 双向证书验证、目标名称验证与路由授权，未加密连接仅允许 loopback。原始 ICE UDP 仍需安全会话层；认证信令与 UDP 禁用时的后备尚待完成。详见 [安全配置](docs/SECURITY.md)。
-
-## 性能测量
-
-```sh
-./build/fsnet-benchmark 10000
-```
-
-输出一次真实 TCP loopback 的吞吐与 p50/p99。载荷 128 字节、并发 128，两个 Node 在一个线程内推进，不代表公网、脚本逻辑、数据库或真实游戏容量。不得从这个结果推断 MMO 在线人数。
-
-属性同步另有 `fsnet-attribute-benchmark all 20000`（Release、开启 Lua），覆盖结构属性写入、副本增量应用及 1/8/32 个接收者的真实 TCP 同步。
-前后对比、原始样本与复现方法见 [属性同步性能](docs/ATTRIBUTE_PERFORMANCE.md)。
-
-## 兼容性
-
-旧 C/libevent 实现、旧 C++ 客户端、Xcode 用户文件、旧构建产物、依赖压缩包和旧示例已从主线移除，通过上述原始版本保留历史。新协议有版本和边界检查，与旧的 `F` 包头协议不兼容。旧逻辑需要迁移到显式服务，旧客户端需要适配新协议或经过专门的隔离兼容网关；不能直接接入新节点。
-
-依赖与许可证见 [THIRD_PARTY.md](docs/THIRD_PARTY.md)。
-
-实体 RPC 权限、Lua 属性声明与原生客户端自动同步见 [ENTITY_SCHEMA.md](docs/ENTITY_SCHEMA.md)。支持直连 owner 或 [Gateway 委托、转发与迁移](docs/CLIENT_GATEWAY.md)。服务端 `Player:transfer(id, target_node)` 的指定目标交接见 [ENTITY_TRANSFER.md](docs/ENTITY_TRANSFER.md)。部署包和故障验收见 [运行手册](docs/PRODUCTION.md)。
-
-脚本业务推荐使用 [面向对象的 Lua 实体 API](docs/OBJECT_API.md)，示例为 [属性示例](examples/attributes/shared.lua)。
-
-服务端登录创建/恢复实体、自动 LocalPlayer/RemotePlayer 表现、控制目标与移除同步见
-[实体存在性与表现](docs/ENTITY_PRESENCE.md)，可运行示例见 [场景客户端](examples/scene/client.lua)。
-
-类型化 struct、vec3/mat4x4、固定数组，以及整值/字段赋值自动提交和同步见
-[结构属性](docs/STRUCTURED_ATTRIBUTES.md) 与 [变长容器](docs/CONTAINER_ATTRIBUTES.md)，支持 [显式合批与下行容器增量](docs/ATTRIBUTE_BATCHING.md) 和 [递归字段路径增量](docs/FIELD_PATH_DELTAS.md)，默认 [上下行共用差量](docs/SHARED_ATTRIBUTE_DELTAS.md)。
-
-服务端 `ref:send(method,payload)` 的持久化投递、重启恢复和去重协议见 [ENTITY_DELIVERY.md](docs/ENTITY_DELIVERY.md)。同步 call 与客户端输入不自动改为持久消息。
+更多资料：[文档导航](docs/README.md) · [API 使用指南](docs/API_GUIDE.md) · [第三方依赖与许可证](docs/THIRD_PARTY.md)

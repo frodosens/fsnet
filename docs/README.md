@@ -1,62 +1,61 @@
 # 文档导航
 
-当前实现快照：2026-10-26，`refactor/global-entities`。
-C++ 提供客户端/服务端共用的引擎机制，业务逻辑写在 Lua；文档中的“已实现”不代表完成生产容量或公网验收。
+当前文档描述全局实体、逻辑连接授权和客户端 / 服务端共用的引擎机制。玩法与账号策略由 Lua / 应用定义。
 
-## 开始使用
+## 阅读顺序
 
-1. [当前架构](ARCHITECTURE.md)：模块边界、状态载体、提交时间、双向差量、协议与未完成范围。
-2. [API 使用指南](API_GUIDE.md)：共享类 → 服务端注册/登录 → 客户端实体 → 字段/容器修改 → 合批 → 预测，以及原生入口。
-3. [示例启动说明](../examples/README.md)：仓库内交付的可运行程序与脚本组合。
-4. [开发环境与迁移](DEV_ENVIRONMENT.md)：固定工具版本、构建 presets、仓库内缓存与环境重建。
-5. [构建与启动](../README.md)：依赖、CMake、存储与本地启动入口。
+1. [项目首页](../README.md)：项目模型、构建、可运行示例和能力范围。
+2. [API 使用指南](API_GUIDE.md)：从类定义、实体创建到同步、合批与预测。
+3. [全局实体](GLOBAL_ENTITIES.md)：EntityId、Node、连接授权、创建幂等与路由合同。
+4. [示例导航](../examples/README.md)：完整服务端 / 客户端流程及源码位置。
+5. [当前架构](ARCHITECTURE.md)：模块边界、提交过程和公共引擎机制。
 
-## API 合同
-
-业务入口统一为全局实体，旧适配 API 已删除。
-
-全局实体分支的最新授权合同见[逻辑连接授权与持久计时器](CONNECTION_AUTHORITY_AND_TIMERS.md)，
-账号与角色的关联由业务维护；引擎的 owner 授权绑定逻辑连接。
+## API 与机制
 
 | 主题 | 文档 |
 | --- | --- |
-| C++客户端连接、实体句柄、Lua桥接与安装 | [客户端 SDK](CLIENT_SDK.md) |
-| 类、继承、本地方法、RPC、作用域 | [面向对象 API](OBJECT_API.md) |
-| 本地/确认/预测实例、执行域 | [共享实体](SHARED_ENTITIES.md) |
-| 身份、RPC/属性权限、原生同步与提案 | [实体 schema](ENTITY_SCHEMA.md) |
-| 服务端初始化、激活、卸载、删除与 drain | [生命周期](ENTITY_LIFECYCLE.md) |
-| 持久延迟、周期任务、取消、失败重试和重启恢复 | [实体计时器](ENTITY_TIMERS.md) |
-| 登录、spawn/ref、可见性、控制与表现 | [实体存在性](ENTITY_PRESENCE.md) |
-| struct、vec3、矩阵、固定数组与字段视图 | [结构属性](STRUCTURED_ATTRIBUTES.md) |
-| 变长 list/map/set、Item/Task 示例 | [容器属性](CONTAINER_ATTRIBUTES.md) |
-| batch 边界、草稿、失败与副作用限制 | [合批](ATTRIBUTE_BATCHING.md) |
-| 字段路径、FSA3、大小选择与接收应用 | [字段差量](FIELD_PATH_DELTAS.md) |
-| 默认上下行共用差量、固定 ID 回退 | [共用差量](SHARED_ATTRIBUTE_DELTAS.md) |
-| 输入确认、校正、重放和效果处理 | [预测](PREDICTION.md) |
-| Lua 宿主、协程、预算、宿主边界 | [脚本宿主](SCRIPTING.md) |
-| CAS、存储后端、fencing 与恢复 | [存储](STORAGE.md) |
-| Gateway 委托、转发、迁移与资源边界 | [跨节点接入](CLIENT_GATEWAY.md) |
-| 部署模板、发行包、指标、故障验收 | [交付运行手册](PRODUCTION.md) |
-| TLS、可信身份、网络与 P2P 边界 | [安全](SECURITY.md) |
+| C++ SDK、实体句柄、确认快照、Lua 嵌入 | [客户端 SDK](CLIENT_SDK.md) |
+| 类、继承、本地方法、RPC 与作用域 | [Lua 实体 API](OBJECT_API.md) |
+| 本地实例、确认副本与执行域 | [共享实体](SHARED_ENTITIES.md) |
+| RPC / 属性权限、schema 与提案校验 | [实体 schema](ENTITY_SCHEMA.md) |
+| 逻辑 ConnectionRef 与 owner 授权 | [连接授权](CONNECTION_AUTHORITY_AND_TIMERS.md) |
+| 服务端生命周期、销毁与 drain | [生命周期](ENTITY_LIFECYCLE.md) |
+| 可见性、控制与 LocalPlayer / RemotePlayer | [客户端实体表现](ENTITY_PRESENCE.md) |
+| struct、vec3、矩阵与固定数组 | [结构属性](STRUCTURED_ATTRIBUTES.md) |
+| 有界 list / map / set | [容器属性](CONTAINER_ATTRIBUTES.md) |
+| batch 草稿、提交与副作用限制 | [合批](ATTRIBUTE_BATCHING.md) |
+| 字段路径 patch 与接收端应用 | [字段差量](FIELD_PATH_DELTAS.md) |
+| 上下行共用生成器与重试语义 | [公共差量](SHARED_ATTRIBUTE_DELTAS.md) |
+| 确认、校正、重放与效果处理 | [客户端预测](PREDICTION.md) |
+| 指定目标 Node 交接 | [实体迁移](ENTITY_TRANSFER.md) |
+| outbox / inbox、重投与去重 | [持久投递](ENTITY_DELIVERY.md) |
+| 延迟、周期、取消与重启恢复 | [持久计时器](ENTITY_TIMERS.md) |
+| Lua 协程、预算与宿主边界 | [脚本运行时](SCRIPTING.md) |
 
-## 实现状态与证据
+## 开发与部署
 
-- [删除适配层与验证](REMOVE_ADAPTERS_2026-10-25.md)：统一实体 API、Storage 与取消边界，含当前测试和基准样本。
+- [开发环境](DEV_ENVIRONMENT.md)：工具准备、CMake presets、依赖与 `.dev/` 布局。
+- [存储合同](STORAGE.md)：CAS、后端、fencing 与当前存储格式。
+- [Gateway](CLIENT_GATEWAY.md)：身份委托、目录路由、订阅转发与迁移恢复。
+- [部署手册](PRODUCTION.md)：安装包、证书、配置、指标与排空。
+- [安全](SECURITY.md)：TLS、可信身份、资源边界与 P2P 限制。
+- [第三方依赖](THIRD_PARTY.md)：依赖版本与许可证。
 
-- [当前全局实体基准](BENCHMARK_CURRENT_ENTITIES_2026-10-26.md)：统一 API 后的三轮原始样本、测量范围与分配诊断。
-- [全局实体结构与复制审查](REVIEW_GLOBAL_STRUCTURE_AND_COPIES_2026-10-25.md)：旧入口残留、路由策略、计时器容量与字符串分配诊断。
-- [全局实体重构实施](GLOBAL_ENTITIES.md)：已对齐边界、已实现阶段与尚待接入范围。
-- [全局实体寻址性能](BENCHMARK_GLOBAL_ENTITIES_2026-10-25.md)：相同 Lua/CAS 链路的五轮比较及完整帧字节。
+## 验证与性能
 
-- [完成状态](ENGINE_COMPLETION.md)：当前能力与尚未交付项。
-- [路线图](ROADMAP.md)：后续阶段，不将计划视为已实现 API。
-- [全局实体与业务 RPC 规划](ENTITY_ADDRESSING_PLAN.md)：已确认的全局独立 EntityId、业务统一实体调用、多 LoginHub 与跨节点创建约束；历史规划，当前已实现合同见全局实体文档。
-- [新旧实体方案比较](ENTITY_ADDRESSING_COMPARISON.md)：当前/建议 API、迁移复用、创建幂等、性能成本与复杂度；历史差异分析，当前接口见全局实体文档。
-- [验证记录](VALIDATION.md)：各阶段配置、测试数量与未验证场景；最新配置为 Lua ON、PostgreSQL OFF；当前结果见验证记录末节。
-- [Copy 优化实施](COPY_OPTIMIZATION.md)：借用解析、同步组帧、Gateway属性字节转发和确认版本共享。
-- [当前性能与字符串复制 review](PERFORMANCE_REVIEW.md)：RPC/Gateway、Lua/属性、mTLS持久化链路和 copy 审阅；本轮没有修改运行时。
-- [第二轮架构与实现审查](CODE_REVIEW_ROUND2_2026-10-24.md)：保留基线 9de3218 的复现；13 项确认问题及回调边界已修复，修复机制与验证见文档首节。
-- [属性复制开销优化](ATTRIBUTE_PERFORMANCE.md)、[合批性能](CONTAINER_BATCHING_PERFORMANCE.md)：历史提交、测量方法与原始数据。
-- [字段字节样本](benchmarks/field-paths-2026-10-24.json)、[双向字节样本](benchmarks/shared-deltas-2026-10-24.json)：编码大小，不是网络延迟/在线人数结论。
+- [当前接口与存储格式验证](REMOVE_ADAPTERS_2026-10-25.md)：各阶段源码版本、测试清单及证据，包含严格存储格式验证。
+- [实体性能样本](BENCHMARK_CURRENT_ENTITIES_2026-10-26.md)：RPC / Gateway 与 Lua / CAS 分开测量，附三轮原始数据和边界。
+- [基准程序](../benchmarks/README.md)：程序职责与复现命令。
+- [公共复制优化](COPY_OPTIMIZATION.md)：借用解析、组帧、字节转发与确认版本共享。
 
-生命周期、Gateway、交付测试及发行包结果见验证记录；部署范围与未验证项在运行手册中单列。
+本机通过不代表生产容量或跨机故障域已验收；具体限制见项目首页和部署手册。旧报告中的数字、测试名和命令仅对应其标注提交。
+
+## 设计演进与历史记录
+
+以下资料用于了解决策过程，当前可用 API 以本页前半部分的指南为准。
+
+- [实体寻址规划](ENTITY_ADDRESSING_PLAN.md)、[新旧方案分析](ENTITY_ADDRESSING_COMPARISON.md)、[寻址对比样本](BENCHMARK_GLOBAL_ENTITIES_2026-10-25.md)。
+- [结构与字符串复制审查](REVIEW_GLOBAL_STRUCTURE_AND_COPIES_2026-10-25.md)及[修复记录](GLOBAL_REVIEW_FIXES_2026-10-25.md)。
+- [整体性能审查](PERFORMANCE_REVIEW.md)、[属性性能](ATTRIBUTE_PERFORMANCE.md)、[容器合批性能](CONTAINER_BATCHING_PERFORMANCE.md)。
+- [第二轮代码审查](CODE_REVIEW_ROUND2_2026-10-24.md)、[历次验证](VALIDATION.md)。
+- [阶段路线图](ROADMAP.md)、[阶段能力表](ENGINE_COMPLETION.md)：保留历史计划与当时的实施状态。
