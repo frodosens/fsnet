@@ -16,7 +16,21 @@ TLS 最低版本 1.3，双向验证证书链；出站校验目标证书名称，
 
 无 TLS 时只允许 loopback 监听/连接。跨机器、容器网络或公开监听必须显式提供 TLS。C ABI 提供 fsnet_create_tls/fsnet_authorize。
 
-Node 在首次 token 握手前仅接受恰好 `14 + token.size()` 字节的帧体，避免只发大长度头就预分配应用帧。所有连接共享 `Limits::receive_bytes` 接收帧体预算（默认 16MiB，必须不小于 `frame_bytes`）；认证后的未完成大帧也会计费，额度不足时关闭该连接。`TransportStats::receive_bytes` 表示当前保留的帧体字节，读取完成或取消后释放；不包含 TLS、socket 和已进入应用处理的请求。应用仍应按证书/账号限制连接和请求速率。
+传输版本为 2，不兼容旧版 token 首帧。双方使用 OpenSSL 随机数及 HMAC-SHA256 进行三步认证，token 不在线上发送：
+
+1. 接收方发送 32 B server nonce。
+2. 发起方发送 32 B client nonce 与 `HMAC(token, client域 || serverNonce || clientNonce)`。
+3. 接收方验证后发送 `HMAC(token, server域 || serverNonce || clientNonce)`，发起方验证成功后才发送应用帧。
+
+固定角色域防止反射，两个连接随机数防止跨连接回放；proof 使用常量时间比较。认证控制帧优先于应用队列。
+非空 token 应为高熵部署秘密；空 token 依靠 mTLS 身份与授权，无 TLS 的空 token 仅可用于可信 loopback 开发。
+HMAC 不提供数据加密，也不替代证书角色/路由/实体 owner 校验。所有互连进程应一同升级，不进行旧协议降级。
+
+认证前只接受当前步骤所需的固定帧体（47 B 或 79 B），避免只发大长度头就预分配应用帧。
+所有连接共享 `Limits::receive_bytes` 接收帧体预算（默认 16MiB，必须不小于 `frame_bytes`）；认证后的未完成大帧也会计费，额度不足时关闭该连接。
+`TransportStats::receive_bytes` 表示当前保留的帧体字节，读取完成或取消后释放；不包含 TLS、socket 和已进入应用处理的请求。
+默认 `poll_events=256`、`poll_time=2000us` 共同限制每次 poll 的就绪回调处理；单个应用回调不能被抢占，`run()` 则连续驱动。
+应用仍应按证书/账号限制连接和请求速率；poll 预算不等于每连接速率限制或尾延迟承诺。
 
 原生 Node 支持在自身回调中 stop 或销毁。运行中的 poll/run 保留内部实现，取消回调在最外层驱动退出后排空；递归 poll/run 会抛出 logic_error。Node 的调用及析构仍必须在所属线程进行。
 

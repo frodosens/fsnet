@@ -20,7 +20,15 @@ struct CallIdentity {
     std::uint64_t peer = 0; // transport-local connection; never serialized as identity
     ConnectionRef connection{};
     std::function<bool()> current{}; // owner-thread revalidation, never serialized
-    bool live()const {try{return !current || current();}catch(...){return false;}}
+    // Optional per-operation cancellation. It must not be copied into durable
+    // connection handles: a connection can outlive the RPC that observed it.
+    std::function<bool()> execution{};
+    bool live()const {
+        try {
+            if(current && !current())return false;
+            return !execution || execution();
+        } catch(...) {return false;}
+    }
     bool owns(const std::string& owner)const {
         return live() && connection.matches_key(owner);
     }

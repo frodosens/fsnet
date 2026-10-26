@@ -44,6 +44,8 @@ struct EntityScriptHost::Impl : std::enable_shared_from_this<Impl> {
         std::optional<Result> delivery_error;
         std::optional<ConnectionRef> new_owner{};
         std::optional<TimerFire> timer{};
+        AttributeGuard attribute_guard{};
+        std::optional<std::string> expected_owner{};
     };
     struct Slot {
         EntityHandle handle;
@@ -52,7 +54,7 @@ struct EntityScriptHost::Impl : std::enable_shared_from_this<Impl> {
         std::uint64_t activation_fence = 0;
         Clock::time_point next_tick, touched;
         std::string transient;
-        std::uint64_t transient_fence = 0, transient_revision = 0;
+        std::uint64_t resident_fence = 0, transient_revision = 0;
         std::string owner_key{};
     };
     struct Job {
@@ -83,6 +85,8 @@ struct EntityScriptHost::Impl : std::enable_shared_from_this<Impl> {
         std::optional<timer_index::Entry> timer_index_entry;
         bool timer_dirty=false;
         std::size_t timer_charge=0;
+        bool executing=false;
+        std::shared_ptr<void> execution;
     };
     struct Admission {
         std::uint64_t id;std::size_t bytes;Reply reply;Clock::time_point deadline;bool done=false;
@@ -206,13 +210,16 @@ struct EntityScriptHost::Impl : std::enable_shared_from_this<Impl> {
     }
     void complete(const std::shared_ptr<Job>& job, Result result) {
         if (std::exchange(job->responded, true)) return;
+        // External native callbacks retain only weak execution references. Once
+        // a task completes or times out, they must not retain its state graph.
+        auto execution = std::move(job->execution);
         if(job->timer_dirty && (result.status==Status::ok || job->commit_uncertain))++timer_revision;
         active.erase(job->entity);
         auto it = slots.find(job->entity);
         if (job->attributes && result.status == Status::ok && it != slots.end()) {
             auto& slot = it->second;
             if (slot.transient.size() > job->transient.size()) counters.transient_bytes -= slot.transient.size() - job->transient.size();
-            slot.transient = std::move(job->transient); slot.transient_fence = job->fence;
+            slot.transient = std::move(job->transient); slot.resident_fence = job->fence;
             slot.transient_revision = job->attributes->current.revision;
         } else counters.transient_bytes -= job->cache_growth;
         job->cache_growth = 0;
@@ -220,13 +227,15 @@ struct EntityScriptHost::Impl : std::enable_shared_from_this<Impl> {
             // A protocol-only commit may renew this process's lease. Its state
             // and local activation did not change; carry the cache across that
             // renewal exactly as a normal state commit does.
-            if(it->second.transient_fence==job->previous_fence) it->second.transient_fence=job->fence;
+            if(it->second.resident_fence==job->previous_fence) it->second.resident_fence=job->fence;
             if(it->second.activated && it->second.activation_fence==job->previous_fence) it->second.activation_fence=job->fence;
         }
         if (it != slots.end()) { it->second.busy = false; it->second.touched = Clock::now();
-            if(result.status==Status::ok && job->metadata)it->second.owner_key=job->metadata->owner_connection;
+            if(result.status==Status::ok && job->metadata)it->second.owner_key=std::move(job->metadata->owner_connection);
+            if(result.status==Status::ok)it->second.resident_fence=job->fence;
             if (result.status == Status::ok && !job->metadata_only) { it->second.activated = true; it->second.activation_fence=job->fence; }
             else if ((!job->fence && !job->preserve_activation) || job->owner_lost) it->second.activated = false;
+            if(job->owner_lost)it->second.resident_fence=0;
             it->second.releasing=false; }
         --counters.pending; counters.queued_bytes -= job->request.bytes; counters.state_bytes -= job->resident; job->resident = 0;
         if (result.status == Status::ok) ++counters.committed;
@@ -242,7 +251,7 @@ struct EntityScriptHost::Impl : std::enable_shared_from_this<Impl> {
             if (it != slots.end()) {
                 counters.transient_bytes -= it->second.transient.size();
                 std::string{}.swap(it->second.transient);
-                it->second.transient_fence = it->second.transient_revision = 0;
+                it->second.resident_fence = it->second.transient_revision = 0;
                 it->second.activated = false;
                 it->second.handle.generation = ++generation;
             }
@@ -279,7 +288,7 @@ struct EntityScriptHost::Impl : std::enable_shared_from_this<Impl> {
     }
     void execute(const std::shared_ptr<Job>& job,Reply done) {
         if(job->metadata_only) return done({Status::ok,state_message(job->state,"")});
-        struct Chain { std::vector<std::shared_ptr<Method>> steps; std::size_t index=0; std::string state; Reply done; };
+        struct Chain { std::vector<std::shared_ptr<Method>> steps; std::size_t index=0; std::string state; Reply done; std::shared_ptr<std::function<void()>> advance; };
         auto chain=std::make_shared<Chain>(); chain->state=std::move(job->state); chain->done=std::move(done);
         auto type=job->request.method->type;
         if(!is_control(job->request.route,type)) {
@@ -297,33 +306,54 @@ struct EntityScriptHost::Impl : std::enable_shared_from_this<Impl> {
             chain->steps.push_back(std::move(noop));
         } else chain->steps.push_back(job->request.method);
         auto advance=std::make_shared<std::function<void()>>();
-        *advance=[weak=weak_from_this(),job,chain,weak_advance=std::weak_ptr(advance)] {
+        chain->advance=advance;
+        job->execution=chain;
+        *advance=[weak=weak_from_this(),weak_job=std::weak_ptr(job),weak_chain=std::weak_ptr(chain)] {
+            auto job=weak_job.lock(); auto chain=weak_chain.lock(); if(!job || !chain) return;
             auto self=weak.lock(); if(!self || self->stopped || job->responded) return;
             if(job->request.deadline<=Clock::now()) return chain->done({Status::timeout,{}});
-            auto keep=weak_advance.lock(); if(!keep) return;
             bool last=chain->index+1==chain->steps.size();
             auto method=chain->steps[chain->index++];
             auto identity=last?job->request.identity:CallIdentity{Caller::server,"framework:lifecycle"};
+            // A script adapter may still have a suspended task after its host
+            // deadline releases the mailbox. Bind every lifecycle/RPC step to
+            // this exact transaction, so an old task cannot act on the next Job
+            // merely because it has the same entity type and ID.
+            identity.execution=[weak,weak_job,previous=last?std::function<bool()>{}:job->request.identity.current,
+                                inherited=job->request.identity.execution] {
+                auto self=weak.lock();auto job=weak_job.lock();
+                auto live=[&] {
+                    if(!self || self->stopped || !job || job->responded || !job->executing || job->committing || job->request.deadline<=Clock::now())return false;
+                    auto active=self->active.find(job->entity);
+                    return active!=self->active.end() && active->second==job;
+                };
+                if(!live() || (previous && !previous()) || (inherited && !inherited()))return false;
+                return live(); // caller revalidation can itself cancel/stop
+            };
             auto slot=self->slots.find(job->entity); if(slot==self->slots.end()) return chain->done({Status::disconnected,{}});
             auto input=entity_message(slot->second.handle.id,state_message(chain->state,last?std::string_view(job->request.payload):std::string_view{}));
             auto once=std::make_shared<bool>(false);
-            auto complete=[weak,job,chain,keep,last,once](Result result) {
+            auto complete=[weak,weak_job,weak_chain,last,once](Result result) {
                 if(std::exchange(*once,true)) return;
+                auto job=weak_job.lock(); auto chain=weak_chain.lock(); if(!job || !chain) return;
                 auto self=weak.lock(); if(!self || self->stopped || job->responded) return;
-                if(last || result.status!=Status::ok) return chain->done(std::move(result));
-                auto state=parse_state_message(result.data);
-                if(!state || state->state.size()>self->limits.state_bytes) return chain->done({Status::overloaded,{}});
-                auto growth=state->state.size()>chain->state.size()?5*(state->state.size()-chain->state.size()):0;
-                if(growth>self->limits.resident_bytes-self->counters.state_bytes) return chain->done({Status::overloaded,{}});
-                self->counters.state_bytes+=growth; job->resident+=growth;
-                chain->state=std::move(state->state); (*keep)();
+                try {
+                    if(last || result.status!=Status::ok) return chain->done(std::move(result));
+                    auto state=parse_state_message(result.data);
+                    if(!state || state->state.size()>self->limits.state_bytes) return chain->done({Status::overloaded,{}});
+                    auto growth=state->state.size()>chain->state.size()?5*(state->state.size()-chain->state.size()):0;
+                    if(growth>self->limits.resident_bytes-self->counters.state_bytes) return chain->done({Status::overloaded,{}});
+                    self->counters.state_bytes+=growth; job->resident+=growth;
+                    chain->state=std::move(state->state); (*chain->advance)();
+                } catch(...) { self->complete(job,{Status::internal,{}}); }
             };
             if(last) job->logic_started=true;
             try { method->logic(identity,std::move(input),complete); } catch(...) { complete({Status::internal,{}}); }
         };
+        job->executing=true;
         (*advance)();
     }
-    void enqueue(const std::string& route, std::string data, Reply reply, bool tick = false, CallIdentity identity = {Caller::server, {}}, std::string handoff_target={}, std::uint64_t accept_transfer=0, std::optional<DeliveryEnvelope> incoming={}, std::optional<DeliveryAck> ack={}, Clock::time_point deadline={},std::optional<ConnectionRef> new_owner={},std::optional<TimerFire> timer={},std::optional<EntityMessage> decoded={}) {
+    void enqueue(const std::string& route, std::string data, Reply reply, bool tick = false, CallIdentity identity = {Caller::server, {}}, std::string handoff_target={}, std::uint64_t accept_transfer=0, std::optional<DeliveryEnvelope> incoming={}, std::optional<DeliveryAck> ack={}, Clock::time_point deadline={},std::optional<ConnectionRef> new_owner={},std::optional<TimerFire> timer={},std::optional<EntityMessage> decoded={},AttributeGuard attribute_guard={},std::optional<std::string> expected_owner={}) {
         if (stopped) return reply({Status::disconnected, {}});
         auto method = methods.find(route);
         if (method == methods.end()) return reply({Status::not_found, {}});
@@ -368,30 +398,41 @@ struct EntityScriptHost::Impl : std::enable_shared_from_this<Impl> {
             auto time = Clock::now();
             it = slots.emplace(entity, Slot{{selected->type, message->id, owner, ++generation}, {}, false, false, false, 0,
                 time + limits.tick_interval, time, {}, 0, 0}).first;
-            schedule.push_back(entity);
+            try {schedule.push_back(entity);}catch(...){slots.erase(it);throw;}
         }
         if (it->second.releasing) return reply({Status::rejected, {}});
         auto bytes = charged;
-        it->second.queue.push_back({selected, std::move(message->payload), route, std::move(message->request_id), std::move(reply),
-            Clock::now() + limits.request_timeout, bytes, tick, std::move(identity), std::move(handoff_target), accept_transfer, std::move(incoming), std::move(ack), {}});
-        auto& request=it->second.queue.back();
+        Request request{selected, std::move(message->payload), route, std::move(message->request_id), reply,
+            Clock::now() + limits.request_timeout, bytes, tick, std::move(identity), std::move(handoff_target), accept_transfer, std::move(incoming), std::move(ack), {}};
         request.new_owner=std::move(new_owner);
         request.timer=std::move(timer);
+        request.attribute_guard=std::move(attribute_guard);
+        request.expected_owner=std::move(expected_owner);
         if(deadline!=Clock::time_point{})request.deadline=std::min(request.deadline,deadline);
         if(request.incoming) {
             const auto& m=request.incoming->message; auto found=methods.find(selected->type+"."+m.method);
             if(found==methods.end() || internal(found->first,selected->type)) request.delivery_error=Result{Status::not_found,{}};
             else { request.method=found->second; request.route=found->first; }
         }
+        const bool control=is_control(request.route,selected->type);
+        it->second.queue.push_back(std::move(request));
         ++counters.pending; counters.queued_bytes += bytes;
-        if(is_control(request.route,selected->type)) it->second.releasing=true;
+        if(control) it->second.releasing=true;
     }
     void acquire(const std::string& entity, Slot& slot) {
-        auto job = std::make_shared<Job>(); job->entity = entity;
-        job->cached_fence=slot.transient.empty()?0:slot.transient_fence;
-        job->request = std::move(slot.queue.front()); slot.queue.pop_front(); slot.busy = true;
-        job->preserve_activation=job->request.incoming.has_value() || job->request.ack.has_value() || job->request.new_owner.has_value();
+        std::shared_ptr<Job> job;
+        bool detached=false;
+        try {
+        job = std::make_shared<Job>(); job->entity = entity;
+        // This fence also records residency for an empty attribute image. No
+        // business fields is not evidence that an instance was unloaded.
+        job->cached_fence=slot.resident_fence;
         active.emplace(entity, job);
+        // Keep the existing deque node until executor admission succeeds. An
+        // overloaded executor can restore the request without allocating a new
+        // queue node; allocation failure can still complete the detached Job.
+        job->request = std::move(slot.queue.front()); slot.busy = true;detached=true;
+        job->preserve_activation=job->request.incoming.has_value() || job->request.ack.has_value() || job->request.new_owner.has_value();
         auto owner_id = owner; auto clock = now; auto settings = limits;
         auto accepted = storage.submit(job->request.bytes + limits.state_bytes + limits.receipt_bytes + limits.delivery_bytes + 3*limits.timer_bytes,
             [job, owner_id, clock, settings](Storage& db) {
@@ -404,6 +445,10 @@ struct EntityScriptHost::Impl : std::enable_shared_from_this<Impl> {
                         job->status=current.metadata->destroyed?Status::not_found:Status::rejected;return;
                     }
                     job->metadata=current.metadata;
+                    if(job->request.expected_owner && (!current.metadata ||
+                        current.metadata->owner_connection!=*job->request.expected_owner)) {
+                        job->status=Status::rejected;return;
+                    }
                     if(job->request.new_owner && (!current.metadata || !current.initialized)) {job->status=Status::overloaded;return;}
                     if(job->request.timer && (!current.metadata || current.metadata->rebuildable || !current.initialized)) {job->status=Status::rejected;return;}
                     if(current.metadata && current.metadata->rebuildable &&
@@ -495,6 +540,7 @@ struct EntityScriptHost::Impl : std::enable_shared_from_this<Impl> {
             }, [weak = weak_from_this(), job](std::exception_ptr error) {
                 auto self = weak.lock();
                 if (!self || self->stopped || job->responded) return;
+                try {
                 if (error) return self->complete(job, {Status::internal, {}});
                 if (job->status != Status::ok) {
                     if(job->request.incoming && job->status==Status::not_found) {job->metadata_only=true;return self->complete(job,{Status::ok,encode_delivery_ack(job->request.incoming->message.ticket,{Status::not_found,{}})});}
@@ -502,6 +548,13 @@ struct EntityScriptHost::Impl : std::enable_shared_from_this<Impl> {
                 }
                 if(job->metadata) {
                     auto slot=self->slots.find(job->entity);if(slot!=self->slots.end())slot->second.owner_key=job->metadata->owner_connection;
+                }
+                if(job->request.attribute_guard) {
+                    try {
+                        if(!job->metadata || !job->request.attribute_guard(job->metadata->owner_connection))
+                            return self->complete(job,{Status::rejected,{}});
+                    } catch(...) { return self->complete(job,{Status::rejected,{}}); }
+                    if(self->stopped || job->responded)return;
                 }
                 if(self->delivery_enabled && !job->delivery.epoch) job->delivery.epoch=job->version;
                 if (job->request.deadline <= Clock::now()) return self->complete(job, {Status::timeout, {}});
@@ -539,7 +592,7 @@ struct EntityScriptHost::Impl : std::enable_shared_from_this<Impl> {
                         if(job->metadata && (job->created || job->metadata->rebuildable))model.restore_full(image.values,image.revision);
                         else model.restore(image.values, image.revision);
                         auto& cached = slot->second;
-                        if (!cached.transient.empty() && job->previously_owned && cached.transient_fence == job->previous_fence &&
+                        if (!cached.transient.empty() && job->previously_owned && cached.resident_fence == job->previous_fence &&
                             (cached.transient_revision == image.revision || (job->metadata && job->metadata->rebuildable))) {
                             auto transient = decode_attributes(cached.transient);
                             model.restore_full(transient.values,(job->metadata && job->metadata->rebuildable)?transient.revision:image.revision);
@@ -584,12 +637,20 @@ struct EntityScriptHost::Impl : std::enable_shared_from_this<Impl> {
                     auto owner = weak.lock();
                     if (!owner || owner->stopped || job->responded || job->committing) return;
                     job->committing = true;
+                    try {
                     if (result.status != Status::ok) {
                         if(job->request.incoming && job->logic_started && (result.status==Status::rejected || result.status==Status::not_found)) {
                             job->delivery_result=std::move(result);job->metadata_only=true;job->delivery=std::move(*job->delivery_rollback);job->timers=std::move(*job->timer_rollback);job->timer_dirty=false;result={Status::ok,state_message(job->rollback,"")};
                         } else return owner->complete(job, std::move(result));
                     }
                     if (job->request.deadline <= Clock::now()) return owner->complete(job, {Status::timeout, {}});
+                    if(job->request.attribute_guard) {
+                        try {
+                            if(!job->metadata || !job->request.attribute_guard(job->metadata->owner_connection))
+                                return owner->complete(job,{Status::rejected,{}});
+                        } catch(...) {return owner->complete(job,{Status::rejected,{}});}
+                        if(owner->stopped || job->responded)return;
+                    }
                     if (!job->metadata_only && job->request.method->policy) {
                         try {
                             auto slot = owner->slots.find(job->entity);
@@ -708,15 +769,30 @@ struct EntityScriptHost::Impl : std::enable_shared_from_this<Impl> {
                             else owner->complete(job, {job->status, job->status == Status::ok ? std::move(job->output) : std::string{}});
                         });
                     if (!accepted) owner->complete(job, {Status::overloaded, {}});
+                    } catch(...) { owner->complete(job,{Status::internal,{}}); }
                 };
                 try { self->execute(job,done); }
                 catch (...) { done({Status::internal, {}}); }
+                } catch(...) { self->complete(job,{Status::internal,{}}); }
             });
         if (!accepted) {
             // The request was admitted to the mailbox. Temporary executor
             // pressure defers acquisition, preserving its original deadline.
             active.erase(entity); slot.busy=false;
-            slot.queue.push_front(std::move(job->request));
+            slot.queue.front()=std::move(job->request);
+        } else slot.queue.pop_front();
+        } catch(...) {
+            if(detached) {
+                slot.queue.pop_front();
+                complete(job,{Status::internal,{}});
+            } else {
+                // Job/map/capture allocation failed before ownership moved out
+                // of the mailbox. Do not leave the accepted request stranded.
+                auto request=std::move(slot.queue.front());slot.queue.pop_front();
+                if(is_control(request.route,request.method->type))slot.releasing=false;
+                --counters.pending;counters.queued_bytes-=request.bytes;++counters.failed;
+                request.reply({Status::internal,{}});
+            }
         }
     }
     void register_stateful(std::string route,std::string type,std::string initial,Handler logic) {
@@ -903,6 +979,54 @@ void EntityScriptHost::read_attributes(std::string type, std::string id, Reply r
     try { message = entity_message(id, ""); } catch (...) { return reply({Status::rejected, {}}); }
     impl_->enqueue(type + ".$snapshot", std::move(message), std::move(reply), false, {Caller::server, "framework:snapshot"});
 }
+void EntityScriptHost::read_owner_binding(std::string type,std::string id,Reply reply) {
+    if(!reply)throw std::invalid_argument("missing owner callback");
+    auto keep=impl_;auto& self=*keep;
+    if(!valid_entity_id(id) || type.empty() || type.size()>127 || type.find('\0')!=std::string::npos)
+        return reply({Status::rejected,{}});
+    auto admission=self.admit(type.size()+id.size()+64,std::move(reply));if(!admission)return;
+    try {
+        auto result=std::make_shared<Result>(Result{Status::not_found,{}});
+        if(!self.storage.submit(self.limits.state_bytes+1024,[type=std::move(type),id=std::move(id),result](Storage& db) {
+            auto record=db.get(entity_record_key(EntityId(id)));if(!record)return;
+            auto value=decode_entity_record_view(record->value);
+            if(!value.metadata || value.metadata->destroyed)return;
+            if(value.metadata->type!=type){result->status=Status::rejected;return;}
+            result->data=value.metadata->owner_connection;result->status=Status::ok;
+        },[weak=std::weak_ptr(keep),admission,result](std::exception_ptr error) {
+            auto self=weak.lock();if(!self || admission->done)return;
+            if(self->stopped)return self->finish(admission,{Status::disconnected,{}});
+            if(Clock::now()>=admission->deadline)return self->finish(admission,{Status::timeout,{}});
+            self->finish(admission,error?Result{Status::internal,{}}:std::move(*result));
+        }))self.finish(admission,{Status::overloaded,{}});
+    } catch(...) { self.finish(admission,{Status::internal,{}}); }
+}
+void EntityScriptHost::read_attributes(std::string type,std::string id,AttributeGuard guard,Reply reply) {
+    if(!reply)throw std::invalid_argument("missing snapshot callback");
+    if(!guard)return reply({Status::rejected,{}});
+    auto deadline=Clock::now()+impl_->limits.request_timeout;
+    auto requested_type=type,requested_id=id;
+    read_owner_binding(std::move(type),std::move(id),
+        [weak=std::weak_ptr(impl_),type=std::move(requested_type),id=std::move(requested_id),guard=std::move(guard),reply=std::move(reply),deadline](Result result)mutable {
+            auto self=weak.lock();if(!self || self->stopped)return reply({Status::disconnected,{}});
+            if(result.status!=Status::ok)return reply(std::move(result));
+            if(Clock::now()>=deadline)return reply({Status::timeout,{}});
+            try { if(!guard(result.data))return reply({Status::rejected,{}}); }
+            catch(...) {return reply({Status::rejected,{}});}
+            std::shared_ptr<Reply> pending;
+            try {
+                pending=std::make_shared<Reply>(std::move(reply));
+                Reply complete=[pending](Result value) {
+                    auto reply=std::exchange(*pending,{});if(reply)reply(std::move(value));
+                };
+                self->enqueue(type+".$snapshot",entity_message(id,""),std::move(complete),false,
+                    {Caller::server,"framework:authorized-snapshot"},{},0,{},{},deadline,{},{},{},std::move(guard),std::move(result.data));
+            } catch(...) {
+                auto failed=pending?std::exchange(*pending,{}):std::move(reply);
+                if(failed)failed({Status::internal,{}});
+            }
+        });
+}
 void EntityScriptHost::write_attributes(std::string type, std::string id, CallIdentity who, std::string proposal, Reply reply, std::string request_id) {
     if (!reply) throw std::invalid_argument("missing write callback");
     std::string message;
@@ -955,6 +1079,35 @@ std::size_t EntityScriptHost::poll(std::size_t budget) {
     for(const auto& [id,admission]:self.admissions) {(void)id;if(Clock::now()>=admission->deadline)expired.push_back(admission);}
     for(auto& admission:expired)self.finish(admission,{Status::timeout,{}});
     auto time = Clock::now();
+    // Only script/native execution can be abandoned here. A worker acquiring a
+    // lease or performing the final CAS owns mutable Job state and must finish
+    // before it is observed or its outcome is reported.
+    std::vector<std::shared_ptr<Impl::Job>> timed_out;
+    for(const auto& [entity,job]:self.active) {
+        (void)entity;
+        if(job->executing && !job->committing && job->request.deadline<=time)timed_out.push_back(job);
+    }
+    for(auto& job:timed_out) {
+        self.complete(job,{Status::timeout,{}});
+        if(self.stopped)return work;
+    }
+    // Deadlines are independent of mailbox order: a short-deadline request may
+    // be queued behind a longer running request, including a native handler.
+    std::vector<Reply> expired_replies;
+    for(auto& [entity,slot]:self.slots) {
+        (void)entity;
+        for(auto request=slot.queue.begin();request!=slot.queue.end();) {
+            if(request->deadline>time){++request;continue;}
+            expired_replies.push_back(std::move(request->reply));
+            if(Impl::is_control(request->route,request->method->type))slot.releasing=false;
+            --self.counters.pending;self.counters.queued_bytes-=request->bytes;++self.counters.failed;
+            request=slot.queue.erase(request);
+        }
+    }
+    for(auto& reply:expired_replies) {
+        reply({self.stopped?Status::disconnected:Status::timeout,{}});
+    }
+    if(self.stopped)return work;
     auto remaining = self.schedule.size();
     while (remaining-- && !self.schedule.empty()) {
         if (work >= budget || self.stopped) break;
@@ -1161,7 +1314,7 @@ void EntityScriptHost::stop() {
     if (std::exchange(self.stopped, true)) return;
     // Accepted operations own mutable Job results until the worker has joined.
     // Synchronize before complete() observes or cancels any of those results.
-    self.storage.stop();
+    self.storage.stop(AsyncDatabase::StopMode::cancel_queued);
     if(self.global_entry){self.parent->unbind(entity_call_route);self.parent->unbind("system.entity.owner");}
     auto admissions=std::move(self.admissions);self.admissions.clear();
     for(auto& [id,admission]:admissions) {(void)id;try{self.finish(admission,{Status::disconnected,{}});}catch(...){}}

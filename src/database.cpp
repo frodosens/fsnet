@@ -1,5 +1,6 @@
 #include "fsnet/database.hpp"
 #include <SQLiteCpp/SQLiteCpp.h>
+#include <sqlite3.h>
 #include <limits>
 #include <mutex>
 #include <stdexcept>
@@ -60,6 +61,7 @@ public:
 class Sqlite final : public Storage {
     std::mutex mutex_;
     SQLite::Database db_;
+    bool persistent_ = false;
     std::optional<Record> read(std::string_view key) {
         SQLite::Statement query(db_, "SELECT value,version FROM fsnet_records WHERE key=?");
         query.bind(1, std::string(key));
@@ -71,6 +73,8 @@ class Sqlite final : public Storage {
 public:
     explicit Sqlite(const std::string& file)
       : db_(file, SQLite::OPEN_READWRITE | SQLite::OPEN_CREATE | SQLite::OPEN_FULLMUTEX) {
+        const auto* filename = sqlite3_db_filename(db_.getHandle(), "main");
+        persistent_ = filename && *filename;
         db_.setBusyTimeout(5000);
         db_.exec("PRAGMA journal_mode=WAL; PRAGMA synchronous=FULL;"
                  "CREATE TABLE IF NOT EXISTS fsnet_records (key TEXT PRIMARY KEY, value BLOB NOT NULL, version INTEGER NOT NULL CHECK(version>0));"
@@ -81,6 +85,7 @@ public:
     std::optional<Record> get(std::string_view key) override {
         std::lock_guard lock(mutex_); return read(key);
     }
+    bool persistent() const noexcept override { return persistent_; }
     bool supports_transactions() const override { return true; }
     bool compare_exchange(std::string_view key, std::uint64_t expected, std::string_view value) override {
         return transact({{std::string(key), expected, std::string(value)}});

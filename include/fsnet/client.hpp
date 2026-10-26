@@ -69,6 +69,8 @@ public:
                std::chrono::milliseconds timeout=std::chrono::milliseconds{0});
     void unwatch(ClientEntityHandle);
     std::optional<ClientEntity> entity(ClientEntityHandle) const;
+    // Prefer an automatic projection, preserving ownership/control metadata.
+    // With duplicate watches of one kind, choose the oldest live subscription.
     std::optional<ClientEntity> entity(const EntityKey&) const;
     std::optional<ClientEntity> entity(EntityId) const;
     std::optional<ClientEntity> controlled() const;

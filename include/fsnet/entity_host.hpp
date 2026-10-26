@@ -75,6 +75,12 @@ public:
     // Trusted framework API, not a public RPC: serialized with entity operations,
     // returns the full image for subsequent recipient-specific filtering.
     void read_attributes(std::string type, std::string id, Reply);
+    using AttributeGuard = std::function<bool(const std::string& owner_key)>;
+    // Reads only metadata without acquiring a lease or invoking lifecycle hooks.
+    void read_owner_binding(std::string type, std::string id, Reply);
+    // Authorizes before lease acquisition, checks the same owner again in the
+    // worker, and rechecks the guard before lifecycle execution and publication.
+    void read_attributes(std::string type, std::string id, AttributeGuard, Reply);
     void bind_context(std::string, RpcPolicy, ContextHandler) override;
     void bind_stateful_context(std::string, std::string, std::string, RpcPolicy, ContextHandler) override;
     // Updates the shared method policy, rechecked by queued and resumed calls.

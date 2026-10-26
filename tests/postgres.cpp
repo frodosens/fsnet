@@ -1,6 +1,8 @@
 #include "fsnet/database.hpp"
+#include "fsnet/async_database.hpp"
 #include "fsnet/entity_catalog.hpp"
 #include <atomic>
+#include <chrono>
 #include <cstdlib>
 #include <iostream>
 #include <thread>
@@ -16,8 +18,82 @@ int main(int argc, char** argv) {
             CHECK(rejected);
             return 0;
         }
+        if (argc > 1 && std::string_view(argv[1]) == "--dns-preflight") {
+            const auto started = std::chrono::steady_clock::now();
+            for (const auto* options : {
+                "host=must-not-resolve.invalid sslmode=verify-full",
+                "host=localhost hostaddr=must-not-resolve.invalid sslmode=verify-full",
+                "host=localhost,localhost hostaddr=127.0.0.1 sslmode=verify-full",
+                "host=localhost hostaddr=127.0.0.1,127.0.0.1 sslmode=verify-full",
+                "service=unexpanded-fixture sslmode=verify-full",
+                "service=unexpanded-fixture host=server.fsnet sslmode=verify-full",
+                "service=unexpanded-fixture hostaddr=127.0.0.1 sslmode=verify-full",
+                "host=localhost,localhost,localhost,localhost,localhost,localhost,localhost,localhost,localhost sslmode=verify-full"}) {
+                bool rejected = false;
+                try { fsnet::postgres_database(options); }
+                catch (const std::invalid_argument&) { rejected = true; }
+                CHECK(rejected);
+            }
+            CHECK(std::chrono::steady_clock::now() - started < std::chrono::seconds(1));
+            std::cout << "PASS PostgreSQL: DNS/service and destination-list rejection before connection\n";
+            return 0;
+        }
         auto* uri = std::getenv("FSNET_TEST_POSTGRES_URI"); CHECK(uri);
+        if (argc > 1 && std::string_view(argv[1]) == "--connect-blackhole") {
+            auto started = std::chrono::steady_clock::now();
+            bool failed = false;
+            try { fsnet::postgres_database(uri); }
+            catch (const std::runtime_error&) { failed = true; }
+            const auto elapsed = std::chrono::steady_clock::now() - started;
+            CHECK(failed && elapsed >= std::chrono::seconds(4) && elapsed < std::chrono::seconds(8));
+            std::cout << "PASS PostgreSQL: bounded post-TCP startup deadline\n";
+            return 0;
+        }
         auto db = fsnet::postgres_database(uri);
+        if (argc > 1 && std::string_view(argv[1]) == "--hostname") {
+            CHECK(db->persistent() && !db->get("network/hostname"));
+            std::cout << "PASS PostgreSQL: numeric hostaddr with verified logical TLS hostname\n";
+            return 0;
+        }
+        if (argc > 1 && (std::string_view(argv[1]) == "--read-blackhole" || std::string_view(argv[1]) == "--write-blackhole")) {
+            const bool write = std::string_view(argv[1]) == "--write-blackhole";
+            std::cout << "ready" << std::endl;
+            std::string command;
+            std::getline(std::cin, command); CHECK(command == "blocked");
+            fsnet::AsyncDatabase worker(db);
+            fsnet::AsyncDatabase concurrent(db);
+            bool completed = false, failed = false;
+            bool concurrent_completed = false, concurrent_failed = false;
+            const auto started = std::chrono::steady_clock::now();
+            CHECK(worker.submit(1, [write](fsnet::Storage& storage) {
+                if (write) (void)storage.compare_exchange("network/uncertain", 0, "committed-before-lost-reply");
+                else (void)storage.get("network/read");
+            }, [&](std::exception_ptr error) { completed = true; failed = bool(error); }));
+            if (!write) CHECK(concurrent.submit(1, [](fsnet::Storage& storage) {
+                (void)storage.get("network/concurrent-read");
+            }, [&](std::exception_ptr error) { concurrent_completed = true; concurrent_failed = bool(error); }));
+            worker.stop();
+            concurrent.stop();
+            CHECK(worker.poll() == 1 && completed && failed && worker.pending() == 0);
+            if (!write) CHECK(concurrent.poll() == 1 && concurrent_completed && concurrent_failed && concurrent.pending() == 0);
+            const auto elapsed = std::chrono::steady_clock::now() - started;
+            CHECK(elapsed >= std::chrono::seconds(4) && elapsed < std::chrono::seconds(8));
+            std::cout << "bounded" << std::endl;
+            std::getline(std::cin, command); CHECK(command == "recovered");
+            auto uncertain = db->get("network/uncertain");
+            if (write) {
+                // Losing the reply does not imply the write rolled back. It
+                // must not be silently replayed or reported as definitely lost.
+                CHECK(uncertain && uncertain->value == "committed-before-lost-reply");
+                CHECK(!db->compare_exchange("network/uncertain", 0, "must-not-replay"));
+                CHECK(db->erase("network/uncertain", uncertain->version));
+            } else CHECK(!uncertain);
+            CHECK(db->compare_exchange("network/healthy", 0, "recovered"));
+            auto healthy = db->get("network/healthy"); CHECK(healthy && healthy->value == "recovered");
+            CHECK(db->erase("network/healthy", healthy->version));
+            std::cout << "PASS PostgreSQL: bounded blackhole operation/stop, uncertain write and reconnect\n";
+            return 0;
+        }
         if (argc > 1 && std::string_view(argv[1]) == "--reconnect") {
             CHECK(db->compare_exchange("postgres/durable", 0, "acknowledged"));
             std::cout << "ready" << std::endl; std::string command; std::getline(std::cin, command);

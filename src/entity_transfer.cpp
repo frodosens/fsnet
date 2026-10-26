@@ -175,6 +175,6 @@ void EntityTransfer::stop() {
     auto copy=self.operations;
     for(auto& [key,op]:copy) { (void)key; try { self.finish(op,{Status::disconnected,{}}); } catch(...) {} }
     for(auto peer:self.peers) if(peer) self.node.close(peer);
-    self.storage.stop();
+    self.storage.stop(AsyncDatabase::StopMode::cancel_queued);
 }
 }

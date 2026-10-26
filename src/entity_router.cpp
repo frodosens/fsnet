@@ -92,16 +92,24 @@ struct EntityRouter::Impl : std::enable_shared_from_this<Impl> {
             if (Clock::now() < member.retry) return self->failed(call, Status::disconnected);
             try {
                 if (!member.peer) member.peer = self->node.connect(member.endpoint.address, member.endpoint.port, member.endpoint.tls_peer_name);
-                auto remaining = std::chrono::duration_cast<std::chrono::milliseconds>(call->deadline - Clock::now());
-                auto attempt_timeout = std::clamp(remaining, std::chrono::milliseconds(1), std::chrono::milliseconds(1000));
+                auto remaining = std::chrono::ceil<std::chrono::milliseconds>(call->deadline - Clock::now());
+                // A slow, healthy RPC is still the original attempt. Retrying it
+                // every second cuts off unkeyed calls and needlessly duplicates
+                // keyed work. Only actual failures can trigger a safe retry;
+                // every attempt shares the caller's original absolute deadline.
+                auto attempt_timeout = std::max(remaining, std::chrono::milliseconds(1));
                 self->node.call(member.peer, call->route, call->message, attempt_timeout,
-                    [weak, call, index = *selected](Result result) {
+                    [weak, call, index = *selected, peer = member.peer](Result result) {
                         auto self = weak.lock();
                         if (!self || self->stopped || call->done) return;
-                        if (result.status == Status::disconnected || result.status == Status::timeout) {
+                        if (result.status == Status::disconnected) {
                             auto& member = self->members[index];
-                            auto peer = std::exchange(member.peer, 0); member.retry = Clock::now() + std::chrono::milliseconds(250);
-                            if (peer) self->node.close(peer);
+                            // A late callback from a replaced connection must
+                            // not tear down its healthy replacement.
+                            if (member.peer == peer) {
+                                member.peer = 0; member.retry = Clock::now() + std::chrono::milliseconds(250);
+                                if (peer) self->node.close(peer);
+                            }
                         }
                         if (result.status == Status::ok) self->finish(call, std::move(result));
                         else self->failed(call, result.status);
@@ -170,7 +178,7 @@ void EntityRouter::stop() {
     auto calls = self.calls;
     for (auto& [id, call] : calls) { try { self.finish(call, {Status::disconnected, {}}); } catch (...) {} }
     for (auto& member : self.members) if (auto peer = std::exchange(member.peer, 0)) self.node.close(peer);
-    self.storage.stop();
+    self.storage.stop(AsyncDatabase::StopMode::cancel_queued);
 }
 void RoutedScriptHost::call_entity(std::string route, std::string data, std::chrono::milliseconds timeout, Reply reply) {
     if(route==entity_call_route) {

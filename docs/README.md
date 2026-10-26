@@ -43,6 +43,8 @@
 
 ## 验证与性能
 
+- [生产审查修复与验证](PRODUCTION_REVIEW_FIXES_2026-10-26.md)：R01–R15 修复、投递源安全退休、接口变化与完整测试矩阵。
+- [生产审查基线](PRODUCTION_REVIEW_2026-10-26.md)：原始缺陷证据、能力边界与上线前验证要求；含旧基线复现夹具。
 - [当前接口与存储格式验证](REMOVE_ADAPTERS_2026-10-25.md)：各阶段源码版本、测试清单及证据，包含严格存储格式验证。
 - [实体性能样本](BENCHMARK_CURRENT_ENTITIES_2026-10-26.md)：RPC / Gateway 与 Lua / CAS 分开测量，附三轮原始数据和边界。
 - [基准程序](../benchmarks/README.md)：程序职责与复现命令。

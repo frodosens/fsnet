@@ -3,6 +3,10 @@
 #include <asio/ssl.hpp>
 #include <openssl/ssl.h>
 #include <openssl/x509.h>
+#include <openssl/crypto.h>
+#include <openssl/hmac.h>
+#include <openssl/rand.h>
+#include <algorithm>
 #include <array>
 #include <deque>
 #include <limits>
@@ -26,16 +30,25 @@ std::string frame(unsigned kind, Status status, std::uint64_t id, std::string_vi
     std::string out;
     out.reserve(18 + route.size() + data.size());
     put(out, 14 + route.size() + data.size(), 4);
-    put(out, 1, 1); put(out, kind, 1); put(out, static_cast<unsigned>(status), 1); put(out, 0, 1);
+    put(out, 2, 1); put(out, kind, 1); put(out, static_cast<unsigned>(status), 1); put(out, 0, 1);
     put(out, id, 8); put(out, route.size(), 2);
     out += route; out += data;
     return out;
 }
-bool equal_token(const std::string& a, const std::string& b) {
-    if (a.size() != b.size()) return false;
-    unsigned diff = 0;
-    for (std::size_t i = 0; i < a.size(); ++i) diff |= static_cast<unsigned char>(a[i] ^ b[i]);
-    return diff == 0;
+using Nonce = std::array<unsigned char, 32>;
+constexpr std::size_t authentication_queue_reserve = 2 * (18 + 65);
+std::optional<Nonce> authentication_proof(std::string_view token, bool server,
+                                        const Nonce& server_nonce, const Nonce& client_nonce) {
+    // Fixed-size nonces and distinct role domains bind the proof to this
+    // connection and prevent reflecting a server proof back as a client proof.
+    std::string transcript = server ? "fsnet/node/v2/auth/server" : "fsnet/node/v2/auth/client";
+    transcript.append(reinterpret_cast<const char*>(server_nonce.data()), server_nonce.size());
+    transcript.append(reinterpret_cast<const char*>(client_nonce.data()), client_nonce.size());
+    Nonce proof{}; unsigned length = 0;
+    if (!HMAC(EVP_sha256(), token.data(), static_cast<int>(token.size()),
+              reinterpret_cast<const unsigned char*>(transcript.data()), transcript.size(),
+              proof.data(), &length) || length != proof.size()) return {};
+    return proof;
 }
 }
 struct Node::Impl : std::enable_shared_from_this<Node::Impl> {
@@ -63,10 +76,12 @@ struct Node::Impl : std::enable_shared_from_this<Node::Impl> {
     std::unordered_map<std::uint64_t, Pending> calls;
     std::unordered_map<std::string, Route> handlers;
     Impl(std::string auth, Limits settings, TlsConfig security) : token(std::move(auth)), limits(settings), tls_config(std::move(security)) {
-        if ((token.empty() && tls_config.ca_file.empty()) || token.size() > 4096 || limits.frame_bytes < token.size() + 14 ||
+        if (token.size() > 4096 || limits.frame_bytes < 14 + 65 ||
             limits.frame_bytes > 16 * 1024 * 1024 || limits.queued_bytes < limits.frame_bytes + 4 ||
+            limits.queued_bytes < authentication_queue_reserve ||
             !limits.connections || !limits.pending_calls || !limits.inflight_requests || limits.idle_timeout.count() <= 0 ||
-            limits.receive_bytes < limits.frame_bytes)
+            limits.receive_bytes < limits.frame_bytes || !limits.poll_events || limits.poll_time.count() <= 0 ||
+            limits.poll_time > std::chrono::seconds(1))
             throw std::invalid_argument("invalid token or node limits");
         if (!tls_config.ca_file.empty() || !tls_config.certificate_file.empty() || !tls_config.private_key_file.empty()) {
             if (tls_config.ca_file.empty() || tls_config.certificate_file.empty() || tls_config.private_key_file.empty())
@@ -92,7 +107,16 @@ struct Node::Impl : std::enable_shared_from_this<Node::Impl> {
         if (stopped) return;
         if (driving) throw std::logic_error("recursive node poll/run");
         driving = true;
-        try { io.restart(); if (blocking) io.run(); else io.poll(); }
+        try {
+            io.restart();
+            if (blocking) io.run();
+            else {
+                auto deadline = std::chrono::steady_clock::now() + limits.poll_time;
+                for (std::size_t work = 0; work < limits.poll_events; ++work) {
+                    if (!io.poll_one() || stopped || std::chrono::steady_clock::now() >= deadline) break;
+                }
+            }
+        }
         catch (...) { driving = false; if (stopped) drain(); throw; }
         driving = false;
         if (stopped) drain();
@@ -124,15 +148,18 @@ struct Node::Impl::Session : std::enable_shared_from_this<Session> {
     asio::steady_timer idle;
     std::uint64_t id;
     bool closed = false, active = false, authenticated = false;
+    enum class Authentication { challenge, client_proof, server_proof, complete } authentication = Authentication::challenge;
+    Nonce server_nonce{}, client_nonce{};
     std::size_t queued = 0, inflight = 0;
     std::array<char, 4> header{};
     std::string body;
     std::size_t receive_reserved = 0;
     std::deque<std::shared_ptr<std::string>> output;
+    std::deque<std::shared_ptr<std::string>> authentication_output;
+    bool writing = false;
     Session(std::shared_ptr<Impl> node, std::uint64_t serial)
       : owner(node), socket(node->io), idle(node->io), id(serial) {
         if (node->tls) tls = std::make_unique<asio::ssl::stream<Tcp::socket&>>(socket, *node->tls);
-        enqueue(frame(0, Status::ok, 0, {}, node->token));
     }
     ~Session() { release_body(); }
     std::optional<CallIdentity> resolve_principal() {
@@ -162,7 +189,7 @@ struct Node::Impl::Session : std::enable_shared_from_this<Session> {
         if (std::exchange(closed, true)) return;
         asio::error_code ignored;
         idle.cancel(); socket.close(ignored);
-        output.clear(); queued = 0;
+        output.clear(); authentication_output.clear(); queued = 0;
         if (auto node = owner.lock()) node->lost(id);
     }
     void deadline() {
@@ -171,13 +198,19 @@ struct Node::Impl::Session : std::enable_shared_from_this<Session> {
         idle.expires_after(node->limits.idle_timeout);
         idle.async_wait([self = shared_from_this()](asio::error_code error) { if (!error) self->close(); });
     }
-    bool enqueue(std::string message) {
+    bool enqueue(std::string message, bool handshake = false) {
         auto node = owner.lock();
-        if (!node || closed || message.size() > node->limits.queued_bytes - queued) return false;
-        bool writing = !output.empty();
-        queued += message.size();
-        output.push_back(std::make_shared<std::string>(std::move(message)));
-        if (!writing && active) write();
+        // Requests can be queued before the socket connects. Reserve space for
+        // the bounded authentication exchange so those requests cannot prevent
+        // the control frames that are required to flush them.
+        auto reserved = !handshake && !authenticated ? authentication_queue_reserve : 0;
+        if (!node || closed || reserved > node->limits.queued_bytes ||
+            queued > node->limits.queued_bytes - reserved ||
+            message.size() > node->limits.queued_bytes - reserved - queued) return false;
+        auto packet = std::make_shared<std::string>(std::move(message));
+        (handshake ? authentication_output : output).push_back(packet);
+        queued += packet->size();
+        if (active) write();
         return true;
     }
     template<class Buffer, class Callback> void read(Buffer buffer, Callback callback) {
@@ -200,9 +233,17 @@ struct Node::Impl::Session : std::enable_shared_from_this<Session> {
             constexpr char hex[] = "0123456789abcdef";
             for (unsigned i = 0; i < length; ++i) { identity += hex[digest[i] >> 4]; identity += hex[digest[i] & 15]; }
         }
-        active = true; deadline(); if (!output.empty()) write(); read_header();
+        active = true; deadline();
+        if (authentication == Authentication::client_proof) {
+            if (RAND_bytes(server_nonce.data(), server_nonce.size()) != 1) return close();
+            std::string challenge(1, '\1');
+            challenge.append(reinterpret_cast<const char*>(server_nonce.data()), server_nonce.size());
+            if (!enqueue(frame(0, Status::ok, 0, {}, challenge), true)) return close();
+        }
+        write(); read_header();
     }
     void start(bool server = false) {
+        authentication = server ? Authentication::client_proof : Authentication::challenge;
         asio::error_code error;
         socket.set_option(Tcp::no_delay(true), error);
         if (error) return close();
@@ -212,13 +253,18 @@ struct Node::Impl::Session : std::enable_shared_from_this<Session> {
         else ready();
     }
     void write() {
-        if (closed || output.empty()) return;
-        auto message = output.front();
+        if (closed || writing) return;
+        bool handshake = !authentication_output.empty();
+        if (!handshake && (!authenticated || output.empty())) return;
+        auto message = handshake ? authentication_output.front() : output.front();
+        writing = true;
         send(asio::buffer(*message),
-          [self = shared_from_this(), message](asio::error_code error, std::size_t) {
+          [self = shared_from_this(), message, handshake](asio::error_code error, std::size_t) {
             if (self->closed) return;
             if (error) return self->close();
-            self->queued -= message->size(); self->output.pop_front(); self->write();
+            self->queued -= message->size();
+            (handshake ? self->authentication_output : self->output).pop_front();
+            self->writing = false; self->write();
           });
     }
     void read_header() {
@@ -228,7 +274,7 @@ struct Node::Impl::Session : std::enable_shared_from_this<Session> {
             auto node = self->owner.lock();
             auto size = get(self->header.data(), 4);
             if (error || !node || size < 14 || size > node->limits.frame_bytes ||
-                (!self->authenticated && size != 14 + node->token.size()) ||
+                (!self->authenticated && size != 14 + (self->authentication == Authentication::client_proof ? 65 : 33)) ||
                 size > node->limits.receive_bytes - node->receive_bytes) return self->close();
             node->receive_bytes += size; self->receive_reserved = size;
             try { self->body.resize(size); }
@@ -249,12 +295,40 @@ struct Node::Impl::Session : std::enable_shared_from_this<Session> {
         if (!node) return close();
         unsigned version = get(body.data(), 1), kind = get(body.data() + 1, 1), code = get(body.data() + 2, 1);
         auto call = get(body.data() + 4, 8), route_size = get(body.data() + 12, 2);
-        if (version != 1 || body[3] != 0 || code > static_cast<unsigned>(Status::internal) ||
+        if (version != 2 || body[3] != 0 || code > static_cast<unsigned>(Status::internal) ||
             route_size > 256 || route_size > body.size() - 14) return close();
         std::string route = body.substr(14, route_size), data = body.substr(14 + route_size);
         if (!authenticated) {
-            if (kind != 0 || call || !route.empty() || code || !equal_token(data, node->token)) return close();
-            authenticated = true;
+            if (kind != 0 || call || !route.empty() || code) return close();
+            if (authentication == Authentication::challenge) {
+                if (data.size() != 33 || data[0] != '\1') return close();
+                std::copy_n(reinterpret_cast<const unsigned char*>(data.data() + 1), server_nonce.size(), server_nonce.begin());
+                if (RAND_bytes(client_nonce.data(), client_nonce.size()) != 1) return close();
+                auto proof = authentication_proof(node->token, false, server_nonce, client_nonce);
+                if (!proof) return close();
+                std::string response(1, '\2');
+                response.append(reinterpret_cast<const char*>(client_nonce.data()), client_nonce.size());
+                response.append(reinterpret_cast<const char*>(proof->data()), proof->size());
+                authentication = Authentication::server_proof;
+                if (!enqueue(frame(0, Status::ok, 0, {}, response), true)) return close();
+            } else if (authentication == Authentication::client_proof) {
+                if (data.size() != 65 || data[0] != '\2') return close();
+                std::copy_n(reinterpret_cast<const unsigned char*>(data.data() + 1), client_nonce.size(), client_nonce.begin());
+                auto expected = authentication_proof(node->token, false, server_nonce, client_nonce);
+                if (!expected || CRYPTO_memcmp(expected->data(), data.data() + 33, expected->size())) return close();
+                auto proof = authentication_proof(node->token, true, server_nonce, client_nonce);
+                if (!proof) return close();
+                std::string response(1, '\3');
+                response.append(reinterpret_cast<const char*>(proof->data()), proof->size());
+                // Queue the server proof before enabling application writes.
+                if (!enqueue(frame(0, Status::ok, 0, {}, response), true)) return close();
+                authentication = Authentication::complete; authenticated = true; write();
+            } else if (authentication == Authentication::server_proof) {
+                if (data.size() != 33 || data[0] != '\3') return close();
+                auto expected = authentication_proof(node->token, true, server_nonce, client_nonce);
+                if (!expected || CRYPTO_memcmp(expected->data(), data.data() + 1, expected->size())) return close();
+                authentication = Authentication::complete; authenticated = true; write();
+            } else return close();
             return;
         }
         if (kind == 2 && route.empty() && call) {

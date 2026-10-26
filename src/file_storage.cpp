@@ -122,6 +122,7 @@ class Files final : public Storage {
         return true;
     }
 public:
+    bool persistent() const noexcept override { return true; }
     explicit Files(const std::string& path) : root_(root(path)) {
         auto parent_path = std::filesystem::absolute(path).parent_path();
         Descriptor parent(::open(parent_path.c_str(), O_RDONLY | O_DIRECTORY | O_CLOEXEC));

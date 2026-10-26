@@ -159,5 +159,5 @@ std::size_t EntityTimers::poll(std::size_t budget) {
     return work;
 }
 EntityTimerStats EntityTimers::stats()const{auto result=impl_->counters;result.tracked=impl_->watches.size();return result;}
-void EntityTimers::stop(){auto self=impl_;if(std::exchange(self->stopped,true))return;self->storage.stop();self->watches.clear();self->schedule.clear();self->counters.pending=0;}
+void EntityTimers::stop(){auto self=impl_;if(std::exchange(self->stopped,true))return;self->storage.stop(AsyncDatabase::StopMode::cancel_queued);self->watches.clear();self->schedule.clear();self->counters.pending=0;}
 }

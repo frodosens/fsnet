@@ -32,6 +32,8 @@ ExecStart 使用不同端口。节点 ID 必须稳定且不同，重启自动生
 
 各进程必须显式提供持久存储 URI 和 CA/证书/私钥，缺失即启动失败：
 
+启动器同时核对实际 Storage::persistent() 能力；memory:、sqlite::memory: 和临时 SQLite 数据库均拒绝，不能通过换 URI 绕过。
+
 ```sh
 # 两个 owner 和 gateway 指向同一逻辑存储。
 export FSNET_STORAGE_URI=file:/var/lib/fsnet/state
@@ -75,7 +77,12 @@ Manager/LoginEntity 的入口 ID 由可信启动/发现提供，业务不配置�
 
 ## 健康、排空与升级
 
-`system.health` 正常返回 ok / ready，排空后返回 overloaded / draining。可选
+owner 加载后的有限 `runtime.start` 任务全部成功完成才报告 ready；初始化期间 health 为 overloaded / draining。
+任一关键启动任务失败后记录错误、停止就绪、排空并非零退出。长期任务应使用 `runtime.background`，
+内部实体事件循环已使用该入口，不阻挡初始化。指标包含 startup_complete/startup_failed；后台任务失败和存储依赖的业务健康策略仍需应用监控。
+readiness 用于健康与流量摘挂，Node::set_ready 不自动拒绝全部 RPC；初始化仍可调用内部节点，业务入口应由负载均衡或应用授权策略在 ready 前限制。
+
+`system.health` 就绪时返回 ok / ready，初始化或排空时返回 overloaded / draining。可选
 `FSNET_METRICS_FILE` 每 100 ms 原子替换 JSON；监控需同时检查进程、文件更新时间和 ready，
 异常退出留下的旧 ready=true 文件不能算健康。文件包含连接/排队资源；owner 增加实体、提交、
 失败和 Lua 内存，gateway 增加订阅、迁移和转发计数。无业务载荷、账号或私钥。
@@ -88,6 +95,7 @@ systemd 停止时限分别配置 45/10 秒，避免正常 drain 被过早 SIGKIL
 实体记录只支持 FER5，计时器发现索引只支持 FTI2；FER1/2/3/4、FTI1 和未知版本拒绝，
 不提供旧存档迁移、兼容恢复或自动转换，也不会将读取失败当作空状态覆盖原记录。
 部署时头文件、库、脚本与 owner/Gateway 应来自同一构建，使用当前格式数据或空存储。
+传输握手为双随机数 HMAC 的 v2 协议；旧版明文 token 握手拒绝，互连进程须协同升级，不支持降级回退。
 上线前仍需备份与明确回滚方案，不能把不支持历史格式的二进制连接到旧实验存储。
 模块热更新/状态迁移尚未实现，不支持在运行中替换 schema。hook 的外部副作用需业务幂等，
 详见 ENTITY_LIFECYCLE.md。Gateway 故障后客户端需由应用重新连接、登录和重建订阅。
@@ -107,6 +115,8 @@ ctest --preset postgres -R fsnet-postgres --output-on-failure
 - `fsnet-global-flow`：真实 loopback Node/Gateway、远程创建、连接换绑、定向迁移、订阅、RPC 策略、投递与计时器。
 - `fsnet-tls`：临时 PKI、双向 TLS、身份映射与非法证书拒绝。
 - `fsnet-sdk-package` 与 examples：安装消费者和交付 API 的可用性。
+- `fsnet-production-*`：鉴权前无激活、逻辑连接撤销、活动期限/迟到回复、回执、Lua GC/内存与握手/poll 预算的回归。
+- `fsnet-service-readiness` / `fsnet-storage-capabilities`：真实 mTLS 配置启动、初始化成功/失败就绪及易失存储拒绝。
 
 依赖旧业务接口的整合验收工具已删除。以上测试分别覆盖 TLS 和全局实体故障流程，
 尚未提供将全局实体、mTLS、双 owner 故障和负载合并的一键生产验收工具。

@@ -391,7 +391,11 @@ classes[Entity]={sealed=true,attrs={},methods={},rpcs={},domains={},options={}}
 fsnet={Entity=Entity,ref=global_reference}
 runtime.start=function(fn)
     assert(type(fn)=='function','start requires a function')
-    runtime._start(function() fn(); return '' end)
+    runtime._start(function() fn(); return '' end,true)
+end
+runtime.background=function(fn)
+    assert(type(fn)=='function','background requires a function')
+    runtime._start(function() fn(); return '' end,false)
 end
 runtime.sleep=function(ms)
     local _,status=runtime._sleep(ms)
@@ -539,7 +543,7 @@ function entities:stop() running=false end
 function entities:start()
     assert(self==entities and not started,'entity presentations already started')
     started=true; running=true
-    runtime.start(function()
+    runtime.background(function()
         local function dispatch(event)
             local key=view_key(event.type,event.id)
             local view=views[key]

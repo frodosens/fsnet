@@ -24,6 +24,9 @@ public:
     virtual std::optional<Record> get(std::string_view key) = 0;
     virtual bool compare_exchange(std::string_view key, std::uint64_t expected, std::string_view value) = 0;
     virtual bool erase(std::string_view key, std::uint64_t expected) = 0;
+    // Whether this instance retains committed records after a process restart.
+    // Unknown/custom backends opt in explicitly; this does not certify HA or backups.
+    virtual bool persistent() const noexcept { return false; }
     virtual bool supports_transactions() const { return false; }
     // Optional application extension. Framework ownership/state paths never call it.
     virtual bool transact(const std::vector<Mutation>&) { throw std::logic_error("storage does not support multi-record transactions"); }

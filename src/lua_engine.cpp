@@ -21,6 +21,7 @@
 namespace fsnet {
 struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
     using Clock = std::chrono::steady_clock;
+    struct NativeReservation;
     struct Await {
         std::uint64_t peer;
         std::string route, data, target, entity_id, source_type, source_id;
@@ -31,6 +32,7 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
         EntityAttributes::Values values;
         unsigned action=0;
         EntitySpawnOptions creation;
+        std::unique_ptr<NativeReservation> memory;
     };
     struct ConnectionHandle {ConnectionRef ref;std::uint64_t peer;std::function<bool()> current;Impl* engine;std::size_t charge;};
     static ConnectionHandle& connection(lua_State* L,int index) {
@@ -77,7 +79,7 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
         CallIdentity identity;
         bool contextual = false, rejected = false;
         std::optional<Await> await;
-        bool waiting = false, startup = false, background = false, completion_queued = false;
+        bool waiting = false, startup = false, background = false, initialization = false, completion_queued = false;
         std::optional<Clock::time_point> wake;
         std::uint64_t generation = 0;
         std::shared_ptr<WatchLease> pending_watch{};
@@ -92,7 +94,9 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
     std::size_t completed_bytes = 0;
     bool stopped = false, loaded = false, loading = false, polling = false, stop_requested = false;
     bool exhausted = false;
-    bool timed_out = false;
+    bool timed_out = false, memory_exhausted = false;
+    bool initialization_failed = false;
+    std::size_t initialization_pending = 0;
     unsigned budget = 0;
     Clock::time_point running_deadline{};
     FsnetLuaWorkBudget work_budget{this, charge_pattern};
@@ -111,7 +115,8 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
     Task* preparing = nullptr;
     Result* returning = nullptr;
     int compiled = LUA_NOREF;
-    std::vector<int> starts;
+    struct Start { int function; bool critical; };
+    std::vector<Start> starts;
 
     static Impl& self(lua_State* L) { return *static_cast<Impl*>((*static_cast<FsnetLuaWorkBudget**>(lua_getextraspace(L)))->context); }
     static void charge_pattern(lua_State* L, void* context, std::size_t units) {
@@ -138,8 +143,22 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
     }
     void reserve_external(lua_State* L,std::size_t bytes,const char* reason) {
         if(bytes>limits.memory_bytes-used)lua_gc(L,LUA_GCCOLLECT);
-        if(bytes>limits.memory_bytes-used)throw std::length_error(reason);
+        if(bytes>limits.memory_bytes-used) { memory_exhausted=true; throw std::length_error(reason); }
     }
+    // Reserve before native work, and return the allowance on every exception.
+    // This also makes Lua allocations account for concurrently live native copies.
+    struct NativeReservation {
+        Impl& engine;
+        std::size_t bytes=0;
+        NativeReservation(Impl& owner,lua_State* L,std::size_t charge):engine(owner) { add(L,charge); }
+        NativeReservation(const NativeReservation&)=delete;
+        ~NativeReservation() { release(); }
+        void add(lua_State* L,std::size_t charge) {
+            engine.reserve_external(L,charge,"temporary attribute memory limit");
+            engine.used+=charge; bytes+=charge;
+        }
+        void release() noexcept { engine.used-=bytes; bytes=0; }
+    };
     enum class ObjectMode { request, local, replica, prediction, batch };
     struct AttributeObject {
         Impl* engine; std::size_t charge; EntityAttributes model; std::uint64_t task = 0;
@@ -153,8 +172,17 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
     };
     AttributeObject* predicting = nullptr;
     bool prediction_violation = false;
+    static bool current_task_live(lua_State* L) {
+        auto& engine=self(L);auto found=engine.threads.find(L);
+        if(found==engine.threads.end())return true; // the top-level loading task
+        auto task=engine.tasks.find(found->second);
+        if(task!=engine.tasks.end() && task->second.identity.live())return true;
+        if(task!=engine.tasks.end())task->second.rejected=true;
+        return false;
+    }
     static void prediction_external(lua_State* L) {
         auto& engine = self(L);
+        if(!current_task_live(L))luaL_error(L,"entity transaction is no longer live");
         if (engine.predicting) {
             engine.prediction_violation = true;
             luaL_error(L, "external effects and waits are forbidden during prediction/replay");
@@ -185,7 +213,7 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
         return n;
     }
     static std::size_t definition_charge(const AttributeDefinition& d) {
-        std::size_t bytes=512+attribute_image_bytes({{"value",d.initial}});
+        std::size_t bytes=768+attribute_entry_bytes("value",d.initial);
         for(const auto& [key,child]:d.fields)bytes+=key.size()+definition_charge(child);
         if(d.element)bytes+=definition_charge(*d.element);
         return bytes;
@@ -203,6 +231,7 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
         std::size_t count=4096; if(!remaining) remaining=&count;
         if(depth>8 || !*remaining) throw std::length_error("struct type depth/node limit");
         --*remaining; index=lua_absindex(L,index);
+        NativeReservation construction(self(L),L,0);
         AttributeDefinition d{AttributeType::integer,std::int64_t(0)};
         if(lua_type(L,index)==LUA_TSTRING) {
             std::string type=lua_tostring(L,index);
@@ -244,7 +273,9 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
                 if(lua_type(L,-2)!=LUA_TSTRING || d.fields.size()>=64) throw std::invalid_argument("named struct fields required, maximum 64");
                 std::size_t n; const char* key=lua_tolstring(L,-2,&n); std::string name(key,n);
                 auto child=value_definition(L,-1,depth+1,remaining);
-                if(value_nodes(AttributeValue(initial))+value_nodes(child.initial)>4096) throw std::length_error("struct expanded node limit");
+                std::size_t existing_nodes=1;for(const auto& [key,value]:initial){(void)key;existing_nodes+=value_nodes(value);}
+                if(existing_nodes+value_nodes(child.initial)>4096) throw std::length_error("struct expanded node limit");
+                construction.add(L,4*definition_charge(child)+2*name.size());
                 initial.emplace(name,child.initial); d.fields.emplace(std::move(name),std::move(child)); lua_pop(L,1);
             }
             lua_pop(L,1); d.initial=std::move(initial);
@@ -254,6 +285,7 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
             lua_getfield(L,index,"element"); auto element=value_definition(L,-1,depth+1,remaining); lua_pop(L,1);
             if(static_cast<std::size_t>(length)>(4096-1)/value_nodes(element.initial)) throw std::length_error("array expanded node limit");
             d.type=AttributeType::array; d.length=static_cast<std::size_t>(length);
+            construction.add(L,2*d.length*attribute_entry_bytes("",element.initial)+2*definition_charge(element));
             d.initial=AttributeArray(d.length,element.initial);
             d.element=std::make_shared<const AttributeDefinition>(std::move(element));
         } else if(kind=="list" || kind=="map" || kind=="set") {
@@ -269,14 +301,90 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
         } else throw std::invalid_argument("invalid structured type descriptor");
         return d;
     }
+    struct ValueCost {
+        Impl& engine;
+        std::size_t nodes=4096, native=0, wire=0;
+        void add(std::size_t bytes,std::size_t encoded) {
+            // Four candidate/commit copies are included in the VM's external
+            // allowance. Reject repeated Lua aliases before expanding any copy.
+            if(bytes>engine.limits.memory_bytes/4-native) {
+                engine.memory_exhausted=true;
+                throw std::length_error("temporary attribute memory limit");
+            }
+            native+=bytes;
+            if(encoded>1024*1024-wire) throw std::length_error("attribute image too large");
+            wire+=encoded;
+        }
+    };
+    static void value_cost(const AttributeValue& value,ValueCost& cost,unsigned depth=0) {
+        if(depth>8 || !cost.nodes) throw std::length_error("attribute value depth/node limit");
+        --cost.nodes; cost.add(256,1);
+        if(auto text=std::get_if<std::string>(&value)) cost.add(text->size(),4+text->size());
+        else if(auto fields=value_members(value)) {
+            cost.add(0,std::holds_alternative<AttributeStruct>(value)?1:2);
+            for(const auto& [key,child]:*fields) { cost.add(key.size(),1+key.size()); value_cost(child,cost,depth+1); }
+        } else if(auto items=std::get_if<AttributeArray>(&value)) {
+            cost.add(0,2); for(const auto& child:*items) value_cost(child,cost,depth+1);
+        } else cost.add(0,std::holds_alternative<bool>(value)?1:8);
+    }
+    static void attribute_cost(lua_State* L,int index,const AttributeDefinition& d,ValueCost& cost,unsigned depth=0) {
+        if(depth>8 || !cost.nodes) throw std::length_error("attribute value depth/node limit");
+        index=lua_absindex(L,index);
+        if(luaL_testudata(L,index,"fsnet.field")) { value_cost(proxy_value(L,index),cost,depth); return; }
+        --cost.nodes; cost.add(256,1);
+        if(static_cast<unsigned>(d.type)<4) {
+            if(d.type==AttributeType::string) {
+                if(lua_type(L,index)!=LUA_TSTRING) throw std::invalid_argument("string attribute required");
+                std::size_t size; lua_tolstring(L,index,&size);
+                if(size>65536) throw std::length_error("attribute string limit");
+                cost.add(size,4+size);
+            } else cost.add(0,d.type==AttributeType::boolean?1:8);
+            return;
+        }
+        if(lua_type(L,index)!=LUA_TTABLE) throw std::invalid_argument("structured attribute requires a table or field view");
+        if(lua_getmetatable(L,index)) { lua_pop(L,1); throw std::invalid_argument("attribute values must use plain tables"); }
+        cost.add(0,d.type==AttributeType::structure?1:2);
+        std::size_t count=0;
+        lua_pushnil(L);
+        while(lua_next(L,index)) {
+            if(++count>256) throw std::length_error("attribute entry limit");
+            if(d.type==AttributeType::structure || d.type==AttributeType::map) {
+                if(lua_type(L,-2)!=LUA_TSTRING) throw std::invalid_argument("named attribute fields required");
+                std::size_t size; const char* key=lua_tolstring(L,-2,&size);
+                if(!size || size>127 || std::string_view(key,size).find('\0')!=std::string_view::npos) throw std::invalid_argument("invalid attribute key");
+                cost.add(size,1+size);
+                const AttributeDefinition* child=d.element.get();
+                if(d.type==AttributeType::structure) {
+                    // The bounded key is the only allocation made during this
+                    // validation pass; no value graphs or strings are copied.
+                    auto field=d.fields.find(std::string(key,size));
+                    if(field==d.fields.end()) throw std::invalid_argument("unknown struct field");
+                    child=&field->second;
+                } else if(count>d.max_items) throw std::length_error("map capacity exceeded");
+                attribute_cost(L,-1,*child,cost,depth+1);
+            } else {
+                if(!lua_isinteger(L,-2) || lua_tointeger(L,-2)<1 || static_cast<std::uint64_t>(lua_tointeger(L,-2))>(d.type==AttributeType::array?d.length:d.max_items))
+                    throw std::invalid_argument("array requires dense integer indices");
+                attribute_cost(L,-1,*d.element,cost,depth+1);
+            }
+            lua_pop(L,1);
+        }
+        if(d.type==AttributeType::structure && count!=d.fields.size()) throw std::invalid_argument("missing struct field");
+        if(d.type==AttributeType::array && count!=d.length) throw std::invalid_argument("fixed array length mismatch");
+    }
     static AttributeValue attribute_value(lua_State* L,int index,const AttributeDefinition& d,unsigned depth=0,std::size_t* remaining=nullptr) {
-        std::size_t budget=4096; if(!remaining) remaining=&budget;
+        if(!remaining) {
+            auto& engine=self(L); ValueCost cost{engine}; attribute_cost(L,index,d,cost,depth);
+            NativeReservation reservation(engine,L,4*cost.native);
+            std::size_t remaining_nodes=4096;
+            return attribute_value(L,index,d,depth,&remaining_nodes);
+        }
         if(!*remaining) throw std::length_error("attribute value node limit");
         --*remaining;
         if(depth>8) throw std::length_error("attribute value depth limit");
         index=lua_absindex(L,index);
         if(luaL_testudata(L,index,"fsnet.field")) {
-            auto value=proxy_value(L,index); auto nodes=value_nodes(value)-1;
+            const auto& value=proxy_value(L,index); auto nodes=value_nodes(value)-1;
             if(nodes>*remaining) throw std::length_error("attribute value node limit");
             *remaining-=nodes; return value;
         }
@@ -370,6 +478,7 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
             if (kind.empty() || kind.size() > 127 || kind.find_first_of(".\0", 0, 2) != std::string::npos || engine.schemas.size() >= 256)
                 throw std::invalid_argument("invalid attribute entity kind");
             EntitySchema schema;
+            NativeReservation construction(engine,L,0);
             if(!lua_isnoneornil(L,3))throw std::invalid_argument("entity ownership is assigned to connections");
             lua_pushnil(L);
             while (lua_next(L, 2)) {
@@ -394,6 +503,7 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
                 lua_getfield(L, definition, "default");
                 if(!lua_isnil(L,-1) || static_cast<unsigned>(d.type)<4) d.initial=attribute_value(L,-1,d);
                 lua_pop(L,1);
+                construction.add(L,4*definition_charge(d)+name.size());
                 schema.attributes.emplace(std::move(name), std::move(d)); lua_pop(L, 1);
             }
             schema.validate(); EntityAttributes model(schema, "");
@@ -459,6 +569,7 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
         object.projection=std::move(image);
     }
     static void object_check(lua_State* L, int index, bool require_attached = false) {
+        if(!current_task_live(L))throw std::logic_error("entity transaction is no longer live");
         auto& object = attribute_object(L,index);
         lua_getiuservalue(L,index,1);
         if (lua_isnil(L,-1) && require_attached) { lua_pop(L,1); throw std::logic_error("expected an attached entity object"); }
@@ -606,10 +717,10 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
         for(std::size_t i=1;i<proxy.path.size();++i) value=&field_child(*value,proxy.path[i]);
         return *value;
     }
-    static AttributeValue proxy_value(lua_State* L,int index) {
+    static const AttributeValue& proxy_value(lua_State* L,int index) {
         auto& proxy=*static_cast<FieldProxy*>(luaL_checkudata(L,index,"fsnet.field"));
         lua_getiuservalue(L,index,1);
-        auto value=resolve_field(L,lua_gettop(L),proxy); lua_pop(L,1); return value;
+        const auto& value=resolve_field(L,lua_gettop(L),proxy); lua_pop(L,1); return value;
     }
     static void push_field(lua_State* L,int root,std::vector<FieldPart> path) {
         root=lua_absindex(L,root); auto& engine=self(L);
@@ -698,27 +809,42 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
             if(engine.predicting!=&object) throw std::logic_error("batch draft is writable only inside its callback");
             if(!object.present.contains(key) || (d.client!=Access::write && d.client!=Access::read_write)) throw std::logic_error("batch property write denied");
         }
+        // Estimate the complete candidate without constructing it. Existing
+        // carriers reserve four value copies; reserve growth before allocating
+        // the new mutation, projected graph, or publish candidate.
+        const auto old_bytes=attribute_image_bytes(object.model.all_values());
+        const auto next_bytes=old_bytes-attribute_entry_bytes(key,object.model.all_values().at(key))+attribute_entry_bytes(key,value);
+        const auto charge=object.fixed_charge+4*next_bytes;
+        NativeReservation growth(engine,L,charge>object.charge?charge-object.charge:0);
+        EntityAttributes::Values changes; changes.emplace(key,std::move(value));
         if(object.mode==ObjectMode::replica) {
             prediction_external(L);
             if(!engine.threads.contains(L) || !object.subscription) throw std::logic_error("client assignment requires an async task and live subscription");
             if(d.client!=Access::write && d.client!=Access::read_write) throw std::logic_error("confirmed property write denied");
-            // Validate a complete candidate without changing confirmed state.
             auto candidate=object.model;
-            candidate.publish({candidate.revision(),{{key,value}}});
+            candidate.publish({candidate.revision(),changes});
+            (void)attribute_wire_size(candidate.all_values());
             Await request{}; request.kind=Await::Kind::write; request.timeout=std::chrono::milliseconds(3000);
-            request.subscription=object.subscription; request.values={{key,std::move(value)}};
+            request.subscription=object.subscription; request.values=std::move(changes);
             request.options.expected_revision=object.model.revision();
+            retain_await_values(L,request);
             engine.tasks.at(engine.threads.at(L)).await=std::move(request); return true;
         }
         if((object.mode==ObjectMode::local || object.mode==ObjectMode::prediction) && !d.driver_authority) throw std::logic_error("local write requires driver authority");
-        auto mutation=object.mode==ObjectMode::request?object.model.stage({{key,std::move(value)}},{Caller::server,{}})
-            :EntityAttributes::Mutation{object.model.revision(),{{key,std::move(value)}}};
+        auto mutation=object.mode==ObjectMode::request?object.model.stage(changes,{Caller::server,{}})
+            :EntityAttributes::Mutation{object.model.revision(),std::move(changes)};
+        changes.clear(); // stage takes a copy; do not retain a fifth value graph.
         auto projected=object.model.all_values(); projected.at(key)=mutation.values.at(key);
         (void)attribute_wire_size(projected);
-        auto charge=object.fixed_charge+4*attribute_image_bytes(projected);
-        if(charge>object.charge)engine.reserve_external(L,charge-object.charge,"attribute object memory limit");
         if(!object.model.publish(mutation)) throw std::logic_error("stale attribute object");
+        growth.release();
         engine.used=engine.used-object.charge+charge; object.charge=charge; return false;
+    }
+    static void retain_await_values(lua_State* L,Await& request) {
+        if(request.values.empty())return;
+        auto& engine=self(L);
+        auto bytes=1024+attribute_image_bytes(request.values);
+        request.memory=std::make_unique<NativeReservation>(engine,L,bytes);
     }
     static int assignment_complete(lua_State* L,int,lua_KContext) {
         auto status=lua_tointeger(L,-1);
@@ -843,14 +969,26 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
     }
     static EntityAttributes::Values values(lua_State* L,int index,const EntitySchema& schema,bool driver_only=false) {
         luaL_checktype(L,index,LUA_TTABLE); index=lua_absindex(L,index);
+        auto& engine=self(L); ValueCost cost{engine}; cost.add(256,24);
+        std::size_t count=0;
+        lua_pushnil(L);
+        while(lua_next(L,index)) {
+            if(lua_type(L,-2)!=LUA_TSTRING || ++count>256) throw std::invalid_argument("named property values required");
+            std::size_t size; const char* key=lua_tolstring(L,-2,&size);
+            if(!size || size>127) throw std::invalid_argument("invalid property name");
+            cost.add(size,1+size); attribute_cost(L,-1,schema.attributes.at(std::string(key,size)),cost);
+            lua_pop(L,1);
+        }
+        NativeReservation reservation(engine,L,4*cost.native);
         EntityAttributes::Values result;
+        std::size_t remaining_nodes=4096;
         lua_pushnil(L);
         while(lua_next(L,index)) {
             if(lua_type(L,-2)!=LUA_TSTRING || result.size()>=256) throw std::invalid_argument("named property values required");
             std::size_t size; const char* key=lua_tolstring(L,-2,&size); std::string name(key,size);
             const auto& d=schema.attributes.at(name);
             if(driver_only && !d.driver_authority) throw std::logic_error("local write requires driver authority");
-            result.emplace(std::move(name),attribute_value(L,-1,d)); lua_pop(L,1);
+            result.emplace(std::move(name),attribute_value(L,-1,d,0,&remaining_nodes)); lua_pop(L,1);
         }
         return result;
     }
@@ -859,6 +997,7 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
         if(!engine.loading) return luaL_error(L,"publish model only during load");
         try {
             auto name=std::string(kind,n); const auto& schema=engine.schemas.at(name);
+            NativeReservation construction(engine,L,2*schema_charge(schema));
             auto initial=encode_attributes({0,0,true,EntityAttributes(schema,"").persistent()});
             engine.server_schemas.insert(name); lua_pushlstring(L,initial.data(),initial.size()); return 1;
         } catch(const std::exception& e) { return luaL_error(L,"%s",e.what()); }
@@ -1015,7 +1154,11 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
         prediction_external(L);
         auto& engine=self(L); luaL_checktype(L,1,LUA_TFUNCTION);
         if(!engine.loading || engine.starts.size()>=engine.limits.queued_requests) return luaL_error(L,"start tasks only during load, within queue limit");
-        lua_pushvalue(L,1); engine.starts.push_back(luaL_ref(L,LUA_REGISTRYINDEX)); return 0;
+        const bool critical=lua_isnoneornil(L,2) || lua_toboolean(L,2);
+        lua_pushvalue(L,1); auto reference=luaL_ref(L,LUA_REGISTRYINDEX);
+        try { engine.starts.push_back({reference,critical}); }
+        catch(...) { luaL_unref(L,LUA_REGISTRYINDEX,reference); return luaL_error(L,"start task allocation failed"); }
+        return 0;
     }
     static int sleep_task(lua_State* L) {
         prediction_external(L);
@@ -1051,6 +1194,7 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
             Await request{}; request.kind=Await::Kind::write; request.timeout=std::chrono::milliseconds(timeout);
             request.subscription=object.subscription; request.values=values(L,2,object.model.schema());
             request.options={static_cast<std::uint64_t>(revision),std::string(token,n)};
+            retain_await_values(L,request);
             engine.tasks.at(engine.threads.at(L)).await=std::move(request);
         } catch(const std::exception& e) { return luaL_error(L,"%s",e.what()); }
         return lua_yield(L,0);
@@ -1085,6 +1229,7 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
             auto persistence=string_option("persistence");
             if(!persistence.empty() && persistence!="durable" && persistence!="rebuildable")throw std::invalid_argument("invalid entity persistence");
             request.creation.persistence=persistence=="rebuildable"?EntityPersistence::rebuildable:EntityPersistence::durable;
+            retain_await_values(L,request);
             engine.tasks.at(engine.threads.at(L)).await=std::move(request);
         }catch(const std::exception& error){return luaL_error(L,"%s",error.what());}
         return lua_yield(L,0);
@@ -1363,6 +1508,7 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
     }
     static void hook(lua_State* L, lua_Debug*) {
         auto& owner = self(L);
+        if(!current_task_live(L)) { lua_yield(L,0);return; }
         if (owner.timed_out || Clock::now() >= owner.running_deadline) {
             owner.timed_out = true;
             lua_yield(L, 0);
@@ -1374,12 +1520,26 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
             lua_yield(L, 0);
         } else owner.budget -= 1000;
     }
+    static int script_setmetatable(lua_State* L) {
+        luaL_checktype(L,1,LUA_TTABLE);
+        if(!lua_isnoneornil(L,2)) {
+            luaL_checktype(L,2,LUA_TTABLE);
+            lua_pushliteral(L,"__gc"); lua_rawget(L,2);
+            const bool finalizer=!lua_isnil(L,-1); lua_pop(L,1);
+            if(finalizer) return luaL_error(L,"script __gc finalizers are unsupported; release resources explicitly");
+        }
+        // Delegate all protected-metatable and return-value rules to Lua's own
+        // base implementation, which is retained only in this C closure.
+        lua_settop(L,2); lua_pushvalue(L,lua_upvalueindex(1)); lua_insert(L,1);
+        lua_call(L,2,1); return 1;
+    }
     static int initialize(lua_State* L) {
         luaL_requiref(L, LUA_GNAME, luaopen_base, 1); lua_pop(L, 1);
         luaL_requiref(L, LUA_TABLIBNAME, luaopen_table, 1); lua_pop(L, 1);
         luaL_requiref(L, LUA_STRLIBNAME, luaopen_string, 1); lua_pop(L, 1);
         luaL_requiref(L, LUA_MATHLIBNAME, luaopen_math, 1); lua_pop(L, 1);
         luaL_requiref(L, LUA_UTF8LIBNAME, luaopen_utf8, 1); lua_pop(L, 1);
+        lua_getglobal(L,"setmetatable"); lua_pushcclosure(L,script_setmetatable,1); lua_setglobal(L,"setmetatable");
         for (const char* name : {"dofile", "loadfile", "load", "collectgarbage"}) { lua_pushnil(L); lua_setglobal(L, name); }
         luaL_newmetatable(L,"fsnet.connection");
         lua_pushcfunction(L,connection_gc);lua_setfield(L,-2,"__gc");
@@ -1578,10 +1738,14 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
     }
     ~Impl() { if (state) lua_close(state); }
     int resume(Task& task, int arguments, int& results) {
-        exhausted = false; timed_out = false; budget = limits.instructions_per_resume;
+        exhausted = false; timed_out = false; memory_exhausted=false; budget = limits.instructions_per_resume;
         running_deadline = task.startup ? Clock::now() + limits.task_timeout : task.deadline;
         lua_sethook(task.thread, hook, LUA_MASKCOUNT, 1000);
         return lua_resume(task.thread, state, arguments, &results);
+    }
+    void release_task_function(Task& task) {
+        if(task.background && task.function!=LUA_NOREF)
+            luaL_unref(state,LUA_REGISTRYINDEX,std::exchange(task.function,LUA_NOREF));
     }
     void finish(std::uint64_t id, Result result) {
         auto it = tasks.find(id);
@@ -1602,7 +1766,7 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
             lua_sethook(task.thread,nullptr,0,0);
         }
         if (task.reference != LUA_NOREF) luaL_unref(state, LUA_REGISTRYINDEX, task.reference);
-        if(task.background && task.function!=LUA_NOREF) luaL_unref(state,LUA_REGISTRYINDEX,task.function);
+        release_task_function(task);
         if (!task.mailbox.empty()) busy.erase(task.mailbox);
         task.reply(std::move(result));
     }
@@ -1610,9 +1774,11 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
         auto it = tasks.find(id);
         if (it == tasks.end()) return;
         auto& task = it->second;
+        if(!task.identity.live()) { error="entity transaction is no longer live"; return finish(id,{Status::rejected,{}}); }
         int results = 0;
         int status = resume(task, arguments, results);
         if (timed_out || Clock::now() >= task.deadline) { error = "Lua task deadline exceeded"; return finish(id, {Status::timeout, {}}); }
+        if (memory_exhausted) { error="Lua native memory budget exceeded"; return finish(id,{Status::overloaded,{}}); }
         if (task.rejected) { error = "script rejected RPC"; return finish(id, {Status::rejected, {}}); }
         if (exhausted) { error = "Lua instruction budget exceeded"; return finish(id, {Status::overloaded, {}}); }
         if (status == LUA_OK) {
@@ -1629,7 +1795,7 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
         }
         if (!task.await) { error = "unmanaged coroutine yield"; return finish(id, {Status::internal, {}}); }
         auto request = std::move(*task.await); task.await.reset(); task.waiting = true;
-        if(task.background) task.deadline=Clock::now()+limits.task_timeout;
+        if(task.background && !task.initialization) task.deadline=Clock::now()+limits.task_timeout;
         const auto generation = ++task.generation;
         if(request.kind==Await::Kind::sleep) { task.wake=Clock::now()+request.timeout; return; }
         try {
@@ -1689,6 +1855,7 @@ struct LuaEngine::Impl : std::enable_shared_from_this<LuaEngine::Impl> {
         defined_schemas.clear();
         auto queued = std::move(queue); queue.clear(); queued_bytes = 0;
         for (auto& task : queued) {
+            try { release_task_function(task); } catch (...) { /* closing the VM releases any remaining references */ }
             try { task.reply({Status::disconnected, {}}); } catch (...) { /* complete remaining shutdown work */ }
         }
         while (!tasks.empty()) {
@@ -1715,6 +1882,7 @@ void LuaEngine::load(std::string_view source, const std::string& name) {
         if (prepared != LUA_OK) throw std::runtime_error(owner.message(owner.state));
         int results = 0; int status = owner.resume(startup, 0, results);
         if (owner.timed_out || Impl::Clock::now() >= owner.running_deadline) throw std::runtime_error("Lua load deadline exceeded");
+        if (owner.memory_exhausted) throw std::runtime_error("Lua load native memory budget exceeded");
         if (owner.exhausted) throw std::runtime_error("Lua load instruction budget exceeded");
         if (status != LUA_OK) throw std::runtime_error(owner.message(startup.thread));
         luaL_unref(owner.state, LUA_REGISTRYINDEX, startup.reference);
@@ -1773,16 +1941,20 @@ void LuaEngine::load(std::string_view source, const std::string& name) {
             }
         }
         owner.loaded = true; owner.source = {};
-        for(auto function:owner.starts) {
-            Impl::Task task; task.function=function; task.background=true;
+        for(auto start:owner.starts) {
+            Impl::Task task; task.function=start.function; task.background=true; task.initialization=start.critical;
+            if(start.critical) ++owner.initialization_pending;
             task.deadline=Impl::Clock::now()+owner.limits.task_timeout;
-            task.reply=[weak=std::weak_ptr(impl_)](Result result) {
-                if(result.status!=Status::ok) if(auto self=weak.lock()) self->error="background task failed: "+std::to_string(static_cast<int>(result.status))+" "+self->error;
+            task.reply=[weak=std::weak_ptr(impl_),critical=start.critical](Result result) {
+                if(auto self=weak.lock()) {
+                    if(critical) { --self->initialization_pending; if(result.status!=Status::ok)self->initialization_failed=true; }
+                    if(result.status!=Status::ok) self->error="background task failed: "+std::to_string(static_cast<int>(result.status))+" "+self->error;
+                }
             };
             owner.queue.push_back(std::move(task));
         }
         owner.starts.clear();
-    } catch (...) { owner.error = "script load failed"; owner.stop(); throw; }
+    } catch (...) { owner.initialization_failed=true; owner.error = "script load failed"; owner.stop(); throw; }
 }
 std::size_t LuaEngine::poll(std::size_t work_limit) {
     auto keep_alive = impl_;
@@ -1793,11 +1965,17 @@ std::size_t LuaEngine::poll(std::size_t work_limit) {
     struct Reset { bool& flag; ~Reset() { flag = false; } } reset{owner.polling};
     std::size_t work = 0;
     const auto now = Impl::Clock::now();
+    // A host watchdog can finish a transaction before the VM's task timeout.
+    // Revoke its suspended coroutine before admitting a new job for that entity.
+    std::vector<std::uint64_t> revoked;
+    for(const auto& [id,task]:owner.tasks)if(!task.identity.live())revoked.push_back(id);
+    for(auto id:revoked)owner.finish(id,{Status::rejected,{}});
     for(auto& [id,task]:owner.tasks) if(task.wake && *task.wake<=now) {
         task.wake.reset(); task.completion_queued=true; owner.resumes.push_back({id,{Status::ok,{}}});
     }
     while (!owner.queue.empty() && owner.queue.front().deadline <= now) {
         auto task = std::move(owner.queue.front()); owner.queue.pop_front(); owner.queued_bytes -= task.data.size();
+        owner.release_task_function(task);
         task.reply({Status::timeout, {}});
     }
     std::vector<std::uint64_t> expired;
@@ -1829,6 +2007,7 @@ std::size_t LuaEngine::poll(std::size_t work_limit) {
             if (status != LUA_OK) {
                 owner.error = owner.message(owner.state); lua_pop(owner.state, 1);
                 if (task.reference != LUA_NOREF) luaL_unref(owner.state, LUA_REGISTRYINDEX, task.reference);
+                owner.release_task_function(task);
                 task.reply({Status::overloaded, {}});
             } else {
                 auto id = ++owner.serial; owner.threads.emplace(task.thread, id);
@@ -1850,4 +2029,6 @@ void LuaEngine::stop() {
 std::size_t LuaEngine::active() const { return impl_->tasks.size() + impl_->queue.size(); }
 std::size_t LuaEngine::memory_used() const { return impl_->used; }
 std::string LuaEngine::last_error() const { return impl_->error; }
+bool LuaEngine::startup_complete() const { return impl_->loaded && !impl_->stopped && !impl_->initialization_failed && !impl_->initialization_pending; }
+bool LuaEngine::startup_failed() const { return impl_->initialization_failed; }
 }

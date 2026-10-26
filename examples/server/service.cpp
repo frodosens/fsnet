@@ -40,8 +40,9 @@ std::string incarnation(const std::string& node){if(node.empty()||node.size()>12
 }
 int main(int argc,char** argv){try{
     if(argc<2)throw std::runtime_error("usage: fsnet-service owner SCRIPT PORT NODE GATEWAY_PINS | gateway PORT ENDPOINTS CLIENT_IDENTITIES ROUTES");
-    auto storage_uri=env("FSNET_STORAGE_URI");if(storage_uri.empty()||storage_uri=="memory:")throw std::runtime_error("service requires an explicit persistent FSNET_STORAGE_URI");
-    auto database=fsnet::open_storage(storage_uri);auto security=tls();auto token=env("FSNET_CLUSTER_TOKEN");
+    auto storage_uri=env("FSNET_STORAGE_URI");if(storage_uri.empty())throw std::runtime_error("service requires an explicit persistent FSNET_STORAGE_URI");
+    auto database=fsnet::open_storage(storage_uri);if(!database->persistent())throw std::runtime_error("service requires persistent storage; volatile and temporary databases are not allowed");
+    auto security=tls();auto token=env("FSNET_CLUSTER_TOKEN");
     std::signal(SIGINT,signal_stop);std::signal(SIGTERM,signal_stop);
     std::string mode=argv[1];auto next_metrics=std::chrono::steady_clock::now();
     if(mode=="owner"){
@@ -79,10 +80,24 @@ int main(int argc,char** argv){try{
         std::shared_ptr<fsnet::ScriptHost> script_host=host;
         if(router)script_host=std::make_shared<fsnet::RoutedScriptHost>(host,*router);
         fsnet::LuaEngine engine(script_host);engine.load(script(argv[2]),argv[2]);
+        node.set_ready(false);
         auto listen_port=node.listen(bind_from_environment(),static_cast<std::uint16_t>(port(argv[3])));std::cout<<"listening "<<listen_port<<std::endl;
         auto pump=[&]{node.poll();host->poll();engine.poll();delegation.poll();replication.poll();if(transfer)transfer->poll();if(delivery)delivery->poll();if(router)router->poll();timers.poll();};
-        auto report=[&](bool ready){auto s=host->stats();metrics(mode,ready,node.stats(),",\"entities\":"+std::to_string(s.entities)+",\"pending\":"+std::to_string(s.pending)+",\"queued_bytes\":"+std::to_string(s.queued_bytes)+",\"resident_bytes\":"+std::to_string(s.state_bytes)+",\"transient_bytes\":"+std::to_string(s.transient_bytes)+",\"committed\":"+std::to_string(s.committed)+",\"rejected\":"+std::to_string(s.rejected)+",\"failed\":"+std::to_string(s.failed)+",\"publication_failures\":"+std::to_string(s.publication_failures)+",\"lua_active\":"+std::to_string(engine.active())+",\"lua_bytes\":"+std::to_string(engine.memory_used()));};
-        while(running){pump();if(std::chrono::steady_clock::now()>=next_metrics){report(true);next_metrics=std::chrono::steady_clock::now()+100ms;}std::this_thread::sleep_for(1ms);}
+        auto report=[&](bool ready){auto s=host->stats();metrics(mode,ready,node.stats(),",\"entities\":"+std::to_string(s.entities)+",\"pending\":"+std::to_string(s.pending)+",\"queued_bytes\":"+std::to_string(s.queued_bytes)+",\"resident_bytes\":"+std::to_string(s.state_bytes)+",\"transient_bytes\":"+std::to_string(s.transient_bytes)+",\"committed\":"+std::to_string(s.committed)+",\"rejected\":"+std::to_string(s.rejected)+",\"failed\":"+std::to_string(s.failed)+",\"publication_failures\":"+std::to_string(s.publication_failures)+",\"lua_active\":"+std::to_string(engine.active())+",\"lua_bytes\":"+std::to_string(engine.memory_used())+",\"startup_complete\":"+(engine.startup_complete()?"true":"false")+",\"startup_failed\":"+(engine.startup_failed()?"true":"false"));};
+        bool startup_failed=false;
+        auto initialization_failed=[&]{
+            if(!startup_failed&&engine.startup_failed()){startup_failed=true;std::cerr<<"owner initialization failed: "<<engine.last_error()<<'\n';}
+            return startup_failed;
+        };
+        report(false);
+        while(running){
+            pump();
+            const bool ready=engine.startup_complete()&&!initialization_failed();
+            node.set_ready(ready);
+            if(initialization_failed())break;
+            if(std::chrono::steady_clock::now()>=next_metrics){report(ready);next_metrics=std::chrono::steady_clock::now()+100ms;}
+            std::this_thread::sleep_for(1ms);
+        }
         node.set_ready(false);timers.stop();report(false);auto deadline=std::chrono::steady_clock::now()+35s;bool drained=false;fsnet::Status status=fsnet::Status::overloaded;
         while(!drained&&std::chrono::steady_clock::now()<deadline){
             auto complete=std::make_shared<std::optional<fsnet::Status>>();
@@ -93,7 +108,8 @@ int main(int argc,char** argv){try{
             if(!drained){pump();std::this_thread::sleep_for(1ms);}
         }
         auto flush=std::chrono::steady_clock::now()+250ms;while(std::chrono::steady_clock::now()<flush){pump();std::this_thread::sleep_for(1ms);}
-        report(false);engine.stop();if(delivery)delivery->stop();if(transfer)transfer->stop();replication.stop();delegation.stop();host->stop();node.stop();if(!drained)throw std::runtime_error("owner drain deadline exceeded");
+        initialization_failed(); // Include real failures during drain, before stop cancels unfinished tasks.
+        report(false);engine.stop();if(delivery)delivery->stop();if(transfer)transfer->stop();replication.stop();delegation.stop();host->stop();node.stop();if(!drained)throw std::runtime_error("owner drain deadline exceeded");if(startup_failed)throw std::runtime_error("owner initialization did not complete");
     }else if(mode=="gateway"){
         if(argc!=6)throw std::runtime_error("usage: fsnet-service gateway PORT ENDPOINTS CLIENT_IDENTITIES ROUTES");
         std::vector<fsnet::EntityEndpoint> endpoints;for(auto& row:rows(argv[3],5))endpoints.push_back({row[0],row[1],static_cast<std::uint16_t>(port(row[2])),split(row[3]),row[4]});

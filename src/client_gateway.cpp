@@ -22,8 +22,20 @@ struct GatewayDelegation::Impl:std::enable_shared_from_this<Impl>{
     Node& node;Node::IdentityResolver base;Trust trust;Restore restore;std::shared_ptr<EntityScriptHost> host;
     std::unordered_map<std::uint64_t,Session> sessions;std::size_t limit;bool stopped=false;
     Impl(Node& n,Node::IdentityResolver b,Trust t,std::shared_ptr<EntityScriptHost> h,Restore r,std::size_t l):node(n),base(std::move(b)),trust(std::move(t)),restore(std::move(r)),host(std::move(h)),limit(l){if(!base||!trust||!host||!limit)throw std::invalid_argument("gateway trust and entity host required");}
-    bool valid(std::uint64_t peer,const Session& s,const std::string& cert){
-        auto identity=base(peer,cert);return identity && identity->caller==Caller::server && identity->subject==s.transport && cert==s.certificate && trust(*identity,cert);
+    bool valid(std::uint64_t peer,Session s,std::string cert){
+        auto identity=base(peer,cert);
+        if(stopped || !identity || identity->caller!=Caller::server || identity->subject!=s.transport || cert!=s.certificate)return false;
+        auto allowed=trust(*identity,cert);return !stopped && allowed;
+    }
+    bool authenticated(const CallIdentity& who) {
+        auto session=sessions.find(who.peer);
+        if(session==sessions.end())return false;
+        auto subject=session->second.subject;auto connection=session->second.connection;
+        auto current=node.identity(who.peer);
+        auto live=who.live();
+        return !stopped && live && current && current->caller==Caller::client &&
+            current->subject==who.subject && current->connection==who.connection &&
+            subject==who.subject && connection==who.connection;
     }
     void stop(){if(std::exchange(stopped,true))return;node.unbind("system.gateway.delegate");node.unbind("system.gateway.restore");node.unbind("system.gateway.unpossess");node.unbind("system.gateway.visibility");auto copy=std::move(sessions);for(const auto& [peer,s]:copy){(void)s;node.close(peer);}node.identify(base);}
 };
@@ -34,13 +46,13 @@ GatewayDelegation::GatewayDelegation(Node& node,Node::IdentityResolver base,Trus
         node.bind_rpc("system.gateway.visibility",{true,false,false},[weak](const CallIdentity& who,std::string data,Reply reply){
             auto self=weak.lock();if(!self||self->stopped)return reply({Status::disconnected,{}});
             try {
-                if(!self->sessions.contains(who.peer))return reply({Status::rejected,{}});
+                if(!self->authenticated(who))return reply({Status::rejected,{}});
                 std::string_view input(data);auto [type,id]=decode_entity_key(input);auto action=get(input,1);
                 if(!input.empty() || action<1 || action>4)throw std::invalid_argument("invalid visibility request");
                 self->host->read_attributes(type,id,[weak,who,type,id,action,reply=std::move(reply)](Result result)mutable{
                     auto self=weak.lock();if(!self || self->stopped)return reply({Status::disconnected,{}});
                     if(result.status!=Status::ok)return reply(std::move(result));
-                    if(!who.live())return reply({Status::rejected,{}});
+                    if(!self->authenticated(who))return reply({Status::rejected,{}});
                     self->host->entity_visibility(who.peer,type,id,static_cast<unsigned>(action),std::move(reply));
                 });
             }catch(...){if(reply)reply({Status::rejected,{}});}
@@ -63,21 +75,22 @@ GatewayDelegation::GatewayDelegation(Node& node,Node::IdentityResolver base,Trus
         node.bind_rpc("system.gateway.restore",{true,false,false},[weak](const CallIdentity& who,std::string data,Reply reply){
             auto self=weak.lock();if(!self||self->stopped)return reply({Status::disconnected,{}});
             try{
-                if(!self->sessions.contains(who.peer))return reply({Status::rejected,{}});
+                if(!self->authenticated(who))return reply({Status::rejected,{}});
                 std::string_view in(data);auto [type,id]=decode_entity_key(in);auto control=get(in,1);if(!in.empty()||control>1)throw std::invalid_argument("invalid restore");
-                bool allowed=who.owns(self->host->owner_binding(type,id));
-                if(self->restore)allowed=self->restore(who,type,id,control!=0);
-                if(!allowed && !valid_entity_id(id))return reply({Status::rejected,{}});
-                self->host->read_attributes(type,id,[weak,who,type,id,control,reply=std::move(reply)](Result result)mutable{
+                self->host->read_attributes(type,id,[weak,who,type,id,control](const std::string& owner){
+                    auto self=weak.lock();if(!self || self->stopped || !self->authenticated(who))return false;
+                    return self->restore?self->restore(who,type,id,control!=0):who.owns(owner);
+                },[weak,who,type,id,control,reply=std::move(reply)](Result result)mutable{
                     auto self=weak.lock();if(!self||self->stopped)return reply({Status::disconnected,{}});
                     if(result.status!=Status::ok)return reply(std::move(result));
-                    auto identity=self->node.identity(who.peer);if(!identity||identity->caller!=Caller::client||identity->subject!=who.subject)return reply({Status::rejected,{}});
+                    if(!self->authenticated(who))return reply({Status::rejected,{}});
                     bool allowed=who.owns(self->host->owner_binding(type,id));
                     if(self->restore)allowed=self->restore(who,type,id,control!=0);
                     if(!allowed)return reply({Status::rejected,{}});
                     self->host->entity_visibility(who.peer,type,id,1,[weak,who,type,id,control,reply=std::move(reply)](Result result)mutable{
                         auto self=weak.lock();if(!self||self->stopped)return reply({Status::disconnected,{}});
                         if(result.status!=Status::ok)return reply(std::move(result));
+                        if(!self->authenticated(who))return reply({Status::rejected,{}});
                         // The reply is the final snapshot AND control state,
                         // including when a previous attempt already made it visible.
                         self->host->entity_visibility(who.peer,type,id,control?3:4,std::move(reply));
@@ -87,19 +100,33 @@ GatewayDelegation::GatewayDelegation(Node& node,Node::IdentityResolver base,Trus
         });
         node.bind_rpc("system.gateway.unpossess",{true,false,false},[weak](const CallIdentity& who,std::string data,Reply reply){
             auto self=weak.lock();if(!self||self->stopped)return reply({Status::disconnected,{}});
-            try{if(!self->sessions.contains(who.peer))return reply({Status::rejected,{}});std::string_view in(data);auto [type,id]=decode_entity_key(in);if(!in.empty())throw std::invalid_argument("control bytes");self->host->entity_visibility(who.peer,type,id,4,std::move(reply));}catch(...){reply({Status::rejected,{}});}
+            try{if(!self->authenticated(who))return reply({Status::rejected,{}});std::string_view in(data);auto [type,id]=decode_entity_key(in);if(!in.empty())throw std::invalid_argument("control bytes");self->host->entity_visibility(who.peer,type,id,4,std::move(reply));}catch(...){reply({Status::rejected,{}});}
         });
         node.identify([weak](std::uint64_t peer,const std::string& cert)->std::optional<CallIdentity>{
             auto self=weak.lock();if(!self||self->stopped)return {};
             auto it=self->sessions.find(peer);
             if(it==self->sessions.end())return self->base(peer,cert);
-            if(!self->valid(peer,it->second,cert))return {};
-            return CallIdentity{Caller::client,it->second.subject,peer,it->second.connection};
+            auto expected=it->second;
+            if(!self->valid(peer,expected,cert) || self->stopped)return {};
+            it=self->sessions.find(peer);
+            if(it==self->sessions.end() || it->second.subject!=expected.subject || it->second.transport!=expected.transport ||
+                it->second.certificate!=expected.certificate || it->second.connection!=expected.connection)return {};
+            return CallIdentity{Caller::client,expected.subject,peer,expected.connection};
         });
     }catch(...){impl_->stop();throw;}
 }
 GatewayDelegation::~GatewayDelegation(){stop();}
-void GatewayDelegation::poll(){auto self=impl_;std::vector<std::uint64_t> dead;for(const auto& [peer,s]:self->sessions)try{if(!self->node.connected(peer)||!self->valid(peer,s,self->node.peer_identity(peer)))dead.push_back(peer);}catch(...){dead.push_back(peer);}for(auto peer:dead){self->node.close(peer);self->sessions.erase(peer);}}
+void GatewayDelegation::poll(){
+    auto self=impl_;if(self->stopped)return;
+    std::vector<std::uint64_t> peers,dead;for(const auto& [peer,s]:self->sessions){(void)s;peers.push_back(peer);}
+    for(auto peer:peers){
+        auto found=self->sessions.find(peer);if(found==self->sessions.end())continue;
+        auto session=found->second;
+        try{if(!self->node.connected(peer)||!self->valid(peer,std::move(session),self->node.peer_identity(peer)))dead.push_back(peer);}catch(...){dead.push_back(peer);}
+        if(self->stopped)return;
+    }
+    for(auto peer:dead){self->node.close(peer);self->sessions.erase(peer);}
+}
 void GatewayDelegation::stop(){impl_->stop();}
 
 struct ClientGateway::Impl:std::enable_shared_from_this<Impl>{
@@ -112,7 +139,7 @@ struct ClientGateway::Impl:std::enable_shared_from_this<Impl>{
         Clock::time_point next{},deadline{};
         std::vector<std::function<void()>> detach;
     };
-    struct Request{std::uint64_t id,client;std::string subject,data;Reply reply;Clock::time_point deadline;std::size_t bytes;bool done=false;std::function<void()> cancel{};std::vector<std::function<void()>> detach{};Clock::time_point retry_at{};std::function<void()> retry{};std::string resolved_type{};};
+    struct Request{std::uint64_t id,client;std::string subject,data;Reply reply;Clock::time_point deadline;std::size_t bytes;bool done=false;std::function<void()> cancel{};std::vector<std::function<void()>> detach{};Clock::time_point retry_at{};std::function<void()> retry{};std::string resolved_type{};ConnectionRef connection{};};
     Node& front;Node& back;AsyncDatabase storage;std::vector<EntityEndpoint> endpoints;GatewayLimits limits;GatewayStats counters;
     std::unordered_map<std::uint64_t,Session> sessions;
     std::unordered_map<std::uint64_t,std::shared_ptr<Link>> links;
@@ -129,20 +156,44 @@ struct ClientGateway::Impl:std::enable_shared_from_this<Impl>{
         validate_entity_endpoints(endpoints);if(&f==&b||!l.clients||!l.links||!l.subscriptions||!l.per_client||!l.requests||!l.bytes||l.request_timeout.count()<=0||l.request_timeout>std::chrono::seconds(30)||l.refresh.count()<=0||l.migration_timeout<l.request_timeout)throw std::invalid_argument("invalid gateway limits");retry.resize(endpoints.size());
     }
     std::string remote_key(std::uint64_t peer,std::uint64_t id){return token(peer)+token(id);}
-    bool authenticated(std::uint64_t peer,const std::string& subject){auto who=front.identity(peer);return who&&who->caller==Caller::client&&(who->connection||!subject.empty())&&who->subject==subject;}
+    bool current(std::uint64_t peer,std::string subject,ConnectionRef connection){
+        auto who=front.identity(peer);
+        auto live=who && who->live();
+        return !stopped && live && who->caller==Caller::client && (who->connection || !subject.empty()) &&
+            who->subject==subject && who->connection==connection;
+    }
+    bool authenticated(std::uint64_t peer,const std::string& subject){
+        auto session=sessions.find(peer);
+        return session!=sessions.end() && session->second.subject==subject && current(peer,subject,session->second.connection);
+    }
+    bool authenticated(const std::shared_ptr<Request>& request){
+        auto session=sessions.find(request->client);
+        return session!=sessions.end() && session->second.subject==request->subject &&
+            session->second.connection==request->connection && current(request->client,request->subject,request->connection);
+    }
     std::chrono::milliseconds remaining(const std::shared_ptr<Request>& r){return std::clamp(std::chrono::duration_cast<std::chrono::milliseconds>(r->deadline-Clock::now()),std::chrono::milliseconds(1),limits.request_timeout);}
-    void finish(const std::shared_ptr<Request>& r,Result result){if(std::exchange(r->done,true))return;requests.erase(r->id);r->retry={};counters.queued_bytes-=r->bytes;std::string{}.swap(r->data);auto detach=std::move(r->detach);for(auto& remove:detach)remove();if(result.status!=Status::ok && r->cancel)r->cancel();if(!authenticated(r->client,r->subject))result={Status::disconnected,{}};if(result.status!=Status::ok)++counters.failures;auto reply=std::move(r->reply);reply(std::move(result));}
+    void finish(const std::shared_ptr<Request>& r,Result result){
+        if(std::exchange(r->done,true))return;
+        auto valid=authenticated(r);
+        requests.erase(r->id);r->retry={};counters.queued_bytes-=r->bytes;std::string{}.swap(r->data);
+        auto detach=std::move(r->detach);for(auto& remove:detach)remove();
+        if(!valid)result={Status::disconnected,{}};
+        if(result.status!=Status::ok && r->cancel)r->cancel();
+        if(!valid)revoke(r->client);
+        if(result.status!=Status::ok)++counters.failures;
+        auto reply=std::move(r->reply);reply(std::move(result));
+    }
     std::shared_ptr<Request> request(const CallIdentity& who,std::string data,Reply reply){
         if(stopped){reply({Status::disconnected,{}});return {};}
         if(draining){reply({Status::overloaded,{}});return {};}
-        if(!authenticated(who.peer,who.subject)){reply({Status::rejected,{}});return {};}
+        if(!who.live() || !current(who.peer,who.subject,who.connection)){revoke(who.peer);reply({Status::rejected,{}});return {};}
         if(requests.size()>=limits.requests||data.size()>limits.bytes-counters.queued_bytes||serial>=UINT64_MAX-1){reply({Status::overloaded,{}});return {};}
         auto found=sessions.find(who.peer);if(found==sessions.end()){
             if(sessions.size()>=limits.clients){reply({Status::overloaded,{}});return {};}
             found=sessions.emplace(who.peer,Session{who.subject,{},0,who.connection}).first;
         }
-        if(found->second.subject!=who.subject || found->second.connection!=who.connection){front.close(who.peer);reply({Status::rejected,{}});return {};}
-        auto r=std::make_shared<Request>(Request{++serial,who.peer,who.subject,std::move(data),std::move(reply),Clock::now()+limits.request_timeout,0});r->bytes=r->data.size();counters.queued_bytes+=r->bytes;requests.emplace(r->id,r);return r;
+        if(found->second.subject!=who.subject || found->second.connection!=who.connection){revoke(who.peer);reply({Status::rejected,{}});return {};}
+        auto r=std::make_shared<Request>(Request{++serial,who.peer,who.subject,std::move(data),std::move(reply),Clock::now()+limits.request_timeout,0});r->connection=who.connection;r->bytes=r->data.size();counters.queued_bytes+=r->bytes;requests.emplace(r->id,r);return r;
     }
     void select(std::string type,std::string entity,std::function<void(Status,std::optional<std::size_t>,bool)> done,std::unordered_set<std::size_t> failed={},const std::shared_ptr<Request>& request={},const std::shared_ptr<Subscription>& subscription={}){
         if(!valid_entity_id(entity))return done(Status::rejected,{},false);
@@ -190,7 +241,8 @@ struct ClientGateway::Impl:std::enable_shared_from_this<Impl>{
         if(!storage.submit(type.size()+entity.size(),[location,entity](Storage& db){*location=entity_location(db,{},entity);},complete))complete(std::make_exception_ptr(std::runtime_error("gateway lookup overloaded")));
     }
     void acquire(std::uint64_t client,std::size_t index,std::function<void(Status,std::shared_ptr<Link>)> ready,const std::shared_ptr<Request>& request={},const std::shared_ptr<Subscription>& subscription={}){
-        auto session=sessions.find(client);if(session==sessions.end()||!authenticated(client,session->second.subject))return ready(Status::disconnected,{});
+        auto session=sessions.find(client);if(session==sessions.end()||!authenticated(client,session->second.subject)){revoke(client);return ready(Status::disconnected,{});}
+        session=sessions.find(client);if(stopped || session==sessions.end())return ready(Status::disconnected,{});
         auto found=session->second.links.find(index);
         if(found!=session->second.links.end()&&found->second->ready&&back.connected(found->second->peer))return ready(Status::ok,found->second);
         auto wait=[&](const std::shared_ptr<Link>& link){auto id=request?request->id:subscription->id;link->waiters.emplace(id,std::move(ready));auto& detach=request?request->detach:subscription->detach;detach.push_back([weak=std::weak_ptr(link),id]{if(auto link=weak.lock())link->waiters.erase(id);});};
@@ -199,7 +251,12 @@ struct ClientGateway::Impl:std::enable_shared_from_this<Impl>{
         auto link=std::make_shared<Link>();link->client=client;link->index=index;link->opening=true;wait(link);
         try{const auto& endpoint=endpoints[index];link->peer=back.connect(endpoint.address,endpoint.port,endpoint.tls_peer_name);session->second.links[index]=link;links[link->peer]=link;
             std::string delegated="FSCN1";snapshot_detail::blob(delegated,session->second.subject);snapshot_detail::blob(delegated,session->second.connection.key());
-            back.call(link->peer,"system.gateway.delegate",std::move(delegated),limits.request_timeout,[weak=weak_from_this(),link](Result result){auto self=weak.lock();if(!self)return;link->opening=false;link->ready=result.status==Status::ok;
+            back.call(link->peer,"system.gateway.delegate",std::move(delegated),limits.request_timeout,[weak=weak_from_this(),link](Result result){auto self=weak.lock();if(!self)return;
+                auto session=self->sessions.find(link->client);
+                if(session==self->sessions.end() || !self->authenticated(link->client,session->second.subject)){
+                    self->revoke(link->client);result={Status::disconnected,{}};
+                }
+                link->opening=false;link->ready=result.status==Status::ok;
                 auto waiting=std::move(link->waiters);if(!link->ready){self->back.close(link->peer);self->links.erase(link->peer);self->retry[link->index]=Clock::now()+std::chrono::milliseconds(250);}
                 for(auto& [id,done]:waiting){(void)id;done(result.status,link->ready?link:nullptr);}
             });
@@ -214,11 +271,22 @@ struct ClientGateway::Impl:std::enable_shared_from_this<Impl>{
         auto session=sessions.find(s->client);if(session!=sessions.end()&&session->second.controlled==s->id)session->second.controlled=0;
         if(s->link)reverse.erase(remote_key(s->link->peer,s->remote));
         if(s->link&&s->remote&&back.connected(s->link->peer))back.call(s->link->peer,"system.attributes.unwatch",token(s->remote),std::chrono::seconds(1),[](Result){});
-        if(notify&&front.connected(s->client)){
+        auto principal=sessions.find(s->client);
+        if(notify&&principal!=sessions.end()&&authenticated(s->client,principal->second.subject)){
             auto body=encode_replication_packet(s->id,s->type,s->entity,status);std::string channel=attributes;
             if(s->automatic){body=std::string{char(2),char((s->owned?1:0)|(s->controlled?2:0))}+body;channel=presence;}
             if(!front.notify(s->client,channel,body))front.close(s->client);
         }
+    }
+    void revoke(std::uint64_t client){
+        auto found=sessions.find(client);if(found==sessions.end())return;
+        auto old_links=std::move(found->second.links);
+        // Erase first: reentrant/late callbacks must no longer authenticate the
+        // old logical connection, even when the replacement has the same subject.
+        sessions.erase(found);front.close(client);
+        auto pending=requests;for(auto& [id,r]:pending){(void)id;if(r->client==client)finish(r,{Status::disconnected,{}});}
+        auto old=subscriptions;for(auto& [id,s]:old){(void)id;if(s->client==client)remove(s,Status::disconnected,false);}
+        for(auto& [index,link]:old_links){(void)index;links.erase(link->peer);back.close(link->peer);}
     }
     void migrating(const std::shared_ptr<Subscription>& s,bool unavailable=false){
         // Repeated dead-link observations must not postpone the next attempt.
@@ -300,7 +368,7 @@ struct ClientGateway::Impl:std::enable_shared_from_this<Impl>{
     void control(const CallIdentity& who,std::string route,std::string input,Reply reply){
         std::uint64_t id;try{std::string_view in(input);id=get(in);if(route!="system.attributes.write"&&!in.empty())throw std::invalid_argument("trailing control");}catch(...){return reply({Status::rejected,{}});}
         auto it=subscriptions.find(id);if(it==subscriptions.end())return reply({Status::not_found,{}});auto sub=it->second;
-        if(sub->client!=who.peer||!sessions.contains(who.peer)||sessions.at(who.peer).subject!=who.subject||!authenticated(who.peer,who.subject))return reply({Status::rejected,{}});
+        if(sub->client!=who.peer||!sessions.contains(who.peer)||sessions.at(who.peer).subject!=who.subject||sessions.at(who.peer).connection!=who.connection||!who.live()||!authenticated(who.peer,who.subject)){revoke(who.peer);return reply({Status::rejected,{}});}
         if(route=="system.attributes.unwatch"){remove(sub,Status::disconnected,false);return reply({Status::ok,{}});}
         if(sub->migrating||!sub->link||!back.connected(sub->link->peer)){
             migrating(sub);return reply({route=="system.attributes.renew"?Status::ok:Status::overloaded,{}});
@@ -311,7 +379,8 @@ struct ClientGateway::Impl:std::enable_shared_from_this<Impl>{
     }
     void notice(std::uint64_t peer,const std::string& channel,std::string data,bool confirmed=false){
         auto found=links.find(peer);if(found==links.end()||!found->second->ready)return;auto link=found->second;
-        auto session=sessions.find(link->client);if(session==sessions.end()||!authenticated(link->client,session->second.subject))return;
+        auto session=sessions.find(link->client);if(session==sessions.end()||!authenticated(link->client,session->second.subject)){revoke(link->client);return;}
+        session=sessions.find(link->client);if(stopped || session==sessions.end())return;
         try{
             std::uint64_t kind=0,flags=0;std::string_view body(data);
             if(channel==presence){kind=get(body,1);flags=get(body,1);if(kind<1||kind>3||flags>3)throw std::invalid_argument("presence header");}
@@ -400,6 +469,8 @@ struct ClientGateway::Impl:std::enable_shared_from_this<Impl>{
                         sub->link=link;sub->remote=message.subscription;sub->revision=message.update->revision;sub->migrating=false;sub->failed.clear();self->reverse[self->remote_key(link->peer,sub->remote)]=sub->id;++self->counters.migrations;
                         self->expire_route(*sub);
                         remap_replication_subscription(result.data,sub->id);
+                        auto session=self->sessions.find(sub->client);
+                        if(session==self->sessions.end() || !self->authenticated(sub->client,session->second.subject)){self->revoke(sub->client);return;}
                         if(!self->front.notify(sub->client,attributes,result.data))self->front.close(sub->client);
                     }catch(...){self->remove(sub,Status::rejected);}
                 });
@@ -408,7 +479,7 @@ struct ClientGateway::Impl:std::enable_shared_from_this<Impl>{
     }
     void stop(){if(std::exchange(stopped,true))return;for(const auto& r:bound)front.unbind(r);if(owns_attributes)back.off_notification(attributes);if(owns_presence)back.off_notification(presence);if(owns_present)back.unbind("system.gateway.present");
         auto req=requests;for(auto& [id,r]:req){(void)id;finish(r,{Status::disconnected,{}});}auto subs=subscriptions;for(auto& [id,s]:subs){(void)id;remove(s,Status::disconnected);}
-        auto copy=links;for(auto& [peer,l]:copy){(void)l;back.close(peer);}links.clear();sessions.clear();storage.stop();}
+        auto copy=links;for(auto& [peer,l]:copy){(void)l;back.close(peer);}links.clear();sessions.clear();storage.stop(AsyncDatabase::StopMode::cancel_queued);}
 };
 ClientGateway::ClientGateway(Node& front,Node& back,std::shared_ptr<Storage> db,std::vector<EntityEndpoint> endpoints,GatewayLimits limits):impl_(std::make_shared<Impl>(front,back,std::move(db),std::move(endpoints),limits)){
     auto weak=std::weak_ptr(impl_);
@@ -431,13 +502,14 @@ void ClientGateway::bind_entity(std::string type,std::vector<std::string> method
     for(const auto& method:methods)if(!valid_entity_method(method))throw std::invalid_argument("invalid exposed method");
     for(auto& method:methods)impl_->exposed[type].insert(std::move(method));
 }
-void ClientGateway::poll(std::size_t budget){auto self=impl_;if(self->stopped)return;self->storage.poll(budget);auto now=Clock::now();std::vector<std::uint64_t> dead;
-    for(const auto& [peer,s]:self->sessions)if(!self->authenticated(peer,s.subject))dead.push_back(peer);
-    for(auto peer:dead){self->front.close(peer);auto subs=self->subscriptions;for(auto& [id,s]:subs){(void)id;if(s->client==peer)self->remove(s,Status::disconnected,false);}auto it=self->sessions.find(peer);if(it!=self->sessions.end()){for(auto& [index,l]:it->second.links){(void)index;self->back.close(l->peer);self->links.erase(l->peer);}self->sessions.erase(it);}}
+void ClientGateway::poll(std::size_t budget){auto self=impl_;if(self->stopped)return;self->storage.poll(budget);if(self->stopped)return;auto now=Clock::now();std::vector<std::uint64_t> peers,dead;
+    for(const auto& [peer,s]:self->sessions){(void)s;peers.push_back(peer);}
+    for(auto peer:peers){auto found=self->sessions.find(peer);if(found==self->sessions.end())continue;if(!self->authenticated(peer,found->second.subject))dead.push_back(peer);if(self->stopped)return;}
+    for(auto peer:dead)self->revoke(peer);
     std::vector<std::uint64_t> lost;
     for(const auto& [peer,l]:self->links)if(!l->opening&&!self->back.connected(peer))lost.push_back(peer);
     for(auto peer:lost){auto l=self->links.at(peer);auto it=self->sessions.find(l->client);if(it!=self->sessions.end()){auto found=it->second.links.find(l->index);if(found!=it->second.links.end()&&found->second==l)it->second.links.erase(found);}self->links.erase(peer);}
-    auto req=self->requests;for(auto& [id,r]:req){(void)id;if(now>=r->deadline)self->finish(r,{Status::timeout,{}});else if(!self->authenticated(r->client,r->subject))self->finish(r,{Status::disconnected,{}});else if(r->retry && now>=r->retry_at){auto retry=std::move(r->retry);r->retry={};retry();}}
+    auto req=self->requests;for(auto& [id,r]:req){(void)id;if(now>=r->deadline)self->finish(r,{Status::timeout,{}});else if(!self->authenticated(r))self->finish(r,{Status::disconnected,{}});else if(r->retry && now>=r->retry_at){auto retry=std::move(r->retry);r->retry={};retry();}}
     auto count=self->schedule.size();std::size_t work=0;
     while(count-- && work++<budget && !self->schedule.empty()){
         auto id=self->schedule.front();self->schedule.pop_front();auto it=self->subscriptions.find(id);if(it==self->subscriptions.end())continue;auto s=it->second;self->schedule.push_back(id);

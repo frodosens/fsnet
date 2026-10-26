@@ -114,6 +114,21 @@ struct Client::Impl : std::enable_shared_from_this<Impl> {
         } catch(...) { applying=false;throw; }
     }
     std::chrono::milliseconds timeout(std::chrono::milliseconds value) const { return value.count()==0?request_timeout:value; }
+    std::optional<ClientEntityHandle> select_binding(std::string_view id,std::optional<std::string_view> type={}) const {
+        std::optional<ClientEntityHandle> selected;
+        bool automatic=false;
+        for(const auto& [subscription,binding]:bindings) {
+            if(binding.key.id!=id || (type && binding.key.type!=*type))continue;
+            // Automatic projections carry authoritative ownership/control data.
+            // Resolve duplicate manual watches deterministically as well, so
+            // unordered_map iteration and rehash cannot change the selection.
+            if(!selected || (binding.automatic && !automatic) ||
+                (binding.automatic==automatic && subscription<selected->subscription)) {
+                selected=ClientEntityHandle{generation,subscription};automatic=binding.automatic;
+            }
+        }
+        return selected;
+    }
     Reply guarded(Reply reply) {
         if(!reply)throw std::invalid_argument("missing reply callback");
         return [weak=weak_from_this(),epoch=generation,reply=std::move(reply)](Result result) mutable {
@@ -179,8 +194,7 @@ void Client::call(EntityId id,std::string_view method,std::string_view payload,R
     request(entity_call_route,message,std::move(reply),options.timeout);
 }
 std::optional<ClientEntity> Client::entity(EntityId id) const {
-    auto text=id.str();for(const auto& [subscription,binding]:impl_->bindings)if(binding.key.id==text)return entity(ClientEntityHandle{impl_->generation,subscription});
-    return {};
+    auto handle=impl_->select_binding(id.str());return handle?entity(*handle):std::nullopt;
 }
 void Client::watch(EntityKey key,Ready reply,std::chrono::milliseconds timeout){
     if(!reply)throw std::invalid_argument("missing watch callback");
@@ -217,9 +231,7 @@ std::optional<ClientEntity> Client::entity(ClientEntityHandle handle) const {
     const auto& b=it->second;return ClientEntity{b.key,handle,std::move(image),b.automatic,b.owned,b.controlled};
 }
 std::optional<ClientEntity> Client::entity(const EntityKey& key) const {
-    std::optional<ClientEntityHandle> manual;
-    for(const auto& [id,b]:impl_->bindings)if(b.key==key){if(b.automatic)return entity({impl_->generation,id});manual=ClientEntityHandle{impl_->generation,id};}
-    return manual?entity(*manual):std::nullopt;
+    auto handle=impl_->select_binding(key.id,key.type);return handle?entity(*handle):std::nullopt;
 }
 std::optional<ClientEntity> Client::controlled() const {
     for(const auto& [id,b]:impl_->bindings)if(b.controlled)return entity({impl_->generation,id});

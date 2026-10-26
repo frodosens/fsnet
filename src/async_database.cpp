@@ -1,6 +1,6 @@
 #include "fsnet/async_database.hpp"
 #include <condition_variable>
-#include <deque>
+#include <list>
 #include <mutex>
 #include <stdexcept>
 #include <thread>
@@ -13,7 +13,11 @@ struct AsyncDatabase::Impl {
     StorageLimits limits;
     mutable std::mutex mutex;
     std::condition_variable ready;
-    std::deque<Job> queued, completed;
+    // Admission owns the only queue node allocation. Moving a job through the
+    // worker and completion queues must not allocate after its operation ran:
+    // the operation may have committed even when the process is short of memory.
+    std::list<Job> queued, completed;
+    std::exception_ptr cancelled = std::make_exception_ptr(std::runtime_error("storage operation cancelled before execution"));
     std::size_t count = 0, bytes = 0;
     bool stopped = false, polling = false;
     std::thread worker;
@@ -21,23 +25,36 @@ struct AsyncDatabase::Impl {
         if (!database || !limits.jobs || !limits.bytes) throw std::invalid_argument("invalid storage executor");
         worker = std::thread([this] {
             for (;;) {
-                Job job;
+                std::list<Job> active;
                 {
                     std::unique_lock lock(mutex);
                     ready.wait(lock, [&] { return stopped || !queued.empty(); });
                     if (queued.empty()) return;
-                    job = std::move(queued.front()); queued.pop_front();
+                    active.splice(active.end(), queued, queued.begin());
                 }
+                auto& job = active.front();
                 try { job.operation(*database); } catch (...) { job.error = std::current_exception(); }
                 job.operation = {};
-                { std::lock_guard lock(mutex); completed.push_back(std::move(job)); }
+                { std::lock_guard lock(mutex); completed.splice(completed.end(), active); }
             }
         });
     }
-    void stop() {
-        { std::lock_guard lock(mutex); stopped = true; }
+    void stop(StopMode mode = StopMode::drain) {
+        std::list<Job> abandoned;
+        {
+            std::lock_guard lock(mutex);
+            stopped = true;
+            if (mode == StopMode::cancel_queued) abandoned.splice(abandoned.end(), queued);
+        }
+        // Release owned operation captures outside the executor's mutex, just
+        // as the worker does. The prebuilt exception and list splice allocate
+        // nothing even if stop follows a resource-exhaustion failure.
+        for (auto& job : abandoned) { job.error = cancelled; job.operation = {}; }
         ready.notify_one();
         if (worker.joinable()) worker.join();
+        // The active job precedes these cancelled queued jobs in admission
+        // order, so append their completions only after that job has finished.
+        { std::lock_guard lock(mutex); completed.splice(completed.end(), abandoned); }
     }
     ~Impl() { stop(); }
 };
@@ -72,5 +89,5 @@ std::size_t AsyncDatabase::poll(std::size_t budget) {
     return work;
 }
 std::size_t AsyncDatabase::pending() const { std::lock_guard lock(impl_->mutex); return impl_->count; }
-void AsyncDatabase::stop() { impl_->stop(); }
+void AsyncDatabase::stop(StopMode mode) { impl_->stop(mode); }
 }
