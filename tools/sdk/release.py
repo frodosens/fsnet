@@ -8,6 +8,8 @@ import re
 import shutil
 import struct
 import subprocess
+import time
+from urllib.parse import quote
 import zipfile
 
 PLATFORMS = ("linux-x86_64", "windows-x86_64", "macos-x86_64", "macos-arm64")
@@ -28,11 +30,17 @@ def digest(path):
     return value.hexdigest()
 
 
-def gh_json(endpoint, method="GET", fields=None, absent_ok=False):
+def gh_json(endpoint, method="GET", fields=None, absent_ok=False, payload=None, input_file=None):
     command = ["gh", "api", endpoint, "--method", method]
     for key, value in (fields or {}).items():
         command += ["-f", key + "=" + value]
-    result = subprocess.run(command, capture_output=True, text=True, timeout=60)
+    require(not (payload is not None and input_file is not None), "conflicting GitHub request bodies")
+    if payload is not None:
+        command += ["--input", "-"]
+    if input_file is not None:
+        command += ["--input", str(input_file), "--header", "Content-Type: application/octet-stream"]
+    result = subprocess.run(command, input=json.dumps(payload) if payload is not None else None,
+                            capture_output=True, text=True, timeout=300 if input_file else 60)
     if result.returncode:
         if absent_ok and "HTTP 404" in result.stderr:
             return None
@@ -134,6 +142,31 @@ def verify_assets(artifacts, output, version, source):
     return records
 
 
+def verify_uploaded(repository, release_id, tag, assets, attempts=10):
+    expected = {path.name: (path.stat().st_size, "sha256:" + digest(path)) for path in assets}
+    for attempt in range(attempts):
+        # Drafts are not exposed by GET /releases/tags/{tag}. Always retain and
+        # use the numeric ID returned by POST /releases, including publication.
+        release = gh_json(f"repos/{repository}/releases/{release_id}")
+        require(release["tag_name"] == tag and release["draft"] is True,
+                "release identity or draft state changed during upload verification")
+        uploaded = {asset["name"]: asset for asset in release["assets"]}
+        require(set(uploaded) <= set(expected), "draft contains unexpected release assets")
+        pending = []
+        for name, (size, checksum) in expected.items():
+            asset = uploaded.get(name)
+            if not asset or asset.get("state") != "uploaded" or not asset.get("digest"):
+                pending.append(name)
+                continue
+            require(asset["size"] == size and asset["digest"] == checksum,
+                    "uploaded release asset failed server-side digest verification: " + name)
+        if not pending:
+            return
+        if attempt + 1 < attempts:
+            time.sleep(2)
+    raise RuntimeError("release assets did not finish server-side digest verification: " + ", ".join(pending))
+
+
 def publish(repository, run_id, source, version, artifacts, output):
     verify_run(repository, run_id, source)
     tag = "sdk-v" + version
@@ -153,17 +186,21 @@ def publish(repository, run_id, source, version, artifacts, output):
     ref = gh_json(f"repos/{repository}/git/refs", method="POST", fields={"ref": "refs/tags/" + tag, "sha": source})
     require(ref["object"]["sha"] == source, "created tag target does not match validated source")
     assets = [output / record["name"] for record in records] + [output / "SHA256SUMS", output / "sdk-release-manifest.json"]
-    subprocess.run(["gh", "release", "create", tag, "--repo", repository, "--verify-tag", "--draft",
-                    "--title", "fsnet desktop client SDK " + version, "--notes-file", str(notes),
-                    *map(str, assets)], check=True, timeout=300)
-    release = gh_json(f"repos/{repository}/releases/tags/{tag}")
-    uploaded = {asset["name"]: asset for asset in release["assets"]}
+    release = gh_json(f"repos/{repository}/releases", method="POST", payload={
+        "tag_name": tag, "target_commitish": source, "name": "fsnet desktop client SDK " + version,
+        "body": notes.read_text(), "draft": True, "make_latest": "false",
+    })
+    require(release["tag_name"] == tag and release["draft"] is True and
+            isinstance(release["id"], int) and release["id"] > 0, "invalid created draft identity")
+    release_id = release["id"]
     for path in assets:
-        asset = uploaded.get(path.name)
-        require(asset and asset["size"] == path.stat().st_size and asset.get("digest") == "sha256:" + digest(path),
-                "uploaded release asset failed server-side digest verification: " + path.name)
-    subprocess.run(["gh", "release", "edit", tag, "--repo", repository, "--draft=false", "--latest=false"],
-                   check=True, timeout=60)
+        gh_json(f"https://uploads.github.com/repos/{repository}/releases/{release_id}/assets?name=" +
+                quote(path.name, safe=""), method="POST", input_file=path)
+    verify_uploaded(repository, release_id, tag, assets)
+    published = gh_json(f"repos/{repository}/releases/{release_id}", method="PATCH",
+                        payload={"draft": False, "make_latest": "false"})
+    require(published["id"] == release_id and published["tag_name"] == tag and published["draft"] is False,
+            "GitHub did not publish the verified draft")
     print(f"Published https://github.com/{repository}/releases/tag/{tag}")
 
 

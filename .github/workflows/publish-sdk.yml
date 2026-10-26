@@ -15,7 +15,7 @@ on:
         default: '0.3.1'
   push:
     branches: ['refactor/desktop-sdk']
-    paths: ['.github/workflows/publish-sdk.yml', 'tools/sdk/release.py']
+    paths: ['.github/workflows/publish-sdk.yml', 'tools/sdk/release.py', 'tools/sdk/test_release.py']
 
 permissions:
   contents: read
@@ -46,6 +46,8 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+      - name: Check publisher draft lifecycle
+        run: python3 -m unittest discover -s tools/sdk -p test_release.py -v
       - name: Verify successful producer run and exact source
         run: >-
           python3 tools/sdk/release.py verify-run
