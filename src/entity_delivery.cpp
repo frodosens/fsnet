@@ -57,7 +57,7 @@ struct EntityDelivery::Impl:std::enable_shared_from_this<Impl> {
         auto op=std::make_shared<Attempt>();op->key=key;active.emplace(key,op);
         auto envelope=std::make_shared<std::optional<DeliveryEnvelope>>();
         if(!storage.submit(key.size(),[source,envelope](Storage& db){
-            auto record=db.get(entity_record_key(source.first,source.second));if(!record)return;
+            auto record=db.get(entity_record_key(EntityId(source.second)));if(!record)return;
             auto state=decode_entity_record(record->value).snapshot.delivery;
             for(auto& m:state.outbox)if(!m.done){*envelope=DeliveryEnvelope{source.first,source.second,state.epoch,std::move(m)};break;}
         },[weak=weak_from_this(),op,envelope](std::exception_ptr error){

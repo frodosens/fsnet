@@ -16,7 +16,9 @@ namespace {
 using Clock = std::chrono::steady_clock;
 std::string key(const std::string& type, const std::string& id) { return type + '\0' + id; }
 std::string record_key(const std::string& entity) {
-    auto split=entity.find('\0');return entity_record_key(entity.substr(0,split),entity.substr(split+1));
+    auto split=entity.find('\0');
+    if(split==std::string::npos)throw std::invalid_argument("invalid entity mailbox identity");
+    return entity_record_key(EntityId(std::string_view(entity).substr(split+1)));
 }
 std::int64_t wall_time() {
     return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
@@ -401,10 +403,6 @@ struct EntityScriptHost::Impl : std::enable_shared_from_this<Impl> {
                     if(current.metadata && (current.metadata->destroyed || current.metadata->type!=job->request.method->type)) {
                         job->status=current.metadata->destroyed?Status::not_found:Status::rejected;return;
                     }
-                    auto identity_split=job->entity.find('\0');
-                    if(valid_entity_id(std::string_view(job->entity).substr(identity_split+1)) && !current.metadata) {
-                        job->status=Status::rejected;return;
-                    }
                     job->metadata=current.metadata;
                     if(job->request.new_owner && (!current.metadata || !current.initialized)) {job->status=Status::overloaded;return;}
                     if(job->request.timer && (!current.metadata || current.metadata->rebuildable || !current.initialized)) {job->status=Status::rejected;return;}
@@ -453,7 +451,7 @@ struct EntityScriptHost::Impl : std::enable_shared_from_this<Impl> {
                         } else {
                             auto expected=found==job->delivery.inbox.end()?1:found->second.sequence+1;
                             if(m.sequence!=expected || (found==job->delivery.inbox.end() && job->delivery.inbox.size()>=settings.delivery_channels)) { job->status=Status::overloaded;return; }
-                            auto source=db.get(entity_record_key(incoming.source_type,incoming.source_id));
+                            auto source=db.get(entity_record_key(EntityId(incoming.source_id)));
                             if(!source) { job->status=Status::rejected;return; }
                             auto source_record=decode_entity_record(source->value);const auto& state=source_record.snapshot.delivery;
                             bool valid=false;
@@ -701,8 +699,7 @@ struct EntityScriptHost::Impl : std::enable_shared_from_this<Impl> {
                                 timer_index::arm(db,*job->timer_index_entry);
                             }
                             if(clock()>=job->expires){job->owner_lost=true;job->status=Status::rejected;return;}
-                            bool destroy=job->request.route==job->request.method->type+".$destroy";
-                            bool accepted=destroy && !job->metadata?db.erase(record_key(job->entity),job->version):db.compare_exchange(record_key(job->entity),job->version,job->persisted);
+                            bool accepted=db.compare_exchange(record_key(job->entity),job->version,job->persisted);
                             if(!accepted) { job->owner_lost=true; job->status=Status::rejected; }
                         }, [weak, job](std::exception_ptr error) {
                             auto owner = weak.lock();
@@ -1053,7 +1050,7 @@ void EntityScriptHost::send_entity(std::string source_type,std::string source_id
     auto target_type=type,target_id=id;auto queued_bytes=payload.size()+1024;
     auto resolved_type=std::make_shared<std::string>(type);
     if(!self.storage.submit(queued_bytes,[source,target_type,target_id,target_epoch,status,settings,resolved_type](Storage& db) {
-        auto target=db.get(entity_record_key(target_type,target_id));
+        auto target=db.get(entity_record_key(EntityId(target_id)));
         if(!target) {*status=Status::not_found;return;}
         auto value=decode_entity_record(target->value);
         if(value.metadata && (value.metadata->destroyed || value.metadata->rebuildable || (!target_type.empty() && value.metadata->type!=target_type))) {*status=Status::rejected;return;}

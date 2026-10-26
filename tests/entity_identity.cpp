@@ -78,7 +78,36 @@ int main() {
         auto service=player;service.type="LoginEntity";service.persistence=EntityPersistence::rebuildable;
         auto service_id=catalog.create("manager","login-1",service); auto encoded=encode_entity_record(catalog.find(service_id)->record);
         auto view=decode_entity_record_view(encoded);CHECK(view.metadata->rebuildable && view.metadata->initial_state=="initial");
-        for(std::size_t n=0;n<encoded.size();++n) throws([&] {decode_entity_record_view(std::string_view(encoded).substr(0,n));});
+        CHECK(encoded.starts_with("FER5"));
+        auto full=decode_entity_record(encoded);
+        CHECK(full.metadata->type=="LoginEntity" && full.metadata->creation_digest==view.metadata->creation_digest);
+        CHECK(full.snapshot.state=="initial" && !full.initialized && full.placement=="map-b");
+        auto initialized=full;initialized.initialized=true;initialized.placement.clear();
+        CHECK(decode_entity_record(encode_entity_record(initialized)).initialized);
+        auto missing_metadata=full;missing_metadata.metadata.reset();
+        throws([&] {encode_entity_record(missing_metadata);});
+        // Construct complete historical records, rather than changing only the
+        // magic of a FER5 body: the old readers accepted these exact layouts.
+        for(auto version:{"FER1","FER2","FER3"}) {
+            std::string historical=version;snapshot_detail::blob(historical,"old-node/boot");
+            entity_record_detail::integer(historical,100);entity_record_detail::integer(historical,1);
+            if(std::string_view(version)=="FER3") {
+                historical.push_back(1);snapshot_detail::blob(historical,"map-b");
+                entity_record_detail::integer(historical,9);
+            }
+            historical+=encode_snapshot(EntitySnapshot{"stored-state",{}});
+            throws([&] {decode_entity_record(historical);});
+            throws([&] {decode_entity_record_view(historical);});
+        }
+        for(auto version:{"FER4","FER6","XXXX"}) {
+            auto unsupported=encoded;unsupported.replace(0,4,version);
+            throws([&] {decode_entity_record(unsupported);});
+            throws([&] {decode_entity_record_view(unsupported);});
+        }
+        for(std::size_t n=0;n<encoded.size();++n) {
+            throws([&] {decode_entity_record_view(std::string_view(encoded).substr(0,n));});
+            throws([&] {decode_entity_record(std::string_view(encoded).substr(0,n));});
+        }
         auto max_db=memory_database();std::string high="FEI1";entity_record_detail::integer(high,UINT64_MAX-1);
         CHECK(max_db->compare_exchange("fsnet/identity/high-water/v1",0,high)); EntityIdAllocator last(*max_db,32);
         CHECK(last.allocate().value()==UINT64_MAX);throws([&] {last.allocate();});
@@ -107,6 +136,6 @@ int main() {
         CHECK(durable_ids.size()==450);auto reopened=file_storage((directory/"store").string());EntityIdAllocator after_restart(*reopened,31);
         CHECK(!durable_ids.contains(after_restart.allocate().value()));
 #endif
-        std::cout<<"PASS global identity: concurrent ranges, process restart, idempotent creation, lost ACKs, collision rejection and terminal identity\n";
+        std::cout<<"PASS global identity: concurrent ranges, process restart, idempotent creation, lost ACKs, collision rejection, terminal identity and FER5-only records\n";
     } catch(const std::exception& error) {std::cerr<<error.what()<<'\n';return 1;}
 }

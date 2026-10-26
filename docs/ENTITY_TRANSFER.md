@@ -1,12 +1,12 @@
 # 指定目标节点的实体交接
 
-服务端可以把同一 `type/id` 实体交给指定的稳定节点 ID。客户端连接 Gateway，保持原订阅 ID、
+服务端可以把同一全局 EntityId 的实体交给指定的稳定节点 ID。客户端连接 Gateway，保持原订阅 ID、
 实体对象和镜头引用；Gateway 恢复目标上的完整快照后继续差量同步。业务决定地图、出生点和
 可见性，引擎负责所有权交接，不内置地图规则。
 
 ## Lua API
 
-在源 owner 的非目标实体 mailbox 异步任务中调用，例如经过业务权限校验的无状态服务：
+在源 owner 上经过业务权限校验的其他实体方法或后台任务中调用：
 
 ```lua
 -- Player 已在所有目标 owner 注册相同的类、属性和生命周期逻辑。
@@ -42,7 +42,8 @@ fsnet::EntityTransfer transfer(owner_node, entity_host, database, endpoints,
 // 每轮 Node、entity_host、Lua、复制服务和 GatewayDelegation 之外：
 transfer.poll();
 
-transfer.transfer("Player", "alice", "owner-b", [](fsnet::Result result) {
+// player_id 为可信业务保存的 fsnet::EntityId。
+transfer.transfer("Player", player_id.str(), "owner-b", [](fsnet::Result result) {
     // ok 表示目标激活提交已确认；并不等待所有观察者收到快照。
 });
 ```
@@ -94,9 +95,10 @@ owner-pins 为 `sha256:<64位小写十六进制> owner-b`，只列可信 owner �
 
 ## 升级和边界
 
-带指定目标的记录使用 **FER3**，增加目标、交接编号和初始化标志；没有目标的实体仍写
-FER1/FER2。本版本读取全部三种格式。**先升级所有 owner、Gateway 和目录读者，再启用迁移**；
-旧版本不能读取 FER3，不能在产生 FER3 后直接回滚旧二进制或手工删除 placement。
+有无指定目标均使用 **FER5**，目标、交接编号、初始化标志与全局元数据在同一记录中保存。
+实体记录仅支持 FER5，计时器发现索引仅支持 FTI2；历史记录、旧 key、FTI1 与未知版本均拒绝，
+不会自动转换或在读取失败后覆盖原记录。全部 owner、Gateway 和目录读者必须采用同一当前合同。
+没有旧存档迁移/兼容恢复工具，不能通过手工删除 placement 改写已提交的目标。
 
 所有参与节点应部署兼容 schema/脚本。预检只检查类型注册，不比较脚本版本；不兼容状态会在
 目标恢复/校验时失败，目标仍被保留，需修复部署后重试。没有在线 schema/模块状态迁移。

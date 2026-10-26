@@ -68,7 +68,7 @@ serverAuth/clientAuth，玩家需 clientAuth。端点 TLS 名称必须匹配证�
 
 指定目标交接与持久命令可选配置 `FSNET_ENTITY_ENDPOINTS` 与 `FSNET_OWNER_PINS`，使 owner 能按独立的
 owner 证书白名单互连；与 Gateway pins 分开，owner 证书同时需要 clientAuth/serverAuth。
-启用前须一起升级全部 owner/Gateway 以读取 FER5/FSP3/FTI2，见[交接部署与升级合同](ENTITY_TRANSFER.md)及[持久命令](ENTITY_DELIVERY.md)。
+所有 owner/Gateway 必须使用当前 FER5/FTI2 合同和一致的快照布局，见[交接部署与升级合同](ENTITY_TRANSFER.md)及[持久命令](ENTITY_DELIVERY.md)。
 owner pins 应包含参与投递的 owner，包括自身证书；端点类型列表必须同时包含发送与接收实体类型，确认也需要路由回源。
 
 Manager/LoginEntity 的入口 ID 由可信启动/发现提供，业务不配置独立 login 路由。
@@ -85,8 +85,10 @@ SIGTERM/SIGINT 将 readiness 置 false。owner 停止接单、等待现有请求
 systemd 停止时限分别配置 45/10 秒，避免正常 drain 被过早 SIGKILL。先从负载均衡摘除再停止。
 稳定 Node ID、实体类型和 EntityId 必须跨版本一致。重连需要业务显式重新绑定新的逻辑连接。
 
-本轮不改写持久化/线协议格式。部署时头文件、库、脚本与 owner/Gateway 应来自同一构建，
-不能将历史格式支持误认为在线滚动升级协议；上线前仍需备份与明确回滚方案。
+实体记录只支持 FER5，计时器发现索引只支持 FTI2；FER1/2/3/4、FTI1 和未知版本拒绝，
+不提供旧存档迁移、兼容恢复或自动转换，也不会将读取失败当作空状态覆盖原记录。
+部署时头文件、库、脚本与 owner/Gateway 应来自同一构建，使用当前格式数据或空存储。
+上线前仍需备份与明确回滚方案，不能把不支持历史格式的二进制连接到旧实验存储。
 模块热更新/状态迁移尚未实现，不支持在运行中替换 schema。hook 的外部副作用需业务幂等，
 详见 ENTITY_LIFECYCLE.md。Gateway 故障后客户端需由应用重新连接、登录和重建订阅。
 

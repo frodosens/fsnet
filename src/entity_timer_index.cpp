@@ -14,12 +14,12 @@ unsigned shard(std::string_view id){std::uint64_t hash=14695981039346656037ULL;f
 Bucket read(Storage& db,unsigned index){
     auto record=db.get(storage_key(index));if(!record)return {};
     if(record->value.size()>1024*1024)throw std::runtime_error("timer discovery index limit");
-    std::string_view input(record->value);bool placed=input.starts_with("FTI2");if(!placed && !input.starts_with("FTI1"))throw std::runtime_error("timer discovery version");input.remove_prefix(4);
+    std::string_view input(record->value);if(!input.starts_with("FTI2"))throw std::runtime_error("timer discovery version");input.remove_prefix(4);
     Bucket bucket;bucket.version=record->version;auto count=snapshot_detail::number(input);if(count>per_shard)throw std::runtime_error("timer discovery count");
     while(count--) {
         Entry entry;entry.type=snapshot_detail::blob(input);entry.id=snapshot_detail::blob(input);entry.token=snapshot_detail::blob(input);
         entry.base_version=entity_record_detail::integer(input);entry.fence=entity_record_detail::integer(input);auto due=entity_record_detail::integer(input);
-        if(placed)entry.placement=snapshot_detail::blob(input);
+        entry.placement=snapshot_detail::blob(input);
         if(due>INT64_MAX || input.empty() || static_cast<unsigned char>(input.front())>1)throw std::runtime_error("timer discovery metadata");
         entry.due_ms=static_cast<std::int64_t>(due);entry.pending=input.front()!=0;input.remove_prefix(1);valid(entry);
         if(!bucket.entries.emplace(identity(entry.type,entry.id),entry).second)throw std::runtime_error("duplicate timer discovery entity");

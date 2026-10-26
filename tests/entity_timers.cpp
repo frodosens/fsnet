@@ -64,6 +64,39 @@ int main(int argc,char** argv){try{
     for(std::size_t i=0;i<encoded.size();++i)denied([&]{decode_entity_timers(std::string_view(encoded).substr(0,i));});
     denied([&]{advance_entity_timer(original,99);});
     auto time=std::make_shared<std::atomic<std::int64_t>>(10000);auto database=memory_database();
+    // Discovery must reject retired/unknown formats without treating their
+    // buckets as empty or overwriting them during a producer retry.
+    {
+        Machine machine(memory_database(),time,source,"index-version");auto id=machine.create();machine.timers->stop();
+        auto actor=machine.db->get(entity_record_key(id));auto record=decode_entity_record(actor->value);
+        timer_index::Entry entry{"TimerActor",id.str(),"index-fixture",actor->version,record.fence,10100,false,"timers"};
+        auto index=timer_index::shard(entry.id);auto identity=timer_index::identity(entry.type,entry.id);
+        auto key="fsnet/timers/index/v1/"+std::to_string(index);
+        auto bucket=timer_index::read(*machine.db,index);CHECK(bucket.version==0 && bucket.entries.empty());
+        bucket.entries.emplace(identity,entry);CHECK(timer_index::write(*machine.db,index,bucket));
+        auto restored=timer_index::read(*machine.db,index);CHECK(restored.entries.at(identity)==entry);
+        entry.pending=true;entry.placement="map-2";restored.entries.at(identity)=entry;
+        CHECK(timer_index::write(*machine.db,index,restored));
+        CHECK(timer_index::read(*machine.db,index).entries.at(identity)==entry);
+        auto current=machine.db->get(key);CHECK(current && current->value.starts_with("FTI2"));
+
+        std::string retired="FTI1";snapshot_detail::number(retired,1);
+        snapshot_detail::blob(retired,entry.type);snapshot_detail::blob(retired,entry.id);snapshot_detail::blob(retired,entry.token);
+        entity_record_detail::integer(retired,entry.base_version);entity_record_detail::integer(retired,entry.fence);
+        entity_record_detail::integer(retired,entry.due_ms);retired+=entry.pending?1:0;
+        auto unknown=current->value;unknown.replace(0,4,"FTI3");
+        for(const auto& unsupported:{retired,unknown}) {
+            auto previous=machine.db->get(key);CHECK(machine.db->compare_exchange(key,previous->version,unsupported));
+            auto rejected=machine.db->get(key);
+            denied([&]{timer_index::read(*machine.db,index);});
+            denied([&]{timer_index::arm(*machine.db,entry);});
+            EntityTimerLimits scheduling;scheduling.refresh=2ms;scheduling.retry=2ms;
+            machine.timers=std::make_unique<EntityTimers>(machine.host,machine.db,scheduling);
+            machine.until([&]{return machine.timers->stats().failures>0;});machine.spin(10);machine.timers->stop();
+            auto preserved=machine.db->get(key);
+            CHECK(preserved->version==rejected->version && preserved->value==unsupported);
+        }
+    }
     {
         Machine machine(database,time,source,"one");auto id=machine.create();
         CHECK(machine.call(id,"arm","once").status==Status::ok);time->fetch_add(99);machine.spin();CHECK(machine.count(id)==0);

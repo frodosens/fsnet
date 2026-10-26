@@ -64,7 +64,7 @@ int main(int argc,char** argv){try{
     std::optional<Result> invalid_snapshot;
     ah->read_attributes("Player","unallocated-name",[&](Result value){invalid_snapshot=std::move(value);});
     CHECK(invalid_snapshot && invalid_snapshot->status==Status::rejected);
-    CHECK(!db->get(entity_record_key("Player","unallocated-name")));
+    CHECK(!ah->active("Player","unallocated-name"));
     gateway.bind_entity("Manager",{"discover","spawn_remote"});
     gateway.bind_entity("LoginEntity",{"login"});
     gateway.bind_entity("Player",{"move","arm_timer","reward"});

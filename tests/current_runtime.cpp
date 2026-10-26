@@ -69,5 +69,17 @@ int main(){try{
         fenced.until([&]{return stale.has_value();});require(stale->status==Status::rejected,"stale owner committed");
         require(std::get<std::int64_t>(fenced.image(target).values.at("x"))==0,"stale state published");
     }
+    {
+        Runtime unsupported(source);auto target=unsupported.create("Actor","retired-record");
+        auto key=entity_record_key(target);auto saved=unsupported.db->get(key);auto record=decode_entity_record(saved->value);
+        std::string retired="FER1";snapshot_detail::blob(retired,record.owner);
+        entity_record_detail::integer(retired,record.expires_ms);entity_record_detail::integer(retired,record.fence);
+        retired+=encode_snapshot(record.snapshot);
+        require(unsupported.db->compare_exchange(key,saved->version,retired),"retired record fixture");
+        auto before=unsupported.db->get(key);
+        require(unsupported.call(target,"read").status!=Status::ok,"unsupported record accepted");
+        auto after=unsupported.db->get(key);
+        require(after->version==before->version && after->value==before->value,"unsupported record reset or overwritten");
+    }
     std::cout<<"PASS current runtime: global creation, caller/connection grants, receipts, rollback, suspension revocation, nested calls and lifecycle\n";
 }catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}}

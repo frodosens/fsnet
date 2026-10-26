@@ -25,7 +25,7 @@ struct EntityRecord {
     std::int64_t expires_ms = 0;
     std::uint64_t fence = 0;
     EntitySnapshot snapshot;
-    bool initialized = true; // FER1 records are already initialized
+    bool initialized = true;
     std::string placement; // stable node; persists across release/restart
     std::uint64_t transfer_id = 0; // source storage version, never reused after delete/recreate
     std::optional<EntityMetadata> metadata = std::nullopt;
@@ -59,10 +59,6 @@ inline std::uint64_t integer(std::string_view& input) {
     input.remove_prefix(8); return value;
 }
 }
-inline std::string entity_record_key(const std::string& type, const std::string& id) {
-    if(valid_entity_id(id)) return "fsnet/entity/v2/"+id;
-    return "fsnet/entity/" + type + '\0' + id;
-}
 inline std::string entity_record_key(EntityId id) { return "fsnet/entity/v2/"+id.str(); }
 template<class Metadata> inline bool valid_entity_metadata(const Metadata& metadata) {
     return !metadata.type.empty() && metadata.type.size()<=127 &&
@@ -73,52 +69,42 @@ template<class Metadata> inline bool valid_entity_metadata(const Metadata& metad
 inline std::string encode_entity_record(const EntityRecord& record) {
     if (record.owner.size() > 256 || record.expires_ms < 0 || record.fence >= static_cast<std::uint64_t>(INT64_MAX))
         throw std::invalid_argument("invalid entity record");
-    if ((!record.placement.empty() && (!valid_entity_node(record.placement) || (!record.transfer_id && !record.metadata))) ||
+    if ((!record.placement.empty() && !valid_entity_node(record.placement)) ||
         (record.placement.empty() && record.transfer_id)) throw std::invalid_argument("invalid entity placement");
-    if(record.metadata && !valid_entity_metadata(*record.metadata)) throw std::invalid_argument("invalid global entity metadata");
-    std::string result = record.metadata ? "FER5" : (!record.placement.empty() ? "FER3" : (record.initialized ? "FER1" : "FER2"));
+    if(!record.metadata || !valid_entity_metadata(*record.metadata)) throw std::invalid_argument("global entity metadata required");
+    std::string result = "FER5";
     snapshot_detail::blob(result, record.owner);
     entity_record_detail::integer(result, static_cast<std::uint64_t>(record.expires_ms));
     entity_record_detail::integer(result, record.fence);
-    if (record.metadata || !record.placement.empty()) {
-        result.push_back(record.initialized ? 1 : 0); snapshot_detail::blob(result,record.placement);
-        entity_record_detail::integer(result,record.transfer_id);
-    }
-    if(record.metadata) {
-        const auto& metadata=*record.metadata;
-        snapshot_detail::blob(result,metadata.type); snapshot_detail::blob(result,metadata.owner_connection);
-        result.push_back(static_cast<char>((metadata.rebuildable?1:0)|(metadata.destroyed?2:0)));
-        snapshot_detail::blob(result,metadata.initial_state); result+=metadata.creation_digest;entity_record_detail::integer(result,metadata.owner_revision);
-    }
+    result.push_back(record.initialized ? 1 : 0); snapshot_detail::blob(result,record.placement);
+    entity_record_detail::integer(result,record.transfer_id);
+    const auto& metadata=*record.metadata;
+    snapshot_detail::blob(result,metadata.type); snapshot_detail::blob(result,metadata.owner_connection);
+    result.push_back(static_cast<char>((metadata.rebuildable?1:0)|(metadata.destroyed?2:0)));
+    snapshot_detail::blob(result,metadata.initial_state); result+=metadata.creation_digest;entity_record_detail::integer(result,metadata.owner_revision);
     result += encode_snapshot(record.snapshot); return result;
 }
 namespace entity_record_detail {
 inline EntityRecordView header(std::string_view input) {
-    bool global=input.starts_with("FER5"), placed=global || input.starts_with("FER3"), pending=input.starts_with("FER2");
-    if (!placed && !pending && !input.starts_with("FER1")) throw std::runtime_error("unknown entity record version");
-    input.remove_prefix(4); EntityRecordView record; record.initialized=!pending; record.owner = snapshot_detail::blob_view(input);
+    if (!input.starts_with("FER5")) throw std::runtime_error("unknown entity record version");
+    input.remove_prefix(4); EntityRecordView record; record.owner = snapshot_detail::blob_view(input);
     auto expires = entity_record_detail::integer(input); record.fence = entity_record_detail::integer(input);
     if (record.owner.size() > 256 || expires > static_cast<std::uint64_t>(INT64_MAX) || record.fence >= static_cast<std::uint64_t>(INT64_MAX))
         throw std::runtime_error("invalid entity record metadata");
-    if (placed) {
-        if(input.empty() || static_cast<unsigned char>(input.front())>1) throw std::runtime_error("invalid entity initialization");
-        record.initialized=input.front()!=0; input.remove_prefix(1); record.placement=snapshot_detail::blob_view(input);
-        record.transfer_id=entity_record_detail::integer(input);
-        if((!record.placement.empty() && !valid_entity_node(record.placement)) ||
-           (!global && (!record.transfer_id || record.placement.empty())) ||
-           (record.placement.empty() && record.transfer_id)) throw std::runtime_error("invalid entity placement");
-    }
-    if(global) {
-        EntityMetadataView metadata; metadata.type=snapshot_detail::blob_view(input); metadata.owner_connection=snapshot_detail::blob_view(input);
-        if(input.empty() || static_cast<unsigned char>(input.front())>3) throw std::runtime_error("invalid global entity flags");
-        metadata.rebuildable=(input.front()&1)!=0; metadata.destroyed=(input.front()&2)!=0; input.remove_prefix(1);
-        metadata.initial_state=snapshot_detail::blob_view(input);
-        if(input.size()<32) throw std::runtime_error("truncated creation digest");
-        metadata.creation_digest=input.substr(0,32); input.remove_prefix(32);
-        metadata.owner_revision=entity_record_detail::integer(input);
-        if(!valid_entity_metadata(metadata)) throw std::runtime_error("invalid global entity metadata");
-        record.metadata=metadata;
-    }
+    if(input.empty() || static_cast<unsigned char>(input.front())>1) throw std::runtime_error("invalid entity initialization");
+    record.initialized=input.front()!=0; input.remove_prefix(1); record.placement=snapshot_detail::blob_view(input);
+    record.transfer_id=entity_record_detail::integer(input);
+    if((!record.placement.empty() && !valid_entity_node(record.placement)) ||
+       (record.placement.empty() && record.transfer_id)) throw std::runtime_error("invalid entity placement");
+    EntityMetadataView metadata; metadata.type=snapshot_detail::blob_view(input); metadata.owner_connection=snapshot_detail::blob_view(input);
+    if(input.empty() || static_cast<unsigned char>(input.front())>3) throw std::runtime_error("invalid global entity flags");
+    metadata.rebuildable=(input.front()&1)!=0; metadata.destroyed=(input.front()&2)!=0; input.remove_prefix(1);
+    metadata.initial_state=snapshot_detail::blob_view(input);
+    if(input.size()<32) throw std::runtime_error("truncated creation digest");
+    metadata.creation_digest=input.substr(0,32); input.remove_prefix(32);
+    metadata.owner_revision=entity_record_detail::integer(input);
+    if(!valid_entity_metadata(metadata)) throw std::runtime_error("invalid global entity metadata");
+    record.metadata=metadata;
     record.expires_ms = static_cast<std::int64_t>(expires); record.snapshot = input; return record;
 }
 }
@@ -132,11 +118,9 @@ inline EntityRecord decode_entity_record(std::string_view input) {
     EntityRecord record;
     record.owner = view.owner; record.expires_ms = view.expires_ms; record.fence = view.fence;
     record.initialized = view.initialized; record.placement = view.placement; record.transfer_id = view.transfer_id;
-    if(view.metadata) {
-        const auto& metadata=*view.metadata;
-        record.metadata=EntityMetadata{std::string(metadata.type),std::string(metadata.owner_connection),std::string(metadata.creation_digest),
-            metadata.rebuildable,metadata.destroyed,std::string(metadata.initial_state),metadata.owner_revision};
-    }
+    const auto& metadata=*view.metadata;
+    record.metadata=EntityMetadata{std::string(metadata.type),std::string(metadata.owner_connection),std::string(metadata.creation_digest),
+        metadata.rebuildable,metadata.destroyed,std::string(metadata.initial_state),metadata.owner_revision};
     record.snapshot = decode_snapshot(view.snapshot); return record;
 }
 }

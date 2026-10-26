@@ -129,7 +129,7 @@ EntityTransfer::EntityTransfer(Node& node,std::shared_ptr<EntityScriptHost> host
                 std::string_view input(data);auto [type,id]=identity(input);
                 if(!input.empty() || !valid_entity_id(id))return reply({Status::rejected,{}});
                 // No creation parameters or client identity cross this hop.
-                // The host validates type, placement and fence against FER4.
+                // The host validates type, placement and fence against FER5.
                 self->host->read_attributes(std::move(type),std::move(id),std::move(reply));
             }catch(...){reply({Status::rejected,{}});}
         });
