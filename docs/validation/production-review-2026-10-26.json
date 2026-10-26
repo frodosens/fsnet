@@ -1,0 +1,372 @@
+{
+  "collected_utc": "2026-10-26T02:24:23.181305+00:00",
+  "source_revision": "1af85fb2303976d2f7619ab07bc6270b13fb15de",
+  "runtime_source_changed_by_review": false,
+  "production_ready": false,
+  "review_limits": [
+    "Read-only source review and local diagnostic probes; not a proof of absence of defects.",
+    "Observed negative probes are not passing regression tests or completed fixes.",
+    "Diagnostic timing and RSS samples do not establish production capacity or SLO."
+  ],
+  "current_regression": {
+    "preset": "debug",
+    "tests": [
+      {
+        "name": "fsnet-connections",
+        "status": "Passed",
+        "seconds": 0.06
+      },
+      {
+        "name": "fsnet-global-entities",
+        "status": "Passed",
+        "seconds": 0.09
+      },
+      {
+        "name": "fsnet-identity",
+        "status": "Passed",
+        "seconds": 0.02
+      },
+      {
+        "name": "fsnet-delivery-codec",
+        "status": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "name": "fsnet-client-sdk",
+        "status": "Passed",
+        "seconds": 0.05
+      },
+      {
+        "name": "fsnet-schema",
+        "status": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "name": "fsnet-files",
+        "status": "Passed",
+        "seconds": 0.03
+      },
+      {
+        "name": "fsnet-sdk-package",
+        "status": "Passed",
+        "seconds": 2.49
+      },
+      {
+        "name": "fsnet-tls",
+        "status": "Passed",
+        "seconds": 0.44
+      },
+      {
+        "name": "fsnet-storage",
+        "status": "Passed",
+        "seconds": 0.0
+      },
+      {
+        "name": "fsnet-core",
+        "status": "Passed",
+        "seconds": 0.3
+      },
+      {
+        "name": "fsnet-file-process",
+        "status": "Passed",
+        "seconds": 0.26
+      },
+      {
+        "name": "fsnet-process",
+        "status": "Passed",
+        "seconds": 0.05
+      },
+      {
+        "name": "fsnet-patches",
+        "status": "Passed",
+        "seconds": 0.76
+      },
+      {
+        "name": "fsnet-current-runtime",
+        "status": "Passed",
+        "seconds": 0.19
+      },
+      {
+        "name": "fsnet-current-lua-limits",
+        "status": "Passed",
+        "seconds": 0.11
+      },
+      {
+        "name": "fsnet-current-delivery",
+        "status": "Passed",
+        "seconds": 0.05
+      },
+      {
+        "name": "fsnet-current-prediction",
+        "status": "Passed",
+        "seconds": 0.01
+      },
+      {
+        "name": "fsnet-current-delivery-process",
+        "status": "Passed",
+        "seconds": 0.57
+      },
+      {
+        "name": "fsnet-timers",
+        "status": "Passed",
+        "seconds": 0.74
+      },
+      {
+        "name": "fsnet-global-flow",
+        "status": "Passed",
+        "seconds": 1.4
+      },
+      {
+        "name": "fsnet-timer-process",
+        "status": "Passed",
+        "seconds": 3.23
+      },
+      {
+        "name": "fsnet-example-timers",
+        "status": "Passed",
+        "seconds": 5.75
+      },
+      {
+        "name": "fsnet-example-scene",
+        "status": "Passed",
+        "seconds": 0.17
+      },
+      {
+        "name": "fsnet-example-attributes",
+        "status": "Passed",
+        "seconds": 0.17
+      },
+      {
+        "name": "fsnet-example-native",
+        "status": "Passed",
+        "seconds": 0.12
+      }
+    ],
+    "total_seconds": 17.08
+  },
+  "prior_matrix": {
+    "source_revision": "b00a3b36854614b8246cfed080faf88a0e8bda39",
+    "runtime_header_and_test_source_unchanged_through_audited_revision": true,
+    "evidence": "storage-format-tests-2026-10-26.json",
+    "rerun_in_this_review": false
+  },
+  "probe_library_sha256": "6f61856bb03d7f3c9f140171b074fbc345a56284c254e4adcd0ec71f298e1d9b",
+  "findings": [
+    {
+      "id": "R01",
+      "severity": "P1",
+      "probe": "client_activation",
+      "observation": "watch_status=5 activated_before=1 activated_after=2 active_before=0 active_after=1"
+    },
+    {
+      "id": "R02",
+      "severity": "P1",
+      "probe": "gateway_connection_change",
+      "observation": "logical_changed=1 frontend_connected=1 gateway_sessions=1 private_notifications=1 private_value=2\nPrecondition: trusted front.identify changes the explicit ConnectionRef for an existing physical peer, same subject. Default service launcher does not rebind it itself. This is not a general mTLS/role bypass."
+    },
+    {
+      "id": "R03",
+      "severity": "P1",
+      "probe": "transport_poll_budget",
+      "longest_single_poll_ms_samples": [
+        1737.89,
+        1874.12,
+        2261.53
+      ],
+      "scope": "Valid handshaken loopback peer sends notifications for two seconds; mechanism diagnostic, not mTLS/public capacity benchmark."
+    },
+    {
+      "id": "R04",
+      "severity": "P1",
+      "probe": "lua_gc_shutdown",
+      "observation": {
+        "probe": "lua/gc_shutdown",
+        "external_deadline_seconds": 2,
+        "stdout": "GC_ENTER\n",
+        "stderr": "LOAD_OK\n"
+      }
+    },
+    {
+      "id": "R05",
+      "severity": "P1",
+      "probe": "lua_native_budget",
+      "observation": {
+        "returncode": 0,
+        "stdout": "status=6 vm_limit=2097152 vm_used=534661 rss_before_kib=9216 rss_peak_kib=205828\n",
+        "stderr": "",
+        "scope": "2 MiB ScriptLimits; 1024 references to one 64 KiB Lua string; framework copies into native values before wire size and external budget checks"
+      }
+    },
+    {
+      "id": "R06",
+      "severity": "P1",
+      "probe": "pg_blackhole",
+      "observation": {
+        "blocked_beyond_seconds": 7,
+        "stdout": "operation_enter\nstop_enter\n",
+        "stderr": "",
+        "scope": "proxy drops all traffic after successful PostgreSQL startup; server statement_timeout is configured 5000ms; stop waits on blocked worker"
+      }
+    },
+    {
+      "id": "R07",
+      "severity": "P1",
+      "probe": "entity_runtime",
+      "observation": "rebuildable=0 first=1 retry=1 executions=1 replays=1\nrebuildable=1 first=1 retry=2 executions=2 replays=0"
+    },
+    {
+      "id": "R08",
+      "severity": "P2",
+      "probe": "router_deadline",
+      "observation": "direct requested_ms=3000 status=0 elapsed_ms=1504\nrouter requested_ms=3000 status=3 elapsed_ms=1003"
+    },
+    {
+      "id": "R09",
+      "severity": "P2",
+      "probe": "entity_runtime",
+      "observation": "native_deadline_ms=20 elapsed_ms=100 callback=0 pending=1 deactivate_status=5"
+    },
+    {
+      "id": "R10",
+      "severity": "P2",
+      "probe": "entity_exception",
+      "observation": "single_allocation_failure recovered_allocator=1 callback=0 pending=1 deactivate_status=5\nSynthetic one-allocation bad_alloc after a native handler invokes reply. Does not prove remote exploit or normal-memory trigger."
+    },
+    {
+      "id": "R11",
+      "severity": "P2",
+      "probe": "storage_completion_oom",
+      "observation": {
+        "returncode": 73,
+        "stderr_marker": "terminate_after_worker_completion_allocation_failure",
+        "scope": "Synthetic worker completion queue allocation failure. Stack-address noise omitted; no remote trigger claim."
+      }
+    },
+    {
+      "id": "R12",
+      "severity": "P2",
+      "probe": "client_lookup",
+      "observation": "manual_status=0 entity_by_id_automatic=0 entity_by_key_automatic=1 by_id_owned_known=0 by_key_owned_known=1"
+    },
+    {
+      "id": "R13",
+      "severity": "P2",
+      "probe": "launcher",
+      "observation": {
+        "case": "failed_bootstrap",
+        "process_alive_at_observation": true,
+        "reads": 5,
+        "metrics": {
+          "mode": "owner",
+          "ready": true,
+          "connections": 0,
+          "transport_pending": 0,
+          "transport_inflight": 0,
+          "transport_queued_bytes": 0,
+          "entities": 0,
+          "pending": 0,
+          "queued_bytes": 0,
+          "resident_bytes": 0,
+          "transient_bytes": 0,
+          "committed": 0,
+          "rejected": 0,
+          "failed": 0,
+          "publication_failures": 0,
+          "lua_active": 0,
+          "lua_bytes": 132221
+        },
+        "exit_code": 0,
+        "stdout": "listening 36777\nBOOTSTRAP_ENTER",
+        "stderr": ""
+      }
+    },
+    {
+      "id": "R14",
+      "severity": "P2",
+      "probe": "launcher",
+      "observation": {
+        "case": "volatile_sqlite",
+        "process_alive_at_observation": true,
+        "reads": 5,
+        "metrics": {
+          "mode": "owner",
+          "ready": true,
+          "connections": 0,
+          "transport_pending": 0,
+          "transport_inflight": 0,
+          "transport_queued_bytes": 0,
+          "entities": 0,
+          "pending": 0,
+          "queued_bytes": 0,
+          "resident_bytes": 0,
+          "transient_bytes": 0,
+          "committed": 0,
+          "rejected": 0,
+          "failed": 0,
+          "publication_failures": 0,
+          "lua_active": 0,
+          "lua_bytes": 132220
+        },
+        "exit_code": 0,
+        "stdout": "listening 33563\nBOOTSTRAP_ENTER",
+        "stderr": ""
+      }
+    },
+    {
+      "id": "R15",
+      "severity": "P2",
+      "probe": "token_echo",
+      "observation": "raw_peer_had_no_preconfigured_token=True server_token_bytes=33 protected_handler_called=True response=accepted",
+      "scope": "Local raw transport fixture only. Does not bypass mTLS, certificate pins, role policy or business authorization."
+    }
+  ],
+  "documented_capacity_observations": [
+    {
+      "id": "C01",
+      "probe": "delivery_registry",
+      "observation": "destroyed_sources=2 registry_sources=2 new_send_status=6 receiver_gold=6 pending=0",
+      "scope": "delivery_sources configured to 2; completed/destroyed sources remain indexed; deliberate documented lifetime capacity limitation."
+    },
+    {
+      "id": "C02",
+      "probe": "storage_memory_copy",
+      "observations": [
+        {
+          "records": 100,
+          "allocated_bytes_for_one_CAS": 35756,
+          "allocations": 204
+        },
+        {
+          "records": 500,
+          "allocated_bytes_for_one_CAS": 177068,
+          "allocations": 1004
+        },
+        {
+          "records": 2000,
+          "allocated_bytes_for_one_CAS": 709096,
+          "allocations": 4004
+        }
+      ],
+      "scope": "Development-only Memory backend, 256-byte records; allocation counts for one CAS, not throughput benchmark."
+    }
+  ],
+  "archive_verification": {
+    "compiled_and_executed": [
+      "entity_runtime",
+      "lua_gc_shutdown",
+      "client_activation",
+      "client_lookup",
+      "gateway_connection_change",
+      "router_deadline",
+      "delivery_registry",
+      "entity_exception",
+      "storage_completion_oom"
+    ],
+    "executed_python": [
+      "token_echo"
+    ],
+    "python_sources_syntax_checked": true,
+    "local_document_links_checked": true,
+    "meaning": "These checks validate the archived reproduction fixtures; runtime defects remain unfixed."
+  }
+}
