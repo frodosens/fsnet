@@ -34,7 +34,9 @@ void router_deadlines() {
     struct Delayed { Clock::time_point due; Reply reply; std::string value; };
     std::vector<Delayed> delayed;
     std::unordered_map<std::string, unsigned> executions;
+    std::uint64_t last_peer=0;
     owner.bind_rpc("@", {true, true, false}, [&](const CallIdentity& who, std::string input, Reply reply) {
+        last_peer=who.peer;
         auto call = parse_entity_call_view(input);
         require(call.has_value(), "valid router fixture envelope");
         auto value = std::string(call->payload);
@@ -112,6 +114,13 @@ void router_deadlines() {
     require(executions["unkeyed-disconnect"] == 1, "unkeyed possibly executed RPC is never replayed");
     require(call("drop", "keyed-disconnect", "safe-receipt").status == Status::ok, "keyed disconnect may retry within total deadline");
     require(executions["keyed-disconnect"] == 2, "keyed disconnect performs one failure retry");
+    // The connection can disappear while the router is idle. Reconnect before
+    // dispatching a NEW unkeyed call; this is not replaying an uncertain call.
+    owner.close(last_peer);
+    until(pump, [&] { return caller.stats().connections == 0; });
+    require(call("medium", "after-idle-disconnect").status == Status::ok,
+            "new unkeyed call replaces a known disconnected cached peer");
+    require(executions["after-idle-disconnect"] == 1, "new call executes once after idle disconnect");
     router.stop(); caller.stop(); owner.stop();
 }
 

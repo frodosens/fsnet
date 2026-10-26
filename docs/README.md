@@ -43,6 +43,7 @@
 
 ## 验证与性能
 
+- [本地门槛补充验证](ADDITIONAL_VALIDATION_2026-10-26.md)：Lua OFF、TSan、PostgreSQL、300秒持续负载与空闲连接修复。
 - [master 生产加固复核](MASTER_HARDENING_2026-10-26.md)：最新 master 边界修复、Release/sanitizer 复测与交替性能对照。
 - [生产审查修复与验证](PRODUCTION_REVIEW_FIXES_2026-10-26.md)：R01–R15 修复、投递源安全退休、接口变化与完整测试矩阵。
 - [生产审查基线](PRODUCTION_REVIEW_2026-10-26.md)：原始缺陷证据、能力边界与上线前验证要求；含旧基线复现夹具。

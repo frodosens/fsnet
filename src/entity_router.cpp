@@ -91,7 +91,11 @@ struct EntityRouter::Impl : std::enable_shared_from_this<Impl> {
             auto& member = self->members[*selected];
             if (Clock::now() < member.retry) return self->failed(call, Status::disconnected);
             try {
-                if (!member.peer) member.peer = self->node.connect(member.endpoint.address, member.endpoint.port, member.endpoint.tls_peer_name);
+                // An idle transport may already have closed without a pending
+                // RPC to clear this cache. Start a new connection before this
+                // new attempt; never replay an unkeyed in-flight failure.
+                if (!member.peer || (!self->node.connected(member.peer) && !self->node.connecting(member.peer)))
+                    member.peer = self->node.connect(member.endpoint.address, member.endpoint.port, member.endpoint.tls_peer_name);
                 auto remaining = std::chrono::ceil<std::chrono::milliseconds>(call->deadline - Clock::now());
                 // A slow, healthy RPC is still the original attempt. Retrying it
                 // every second cuts off unkeyed calls and needlessly duplicates

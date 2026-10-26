@@ -8,6 +8,7 @@
 #include "fsnet/lua_engine.hpp"
 #include "fsnet/entity_message.hpp"
 #include <algorithm>
+#include <climits>
 #include <fstream>
 #include <iostream>
 #include <source_location>
@@ -17,7 +18,10 @@ using namespace std::chrono_literals;
 #define CHECK(c) do{if(!(c))throw std::runtime_error(std::string(__FILE__)+":"+std::to_string(__LINE__)+" " #c);}while(false)
 std::string read(const std::string& path){std::ifstream in(path);CHECK(in);return {std::istreambuf_iterator<char>(in),{}};}
 int main(int argc,char** argv){try{
-    CHECK(argc==2 || (argc==3 && std::string(argv[2])=="--benchmark"));auto source=read(std::string(argv[1])+"/examples/entities/shared.lua")+read(std::string(argv[1])+"/examples/entities/server.lua");
+    bool soak=argc==5 && std::string(argv[2])=="--soak";
+    unsigned soak_seconds=0;
+    if(soak){std::string duration(argv[3]);CHECK(!duration.empty() && duration.find_first_not_of("0123456789")==std::string::npos);auto parsed=std::stoul(duration);CHECK(parsed>=1 && parsed<=1800);soak_seconds=static_cast<unsigned>(parsed);}
+    CHECK(argc==2 || (argc==3 && std::string(argv[2])=="--benchmark") || soak);auto source=read(std::string(argv[1])+"/examples/entities/shared.lua")+read(std::string(argv[1])+"/examples/entities/server.lua");
     // Select the source-node login deterministically so this fixture always
     // exercises handoff. The example itself chooses randomly.
     auto random=source.find("math.random(#self.logins)");CHECK(random!=std::string::npos);source.replace(random,25,"1");
@@ -41,7 +45,7 @@ int main(int argc,char** argv){try{
             return player.id
         end
     )");
-    Node a("test"),b("test"),front("test"),back("test");auto db=memory_database();std::vector<std::uint64_t> frontend_peers;
+    Node a("test"),b("test"),front("test"),back("test");auto db=soak?open_storage(argv[4]):memory_database();std::vector<std::uint64_t> frontend_peers;
     front.authorize([&](std::uint64_t peer,const std::string&,const std::string&){if(std::find(frontend_peers.begin(),frontend_peers.end(),peer)==frontend_peers.end())frontend_peers.push_back(peer);return true;});
     auto ah=std::make_shared<EntityScriptHost>(std::make_shared<NodeScriptHost>(a),db,"node-a/boot");
     auto bh=std::make_shared<EntityScriptHost>(std::make_shared<NodeScriptHost>(b),db,"node-b/boot");
@@ -123,21 +127,23 @@ int main(int argc,char** argv){try{
     until([&]{return gateway.stats().migrations>=2 && !gateway.stats().migrating;});CHECK(client.entity(player)->handle==original);
     CHECK(call(EntityId(player.str()),"move","2").data=="6.0");
     until([&]{return position()==16.0;});CHECK(decode_entity_record(db->get(entity_record_key(player))->value).snapshot.timers.entries.empty());
-    if(argc==3) {
+    if(argc==3 || soak) {
         // Same actor, storage, payload and connections; only addressing differs.
         {
-            constexpr unsigned rounds=2000,concurrency=8;unsigned sent=0,done=0;std::vector<double> latency;
-            auto start=std::chrono::steady_clock::now();auto deadline=start+20s;
+            constexpr unsigned concurrency=8;unsigned rounds=soak?UINT_MAX:2000,sent=0,done=0;std::vector<double> latency;
+            auto start=std::chrono::steady_clock::now();auto finish=start+std::chrono::seconds(soak_seconds);auto deadline=soak?finish+10s:start+20s;
             while(done<rounds) {
+                if(soak && std::chrono::steady_clock::now()>=finish)rounds=sent;
                 while(sent<rounds && sent-done<concurrency) {
                     ++sent;auto began=std::chrono::steady_clock::now();
-                    auto reply=[&,began](Result result){CHECK(result.status==Status::ok);latency.push_back(std::chrono::duration<double,std::micro>(std::chrono::steady_clock::now()-began).count());++done;};
+                    auto reply=[&,began](Result result){CHECK(result.status==Status::ok);auto us=std::chrono::duration<double,std::micro>(std::chrono::steady_clock::now()-began).count();if(latency.size()<4096)latency.push_back(us);else latency[done%4096]=us;++done;};
                     client.call(player,"move","0",std::move(reply));
                 }
                 pump();CHECK(std::chrono::steady_clock::now()<deadline);std::this_thread::yield();
             }
             auto seconds=std::chrono::duration<double>(std::chrono::steady_clock::now()-start).count();std::sort(latency.begin(),latency.end());
-            std::cout<<"{\"scenario\":\""<<"global_id"<<"\",\"requests\":"<<rounds<<",\"concurrency\":"<<concurrency<<",\"rps\":"<<rounds/seconds<<",\"p50_us\":"<<latency[rounds/2]<<",\"p99_us\":"<<latency[rounds*99/100]<<"}\n";
+            CHECK(!latency.empty());
+            std::cout<<"{\"scenario\":\""<<"global_id"<<"\",\"requests\":"<<done<<",\"concurrency\":"<<concurrency<<",\"seconds\":"<<seconds<<",\"latency_samples\":"<<latency.size()<<",\"rps\":"<<done/seconds<<",\"p50_us\":"<<latency[latency.size()/2]<<",\"p99_us\":"<<latency[latency.size()*99/100]<<"}\n";
         }
     }
     CHECK(ae.last_error().empty() && be.last_error().empty());

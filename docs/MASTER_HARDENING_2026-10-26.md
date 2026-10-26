@@ -1,5 +1,8 @@
 # master 生产加固复核（2026-10-26）
 
+后续已补 Lua OFF、TSan、PostgreSQL 和300秒资源稳定性验证，并修复新发现的空闲连接问题；
+最新结果见 [补充验证](ADDITIONAL_VALIDATION_2026-10-26.md)。本文保留第一阶段的准确基线与实测记录。
+
 ## 基线与范围
 
 基线为远程 master `8e4af0c9b73445d999a9e3593c1429c63bbec882`。
@@ -51,7 +54,7 @@ Lua 实现业务。Node/Client/Lua 在拥有者线程 poll，AsyncDatabase 在�
 
 ASan 使用 detect_leaks=1:halt_on_error=1、UBSan halt_on_error=1；独立进程/安装消费者测试由
 普通 Release 覆盖，包括 mTLS、SDK 安装重定位、计时器与持久投递进程恢复和交付示例。
-本轮没有重跑可选 PostgreSQL、Lua OFF、TSan、其他 OS/编译器；历史结果不作为本轮新证据。
+第一阶段没有重跑 PostgreSQL、Lua OFF、TSan；随后已补测，详见补充报告。其他 OS/编译器仍未验证。
 结构化逐项结果及产物哈希见 `validation/master-hardening-2026-10-26.json`。
 
 ## 性能实测

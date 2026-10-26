@@ -1,0 +1,920 @@
+{
+  "runtime_parent": "bd0ad59cdd0293969220c850688b3a747f36c54a",
+  "new_fix": "EntityRouter reconnects known disconnected cached peers before new attempts",
+  "tests": {
+    "core": {
+      "summary": {
+        "name": "(empty)",
+        "tests": "20",
+        "failures": "0",
+        "disabled": "0",
+        "skipped": "0",
+        "hostname": "",
+        "time": "13",
+        "timestamp": "2026-10-26T04:01:55"
+      },
+      "tests": [
+        {
+          "name": "fsnet-connections",
+          "status": "run",
+          "time_seconds": "0.0362859",
+          "failures": []
+        },
+        {
+          "name": "fsnet-global-entities",
+          "status": "run",
+          "time_seconds": "0.0970119",
+          "failures": []
+        },
+        {
+          "name": "fsnet-identity",
+          "status": "run",
+          "time_seconds": "0.0260483",
+          "failures": []
+        },
+        {
+          "name": "fsnet-delivery-codec",
+          "status": "run",
+          "time_seconds": "0.0161764",
+          "failures": []
+        },
+        {
+          "name": "fsnet-client-sdk",
+          "status": "run",
+          "time_seconds": "0.0638879",
+          "failures": []
+        },
+        {
+          "name": "fsnet-schema",
+          "status": "run",
+          "time_seconds": "0.0146313",
+          "failures": []
+        },
+        {
+          "name": "fsnet-files",
+          "status": "run",
+          "time_seconds": "0.0433075",
+          "failures": []
+        },
+        {
+          "name": "fsnet-sdk-package",
+          "status": "run",
+          "time_seconds": "2.2264",
+          "failures": []
+        },
+        {
+          "name": "fsnet-tls",
+          "status": "run",
+          "time_seconds": "0.898157",
+          "failures": []
+        },
+        {
+          "name": "fsnet-storage",
+          "status": "run",
+          "time_seconds": "0.0113475",
+          "failures": []
+        },
+        {
+          "name": "fsnet-production-entity",
+          "status": "run",
+          "time_seconds": "0.498036",
+          "failures": []
+        },
+        {
+          "name": "fsnet-production-authorization",
+          "status": "run",
+          "time_seconds": "0.386156",
+          "failures": []
+        },
+        {
+          "name": "fsnet-production-client-router",
+          "status": "run",
+          "time_seconds": "6.56956",
+          "failures": []
+        },
+        {
+          "name": "fsnet-production-storage",
+          "status": "run",
+          "time_seconds": "0.0313554",
+          "failures": []
+        },
+        {
+          "name": "fsnet-production-transport",
+          "status": "run",
+          "time_seconds": "0.507196",
+          "failures": []
+        },
+        {
+          "name": "fsnet-storage-capabilities",
+          "status": "run",
+          "time_seconds": "0.0086861",
+          "failures": []
+        },
+        {
+          "name": "fsnet-core",
+          "status": "run",
+          "time_seconds": "0.349311",
+          "failures": []
+        },
+        {
+          "name": "fsnet-file-process",
+          "status": "run",
+          "time_seconds": "0.406922",
+          "failures": []
+        },
+        {
+          "name": "fsnet-process",
+          "status": "run",
+          "time_seconds": "0.102337",
+          "failures": []
+        },
+        {
+          "name": "fsnet-patches",
+          "status": "run",
+          "time_seconds": "1.5653",
+          "failures": []
+        }
+      ]
+    },
+    "tsan": {
+      "summary": {
+        "name": "Linux-c++",
+        "tests": "20",
+        "failures": "3",
+        "disabled": "0",
+        "skipped": "0",
+        "hostname": "cf9e2df0a649",
+        "time": "18",
+        "timestamp": "2026-10-26T04:03:12"
+      },
+      "tests": [
+        {
+          "name": "fsnet-connections",
+          "status": "run",
+          "time_seconds": "0.0851647",
+          "failures": []
+        },
+        {
+          "name": "fsnet-global-entities",
+          "status": "run",
+          "time_seconds": "0.136887",
+          "failures": []
+        },
+        {
+          "name": "fsnet-identity",
+          "status": "run",
+          "time_seconds": "0.106816",
+          "failures": []
+        },
+        {
+          "name": "fsnet-delivery-codec",
+          "status": "run",
+          "time_seconds": "0.0349027",
+          "failures": []
+        },
+        {
+          "name": "fsnet-client-sdk",
+          "status": "run",
+          "time_seconds": "0.0870276",
+          "failures": []
+        },
+        {
+          "name": "fsnet-schema",
+          "status": "run",
+          "time_seconds": "0.0473503",
+          "failures": []
+        },
+        {
+          "name": "fsnet-files",
+          "status": "run",
+          "time_seconds": "0.125729",
+          "failures": []
+        },
+        {
+          "name": "fsnet-sdk-package",
+          "status": "fail",
+          "time_seconds": "1.66917",
+          "failures": [
+            null
+          ]
+        },
+        {
+          "name": "fsnet-tls",
+          "status": "run",
+          "time_seconds": "0.505898",
+          "failures": []
+        },
+        {
+          "name": "fsnet-storage",
+          "status": "run",
+          "time_seconds": "0.0160458",
+          "failures": []
+        },
+        {
+          "name": "fsnet-production-entity",
+          "status": "run",
+          "time_seconds": "0.464365",
+          "failures": []
+        },
+        {
+          "name": "fsnet-production-authorization",
+          "status": "run",
+          "time_seconds": "0.38326",
+          "failures": []
+        },
+        {
+          "name": "fsnet-production-client-router",
+          "status": "run",
+          "time_seconds": "9.10884",
+          "failures": []
+        },
+        {
+          "name": "fsnet-production-storage",
+          "status": "run",
+          "time_seconds": "0.0357503",
+          "failures": []
+        },
+        {
+          "name": "fsnet-production-transport",
+          "status": "run",
+          "time_seconds": "0.52892",
+          "failures": []
+        },
+        {
+          "name": "fsnet-storage-capabilities",
+          "status": "run",
+          "time_seconds": "0.0247013",
+          "failures": []
+        },
+        {
+          "name": "fsnet-core",
+          "status": "run",
+          "time_seconds": "0.374118",
+          "failures": []
+        },
+        {
+          "name": "fsnet-file-process",
+          "status": "fail",
+          "time_seconds": "0.0372227",
+          "failures": [
+            null
+          ]
+        },
+        {
+          "name": "fsnet-process",
+          "status": "fail",
+          "time_seconds": "0.0303759",
+          "failures": [
+            null
+          ]
+        },
+        {
+          "name": "fsnet-patches",
+          "status": "run",
+          "time_seconds": "4.43075",
+          "failures": []
+        }
+      ]
+    },
+    "idle-final": {
+      "summary": {
+        "name": "(empty)",
+        "tests": "34",
+        "failures": "0",
+        "disabled": "0",
+        "skipped": "0",
+        "hostname": "",
+        "time": "25",
+        "timestamp": "2026-10-26T04:10:25"
+      },
+      "tests": [
+        {
+          "name": "fsnet-connections",
+          "status": "run",
+          "time_seconds": "0.0344131",
+          "failures": []
+        },
+        {
+          "name": "fsnet-global-entities",
+          "status": "run",
+          "time_seconds": "0.0833723",
+          "failures": []
+        },
+        {
+          "name": "fsnet-identity",
+          "status": "run",
+          "time_seconds": "0.0151449",
+          "failures": []
+        },
+        {
+          "name": "fsnet-delivery-codec",
+          "status": "run",
+          "time_seconds": "0.00968878",
+          "failures": []
+        },
+        {
+          "name": "fsnet-client-sdk",
+          "status": "run",
+          "time_seconds": "0.0448498",
+          "failures": []
+        },
+        {
+          "name": "fsnet-schema",
+          "status": "run",
+          "time_seconds": "0.00905357",
+          "failures": []
+        },
+        {
+          "name": "fsnet-files",
+          "status": "run",
+          "time_seconds": "0.0186005",
+          "failures": []
+        },
+        {
+          "name": "fsnet-sdk-package",
+          "status": "run",
+          "time_seconds": "2.3197",
+          "failures": []
+        },
+        {
+          "name": "fsnet-tls",
+          "status": "run",
+          "time_seconds": "0.478028",
+          "failures": []
+        },
+        {
+          "name": "fsnet-storage",
+          "status": "run",
+          "time_seconds": "0.0049667",
+          "failures": []
+        },
+        {
+          "name": "fsnet-production-entity",
+          "status": "run",
+          "time_seconds": "0.404055",
+          "failures": []
+        },
+        {
+          "name": "fsnet-production-authorization",
+          "status": "run",
+          "time_seconds": "0.215006",
+          "failures": []
+        },
+        {
+          "name": "fsnet-production-client-router",
+          "status": "run",
+          "time_seconds": "5.78252",
+          "failures": []
+        },
+        {
+          "name": "fsnet-production-storage",
+          "status": "run",
+          "time_seconds": "0.0243894",
+          "failures": []
+        },
+        {
+          "name": "fsnet-production-transport",
+          "status": "run",
+          "time_seconds": "0.461976",
+          "failures": []
+        },
+        {
+          "name": "fsnet-storage-capabilities",
+          "status": "run",
+          "time_seconds": "0.00723921",
+          "failures": []
+        },
+        {
+          "name": "fsnet-core",
+          "status": "run",
+          "time_seconds": "0.375225",
+          "failures": []
+        },
+        {
+          "name": "fsnet-file-process",
+          "status": "run",
+          "time_seconds": "0.203439",
+          "failures": []
+        },
+        {
+          "name": "fsnet-process",
+          "status": "run",
+          "time_seconds": "0.0559751",
+          "failures": []
+        },
+        {
+          "name": "fsnet-patches",
+          "status": "run",
+          "time_seconds": "0.100269",
+          "failures": []
+        },
+        {
+          "name": "fsnet-production-lua",
+          "status": "run",
+          "time_seconds": "0.200468",
+          "failures": []
+        },
+        {
+          "name": "fsnet-current-runtime",
+          "status": "run",
+          "time_seconds": "0.179643",
+          "failures": []
+        },
+        {
+          "name": "fsnet-current-lua-limits",
+          "status": "run",
+          "time_seconds": "0.0995741",
+          "failures": []
+        },
+        {
+          "name": "fsnet-current-delivery",
+          "status": "run",
+          "time_seconds": "0.227841",
+          "failures": []
+        },
+        {
+          "name": "fsnet-current-prediction",
+          "status": "run",
+          "time_seconds": "0.00705032",
+          "failures": []
+        },
+        {
+          "name": "fsnet-current-delivery-process",
+          "status": "run",
+          "time_seconds": "0.551946",
+          "failures": []
+        },
+        {
+          "name": "fsnet-timers",
+          "status": "run",
+          "time_seconds": "0.694014",
+          "failures": []
+        },
+        {
+          "name": "fsnet-global-flow",
+          "status": "run",
+          "time_seconds": "1.39696",
+          "failures": []
+        },
+        {
+          "name": "fsnet-timer-process",
+          "status": "run",
+          "time_seconds": "3.28204",
+          "failures": []
+        },
+        {
+          "name": "fsnet-example-timers",
+          "status": "run",
+          "time_seconds": "5.74695",
+          "failures": []
+        },
+        {
+          "name": "fsnet-service-readiness",
+          "status": "run",
+          "time_seconds": "2.00938",
+          "failures": []
+        },
+        {
+          "name": "fsnet-example-scene",
+          "status": "run",
+          "time_seconds": "0.160667",
+          "failures": []
+        },
+        {
+          "name": "fsnet-example-attributes",
+          "status": "run",
+          "time_seconds": "0.11463",
+          "failures": []
+        },
+        {
+          "name": "fsnet-example-native",
+          "status": "run",
+          "time_seconds": "0.114438",
+          "failures": []
+        }
+      ]
+    },
+    "idle-asan": {
+      "summary": {
+        "name": "(empty)",
+        "tests": "24",
+        "failures": "0",
+        "disabled": "0",
+        "skipped": "0",
+        "hostname": "",
+        "time": "18",
+        "timestamp": "2026-10-26T04:10:34"
+      },
+      "tests": [
+        {
+          "name": "fsnet-connections",
+          "status": "run",
+          "time_seconds": "0.0932206",
+          "failures": []
+        },
+        {
+          "name": "fsnet-global-entities",
+          "status": "run",
+          "time_seconds": "0.142719",
+          "failures": []
+        },
+        {
+          "name": "fsnet-identity",
+          "status": "run",
+          "time_seconds": "0.102477",
+          "failures": []
+        },
+        {
+          "name": "fsnet-delivery-codec",
+          "status": "run",
+          "time_seconds": "0.0891705",
+          "failures": []
+        },
+        {
+          "name": "fsnet-client-sdk",
+          "status": "run",
+          "time_seconds": "0.106038",
+          "failures": []
+        },
+        {
+          "name": "fsnet-schema",
+          "status": "run",
+          "time_seconds": "0.0671793",
+          "failures": []
+        },
+        {
+          "name": "fsnet-files",
+          "status": "run",
+          "time_seconds": "0.105691",
+          "failures": []
+        },
+        {
+          "name": "fsnet-tls",
+          "status": "run",
+          "time_seconds": "0.45253",
+          "failures": []
+        },
+        {
+          "name": "fsnet-storage",
+          "status": "run",
+          "time_seconds": "0.0442671",
+          "failures": []
+        },
+        {
+          "name": "fsnet-production-entity",
+          "status": "run",
+          "time_seconds": "0.479266",
+          "failures": []
+        },
+        {
+          "name": "fsnet-production-authorization",
+          "status": "run",
+          "time_seconds": "0.351587",
+          "failures": []
+        },
+        {
+          "name": "fsnet-production-client-router",
+          "status": "run",
+          "time_seconds": "7.92083",
+          "failures": []
+        },
+        {
+          "name": "fsnet-production-storage",
+          "status": "run",
+          "time_seconds": "0.0655145",
+          "failures": []
+        },
+        {
+          "name": "fsnet-production-transport",
+          "status": "run",
+          "time_seconds": "0.559565",
+          "failures": []
+        },
+        {
+          "name": "fsnet-storage-capabilities",
+          "status": "run",
+          "time_seconds": "0.0586008",
+          "failures": []
+        },
+        {
+          "name": "fsnet-core",
+          "status": "run",
+          "time_seconds": "0.665222",
+          "failures": []
+        },
+        {
+          "name": "fsnet-patches",
+          "status": "run",
+          "time_seconds": "2.94982",
+          "failures": []
+        },
+        {
+          "name": "fsnet-production-lua",
+          "status": "run",
+          "time_seconds": "0.384882",
+          "failures": []
+        },
+        {
+          "name": "fsnet-current-runtime",
+          "status": "run",
+          "time_seconds": "0.276993",
+          "failures": []
+        },
+        {
+          "name": "fsnet-current-lua-limits",
+          "status": "run",
+          "time_seconds": "0.17941",
+          "failures": []
+        },
+        {
+          "name": "fsnet-current-delivery",
+          "status": "run",
+          "time_seconds": "0.40695",
+          "failures": []
+        },
+        {
+          "name": "fsnet-current-prediction",
+          "status": "run",
+          "time_seconds": "0.0621263",
+          "failures": []
+        },
+        {
+          "name": "fsnet-timers",
+          "status": "run",
+          "time_seconds": "1.0042",
+          "failures": []
+        },
+        {
+          "name": "fsnet-global-flow",
+          "status": "run",
+          "time_seconds": "1.61175",
+          "failures": []
+        }
+      ]
+    },
+    "idle-core": {
+      "summary": {
+        "name": "(empty)",
+        "tests": "20",
+        "failures": "0",
+        "disabled": "0",
+        "skipped": "0",
+        "hostname": "",
+        "time": "11",
+        "timestamp": "2026-10-26T04:10:57"
+      },
+      "tests": [
+        {
+          "name": "fsnet-connections",
+          "status": "run",
+          "time_seconds": "0.0434272",
+          "failures": []
+        },
+        {
+          "name": "fsnet-global-entities",
+          "status": "run",
+          "time_seconds": "0.0901821",
+          "failures": []
+        },
+        {
+          "name": "fsnet-identity",
+          "status": "run",
+          "time_seconds": "0.0159417",
+          "failures": []
+        },
+        {
+          "name": "fsnet-delivery-codec",
+          "status": "run",
+          "time_seconds": "0.0117073",
+          "failures": []
+        },
+        {
+          "name": "fsnet-client-sdk",
+          "status": "run",
+          "time_seconds": "0.051686",
+          "failures": []
+        },
+        {
+          "name": "fsnet-schema",
+          "status": "run",
+          "time_seconds": "0.0141565",
+          "failures": []
+        },
+        {
+          "name": "fsnet-files",
+          "status": "run",
+          "time_seconds": "0.0273243",
+          "failures": []
+        },
+        {
+          "name": "fsnet-sdk-package",
+          "status": "run",
+          "time_seconds": "1.50488",
+          "failures": []
+        },
+        {
+          "name": "fsnet-tls",
+          "status": "run",
+          "time_seconds": "0.407764",
+          "failures": []
+        },
+        {
+          "name": "fsnet-storage",
+          "status": "run",
+          "time_seconds": "0.00486785",
+          "failures": []
+        },
+        {
+          "name": "fsnet-production-entity",
+          "status": "run",
+          "time_seconds": "0.405981",
+          "failures": []
+        },
+        {
+          "name": "fsnet-production-authorization",
+          "status": "run",
+          "time_seconds": "0.240117",
+          "failures": []
+        },
+        {
+          "name": "fsnet-production-client-router",
+          "status": "run",
+          "time_seconds": "6.40084",
+          "failures": []
+        },
+        {
+          "name": "fsnet-production-storage",
+          "status": "run",
+          "time_seconds": "0.0254405",
+          "failures": []
+        },
+        {
+          "name": "fsnet-production-transport",
+          "status": "run",
+          "time_seconds": "0.473536",
+          "failures": []
+        },
+        {
+          "name": "fsnet-storage-capabilities",
+          "status": "run",
+          "time_seconds": "0.00841405",
+          "failures": []
+        },
+        {
+          "name": "fsnet-core",
+          "status": "run",
+          "time_seconds": "0.391515",
+          "failures": []
+        },
+        {
+          "name": "fsnet-file-process",
+          "status": "run",
+          "time_seconds": "0.215108",
+          "failures": []
+        },
+        {
+          "name": "fsnet-process",
+          "status": "run",
+          "time_seconds": "0.0603853",
+          "failures": []
+        },
+        {
+          "name": "fsnet-patches",
+          "status": "run",
+          "time_seconds": "1.04359",
+          "failures": []
+        }
+      ]
+    },
+    "idle-tsan": {
+      "summary": {
+        "name": "Linux-c++",
+        "tests": "17",
+        "failures": "0",
+        "disabled": "0",
+        "skipped": "0",
+        "hostname": "cf9e2df0a649",
+        "time": "15",
+        "timestamp": "2026-10-26T04:11:15"
+      },
+      "tests": [
+        {
+          "name": "fsnet-connections",
+          "status": "run",
+          "time_seconds": "0.06475",
+          "failures": []
+        },
+        {
+          "name": "fsnet-global-entities",
+          "status": "run",
+          "time_seconds": "0.117906",
+          "failures": []
+        },
+        {
+          "name": "fsnet-identity",
+          "status": "run",
+          "time_seconds": "0.0642786",
+          "failures": []
+        },
+        {
+          "name": "fsnet-delivery-codec",
+          "status": "run",
+          "time_seconds": "0.0356959",
+          "failures": []
+        },
+        {
+          "name": "fsnet-client-sdk",
+          "status": "run",
+          "time_seconds": "0.0966738",
+          "failures": []
+        },
+        {
+          "name": "fsnet-schema",
+          "status": "run",
+          "time_seconds": "0.0541011",
+          "failures": []
+        },
+        {
+          "name": "fsnet-files",
+          "status": "run",
+          "time_seconds": "0.138665",
+          "failures": []
+        },
+        {
+          "name": "fsnet-tls",
+          "status": "run",
+          "time_seconds": "0.491302",
+          "failures": []
+        },
+        {
+          "name": "fsnet-storage",
+          "status": "run",
+          "time_seconds": "0.0160297",
+          "failures": []
+        },
+        {
+          "name": "fsnet-production-entity",
+          "status": "run",
+          "time_seconds": "0.462442",
+          "failures": []
+        },
+        {
+          "name": "fsnet-production-authorization",
+          "status": "run",
+          "time_seconds": "0.35693",
+          "failures": []
+        },
+        {
+          "name": "fsnet-production-client-router",
+          "status": "run",
+          "time_seconds": "9.15561",
+          "failures": []
+        },
+        {
+          "name": "fsnet-production-storage",
+          "status": "run",
+          "time_seconds": "0.040434",
+          "failures": []
+        },
+        {
+          "name": "fsnet-production-transport",
+          "status": "run",
+          "time_seconds": "0.541456",
+          "failures": []
+        },
+        {
+          "name": "fsnet-storage-capabilities",
+          "status": "run",
+          "time_seconds": "0.0268398",
+          "failures": []
+        },
+        {
+          "name": "fsnet-core",
+          "status": "run",
+          "time_seconds": "0.507999",
+          "failures": []
+        },
+        {
+          "name": "fsnet-patches",
+          "status": "run",
+          "time_seconds": "3.65511",
+          "failures": []
+        }
+      ]
+    }
+  },
+  "tsan_original_log": "Test project /workspace/fsnet/.dev/build/tsan\n      Start  1: fsnet-connections\n 1/20 Test  #1: fsnet-connections ................   Passed    0.09 sec\n      Start  2: fsnet-global-entities\n 2/20 Test  #2: fsnet-global-entities ............   Passed    0.14 sec\n      Start  3: fsnet-identity\n 3/20 Test  #3: fsnet-identity ...................   Passed    0.11 sec\n      Start  4: fsnet-delivery-codec\n 4/20 Test  #4: fsnet-delivery-codec .............   Passed    0.03 sec\n      Start  5: fsnet-client-sdk\n 5/20 Test  #5: fsnet-client-sdk .................   Passed    0.09 sec\n      Start  6: fsnet-schema\n 6/20 Test  #6: fsnet-schema .....................   Passed    0.05 sec\n      Start  7: fsnet-files\n 7/20 Test  #7: fsnet-files ......................   Passed    0.13 sec\n      Start  8: fsnet-sdk-package\n 8/20 Test  #8: fsnet-sdk-package ................***Failed    1.67 sec\nterminate called after throwing an instance of 'std::system_error'\n  what():  event: Invalid argument\n\nTraceback (most recent call last):\n  File \"/workspace/fsnet/tests/sdk_package.py\", line 15, in <module>\n    run(str(root/'consumer'/'consumer'))\n  File \"/workspace/fsnet/tests/sdk_package.py\", line 9, in run\n    def run(*args):subprocess.run(args,check=True,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,text=True,timeout=60)\n                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/subprocess.py\", line 571, in run\n    raise CalledProcessError(retcode, process.args,\nsubprocess.CalledProcessError: Command '('/tmp/fsnet-sdk-package-_l3y4lc8/consumer/consumer',)' died with <Signals.SIGABRT: 6>.\n\n      Start  9: fsnet-tls\n 9/20 Test  #9: fsnet-tls ........................   Passed    0.51 sec\n      Start 10: fsnet-storage\n10/20 Test #10: fsnet-storage ....................   Passed    0.02 sec\n      Start 11: fsnet-production-entity\n11/20 Test #11: fsnet-production-entity ..........   Passed    0.46 sec\n      Start 12: fsnet-production-authorization\n12/20 Test #12: fsnet-production-authorization ...   Passed    0.38 sec\n      Start 13: fsnet-production-client-router\n13/20 Test #13: fsnet-production-client-router ...   Passed    9.11 sec\n      Start 14: fsnet-production-storage\n14/20 Test #14: fsnet-production-storage .........   Passed    0.04 sec\n      Start 15: fsnet-production-transport\n15/20 Test #15: fsnet-production-transport .......   Passed    0.53 sec\n      Start 16: fsnet-storage-capabilities\n16/20 Test #16: fsnet-storage-capabilities .......   Passed    0.02 sec\n      Start 17: fsnet-core\n17/20 Test #17: fsnet-core .......................   Passed    0.37 sec\n      Start 18: fsnet-file-process\n18/20 Test #18: fsnet-file-process ...............***Failed    0.04 sec\nTraceback (most recent call last):\n  File \"/workspace/fsnet/tests/file_storage_process.py\", line 12, in <module>\n    native = ctypes.CDLL(library)\n             ^^^^^^^^^^^^^^^^^^^^\n  File \"/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/ctypes/__init__.py\", line 379, in __init__\n    self._handle = _dlopen(self._name, mode)\n                   ^^^^^^^^^^^^^^^^^^^^^^^^^\nOSError: /lib/x86_64-linux-gnu/libtsan.so.2: cannot allocate memory in static TLS block\n\n      Start 19: fsnet-process\n19/20 Test #19: fsnet-process ....................***Failed    0.03 sec\nTraceback (most recent call last):\n  File \"/workspace/fsnet/tests/process_test.py\", line 11, in <module>\n    native = ctypes.CDLL(library)\n             ^^^^^^^^^^^^^^^^^^^^\n  File \"/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/ctypes/__init__.py\", line 379, in __init__\n    self._handle = _dlopen(self._name, mode)\n                   ^^^^^^^^^^^^^^^^^^^^^^^^^\nOSError: /lib/x86_64-linux-gnu/libtsan.so.2: cannot allocate memory in static TLS block\n\n      Start 20: fsnet-patches\n20/20 Test #20: fsnet-patches ....................   Passed    4.43 sec\n\n85% tests passed, 3 tests failed out of 20\n\nTotal Test time (real) =  18.24 sec\n\nThe following tests FAILED:\n\t  8 - fsnet-sdk-package (Failed)\n\t 18 - fsnet-file-process (Failed)\n\t 19 - fsnet-process (Failed)\nErrors while running CTest\n",
+  "tsan_sdk_instrumented_exit": 0,
+  "tsan_sdk_log": "-- Install configuration: \"Debug\"\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/lib/libSQLiteCpp.a\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/include\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/include/SQLiteCpp\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/include/SQLiteCpp/Backup.h\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/include/SQLiteCpp/SQLiteCpp.h\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/include/SQLiteCpp/SQLiteCppExport.h\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/include/SQLiteCpp/Assertion.h\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/include/SQLiteCpp/ExecuteMany.h\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/include/SQLiteCpp/Exception.h\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/include/SQLiteCpp/Database.h\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/include/SQLiteCpp/Savepoint.h\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/include/SQLiteCpp/Statement.h\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/include/SQLiteCpp/Utils.h\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/include/SQLiteCpp/Transaction.h\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/include/SQLiteCpp/VariadicBind.h\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/include/SQLiteCpp/Column.h\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/lib/cmake/SQLiteCpp/SQLiteCppTargets.cmake\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/lib/cmake/SQLiteCpp/SQLiteCppTargets-debug.cmake\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/share/SQLiteCpp/package.xml\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/lib/cmake/SQLiteCpp/SQLiteCppConfig.cmake\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/lib/cmake/SQLiteCpp/SQLiteCppConfigVersion.cmake\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/lib/libsqlite3.a\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/include/sqlite3.h\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/lib/libjuice.a\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/include/juice/juice.h\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/lib/cmake/LibJuice/LibJuiceTargets.cmake\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/lib/cmake/LibJuice/LibJuiceTargets-debug.cmake\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/lib/cmake/LibJuice/LibJuiceConfig.cmake\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/lib/cmake/LibJuice/LibJuiceConfigVersion.cmake\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/bin/fsnet-native-client\n-- Set non-toolchain portion of runtime path of \"/workspace/fsnet/.dev/review/current/tsan-sdk/installed/bin/fsnet-native-client\" to \"$ORIGIN/../lib\"\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/lib/libfsnet.so\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/lib/cmake/fsnet/fsnetTargets.cmake\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/lib/cmake/fsnet/fsnetTargets-debug.cmake\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/lib/cmake/fsnet/fsnetConfig.cmake\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/lib/cmake/fsnet/fsnetConfigVersion.cmake\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/include/fsnet\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/include/fsnet/async_database.hpp\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/include/fsnet/attribute_replication.hpp\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/include/fsnet/attribute_wire.hpp\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/include/fsnet/c_api.h\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/include/fsnet/client.hpp\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/include/fsnet/client_gateway.hpp\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/include/fsnet/client_script_host.hpp\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/include/fsnet/cluster.hpp\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/include/fsnet/connection.hpp\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/include/fsnet/database.hpp\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/include/fsnet/directory.hpp\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/include/fsnet/entity_catalog.hpp\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/include/fsnet/entity_delivery.hpp\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/include/fsnet/entity_delivery_state.hpp\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/include/fsnet/entity_directory.hpp\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/include/fsnet/entity_host.hpp\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/include/fsnet/entity_id.hpp\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/include/fsnet/entity_message.hpp\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/include/fsnet/entity_record.hpp\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/include/fsnet/entity_router.hpp\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/include/fsnet/entity_schema.hpp\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/include/fsnet/entity_snapshot.hpp\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/include/fsnet/entity_timer_state.hpp\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/include/fsnet/entity_timers.hpp\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/include/fsnet/entity_transfer.hpp\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/include/fsnet/ice.hpp\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/include/fsnet/lua_engine.hpp\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/include/fsnet/node.hpp\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/include/fsnet/replication_wire.hpp\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/include/fsnet/script.hpp\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/include/fsnet/storage.hpp\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/share/fsnet/docs\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/share/fsnet/docs/API_GUIDE.md\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/share/fsnet/docs/ARCHITECTURE.md\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/share/fsnet/docs/ATTRIBUTE_BATCHING.md\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/share/fsnet/docs/ATTRIBUTE_PERFORMANCE.md\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/share/fsnet/docs/BENCHMARK_2026-10-25.md\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/share/fsnet/docs/BENCHMARK_CURRENT_ENTITIES_2026-10-26.md\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/share/fsnet/docs/BENCHMARK_GLOBAL_ENTITIES_2026-10-25.md\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/share/fsnet/docs/CLIENT_GATEWAY.md\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/share/fsnet/docs/CLIENT_SDK.md\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/share/fsnet/docs/CODE_REVIEW_2026-10-24.md\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/share/fsnet/docs/CODE_REVIEW_ROUND2_2026-10-24.md\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/share/fsnet/docs/CONNECTION_AUTHORITY_AND_TIMERS.md\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/share/fsnet/docs/CONTAINER_ATTRIBUTES.md\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/share/fsnet/docs/CONTAINER_BATCHING_PERFORMANCE.md\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/share/fsnet/docs/COPY_OPTIMIZATION.md\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/share/fsnet/docs/DEV_ENVIRONMENT.md\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/share/fsnet/docs/ENGINE_COMPLETION.md\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/share/fsnet/docs/ENTITY_ADDRESSING_COMPARISON.md\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/share/fsnet/docs/ENTITY_ADDRESSING_PLAN.md\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/share/fsnet/docs/ENTITY_DELIVERY.md\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/share/fsnet/docs/ENTITY_LIFECYCLE.md\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/share/fsnet/docs/ENTITY_PRESENCE.md\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/share/fsnet/docs/ENTITY_SCHEMA.md\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/share/fsnet/docs/ENTITY_TIMERS.md\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/share/fsnet/docs/ENTITY_TRANSFER.md\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/share/fsnet/docs/FIELD_PATH_DELTAS.md\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/share/fsnet/docs/GLOBAL_ENTITIES.md\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/share/fsnet/docs/GLOBAL_REVIEW_FIXES_2026-10-25.md\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/share/fsnet/docs/OBJECT_API.md\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/share/fsnet/docs/PERFORMANCE_REVIEW.md\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/share/fsnet/docs/PREDICTION.md\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/share/fsnet/docs/PRODUCTION.md\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/share/fsnet/docs/README.md\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/share/fsnet/docs/REMOVE_ADAPTERS_2026-10-25.md\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/share/fsnet/docs/REVIEW.md\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/share/fsnet/docs/REVIEW_GLOBAL_STRUCTURE_AND_COPIES_2026-10-25.md\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/share/fsnet/docs/ROADMAP.md\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/share/fsnet/docs/SCRIPTING.md\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/share/fsnet/docs/SECURITY.md\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/share/fsnet/docs/SHARED_ATTRIBUTE_DELTAS.md\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/share/fsnet/docs/SHARED_ENTITIES.md\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/share/fsnet/docs/STORAGE.md\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/share/fsnet/docs/STRUCTURED_ATTRIBUTES.md\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/share/fsnet/docs/THIRD_PARTY.md\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/share/fsnet/docs/VALIDATION.md\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/share/fsnet/docs/benchmarks\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/share/fsnet/docs/benchmarks/attributes-2026-10-23.json\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/share/fsnet/docs/benchmarks/container-batching-2026-10-23.json\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/share/fsnet/docs/benchmarks/copy-boundaries-2026-10-24.json\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/share/fsnet/docs/benchmarks/copy-optimization-2026-10-24.json\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/share/fsnet/docs/benchmarks/engine-review-2026-10-24.json\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/share/fsnet/docs/benchmarks/field-paths-2026-10-24.json\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/share/fsnet/docs/benchmarks/global-api-removal-2026-10-26.json\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/share/fsnet/docs/benchmarks/global-entities-2026-10-25.json\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/share/fsnet/docs/benchmarks/global-flow-current-2026-10-26.json\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/share/fsnet/docs/benchmarks/runtime-2026-10-25.json\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/share/fsnet/docs/benchmarks/runtime-summary-2026-10-25.json\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/share/fsnet/docs/benchmarks/shared-deltas-2026-10-24.json\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/share/fsnet/docs/benchmarks/master-hardening-2026-10-26.json\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/share/fsnet/docs/validation\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/share/fsnet/docs/validation/copy-optimized-delivery-2026-10-24.json\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/share/fsnet/docs/validation/delivery-release-2026-10-24.json\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/share/fsnet/docs/validation/global-api-removal-2026-10-26.json\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/share/fsnet/docs/validation/global-structure-copy-review-2026-10-25.json\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/share/fsnet/docs/validation/remove-adapters-tests-2026-10-26.json\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/share/fsnet/docs/validation/round2-fixes-2026-10-25.json\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/share/fsnet/docs/validation/storage-format-tests-2026-10-26.json\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/share/fsnet/docs/validation/production-fixes-2026-10-26.json\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/share/fsnet/docs/validation/master-hardening-2026-10-26.json\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/share/fsnet/docs/validation/production-review-2026-10-26.json\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/share/fsnet/docs/PRODUCTION_REVIEW_FIXES_2026-10-26.md\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/share/fsnet/docs/MASTER_HARDENING_2026-10-26.md\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/share/fsnet/docs/PRODUCTION_REVIEW_2026-10-26.md\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/share/fsnet/docs/ADDITIONAL_VALIDATION_2026-10-26.md\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/share/fsnet/examples/scene\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/share/fsnet/examples/scene/client.lua\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/share/fsnet/examples/scene/server.lua\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/share/fsnet/examples/scene/shared.lua\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/share/fsnet/examples/attributes\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/share/fsnet/examples/attributes/client.lua\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/share/fsnet/examples/attributes/server.lua\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/share/fsnet/examples/attributes/shared.lua\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/share/fsnet/examples/entities\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/share/fsnet/examples/entities/client.lua\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/share/fsnet/examples/entities/server.lua\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/share/fsnet/examples/entities/shared.lua\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/share/fsnet/examples/timers\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/share/fsnet/examples/timers/README.md\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/share/fsnet/examples/timers/client.lua\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/share/fsnet/examples/timers/run.py\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/share/fsnet/examples/timers/server.lua\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/share/fsnet/examples/client\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/share/fsnet/examples/client/main.cpp\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/share/fsnet/examples/client/native.cpp\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/share/fsnet/examples/server\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/share/fsnet/examples/server/main.cpp\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/share/fsnet/examples/server/service.cpp\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/share/fsnet/examples/common\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/share/fsnet/examples/common/config.hpp\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/share/fsnet/examples/README.md\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/share/fsnet/examples/run.py\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/share/fsnet/deploy\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/share/fsnet/deploy/endpoints.tsv.example\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/share/fsnet/deploy/fsnet-gateway.service\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/share/fsnet/deploy/fsnet-owner@.service\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/share/fsnet/deploy/gateway.env.example\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/share/fsnet/deploy/identities.tsv.example\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/share/fsnet/deploy/owner.env.example\n-- Installing: /workspace/fsnet/.dev/review/current/tsan-sdk/installed/share/fsnet/deploy/routes.tsv.example\n-- The CXX compiler identification is GNU 14.2.0\n-- Detecting CXX compiler ABI info\n-- Detecting CXX compiler ABI info - done\n-- Check for working CXX compiler: /usr/bin/c++ - skipped\n-- Detecting CXX compile features\n-- Detecting CXX compile features - done\n-- Configuring done (0.4s)\n-- Generating done (0.0s)\n-- Build files have been written to: /workspace/fsnet/.dev/review/current/tsan-sdk/consumer\n[ 50%] Building CXX object CMakeFiles/consumer.dir/main.cpp.o\n[100%] Linking CXX executable consumer\n[100%] Built target consumer\n",
+  "tsan_scope": "core C++ instrumented; Asio atomic_thread_fence warning; external C libraries not fully instrumented; Python ctypes fixtures unsupported in this configuration",
+  "postgres_fixture_exit": 0,
+  "postgres_log": "PASS PostgreSQL: DNS/service and destination-list rejection before connection\nPASS PostgreSQL: numeric hostaddr with verified logical TLS hostname\nNOTICE:  relation \"fsnet_records\" already exists, skipping\nNOTICE:  relation \"fsnet_record_revision\" already exists, skipping\nPASS PostgreSQL: numeric hostaddr with verified logical TLS hostname\nNOTICE:  relation \"fsnet_records\" already exists, skipping\nNOTICE:  relation \"fsnet_record_revision\" already exists, skipping\nNOTICE:  relation \"fsnet_records\" already exists, skipping\nNOTICE:  relation \"fsnet_record_revision\" already exists, skipping\nNOTICE:  relation \"fsnet_records\" already exists, skipping\nNOTICE:  relation \"fsnet_record_revision\" already exists, skipping\nNOTICE:  relation \"fsnet_records\" already exists, skipping\nNOTICE:  relation \"fsnet_record_revision\" already exists, skipping\nNOTICE:  relation \"fsnet_records\" already exists, skipping\nNOTICE:  relation \"fsnet_record_revision\" already exists, skipping\nPASS PostgreSQL: storage contract, binary data, concurrent independent clients, single-record fencing and TLS verification\nPASS timer process: SIGKILL, persistent delay and periodic count, cancellation, stable ID and no refire after second restart\nNOTICE:  relation \"fsnet_records\" already exists, skipping\nNOTICE:  relation \"fsnet_record_revision\" already exists, skipping\nWARNING:  terminating connection due to immediate shutdown command\nPASS PostgreSQL: bounded post-TCP startup deadline\nNOTICE:  relation \"fsnet_records\" already exists, skipping\nNOTICE:  relation \"fsnet_record_revision\" already exists, skipping\nNOTICE:  relation \"fsnet_records\" already exists, skipping\nNOTICE:  relation \"fsnet_record_revision\" already exists, skipping\nPASS PostgreSQL: crash WAL recovery and safe read reconnect\nPASS PostgreSQL: bounded blackhole operation/stop, uncertain write and reconnect\nPASS PostgreSQL: bounded blackhole operation/stop, uncertain write and reconnect\n",
+  "postgres_build_method": "current postgres_database.cpp compiled against existing pinned PostgreSQL17.11 static client; other objects from current Release; existing private server; postgres_existing.py",
+  "sha256": {
+    "postgres_current": "f26a7e3d62791c3572d93a8f2c67c0edd920453997013f8c2931b2422cd1f364",
+    "libpq_existing": "b32b7872cd25f32ffba4381a1b226f189d842cda51b4578a8d46ddc50112374c",
+    "postgres_server": "6fa2b02a373c35ecee813be05219d060b1ed20f8aa1c90f03f805489286696be"
+  },
+  "idle_peer_regression_before": "new unkeyed call replaces a known disconnected cached peer\n",
+  "changed_runtime_sha256": "244d6cac25b2651059a87d800a9bfd9e5cf5e1c5cf147216f9b29d54f6699126"
+}
