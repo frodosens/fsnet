@@ -24,7 +24,7 @@ if args.example=='timers':
 # Demonstration identity is deliberately loopback-only and single-account.
 # Do not inherit a developer's production storage or TLS configuration.
 environment=dict(os.environ,FSNET_CLUSTER_TOKEN=secrets.token_hex(24),FSNET_DEMO_SUBJECT='alice',FSNET_BIND_ADDRESS='127.0.0.1',FSNET_STORAGE_URI='memory:')
-for name in ('FSNET_TLS_CA','FSNET_TLS_CERTIFICATE','FSNET_TLS_KEY','FSNET_TLS_PEER_NAME','FSNET_DATABASE_PATH','FSNET_NODE_ID','FSNET_ENTITY_LEASE_MS'):
+for name in ('FSNET_TLS_CA','FSNET_TLS_CERTIFICATE','FSNET_TLS_KEY','FSNET_TLS_PEER_NAME','FSNET_NODE_ID','FSNET_ENTITY_LEASE_MS'):
     environment.pop(name,None)
 with tempfile.TemporaryDirectory(prefix='fsnet-sdk-example-') as directory:
     shared=(root/'examples'/args.example/'shared.lua').read_text()

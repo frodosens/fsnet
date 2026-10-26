@@ -18,7 +18,7 @@ def login_reconnect(root, build, work):
                        FSNET_BIND_ADDRESS='127.0.0.1', FSNET_DEMO_SUBJECT='alice',
                        FSNET_STORAGE_URI='memory:', FSNET_NODE_ID='local')
     for name in ('FSNET_TLS_CA', 'FSNET_TLS_CERTIFICATE', 'FSNET_TLS_KEY',
-                 'FSNET_TLS_PEER_NAME', 'FSNET_DATABASE_PATH', 'FSNET_ENTITY_LEASE_MS'):
+                 'FSNET_TLS_PEER_NAME', 'FSNET_ENTITY_LEASE_MS'):
         environment.pop(name, None)
     # Same example code, but instantiate one LoginEntity locally and skip its
     # map transfer. This isolates reconnect/creation from multi-node routing.

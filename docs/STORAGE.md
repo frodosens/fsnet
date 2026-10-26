@@ -16,7 +16,8 @@
 auto storage = fsnet::open_storage("file:/srv/fsnet/state");
 ```
 
-Lua 启动器配置 FSNET_STORAGE_URI=file:/srv/fsnet/state。memory: 用于开发；sqlite:/path/state.sqlite 仍可选。FSNET_DATABASE_PATH 保留为早期 SQLite 配置兼容项。
+启动器统一读取 `FSNET_STORAGE_URI`：支持 `memory:`、`file:<目录>`、`sqlite:<文件>`，
+以及启用 PostgreSQL 后的 `postgresql://...` / `postgres://...`；未设置时使用内存存储。
 
 文件后端面向本地 POSIX 文件系统，多个线程/进程可打开同一目录。每个 key 映射到哈希分片下的稳定锁文件和记录文件；记录包含原 key、版本、tombstone 标志、值和 SHA-256 完整性校验。
 

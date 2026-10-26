@@ -22,7 +22,7 @@ def main():
                        FSNET_BIND_ADDRESS='127.0.0.1', FSNET_DEMO_SUBJECT='timer-demo',
                        FSNET_NODE_ID='local', FSNET_ENTITY_LEASE_MS='500')
     for name in ('FSNET_TLS_CA', 'FSNET_TLS_CERTIFICATE', 'FSNET_TLS_KEY',
-                 'FSNET_TLS_PEER_NAME', 'FSNET_DATABASE_PATH'):
+                 'FSNET_TLS_PEER_NAME'):
         environment.pop(name, None)
     children = []
 

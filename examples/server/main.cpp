@@ -31,9 +31,8 @@ int main(int argc, char** argv) {
             node.identify([account](std::uint64_t,const std::string&) { return std::optional(fsnet::CallIdentity{fsnet::Caller::client,account}); });
         }
         auto transport = std::make_shared<fsnet::NodeScriptHost>(node);
-        const char* path = std::getenv("FSNET_DATABASE_PATH");
         const char* storage_uri = std::getenv("FSNET_STORAGE_URI");
-        auto database = storage_uri ? fsnet::open_storage(storage_uri) : path ? fsnet::sqlite_database(path) : fsnet::memory_database();
+        auto database = storage_uri ? fsnet::open_storage(storage_uri) : fsnet::memory_database();
         const char* node_id = std::getenv("FSNET_NODE_ID");
         std::string instance = node_id ? node_id : "local";
         if (instance.empty() || instance.size() > 127 || instance.find_first_of("/\0", 0, 2) != std::string::npos)
