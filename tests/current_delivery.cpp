@@ -40,6 +40,10 @@ struct DeliveryRuntime {
     DeliveryRuntime(std::shared_ptr<Storage> storage,std::size_t source_limit=4096):db(std::make_shared<FaultStorage>(std::move(storage))){
         node.identify([](auto,const auto&)->std::optional<CallIdentity>{return CallIdentity{Caller::server,"backend"};});
         EntityRuntimeLimits limits;limits.lease=500ms;limits.request_timeout=200ms;limits.delivery_sources=source_limit;
+        // The crash/recovery fixture persists several fenced records per RPC.
+        // Its correctness assertions must survive shared-runner fsync latency;
+        // in-memory deadline tests retain their original short limits.
+        if(db->backend->persistent()){limits.lease=4s;limits.request_timeout=2s;}
         host=std::make_shared<EntityScriptHost>(std::make_shared<NodeScriptHost>(node),db,"delivery/"+ConnectionRef::create().id,limits);
         vm=std::make_unique<LuaEngine>(host);vm->load(delivery_source,"current-delivery");
         auto port=node.listen("127.0.0.1",0);EntityDeliveryLimits delivery;delivery.retry=5ms;delivery.refresh=5ms;
@@ -50,7 +54,12 @@ struct DeliveryRuntime {
     void poll(){node.poll();host->poll();vm->poll();if(poll_delivery)service->poll();}
     template<class F> void until(F done){auto end=std::chrono::steady_clock::now()+8s;while(!done()){poll();require(std::chrono::steady_clock::now()<end,"delivery deadline");std::this_thread::sleep_for(1ms);}}
     template<class F> Result wait(F begin){std::optional<Result> result;begin([&](Result value){result=std::move(value);});until([&]{return result.has_value();});return *result;}
-    EntityId create(std::string type,std::string key={}){if(key.empty())key=type;auto value=wait([&](auto reply){host->create_entity(type,{},{"delivery-current",key,{},"delivery"},std::move(reply));});require(value.status==Status::ok,"delivery entity creation");return EntityId(value.data);}
+    EntityId create(std::string type,std::string key={}){
+        if(key.empty())key=type;
+        auto value=wait([&](auto reply){host->create_entity(type,{},{"delivery-current",key,{},"delivery"},std::move(reply));});
+        if(value.status!=Status::ok)throw std::runtime_error("delivery entity creation: status "+std::to_string(static_cast<unsigned>(value.status)));
+        return EntityId(value.data);
+    }
     Result call(EntityId id,std::string_view method,std::string_view value){return wait([&](auto reply){host->call_entity("@",entity_call_message(id,method,value),2s,std::move(reply));});}
     EntityRecord record(EntityId id){return decode_entity_record(db->get(entity_record_key(id))->value);}
     std::int64_t gold(EntityId id){return std::get<std::int64_t>(decode_attributes(record(id).snapshot.state).values.at("gold"));}

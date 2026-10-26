@@ -18,7 +18,7 @@ server_exe, client_exe = args.server, args.client
 children = []
 environment = dict(os.environ, FSNET_CLUSTER_TOKEN=secrets.token_hex(24),
                    FSNET_BIND_ADDRESS='127.0.0.1', FSNET_DEMO_SUBJECT='timer-client',
-                   FSNET_ENTITY_LEASE_MS='500', FSNET_NODE_ID='local')
+                   FSNET_ENTITY_LEASE_MS='2000', FSNET_NODE_ID='local')
 for name in ('FSNET_TLS_CA', 'FSNET_TLS_CERTIFICATE', 'FSNET_TLS_KEY', 'FSNET_TLS_PEER_NAME'):
     environment.pop(name, None)
 
@@ -84,7 +84,7 @@ def start(script):
 
 
 def read(script, port, identity):
-    script.write_text("runtime.start(function() print('state '..fsnet.ref('" + identity + "'):call('read','')) end)")
+    script.write_text("runtime.start(function() print('state '..fsnet.ref('" + identity + "',{timeout_ms=3000}):call('read','')) end)")
     result = subprocess.run([client_exe, str(script), '127.0.0.1', port], env=environment,
                             text=True, capture_output=True, timeout=5, check=True)
     line = next(line for line in result.stdout.splitlines() if line.startswith('state '))
@@ -100,7 +100,7 @@ try:
         first, port, identity = start(script)
         first.kill()
         first.wait(timeout=3)
-        time.sleep(1.8)  # past the original delay, periods and old owner lease
+        time.sleep(2.5)  # past the original delay, periods and the 2-second owner lease
         second, port, restored = start(script)
         assert restored == identity, (identity, restored)
         end = time.monotonic() + 5

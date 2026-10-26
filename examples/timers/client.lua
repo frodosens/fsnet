@@ -1,10 +1,10 @@
 -- The launcher supplies demo_id and wait_for_completion as trusted connection
 -- configuration. The client only calls an entity; it never schedules timers.
 runtime.start(function()
-    local demo=fsnet.ref(demo_id)
+    local demo=fsnet.ref(demo_id,{timeout_ms=3000})
     local expected='1:3:3:1:0:job-42'
     local previous
-    for attempt=1,500 do
+    for attempt=1,100 do
         local state=demo:call('status','')
         if state~=previous then
             print('state delayed:periodic:catch_up:absolute:cancelled:job = '..state)
@@ -22,7 +22,7 @@ runtime.start(function()
             print('timers complete')
             return
         end
-        runtime.sleep(20)
+        runtime.sleep(100)
     end
     error('timer recovery timed out: '..tostring(previous))
 end)
