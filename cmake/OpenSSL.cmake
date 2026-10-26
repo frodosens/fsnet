@@ -2,8 +2,16 @@ include(ExternalProject)
 find_package(Perl REQUIRED)
 find_program(FSNET_MAKE_EXECUTABLE NAMES gmake make REQUIRED)
 set(FSNET_OPENSSL_TARGET "" CACHE STRING "Explicit OpenSSL Configure target (normally detected from the CMake target)")
+option(FSNET_OPENSSL_STATIC_ONLY "Build only the OpenSSL archives needed by a standalone SDK" OFF)
 set(_fsnet_crypto_target "${FSNET_OPENSSL_TARGET}")
-set(_fsnet_crypto_flags no-shared no-tests no-module no-legacy)
+set(_fsnet_crypto_flags no-tests no-module no-legacy)
+if(FSNET_OPENSSL_STATIC_ONLY)
+  list(PREPEND _fsnet_crypto_flags no-shared)
+else()
+  # PostgreSQL's optional private server also links against the private shared
+  # OpenSSL libraries. Preserve that build contract outside SDK-only builds.
+  list(PREPEND _fsnet_crypto_flags shared)
+endif()
 if(MINGW)
   if(NOT _fsnet_crypto_target)
     if(CMAKE_SIZEOF_VOID_P EQUAL 8)
@@ -48,7 +56,7 @@ ExternalProject_Add(fsnet-openssl
   BUILD_COMMAND ${FSNET_MAKE_EXECUTABLE} -j4 build_libs
   INSTALL_COMMAND ${FSNET_MAKE_EXECUTABLE} install_dev
   BUILD_BYPRODUCTS ${FSNET_CRYPTO_ROOT}/lib/libssl.a ${FSNET_CRYPTO_ROOT}/lib/libcrypto.a
-  LOG_DOWNLOAD ON LOG_CONFIGURE ON LOG_BUILD ON LOG_INSTALL ON)
+  LOG_DOWNLOAD ON LOG_CONFIGURE ON LOG_BUILD ON LOG_INSTALL ON LOG_OUTPUT_ON_FAILURE ON)
 add_library(fsnet-crypto STATIC IMPORTED GLOBAL)
 set_target_properties(fsnet-crypto PROPERTIES IMPORTED_LOCATION "${FSNET_CRYPTO_ROOT}/lib/libcrypto.a"
   INTERFACE_INCLUDE_DIRECTORIES "${FSNET_CRYPTO_ROOT}/include"

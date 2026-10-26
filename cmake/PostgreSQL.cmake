@@ -26,7 +26,7 @@ ExternalProject_Add(fsnet-postgres
   INSTALL_COMMAND ${pg_install}
   BUILD_BYPRODUCTS ${FSNET_POSTGRES_ROOT}/lib/libpq.a ${FSNET_POSTGRES_ROOT}/lib/libpgcommon_shlib.a ${FSNET_POSTGRES_ROOT}/lib/libpgport_shlib.a
   DEPENDS fsnet-openssl
-  LOG_DOWNLOAD ON LOG_CONFIGURE ON LOG_BUILD ON LOG_INSTALL ON)
+  LOG_DOWNLOAD ON LOG_CONFIGURE ON LOG_BUILD ON LOG_INSTALL ON LOG_OUTPUT_ON_FAILURE ON)
 foreach(component pq pgcommon pgport)
   set(pg_archive ${component})
   if(NOT component STREQUAL "pq")

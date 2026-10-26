@@ -50,7 +50,7 @@ if(WIN32)
   # The desktop SDK uses MinGW-w64; keep the DLL basename stable for native
   # engine extension manifests, and export the public C/C++ API on Windows.
   set_target_properties(fsnet PROPERTIES PREFIX "" WINDOWS_EXPORT_ALL_SYMBOLS ON)
-  target_link_libraries(fsnet PRIVATE ws2_32 crypt32 advapi32 bcrypt)
+  target_link_libraries(fsnet PRIVATE ws2_32 mswsock crypt32 advapi32 bcrypt)
 elseif(APPLE)
   set_target_properties(fsnet PROPERTIES MACOSX_RPATH ON INSTALL_NAME_DIR "@rpath")
 endif()

@@ -13,7 +13,8 @@ Windows 当前使用 MinGW-w64，不承诺和 MSVC 的 C++ ABI 互换。
 
 ```sh
 cmake -S . -B .dev/sdk-build -G Ninja -DCMAKE_BUILD_TYPE=Release \
-  -DBUILD_TESTING=OFF -DFSNET_WITH_LUA=OFF -DFSNET_WITH_POSTGRES=OFF
+  -DBUILD_TESTING=OFF -DFSNET_WITH_LUA=OFF -DFSNET_WITH_POSTGRES=OFF \
+  -DFSNET_OPENSSL_STATIC_ONLY=ON
 cmake --build .dev/sdk-build --target fsnet --parallel 4
 cmake --install .dev/sdk-build --component sdk --prefix .dev/sdk-prefix
 python3 tools/sdk/verify.py --prefix .dev/sdk-prefix --build-dir .dev/sdk-consumer
