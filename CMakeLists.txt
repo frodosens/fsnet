@@ -34,6 +34,11 @@ set(NO_TESTS ON CACHE BOOL "" FORCE)
 set(ENABLE_LOCALHOST_ADDRESS ON CACHE BOOL "" FORCE)
 set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(asio sqlitecpp libjuice)
+if(MINGW)
+  # SQLiteCpp 3.3.2 relies on transitive fixed-width integer declarations that
+  # newer MinGW libstdc++ headers no longer provide in its own translation units.
+  target_compile_options(SQLiteCpp PRIVATE -include cstdint)
+endif()
 add_library(fsnet SHARED src/database.cpp src/postgres_database.cpp src/file_storage.cpp src/storage_factory.cpp src/async_database.cpp src/entity_host.cpp src/entity_schema.cpp src/attribute_wire.cpp src/attribute_replication.cpp src/replication_wire.cpp src/client.cpp src/client_gateway.cpp src/entity_router.cpp src/entity_transfer.cpp src/entity_delivery_state.cpp src/entity_delivery.cpp src/node.cpp src/cluster.cpp src/ice.cpp src/c_api.cpp)
 target_include_directories(fsnet PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include> $<INSTALL_INTERFACE:include> PRIVATE ${asio_SOURCE_DIR}/asio/include)
 target_compile_features(fsnet PUBLIC cxx_std_20)
