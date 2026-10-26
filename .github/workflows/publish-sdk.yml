@@ -1,0 +1,66 @@
+name: Publish verified desktop SDK
+
+on:
+  workflow_dispatch:
+    inputs:
+      sdk_run_id:
+        description: Successful Desktop client SDK workflow run ID
+        required: true
+      source_revision:
+        description: Exact 40-character source commit of all four SDK assets
+        required: true
+      version:
+        description: SDK semantic version
+        required: true
+        default: '0.3.1'
+  push:
+    branches: ['refactor/desktop-sdk']
+    paths: ['.github/workflows/publish-sdk.yml', 'tools/sdk/release.py']
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    # A branch push registers the workflow without publishing anything. Only
+    # the explicitly requested manual dispatch can create a tag or release.
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-22.04
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      actions: read
+    concurrency:
+      group: sdk-publish-${{ inputs.version }}
+      cancel-in-progress: false
+    env:
+      GH_TOKEN: ${{ github.token }}
+      SDK_RUN_ID: ${{ inputs.sdk_run_id }}
+      SDK_SOURCE_REVISION: ${{ inputs.source_revision }}
+      SDK_VERSION: ${{ inputs.version }}
+      SDK_REPOSITORY: ${{ github.repository }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verify successful producer run and exact source
+        run: >-
+          python3 tools/sdk/release.py verify-run
+          --run-id "$SDK_RUN_ID" --source-revision "$SDK_SOURCE_REVISION"
+          --version "$SDK_VERSION" --repository "$SDK_REPOSITORY"
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: fsnet-sdk-*
+          path: .dev/sdk-artifacts
+          merge-multiple: false
+          run-id: ${{ inputs.sdk_run_id }}
+          github-token: ${{ github.token }}
+      - name: Validate, create new tag and publish immutable inputs
+        run: >-
+          python3 tools/sdk/release.py publish
+          --run-id "$SDK_RUN_ID" --source-revision "$SDK_SOURCE_REVISION"
+          --version "$SDK_VERSION" --repository "$SDK_REPOSITORY"
+          --artifacts .dev/sdk-artifacts --output .dev/sdk-release
