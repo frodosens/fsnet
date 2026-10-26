@@ -1,0 +1,478 @@
+{
+  "collected_utc": "2026-10-26T01:15:19.131543+00:00",
+  "source_revision": "b00a3b36854614b8246cfed080faf88a0e8bda39",
+  "formats": {
+    "entity_record": "FER5 only",
+    "timer_discovery": "FTI2 only",
+    "entity_key": "fsnet/entity/v2/<canonical EntityId>",
+    "current_snapshot_variants": [
+      "FSP1",
+      "FSP2",
+      "FSP3"
+    ]
+  },
+  "regressions": [
+    "complete historical FER1/2/3 records rejected by owning and borrowed decoders",
+    "FER4/unknown record versions and missing metadata rejected",
+    "FTI1/unknown timer buckets rejected by reader, producer and discovery without changing bytes or storage version",
+    "unsupported entity record rejected by real host without reset or overwrite",
+    "current snapshot variants, fencing, lifecycle, handoff, durable delivery and process restart"
+  ],
+  "configs": [
+    {
+      "preset": "debug",
+      "selection": "all",
+      "tests": [
+        {
+          "name": "fsnet-connections",
+          "status": "Passed",
+          "seconds": 0.04
+        },
+        {
+          "name": "fsnet-global-entities",
+          "status": "Passed",
+          "seconds": 0.09
+        },
+        {
+          "name": "fsnet-identity",
+          "status": "Passed",
+          "seconds": 0.02
+        },
+        {
+          "name": "fsnet-delivery-codec",
+          "status": "Passed",
+          "seconds": 0.01
+        },
+        {
+          "name": "fsnet-client-sdk",
+          "status": "Passed",
+          "seconds": 0.04
+        },
+        {
+          "name": "fsnet-schema",
+          "status": "Passed",
+          "seconds": 0.01
+        },
+        {
+          "name": "fsnet-files",
+          "status": "Passed",
+          "seconds": 0.03
+        },
+        {
+          "name": "fsnet-sdk-package",
+          "status": "Passed",
+          "seconds": 2.13
+        },
+        {
+          "name": "fsnet-tls",
+          "status": "Passed",
+          "seconds": 0.37
+        },
+        {
+          "name": "fsnet-storage",
+          "status": "Passed",
+          "seconds": 0.0
+        },
+        {
+          "name": "fsnet-core",
+          "status": "Passed",
+          "seconds": 0.35
+        },
+        {
+          "name": "fsnet-file-process",
+          "status": "Passed",
+          "seconds": 0.23
+        },
+        {
+          "name": "fsnet-process",
+          "status": "Passed",
+          "seconds": 0.06
+        },
+        {
+          "name": "fsnet-patches",
+          "status": "Passed",
+          "seconds": 0.88
+        },
+        {
+          "name": "fsnet-current-runtime",
+          "status": "Passed",
+          "seconds": 0.22
+        },
+        {
+          "name": "fsnet-current-lua-limits",
+          "status": "Passed",
+          "seconds": 0.11
+        },
+        {
+          "name": "fsnet-current-delivery",
+          "status": "Passed",
+          "seconds": 0.06
+        },
+        {
+          "name": "fsnet-current-prediction",
+          "status": "Passed",
+          "seconds": 0.01
+        },
+        {
+          "name": "fsnet-current-delivery-process",
+          "status": "Passed",
+          "seconds": 0.59
+        },
+        {
+          "name": "fsnet-timers",
+          "status": "Passed",
+          "seconds": 0.87
+        },
+        {
+          "name": "fsnet-global-flow",
+          "status": "Passed",
+          "seconds": 1.41
+        },
+        {
+          "name": "fsnet-timer-process",
+          "status": "Passed",
+          "seconds": 3.27
+        },
+        {
+          "name": "fsnet-example-timers",
+          "status": "Passed",
+          "seconds": 5.76
+        },
+        {
+          "name": "fsnet-example-scene",
+          "status": "Passed",
+          "seconds": 0.19
+        },
+        {
+          "name": "fsnet-example-attributes",
+          "status": "Passed",
+          "seconds": 0.16
+        },
+        {
+          "name": "fsnet-example-native",
+          "status": "Passed",
+          "seconds": 0.12
+        }
+      ],
+      "library_sha256": "71e1ef6bac54a2e6bd47faa75852bc02ec8e10b4f3dc83e928dd9c1687fba3b1"
+    },
+    {
+      "preset": "release",
+      "selection": "all",
+      "tests": [
+        {
+          "name": "fsnet-connections",
+          "status": "Passed",
+          "seconds": 0.04
+        },
+        {
+          "name": "fsnet-global-entities",
+          "status": "Passed",
+          "seconds": 0.08
+        },
+        {
+          "name": "fsnet-identity",
+          "status": "Passed",
+          "seconds": 0.02
+        },
+        {
+          "name": "fsnet-delivery-codec",
+          "status": "Passed",
+          "seconds": 0.01
+        },
+        {
+          "name": "fsnet-client-sdk",
+          "status": "Passed",
+          "seconds": 0.04
+        },
+        {
+          "name": "fsnet-schema",
+          "status": "Passed",
+          "seconds": 0.01
+        },
+        {
+          "name": "fsnet-files",
+          "status": "Passed",
+          "seconds": 0.02
+        },
+        {
+          "name": "fsnet-sdk-package",
+          "status": "Passed",
+          "seconds": 1.85
+        },
+        {
+          "name": "fsnet-tls",
+          "status": "Passed",
+          "seconds": 0.4
+        },
+        {
+          "name": "fsnet-storage",
+          "status": "Passed",
+          "seconds": 0.0
+        },
+        {
+          "name": "fsnet-core",
+          "status": "Passed",
+          "seconds": 0.32
+        },
+        {
+          "name": "fsnet-file-process",
+          "status": "Passed",
+          "seconds": 0.2
+        },
+        {
+          "name": "fsnet-process",
+          "status": "Passed",
+          "seconds": 0.05
+        },
+        {
+          "name": "fsnet-patches",
+          "status": "Passed",
+          "seconds": 0.1
+        },
+        {
+          "name": "fsnet-current-runtime",
+          "status": "Passed",
+          "seconds": 0.17
+        },
+        {
+          "name": "fsnet-current-lua-limits",
+          "status": "Passed",
+          "seconds": 0.1
+        },
+        {
+          "name": "fsnet-current-delivery",
+          "status": "Passed",
+          "seconds": 0.04
+        },
+        {
+          "name": "fsnet-current-prediction",
+          "status": "Passed",
+          "seconds": 0.01
+        },
+        {
+          "name": "fsnet-current-delivery-process",
+          "status": "Passed",
+          "seconds": 0.55
+        },
+        {
+          "name": "fsnet-timers",
+          "status": "Passed",
+          "seconds": 0.69
+        },
+        {
+          "name": "fsnet-global-flow",
+          "status": "Passed",
+          "seconds": 1.38
+        },
+        {
+          "name": "fsnet-timer-process",
+          "status": "Passed",
+          "seconds": 3.26
+        },
+        {
+          "name": "fsnet-example-timers",
+          "status": "Passed",
+          "seconds": 5.74
+        },
+        {
+          "name": "fsnet-example-scene",
+          "status": "Passed",
+          "seconds": 0.16
+        },
+        {
+          "name": "fsnet-example-attributes",
+          "status": "Passed",
+          "seconds": 0.11
+        },
+        {
+          "name": "fsnet-example-native",
+          "status": "Passed",
+          "seconds": 0.11
+        }
+      ],
+      "library_sha256": "6f61856bb03d7f3c9f140171b074fbc345a56284c254e4adcd0ec71f298e1d9b"
+    },
+    {
+      "preset": "asan",
+      "selection": "all",
+      "tests": [
+        {
+          "name": "fsnet-connections",
+          "status": "Passed",
+          "seconds": 0.14
+        },
+        {
+          "name": "fsnet-global-entities",
+          "status": "Passed",
+          "seconds": 0.14
+        },
+        {
+          "name": "fsnet-identity",
+          "status": "Passed",
+          "seconds": 0.1
+        },
+        {
+          "name": "fsnet-delivery-codec",
+          "status": "Passed",
+          "seconds": 0.1
+        },
+        {
+          "name": "fsnet-client-sdk",
+          "status": "Passed",
+          "seconds": 0.11
+        },
+        {
+          "name": "fsnet-schema",
+          "status": "Passed",
+          "seconds": 0.07
+        },
+        {
+          "name": "fsnet-files",
+          "status": "Passed",
+          "seconds": 0.1
+        },
+        {
+          "name": "fsnet-tls",
+          "status": "Passed",
+          "seconds": 0.38
+        },
+        {
+          "name": "fsnet-storage",
+          "status": "Passed",
+          "seconds": 0.05
+        },
+        {
+          "name": "fsnet-core",
+          "status": "Passed",
+          "seconds": 0.5
+        },
+        {
+          "name": "fsnet-patches",
+          "status": "Passed",
+          "seconds": 3.1
+        },
+        {
+          "name": "fsnet-current-runtime",
+          "status": "Passed",
+          "seconds": 0.36
+        },
+        {
+          "name": "fsnet-current-lua-limits",
+          "status": "Passed",
+          "seconds": 0.18
+        },
+        {
+          "name": "fsnet-current-delivery",
+          "status": "Passed",
+          "seconds": 0.11
+        },
+        {
+          "name": "fsnet-current-prediction",
+          "status": "Passed",
+          "seconds": 0.06
+        },
+        {
+          "name": "fsnet-timers",
+          "status": "Passed",
+          "seconds": 0.92
+        },
+        {
+          "name": "fsnet-global-flow",
+          "status": "Passed",
+          "seconds": 1.55
+        }
+      ],
+      "library_sha256": "b1ceabf3e0d90dfcd34aedc391c0df6125e6226d0306fb10db9762ff66bbb735"
+    },
+    {
+      "preset": "core",
+      "selection": "all",
+      "tests": [
+        {
+          "name": "fsnet-connections",
+          "status": "Passed",
+          "seconds": 0.04
+        },
+        {
+          "name": "fsnet-global-entities",
+          "status": "Passed",
+          "seconds": 0.09
+        },
+        {
+          "name": "fsnet-identity",
+          "status": "Passed",
+          "seconds": 0.02
+        },
+        {
+          "name": "fsnet-delivery-codec",
+          "status": "Passed",
+          "seconds": 0.01
+        },
+        {
+          "name": "fsnet-client-sdk",
+          "status": "Passed",
+          "seconds": 0.04
+        },
+        {
+          "name": "fsnet-schema",
+          "status": "Passed",
+          "seconds": 0.01
+        },
+        {
+          "name": "fsnet-files",
+          "status": "Passed",
+          "seconds": 0.03
+        },
+        {
+          "name": "fsnet-sdk-package",
+          "status": "Passed",
+          "seconds": 1.38
+        },
+        {
+          "name": "fsnet-tls",
+          "status": "Passed",
+          "seconds": 0.31
+        },
+        {
+          "name": "fsnet-storage",
+          "status": "Passed",
+          "seconds": 0.0
+        },
+        {
+          "name": "fsnet-core",
+          "status": "Passed",
+          "seconds": 0.34
+        },
+        {
+          "name": "fsnet-file-process",
+          "status": "Passed",
+          "seconds": 0.26
+        },
+        {
+          "name": "fsnet-process",
+          "status": "Passed",
+          "seconds": 0.05
+        },
+        {
+          "name": "fsnet-patches",
+          "status": "Passed",
+          "seconds": 0.76
+        }
+      ],
+      "library_sha256": "a6de0b2cad1747be511bae98afcdbe91f93baa7ba79d9acd58eefa38e5a482eb"
+    },
+    {
+      "preset": "postgres",
+      "selection": "fsnet-postgres",
+      "tests": [
+        {
+          "name": "fsnet-postgres",
+          "status": "Passed",
+          "seconds": 4.61
+        }
+      ],
+      "library_sha256": "1664baa53c839e91c13930d95f9a718cf24c210b5aa97f98d80602b4ff566fa6"
+    }
+  ]
+}
