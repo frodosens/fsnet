@@ -1,0 +1,80 @@
+name: Desktop client SDK
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: SDK asset version
+        required: true
+        default: '0.3.1'
+  push:
+    branches: ['refactor/desktop-sdk']
+    tags: ['sdk-v*']
+
+permissions:
+  contents: read
+
+jobs:
+  sdk:
+    name: SDK ${{ matrix.platform }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {platform: linux-x86_64, runner: ubuntu-22.04, arch: x86_64}
+          - {platform: windows-x86_64, runner: windows-2022, arch: x86_64}
+          - {platform: macos-x86_64, runner: macos-15-intel, arch: x86_64}
+          - {platform: macos-arm64, runner: macos-15, arch: arm64}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: msys2/setup-msys2@v2
+        if: runner.os == 'Windows'
+        with:
+          msystem: MINGW64
+          update: true
+          install: >-
+            make perl
+            mingw-w64-x86_64-gcc
+            mingw-w64-x86_64-cmake
+            mingw-w64-x86_64-ninja
+            mingw-w64-x86_64-python
+      - name: Build and verify Unix SDK
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          set -euo pipefail
+          args=()
+          if [[ "$RUNNER_OS" == macOS ]]; then
+            args+=(-DCMAKE_OSX_ARCHITECTURES=${{ matrix.arch }} -DCMAKE_OSX_DEPLOYMENT_TARGET=13.0)
+          fi
+          cmake -S . -B .dev/sdk-build -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=OFF -DFSNET_WITH_LUA=OFF -DFSNET_WITH_POSTGRES=OFF "${args[@]}"
+          cmake --build .dev/sdk-build --target fsnet --parallel 4
+          cmake --install .dev/sdk-build --component sdk --prefix .dev/sdk-prefix
+          python3 tools/sdk/verify.py --prefix .dev/sdk-prefix --build-dir .dev/sdk-consumer
+          python3 tools/sdk/package.py --prefix .dev/sdk-prefix-relocated --build-dir .dev/sdk-build --platform ${{ matrix.platform }} --version '${{ inputs.version || '0.3.1' }}' --output .dev/sdk-dist
+      - name: Build and verify Windows SDK
+        if: runner.os == 'Windows'
+        shell: msys2 {0}
+        run: |
+          set -euo pipefail
+          cmake -S . -B .dev/sdk-build -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=OFF -DFSNET_WITH_LUA=OFF -DFSNET_WITH_POSTGRES=OFF
+          cmake --build .dev/sdk-build --target fsnet --parallel 4
+          cmake --install .dev/sdk-build --component sdk --prefix .dev/sdk-prefix
+          python tools/sdk/verify.py --prefix .dev/sdk-prefix --build-dir .dev/sdk-consumer
+          python tools/sdk/package.py --prefix .dev/sdk-prefix-relocated --build-dir .dev/sdk-build --platform ${{ matrix.platform }} --version '${{ inputs.version || '0.3.1' }}' --output .dev/sdk-dist
+      - uses: actions/upload-artifact@v4
+        with:
+          name: fsnet-sdk-${{ matrix.platform }}
+          path: .dev/sdk-dist/*
+          if-no-files-found: error
+      - name: Preserve failure diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sdk-failure-${{ matrix.platform }}
+          path: |
+            .dev/sdk-build/fsnet-openssl-prefix/src/fsnet-openssl-stamp/*.log
+            .dev/sdk-build/CMakeFiles/CMakeConfigureLog.yaml
+          if-no-files-found: ignore
