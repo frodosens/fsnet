@@ -20,7 +20,7 @@ def main():
     build = (args.build or default).resolve()
     environment = dict(os.environ, FSNET_CLUSTER_TOKEN=secrets.token_hex(24),
                        FSNET_BIND_ADDRESS='127.0.0.1', FSNET_DEMO_SUBJECT='timer-demo',
-                       FSNET_NODE_ID='local', FSNET_ENTITY_LEASE_MS='500')
+                       FSNET_NODE_ID='local', FSNET_ENTITY_LEASE_MS='2000')
     for name in ('FSNET_TLS_CA', 'FSNET_TLS_CERTIFICATE', 'FSNET_TLS_KEY',
                  'FSNET_TLS_PEER_NAME'):
         environment.pop(name, None)
