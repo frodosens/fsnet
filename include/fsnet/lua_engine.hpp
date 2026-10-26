@@ -27,6 +27,11 @@ public:
     std::size_t active() const;
     std::size_t memory_used() const;
     std::string last_error() const;
+    // runtime.start tasks are finite initialization work; runtime.background
+    // tasks do not participate in readiness. Failure is sticky, including stop
+    // cancellation of unfinished initialization. Neither query drives the VM.
+    bool startup_complete() const;
+    bool startup_failed() const;
 private:
     struct Impl;
     std::shared_ptr<Impl> impl_;

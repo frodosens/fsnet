@@ -28,6 +28,11 @@ struct Limits {
     // Aggregate frame-body reservations, including incomplete reads. Exhaustion
     // closes the incoming connection; authentication frames have an exact cap.
     std::size_t receive_bytes = 16 * 1024 * 1024;
+    // Bounds ready I/O callbacks handled by one poll(). A callback cannot be
+    // preempted: applications must also bound their own callback work. run()
+    // deliberately drives continuously until stopped.
+    std::size_t poll_events = 256;
+    std::chrono::microseconds poll_time{2000};
 };
 struct TransportStats { std::size_t connections=0,pending=0,inflight=0,queued_bytes=0,receive_bytes=0,callback_failures=0; };
 // All Node methods/callbacks run on its owning thread. Separate nodes can run on
@@ -41,7 +46,7 @@ public:
     std::uint16_t listen(const std::string& address, std::uint16_t port);
     std::uint64_t connect(const std::string& address, std::uint16_t port, const std::string& peer_name = {});
     using Authorizer = std::function<bool(std::uint64_t, const std::string&, const std::string&)>;
-    // Called after transport + token authentication, before dispatch. Identity is
+    // Called after transport + challenge authentication, before dispatch. Identity is
     // the verified certificate SHA-256 fingerprint, or empty on loopback plaintext.
     void authorize(Authorizer);
     std::string peer_identity(std::uint64_t peer) const;

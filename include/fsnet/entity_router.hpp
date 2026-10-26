@@ -18,7 +18,8 @@ std::optional<std::size_t> select_entity_endpoint(const std::vector<EntityEndpoi
 struct EntityRouterLimits { std::size_t requests = 256, bytes = 4 * 1024 * 1024; };
 // Static membership + authoritative database ownership, not health-based exclusive
 // ownership. Owner IDs use "stable-node/unique-boot-id". Calls with a request ID
-// may retry until the deadline; receipt retention limits still apply.
+// may retry after failures until the original deadline; receipt retention limits
+// still apply. A healthy in-flight call may use the entire remaining timeout.
 class EntityRouter {
 public:
     EntityRouter(Node&, std::shared_ptr<Storage>, std::vector<EntityEndpoint>, EntityRouterLimits = {});

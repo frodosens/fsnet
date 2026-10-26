@@ -43,13 +43,16 @@ struct AttributeReplication::Impl : std::enable_shared_from_this<Impl> {
             throw std::invalid_argument("invalid replication limits");
     }
     struct Permission { std::string owner,key; bool observer; };
-    Permission permission(const Subscription& sub) {
+    Permission permission(const Subscription& sub,const std::string* metadata_owner=nullptr) {
         auto authenticated=node.identity(sub.identity.peer);
-        if(!authenticated || authenticated->caller!=Caller::client || authenticated->subject!=sub.identity.subject || authenticated->connection!=sub.identity.connection || !sub.identity.live())
+        if(!authenticated || authenticated->caller!=Caller::client || authenticated->subject!=sub.identity.subject || authenticated->connection!=sub.identity.connection || !sub.identity.live() || stopped)
             throw std::runtime_error("connection identity changed");
-        auto owner=host->owner_binding(sub.type,sub.entity);
+        auto owner=metadata_owner?*metadata_owner:host->owner_binding(sub.type,sub.entity);
         bool observes=sub.automatic; if(observer) { auto check=observer; observes=check(sub.identity,sub.type,sub.entity) || observes; }
-        if(stopped || (!sub.identity.owns(owner) && !observes) || (!sub.identity.connection && sub.identity.subject.empty())) throw std::runtime_error("subscription denied");
+        if(stopped)throw std::runtime_error("subscription denied");
+        auto owned=sub.identity.owns(owner);
+        auto current=subscriptions.find(sub.id);
+        if(stopped || current==subscriptions.end() || current->second.get()!=&sub || (!owned && !observes) || (!sub.identity.connection && sub.identity.subject.empty())) throw std::runtime_error("subscription denied");
         return {owner,std::to_string(owner.size())+":"+owner+(observes?"1":"0"),observes};
     }
     AttributeUpdate filtered(const Subscription& sub, const EntitySchema& schema, const AttributeUpdate& image, std::string* key=nullptr) {
@@ -93,14 +96,23 @@ struct AttributeReplication::Impl : std::enable_shared_from_this<Impl> {
         std::size_t peers=peer_counts.contains(identity.peer)?peer_counts.at(identity.peer):0;
         if(subscriptions.size()>=limits.subscriptions || peers>=limits.per_peer || serial==UINT64_MAX) return reply({Status::overloaded,{}});
         auto definition=host->schema(type); if(!definition) return reply({Status::not_found,{}});
-        // Check permission before creating or loading an entity. The completion
-        // rechecks it and filters against the then-current ownership/AOI mapping.
-        try { if(!valid_entity_id(id)) (void)permission(Subscription{0,identity,type,id,{}, {}, {},0,{},0,automatic,false}); }
-        catch(...) { return reply({Status::rejected,{}}); }
+        if(!valid_entity_id(id)) return reply({Status::rejected,{}});
         auto sub=std::make_shared<Subscription>(Subscription{++serial,identity,std::move(type),std::move(id),Clock::now()+limits.pending_timeout,std::move(reply),{},0,{},0,automatic,false});
         subscriptions.emplace(sub->id,sub); by_entity[encode_entity_key(sub->type,sub->entity)].insert(sub->id); ++peer_counts[identity.peer]; schedule.push_back(sub->id);
         try {
-            host->read_attributes(sub->type,sub->entity,[weak=weak_from_this(),id=sub->id,definition](Result result) {
+            // Authorization uses persisted metadata before acquiring a lease or
+            // executing lifecycle hooks. The host rechecks the guard against
+            // the acquired record and before publication as ownership/AOI can
+            // change while storage and script work are outstanding.
+            host->read_attributes(sub->type,sub->entity,
+                [weak=weak_from_this(),id=sub->id](const std::string& owner) {
+                    auto self=weak.lock(); if(!self || self->stopped) return false;
+                    auto it=self->subscriptions.find(id);
+                    if(it==self->subscriptions.end() || it->second->expires<=Clock::now()) return false;
+                    auto sub=it->second; // resolver/AOI callbacks can stop and erase the map
+                    try { (void)self->permission(*sub,&owner); return true; }
+                    catch(...) { return false; }
+                },[weak=weak_from_this(),id=sub->id,definition](Result result) {
                 auto self=weak.lock(); if(!self || self->stopped) return;
                 auto it=self->subscriptions.find(id); if(it==self->subscriptions.end()) return;
                 auto sub=it->second;
@@ -132,7 +144,7 @@ struct AttributeReplication::Impl : std::enable_shared_from_this<Impl> {
         auto indexed=by_entity.find(input);
         if(indexed!=by_entity.end()) for(auto id:indexed->second) {
             auto sub=subscriptions.at(id);
-            if(sub->automatic && sub->identity.peer==peer && sub->identity.subject==who->subject) { target=sub; break; }
+            if(sub->automatic && sub->identity.peer==peer && sub->identity.subject==who->subject && sub->identity.connection==who->connection) { target=sub; break; }
         }
         if(target && !target->pending) try {
             auto handle=host->handle(type,entity);
@@ -185,9 +197,10 @@ struct AttributeReplication::Impl : std::enable_shared_from_this<Impl> {
         catch(...) { return reply({Status::rejected,{}}); }
         auto it=subscriptions.find(id); if(it==subscriptions.end()) return reply({Status::not_found,{}});
         auto sub=it->second;
-        if(sub->identity.peer!=identity.peer || sub->identity.subject!=identity.subject) return reply({Status::rejected,{}});
+        if(sub->identity.peer!=identity.peer || sub->identity.subject!=identity.subject || sub->identity.connection!=identity.connection || !identity.live()) return reply({Status::rejected,{}});
         if(renew) {
             if(sub->pending || sub->expires<=Clock::now()) return reply({Status::timeout,{}});
+            try { (void)permission(*sub); } catch(...) { return reply({Status::rejected,{}}); }
             sub->expires=Clock::now()+limits.lease;
         } else remove(id,Status::disconnected,false);
         reply({Status::ok,{}});
@@ -205,7 +218,7 @@ struct AttributeReplication::Impl : std::enable_shared_from_this<Impl> {
         auto it=subscriptions.find(id); if(it==subscriptions.end()) return reply({Status::not_found,{}});
         auto sub=it->second;
         if(sub->pending) return reply({Status::overloaded,{}});
-        if(sub->identity.peer!=who.peer || sub->identity.subject!=who.subject) return reply({Status::rejected,{}});
+        if(sub->identity.peer!=who.peer || sub->identity.subject!=who.subject || sub->identity.connection!=who.connection) return reply({Status::rejected,{}});
         if(sub->expires<=Clock::now()) return reply({Status::timeout,{}});
         try { auto view=permission(*sub); if(!who.owns(view.owner)) return reply({Status::rejected,{}}); }
         catch(...) { return reply({Status::rejected,{}}); }

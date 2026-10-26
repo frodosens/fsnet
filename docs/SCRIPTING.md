@@ -24,7 +24,8 @@ C++ 承担网络、调度、存储、权限与实体承载，玩法写在 Lua。
 
 | API | 合同 |
 | --- | --- |
-| `runtime.start(function() ... end)` | 加载期声明有预算的后台任务 |
+| `runtime.start(function() ... end)` | 加载期声明有限初始化任务；整个任务受 task_timeout 限制，全部成功后 startup_complete 才为 true |
+| `runtime.background(function() ... end)` | 加载期声明长期后台任务；不阻挡初始化完成，错误可从 last_error 取得 |
 | `runtime.sleep(ms)` | 挂起协程，1–30000ms；不是持久计时器 |
 | `fsnet.ref(id):call(method, bytes, options)` | 全局实体 RPC，失败抛错；负载与返回值为 bytes |
 | `Class:spawn(values, options)` | 全局创建，creation_key 重试保持身份 |
@@ -36,12 +37,19 @@ C++ 承担网络、调度、存储、权限与实体承载，玩法写在 Lua。
 超时不撤销已经提交的远端请求；可靠命令使用 [持久投递](ENTITY_DELIVERY.md)。
 闭包不做序列化，重启后继续的延迟/周期工作使用 [持久计时器](ENTITY_TIMERS.md)。
 
+原生 `LuaEngine::startup_complete()` 在 load 成功且所有 start 任务成功结束后为 true；没有 start 的脚本加载成功即可完成。
+任一关键 start 失败或取消令 `startup_failed()` 永久为 true，不能用 active()==0 推断成功。
+`fsnet.entities:start()` 内部事件循环使用 background，服务初始化不应被该长期循环阻挡。
+生产 owner 在初始化期间报告 not ready；关键初始化失败后排空并非零退出。后台任务失败的业务恢复策略仍由应用决定。
+
 ## 资源与取消
 
 `ScriptLimits` 限制源码、VM/原生对象内存、队列请求/字节、活动协程、路由数、每次恢复指令和任务期限。
 不提供 os/io/debug/package/require。指令预算耗尽不能通过 pcall 继续运行；内存耗尽与脚本错误
 使本次请求失败并回滚候选状态。结束协程时以专用 teardown hook 阻止用户 close 代码执行，再 resetthread 释放失败栈上的对象，后续健康请求可继续。
 正常函数完成的 Lua close 按语言语义执行；取消/超时/预算终止不保证脚本清理回调执行。
+脚本 setmetatable 不允许注册用户 `__gc` 终结器，避免不可让出的 GC/关闭过程执行无界脚本；原生 userdata 的 C 资源终结器仍正常执行。
+属性表转换先核对展开后的节点、字节和临时图预算，再分配原生候选图；共享 Lua 字符串/表的重复引用按实际展开次数计费。
 这是受信任游戏脚本的故障约束，不是敌对代码的进程安全隔离。
 
 实例 self 仅在当前请求有效，跨请求保存 EntityId 或逻辑引用。取消、超时或结束后旧 self 不可读写。

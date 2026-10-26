@@ -5,6 +5,7 @@
 #include "fsnet/directory.hpp"
 #include "fsnet/ice.hpp"
 #include "fsnet/node.hpp"
+#include "support/transport.hpp"
 #include <asio.hpp>
 #include <chrono>
 #include <filesystem>
@@ -125,6 +126,11 @@ void node_callback_lifetime() {
             else reply({fsnet::Status::ok, std::move(data)});
         });
         auto peer = client->connect("127.0.0.1", server->listen("127.0.0.1", 0));
+        if (mode == 5) {
+            // Mutual challenge authentication needs both peers to advance before
+            // this fixture deliberately drives only the blocking server loop.
+            until([&] { server->poll(); client->poll(); }, [&] { return client->connected(peer); });
+        }
         bool done = false;
         client->call(peer, "echo", "x", 1s, [&](auto result) {
             CHECK(result.status == (mode ? fsnet::Status::disconnected : fsnet::Status::ok));
@@ -134,7 +140,7 @@ void node_callback_lifetime() {
         if (mode == 3) client->close(peer); // destruction from a synchronous close callback
         if (mode == 4) client->stop(); // destruction while stop is already on the stack
         if (mode == 5) {
-            // Outbound frames are queued independently of receiving the token.
+            // Send the application request after the mutual proof exchange.
             for (int i = 0; i < 4; ++i) { client->poll(); std::this_thread::sleep_for(1ms); }
             server->run(); // handler destroys the Node driving this blocking call
         }
@@ -162,10 +168,7 @@ void node_receive_budget() {
     CHECK(server.stats().receive_bytes == 0);
     hostile->close();
     auto authenticate = [&](auto& socket) {
-        std::string frame(18, '\0'); frame[3] = 20; frame[4] = 1;
-        frame += "budget";
-        asio::write(*socket, asio::buffer(frame));
-        for (int i = 0; i < 4; ++i) { server.poll(); std::this_thread::sleep_for(1ms); }
+        testing::transport::authenticate(*socket, [&] { server.poll(); }, "budget");
     };
     auto first = connect(); authenticate(first);
     asio::write(*first, asio::buffer(length));
@@ -173,7 +176,9 @@ void node_receive_budget() {
     auto second = connect(); authenticate(second);
     asio::write(*second, asio::buffer(length));
     until([&] { server.poll(); }, [&] { return server.stats().receive_bytes == 8192; });
-    auto excess = connect(); authenticate(excess);
+    auto excess = connect(); bool refused = false;
+    try { authenticate(excess); } catch (const std::runtime_error&) { refused = true; }
+    CHECK(refused);
     for (int i = 0; i < 4; ++i) { server.poll(); std::this_thread::sleep_for(1ms); }
     CHECK(server.stats().receive_bytes == 8192);
     CHECK(server.stats().connections == 2);
