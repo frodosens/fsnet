@@ -481,7 +481,7 @@ void Node::bind(std::string route, Handler handler) {
 void Node::call(std::uint64_t peer, std::string_view route, std::string_view data, std::chrono::milliseconds timeout, Reply reply) {
     auto keep = impl_;
     if (!reply) throw std::invalid_argument("missing reply callback");
-    if (route.empty() || route.size() > 256 || route.find('\0') != std::string::npos || route.size() + data.size() > impl_->limits.frame_bytes - 14 || timeout.count() <= 0 || timeout > std::chrono::seconds(30))
+    if (route.empty() || route.size() > 256 || route.find('\0') != std::string::npos || route.size() + data.size() > impl_->limits.frame_bytes - 14 || timeout.count() <= 0 || timeout > max_call_timeout)
         return keep->deliver(std::move(reply),{Status::rejected, {}});
     auto it = impl_->sessions.find(peer);
     if (impl_->stopped || it == impl_->sessions.end()) return keep->deliver(std::move(reply),{Status::disconnected, {}});

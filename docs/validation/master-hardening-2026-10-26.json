@@ -1,0 +1,684 @@
+{
+  "baseline_revision": "8e4af0c9b73445d999a9e3593c1429c63bbec882",
+  "tests": {
+    "baseline": {
+      "summary": {
+        "name": "(empty)",
+        "tests": "34",
+        "failures": "0",
+        "disabled": "0",
+        "skipped": "0",
+        "hostname": "",
+        "time": "24",
+        "timestamp": "2026-10-26T03:45:32"
+      },
+      "tests": [
+        {
+          "name": "fsnet-connections",
+          "status": "run",
+          "time_seconds": "0.0367542",
+          "failures": []
+        },
+        {
+          "name": "fsnet-global-entities",
+          "status": "run",
+          "time_seconds": "0.083075",
+          "failures": []
+        },
+        {
+          "name": "fsnet-identity",
+          "status": "run",
+          "time_seconds": "0.0111214",
+          "failures": []
+        },
+        {
+          "name": "fsnet-delivery-codec",
+          "status": "run",
+          "time_seconds": "0.00940856",
+          "failures": []
+        },
+        {
+          "name": "fsnet-client-sdk",
+          "status": "run",
+          "time_seconds": "0.0438491",
+          "failures": []
+        },
+        {
+          "name": "fsnet-schema",
+          "status": "run",
+          "time_seconds": "0.00671007",
+          "failures": []
+        },
+        {
+          "name": "fsnet-files",
+          "status": "run",
+          "time_seconds": "0.0149046",
+          "failures": []
+        },
+        {
+          "name": "fsnet-sdk-package",
+          "status": "run",
+          "time_seconds": "2.41387",
+          "failures": []
+        },
+        {
+          "name": "fsnet-tls",
+          "status": "run",
+          "time_seconds": "0.501738",
+          "failures": []
+        },
+        {
+          "name": "fsnet-storage",
+          "status": "run",
+          "time_seconds": "0.00685273",
+          "failures": []
+        },
+        {
+          "name": "fsnet-production-entity",
+          "status": "run",
+          "time_seconds": "0.401248",
+          "failures": []
+        },
+        {
+          "name": "fsnet-production-authorization",
+          "status": "run",
+          "time_seconds": "0.210376",
+          "failures": []
+        },
+        {
+          "name": "fsnet-production-client-router",
+          "status": "run",
+          "time_seconds": "5.09802",
+          "failures": []
+        },
+        {
+          "name": "fsnet-production-storage",
+          "status": "run",
+          "time_seconds": "0.0269784",
+          "failures": []
+        },
+        {
+          "name": "fsnet-production-transport",
+          "status": "run",
+          "time_seconds": "0.467907",
+          "failures": []
+        },
+        {
+          "name": "fsnet-storage-capabilities",
+          "status": "run",
+          "time_seconds": "0.0100238",
+          "failures": []
+        },
+        {
+          "name": "fsnet-core",
+          "status": "run",
+          "time_seconds": "0.32028",
+          "failures": []
+        },
+        {
+          "name": "fsnet-file-process",
+          "status": "run",
+          "time_seconds": "0.229342",
+          "failures": []
+        },
+        {
+          "name": "fsnet-process",
+          "status": "run",
+          "time_seconds": "0.0613068",
+          "failures": []
+        },
+        {
+          "name": "fsnet-patches",
+          "status": "run",
+          "time_seconds": "0.0941481",
+          "failures": []
+        },
+        {
+          "name": "fsnet-production-lua",
+          "status": "run",
+          "time_seconds": "0.20298",
+          "failures": []
+        },
+        {
+          "name": "fsnet-current-runtime",
+          "status": "run",
+          "time_seconds": "0.177253",
+          "failures": []
+        },
+        {
+          "name": "fsnet-current-lua-limits",
+          "status": "run",
+          "time_seconds": "0.0994389",
+          "failures": []
+        },
+        {
+          "name": "fsnet-current-delivery",
+          "status": "run",
+          "time_seconds": "0.222964",
+          "failures": []
+        },
+        {
+          "name": "fsnet-current-prediction",
+          "status": "run",
+          "time_seconds": "0.00715654",
+          "failures": []
+        },
+        {
+          "name": "fsnet-current-delivery-process",
+          "status": "run",
+          "time_seconds": "0.559116",
+          "failures": []
+        },
+        {
+          "name": "fsnet-timers",
+          "status": "run",
+          "time_seconds": "0.697084",
+          "failures": []
+        },
+        {
+          "name": "fsnet-global-flow",
+          "status": "run",
+          "time_seconds": "1.3931",
+          "failures": []
+        },
+        {
+          "name": "fsnet-timer-process",
+          "status": "run",
+          "time_seconds": "3.25546",
+          "failures": []
+        },
+        {
+          "name": "fsnet-example-timers",
+          "status": "run",
+          "time_seconds": "5.75243",
+          "failures": []
+        },
+        {
+          "name": "fsnet-service-readiness",
+          "status": "run",
+          "time_seconds": "1.89459",
+          "failures": []
+        },
+        {
+          "name": "fsnet-example-scene",
+          "status": "run",
+          "time_seconds": "0.16236",
+          "failures": []
+        },
+        {
+          "name": "fsnet-example-attributes",
+          "status": "run",
+          "time_seconds": "0.111882",
+          "failures": []
+        },
+        {
+          "name": "fsnet-example-native",
+          "status": "run",
+          "time_seconds": "0.114761",
+          "failures": []
+        }
+      ]
+    },
+    "final": {
+      "summary": {
+        "name": "(empty)",
+        "tests": "34",
+        "failures": "0",
+        "disabled": "0",
+        "skipped": "0",
+        "hostname": "",
+        "time": "24",
+        "timestamp": "2026-10-26T03:47:53"
+      },
+      "tests": [
+        {
+          "name": "fsnet-connections",
+          "status": "run",
+          "time_seconds": "0.0328251",
+          "failures": []
+        },
+        {
+          "name": "fsnet-global-entities",
+          "status": "run",
+          "time_seconds": "0.0821511",
+          "failures": []
+        },
+        {
+          "name": "fsnet-identity",
+          "status": "run",
+          "time_seconds": "0.0124465",
+          "failures": []
+        },
+        {
+          "name": "fsnet-delivery-codec",
+          "status": "run",
+          "time_seconds": "0.00846309",
+          "failures": []
+        },
+        {
+          "name": "fsnet-client-sdk",
+          "status": "run",
+          "time_seconds": "0.0416754",
+          "failures": []
+        },
+        {
+          "name": "fsnet-schema",
+          "status": "run",
+          "time_seconds": "0.00895474",
+          "failures": []
+        },
+        {
+          "name": "fsnet-files",
+          "status": "run",
+          "time_seconds": "0.0145231",
+          "failures": []
+        },
+        {
+          "name": "fsnet-sdk-package",
+          "status": "run",
+          "time_seconds": "1.8511",
+          "failures": []
+        },
+        {
+          "name": "fsnet-tls",
+          "status": "run",
+          "time_seconds": "0.262015",
+          "failures": []
+        },
+        {
+          "name": "fsnet-storage",
+          "status": "run",
+          "time_seconds": "0.00362989",
+          "failures": []
+        },
+        {
+          "name": "fsnet-production-entity",
+          "status": "run",
+          "time_seconds": "0.394461",
+          "failures": []
+        },
+        {
+          "name": "fsnet-production-authorization",
+          "status": "run",
+          "time_seconds": "0.203394",
+          "failures": []
+        },
+        {
+          "name": "fsnet-production-client-router",
+          "status": "run",
+          "time_seconds": "5.44327",
+          "failures": []
+        },
+        {
+          "name": "fsnet-production-storage",
+          "status": "run",
+          "time_seconds": "0.024375",
+          "failures": []
+        },
+        {
+          "name": "fsnet-production-transport",
+          "status": "run",
+          "time_seconds": "0.465083",
+          "failures": []
+        },
+        {
+          "name": "fsnet-storage-capabilities",
+          "status": "run",
+          "time_seconds": "0.0078942",
+          "failures": []
+        },
+        {
+          "name": "fsnet-core",
+          "status": "run",
+          "time_seconds": "0.317998",
+          "failures": []
+        },
+        {
+          "name": "fsnet-file-process",
+          "status": "run",
+          "time_seconds": "0.203306",
+          "failures": []
+        },
+        {
+          "name": "fsnet-process",
+          "status": "run",
+          "time_seconds": "0.0495028",
+          "failures": []
+        },
+        {
+          "name": "fsnet-patches",
+          "status": "run",
+          "time_seconds": "0.091747",
+          "failures": []
+        },
+        {
+          "name": "fsnet-production-lua",
+          "status": "run",
+          "time_seconds": "0.20269",
+          "failures": []
+        },
+        {
+          "name": "fsnet-current-runtime",
+          "status": "run",
+          "time_seconds": "0.175819",
+          "failures": []
+        },
+        {
+          "name": "fsnet-current-lua-limits",
+          "status": "run",
+          "time_seconds": "0.100641",
+          "failures": []
+        },
+        {
+          "name": "fsnet-current-delivery",
+          "status": "run",
+          "time_seconds": "0.221423",
+          "failures": []
+        },
+        {
+          "name": "fsnet-current-prediction",
+          "status": "run",
+          "time_seconds": "0.00717344",
+          "failures": []
+        },
+        {
+          "name": "fsnet-current-delivery-process",
+          "status": "run",
+          "time_seconds": "0.555273",
+          "failures": []
+        },
+        {
+          "name": "fsnet-timers",
+          "status": "run",
+          "time_seconds": "0.701902",
+          "failures": []
+        },
+        {
+          "name": "fsnet-global-flow",
+          "status": "run",
+          "time_seconds": "1.38832",
+          "failures": []
+        },
+        {
+          "name": "fsnet-timer-process",
+          "status": "run",
+          "time_seconds": "3.21054",
+          "failures": []
+        },
+        {
+          "name": "fsnet-example-timers",
+          "status": "run",
+          "time_seconds": "5.73006",
+          "failures": []
+        },
+        {
+          "name": "fsnet-service-readiness",
+          "status": "run",
+          "time_seconds": "1.81051",
+          "failures": []
+        },
+        {
+          "name": "fsnet-example-scene",
+          "status": "run",
+          "time_seconds": "0.163901",
+          "failures": []
+        },
+        {
+          "name": "fsnet-example-attributes",
+          "status": "run",
+          "time_seconds": "0.111413",
+          "failures": []
+        },
+        {
+          "name": "fsnet-example-native",
+          "status": "run",
+          "time_seconds": "0.111659",
+          "failures": []
+        }
+      ]
+    },
+    "asan": {
+      "summary": {
+        "name": "(empty)",
+        "tests": "24",
+        "failures": "0",
+        "disabled": "0",
+        "skipped": "0",
+        "hostname": "",
+        "time": "20",
+        "timestamp": "2026-10-26T03:51:35"
+      },
+      "tests": [
+        {
+          "name": "fsnet-connections",
+          "status": "run",
+          "time_seconds": "0.0899202",
+          "failures": []
+        },
+        {
+          "name": "fsnet-global-entities",
+          "status": "run",
+          "time_seconds": "0.150333",
+          "failures": []
+        },
+        {
+          "name": "fsnet-identity",
+          "status": "run",
+          "time_seconds": "0.113093",
+          "failures": []
+        },
+        {
+          "name": "fsnet-delivery-codec",
+          "status": "run",
+          "time_seconds": "0.11312",
+          "failures": []
+        },
+        {
+          "name": "fsnet-client-sdk",
+          "status": "run",
+          "time_seconds": "0.110454",
+          "failures": []
+        },
+        {
+          "name": "fsnet-schema",
+          "status": "run",
+          "time_seconds": "0.0795974",
+          "failures": []
+        },
+        {
+          "name": "fsnet-files",
+          "status": "run",
+          "time_seconds": "0.134431",
+          "failures": []
+        },
+        {
+          "name": "fsnet-tls",
+          "status": "run",
+          "time_seconds": "0.732995",
+          "failures": []
+        },
+        {
+          "name": "fsnet-storage",
+          "status": "run",
+          "time_seconds": "0.0484038",
+          "failures": []
+        },
+        {
+          "name": "fsnet-production-entity",
+          "status": "run",
+          "time_seconds": "0.489486",
+          "failures": []
+        },
+        {
+          "name": "fsnet-production-authorization",
+          "status": "run",
+          "time_seconds": "0.379701",
+          "failures": []
+        },
+        {
+          "name": "fsnet-production-client-router",
+          "status": "run",
+          "time_seconds": "8.18736",
+          "failures": []
+        },
+        {
+          "name": "fsnet-production-storage",
+          "status": "run",
+          "time_seconds": "0.0713617",
+          "failures": []
+        },
+        {
+          "name": "fsnet-production-transport",
+          "status": "run",
+          "time_seconds": "0.569159",
+          "failures": []
+        },
+        {
+          "name": "fsnet-storage-capabilities",
+          "status": "run",
+          "time_seconds": "0.0526492",
+          "failures": []
+        },
+        {
+          "name": "fsnet-core",
+          "status": "run",
+          "time_seconds": "0.637101",
+          "failures": []
+        },
+        {
+          "name": "fsnet-patches",
+          "status": "run",
+          "time_seconds": "3.93998",
+          "failures": []
+        },
+        {
+          "name": "fsnet-production-lua",
+          "status": "run",
+          "time_seconds": "0.447863",
+          "failures": []
+        },
+        {
+          "name": "fsnet-current-runtime",
+          "status": "run",
+          "time_seconds": "0.302181",
+          "failures": []
+        },
+        {
+          "name": "fsnet-current-lua-limits",
+          "status": "run",
+          "time_seconds": "0.209675",
+          "failures": []
+        },
+        {
+          "name": "fsnet-current-delivery",
+          "status": "run",
+          "time_seconds": "0.410828",
+          "failures": []
+        },
+        {
+          "name": "fsnet-current-prediction",
+          "status": "run",
+          "time_seconds": "0.0826332",
+          "failures": []
+        },
+        {
+          "name": "fsnet-timers",
+          "status": "run",
+          "time_seconds": "1.04612",
+          "failures": []
+        },
+        {
+          "name": "fsnet-global-flow",
+          "status": "run",
+          "time_seconds": "1.59941",
+          "failures": []
+        }
+      ]
+    }
+  },
+  "sanitizers": {
+    "ASAN_OPTIONS": "detect_leaks=1:halt_on_error=1",
+    "UBSAN_OPTIONS": "halt_on_error=1"
+  },
+  "regressions_before": {
+    "router": "exit 1: invalid router call rejected before admission",
+    "file": "timeout 3s exit 124",
+    "probe": "31s keyed, pending=1, executions=0 after200ms; FIFO open timeout2s exit124",
+    "transfer_delivery": "same final global-flow executable with hash-identical baseline library exits1 at transfer_rejected && delivery_rejected"
+  },
+  "binary_sha256": {
+    "release": {
+      "fsnet-identity-tests": "897de5f48c0c956c74bc3884038d88fa9a4e434ea5fc32a8513edb1da58e3b37",
+      "fsnet-schema-tests": "1e3143c8808f909957c5264f3460ba60215a1d442577315b67daef72af7509ad",
+      "fsnet-client-tests": "83da79d4f994f2e02025e83e7e7490d27543519c2d9806575298e8c9d141e1ed",
+      "fsnet-tls-tests": "547eeb479b4f8758c1107384bb6246d0335730bcfa6890b63cf49f48be346a0e",
+      "fsnet-production-storage-tests": "809e5ad82baf7abe942054b1479d5ea54dcab397b35a2e15d483c9d6bc33f73b",
+      "fsnet-current-runtime-tests": "b69c57805967619ef83143e7284cf0d032a8a49110c3a84a5138a331101f6435",
+      "fsnet-connection-tests": "d92a6e58a01972ad70b42c8638f824a793a8f11ae7200b2beb7013ea00c81141",
+      "fsnet-current-delivery-tests": "bc3f2444e9e72095bb21b252eed6d9cf2f20204e16abe9feec87b024a39fa301",
+      "fsnet-delivery-codec-tests": "34b841333b02e39028962a85a89f6803de28bfe24326123c060298cf1f06b3fb",
+      "fsnet-global-entity-tests": "a8b2c5d2305779b65f696b90dfa2a46c07b3a0e247e008a2d2b18ad89914035c",
+      "fsnet-current-prediction-tests": "57bca467c2658dbfc08f9ec5e26c7003ef64334c3570bc7b5b4ece61beab0113",
+      "fsnet-file-tests": "ebd91e1b33d3357c7ea593a27641c008e04e377672714af9960b26faaaad8017",
+      "fsnet-timer-tests": "219716559d98f32042602903e4bd570758fde0cfb71359811a95616ed39932a8",
+      "fsnet-production-client-router-tests": "f10dc939482921bef82993b7940aad82cfce7f5cc9ab9416ef88ca5c1d529449",
+      "fsnet-production-entity-tests": "33193b940a9ffc19d0e069d61838f4a10e05c9d5b4d4cee72dfbd304381c6eee",
+      "fsnet-storage-tests": "765fcaa38ebfb1493377241ecb42e512bb8171c779e1bc2d301d5efbba25aaac",
+      "fsnet-patch-tests": "8e75f1ef394bcbe14ce9b0d528ec003913a5b82560ab3d1a6a7f88e5b549a99b",
+      "fsnet-production-authorization-tests": "6b6a9cd402c224a8138150474f9178f8be1bb802946f89eadc194e934622833d",
+      "fsnet-global-flow-tests": "e08e62d5477f50d644de1fd9cc12f73842280862009f57947be6bce7a8a38637",
+      "fsnet-production-transport-tests": "6ecfcc2e596bf27bc3520ff5101da433398b1816ba3078266081cc9e47e2ac75",
+      "fsnet-production-lua-tests": "6600af16c96d58deb2ece78c4d6ce2d534eac93c58dcf450ffb8a5056c20ec77",
+      "fsnet-current-lua-limits-tests": "d09879a54ab30080b90a4522e9baccd7ee2ec3647ca24f97b37a3ca19880eca0",
+      "fsnet-storage-capability-tests": "b1239b4dd28657528ce0b4028914944d1c3cd601ef2abb8bbe9d1f03ff4e41e1"
+    },
+    "asan": {
+      "fsnet-identity-tests": "01c262d24b5d7a5100d27cdc17165209d8d2278256b99d0df1fb9dba9c7b7680",
+      "fsnet-schema-tests": "2e1ba2abb1ac2ed6ee143171204cbc16fef57aea3fa0624e7aecb93693d957b2",
+      "fsnet-client-tests": "00777094d42b10753ad4637e213c0f27fa33537d3f788446296dfde793e5a625",
+      "fsnet-tls-tests": "3af23d2bc17b7c026b1f8b59991f9fd572c6c74549a045490622ba048a912143",
+      "fsnet-production-storage-tests": "9a16bec3c12ff644140ee39ff5e706e581b03858b405661edfe51b842553acc6",
+      "fsnet-current-runtime-tests": "225a49429aef73dac0b93687cf08131503dd315aacf5d58d796eeb8e0105ac4e",
+      "fsnet-connection-tests": "66df221bfeb7b89b877c0cac8614a417b5e2f8f0525045cec3eab5f6c0474319",
+      "fsnet-current-delivery-tests": "1b14c9e7b4442531949f2872de2daf1b40d007e239f9406e18ec78de75e1abe3",
+      "fsnet-delivery-codec-tests": "7281fab97f65bd530c59e30bec6f1cdb5448cdc107fccf75a38ad25d789f1c31",
+      "fsnet-global-entity-tests": "c15cd0f2cbcedb6da10333ca6244caf806af2cd7eb3459b86eb0f71f86e73ac5",
+      "fsnet-current-prediction-tests": "2aff13f894f893d3ca721949836bc2817410821c7130d60d20b8522546ea074f",
+      "fsnet-file-tests": "a61e8a0f2b3200eac39dc2537c72576be3fd34a3cb4384f2d695c9936a4585a5",
+      "fsnet-timer-tests": "7582606f77332088754518e60721782a10bf18d7941fc7dc2e1a83aa815a6492",
+      "fsnet-production-client-router-tests": "1e6ee8fbe2482d1cc44e09b3d97c9ed5316c522b2186cae740f16101fb498870",
+      "fsnet-production-entity-tests": "768e77941e3a9e40613925cd4a63ae5ed2313f191ba8cb6dc8750b47def9964d",
+      "fsnet-storage-tests": "670e1924718653ded1d7161d3df3ae1bf2d2ca0f822421795d5812eebc7bd6e6",
+      "fsnet-patch-tests": "ab9a68077fb65319d323a5438ead3c54ca34be240a8bfc885ddabd6bb617e4cb",
+      "fsnet-production-authorization-tests": "9d30aad37b52b8dfc1b118a88da276ae0860070f742a4d0f832164315c0bca9b",
+      "fsnet-global-flow-tests": "9743d2a5a37393e9fdc23bbf64831b1ef74a47f7f54a84ea53478a54be89e6af",
+      "fsnet-production-transport-tests": "d4f3cc0e0d6d75b3ed04f2f0021fcc725063d683abf9ac122f91d2b2f5c71dee",
+      "fsnet-production-lua-tests": "77f846ac32855b46d7b7bf707e6c755d80d200132bf8bc5df665b062d4ee47d6",
+      "fsnet-current-lua-limits-tests": "67571ab6b7aa90cca12b9f55a3e8824eb58edb7c0ec667ae7b3949ddf4524a55",
+      "fsnet-storage-capability-tests": "5e0689778da56c773628e8018430f6d8bc68ddff77af7bf59a8a17b27fc0e8df"
+    }
+  },
+  "modified_code_sha256": {
+    "include/fsnet/entity_delivery.hpp": "fd9e6416ee822f5313c41fc71e2bfd1cbacc010a6480c23c2e8b48cc384846df",
+    "include/fsnet/entity_router.hpp": "a85f1f44335b54d9c12d8478173769b2f58bfa28cfdf32b2742fba94264e6b15",
+    "include/fsnet/entity_transfer.hpp": "334ede2b427887f42be9f143d7ca6bb4db3be7f056f9e5f820528695d8c322ce",
+    "include/fsnet/node.hpp": "a02f429e72f024bb04fd7a122c82d0569c49d6682e29c76f879aa96b09a84606",
+    "src/entity_delivery.cpp": "8509776a548aeb12b5a93bc9ee50285d528249270e774add30fc71b2f32e31a8",
+    "src/entity_router.cpp": "696f44ca58e2ab04459f9bfd4ae56bdfa25781db1963d9b0ff9decc8f9304d6c",
+    "src/entity_transfer.cpp": "5900b4329f8f555dde2f41f7e064b99015a4fa1dadb25f05b6467af4a0ca093a",
+    "src/file_storage.cpp": "be6dae05da2296cfecd265d6079c55b51efe2cfa1483bcba329f155d713335eb",
+    "src/node.cpp": "6d00663bf5059235fad0286059d26ff5daf52c950ebd01516d1f5897d2a69f34",
+    "tests/file_storage.cpp": "8aed4a896895cd4f58b4d4fd2ddd4aa0c4677a43dd73746f1264c8b9d323ecc7",
+    "tests/global_flow.cpp": "bebf779982884d56b91c701e4c676f614a070a37c051ec6514d9c39582454640",
+    "tests/production_client_router.cpp": "c44c808a8f6d65fd26ebdb9cf231ac8871ceb779512a7598d1c4ed0e3375f8e5"
+  },
+  "not_run": [
+    "PostgreSQL",
+    "Lua OFF",
+    "TSan",
+    "cross-machine HA",
+    "long soak",
+    "public NAT",
+    "production SLO"
+  ]
+}

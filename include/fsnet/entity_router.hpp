@@ -20,6 +20,8 @@ struct EntityRouterLimits { std::size_t requests = 256, bytes = 4 * 1024 * 1024;
 // ownership. Owner IDs use "stable-node/unique-boot-id". Calls with a request ID
 // may retry after failures until the original deadline; receipt retention limits
 // still apply. A healthy in-flight call may use the entire remaining timeout.
+// Timeouts must be positive and at most Node::max_call_timeout; invalid calls
+// complete as rejected before consuming queue capacity or querying storage.
 class EntityRouter {
 public:
     EntityRouter(Node&, std::shared_ptr<Storage>, std::vector<EntityEndpoint>, EntityRouterLimits = {});

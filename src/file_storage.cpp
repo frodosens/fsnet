@@ -77,7 +77,10 @@ class Files final : public Storage {
         return Locked(::openat(root_.get(), shard.c_str(), O_RDONLY | O_DIRECTORY | O_CLOEXEC | O_NOFOLLOW), name, exclusive);
     }
     Entry read(int directory,const std::string& name, std::string_view key) {
-        auto descriptor = ::openat(directory, name.c_str(), O_RDONLY | O_CLOEXEC | O_NOFOLLOW);
+        // Inspect the opened inode before reading. A malformed FIFO must not
+        // block open() before fstat can reject it; O_NONBLOCK is inert for
+        // regular files and preserves atomic-rename reader semantics.
+        auto descriptor = ::openat(directory, name.c_str(), O_RDONLY | O_CLOEXEC | O_NOFOLLOW | O_NONBLOCK);
         if (descriptor < 0 && errno == ENOENT) return {};
         Descriptor file(descriptor); struct stat metadata{}; check(::fstat(file.get(), &metadata), "file storage stat");
         if (!S_ISREG(metadata.st_mode) || metadata.st_size < 53 || metadata.st_size > static_cast<off_t>(maximum_value + 8192))

@@ -1,5 +1,8 @@
 # 持久化实体命令
 
+`EntityDeliveryLimits::timeout` 是每次网络调用的期限，必须大于零且不超过
+`Node::max_call_timeout`（30 秒）；无效配置在构造时拒绝，避免后台不断重试传输层必拒绝的调用。
+
 服务端托管实体事务内使用 `Target:ref(id):send(method, bytes)` 暂存命令。
 源业务状态、发送序号及 outbox 在同一次实体记录 CAS 中提交后，命令才被接受；
 返回给脚本的 ticket 在当前事务提交之前是暂存值。源方法失败则全部回滚。

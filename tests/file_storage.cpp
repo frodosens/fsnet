@@ -5,6 +5,7 @@
 #include <fstream>
 #include <iostream>
 #include <thread>
+#include <sys/stat.h>
 
 #define CHECK(c) do { if (!(c)) throw std::runtime_error(#c); } while (false)
 int main() {
@@ -49,6 +50,31 @@ int main() {
         }
         bool corrupt = false; try { reopened->get("counter"); } catch (const std::runtime_error&) { corrupt = true; } CHECK(corrupt);
         reopened.reset(); std::filesystem::remove_all(root);
+        // A malformed record must be rejected before any blocking read/open.
+        // In particular a FIFO without a writer must not hang the storage
+        // worker (and hence shutdown's join). CTest bounds this regression.
+        auto malformed = fsnet::file_storage(root.string());
+        CHECK(malformed->compare_exchange("fifo", 0, "saved"));
+        auto saved = malformed->get("fifo");
+        for (auto& path : std::filesystem::recursive_directory_iterator(root))
+            if (path.path().extension() == ".record") victim = path.path();
+        auto backup = victim.string() + ".backup";
+        std::filesystem::rename(victim, backup);
+        CHECK(::mkfifo(victim.c_str(), 0600) == 0);
+        auto rejected = [](auto operation) {
+            bool failed = false;
+            try { operation(); } catch (const std::runtime_error&) { failed = true; }
+            CHECK(failed);
+        };
+        rejected([&] { malformed->get("fifo"); });
+        rejected([&] { malformed->compare_exchange("fifo", saved->version, "overwrite"); });
+        rejected([&] { malformed->erase("fifo", saved->version); });
+        CHECK(std::filesystem::is_fifo(victim));
+        std::filesystem::remove(victim);
+        std::filesystem::rename(backup, victim);
+        CHECK(malformed->get("fifo")->value == "saved");
+        CHECK(malformed->compare_exchange("fifo", saved->version, "healthy"));
+        malformed.reset(); std::filesystem::remove_all(root);
         std::cout << "PASS file storage: binary keys/values, cross-instance CAS, tombstones, fencing, reopening and corruption rejection without transactions\n";
     } catch (const std::exception& error) { std::filesystem::remove_all(root); std::cerr << error.what() << '\n'; return 1; }
 }

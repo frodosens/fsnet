@@ -34,7 +34,9 @@ void router_deadlines() {
     struct Delayed { Clock::time_point due; Reply reply; std::string value; };
     std::vector<Delayed> delayed;
     std::unordered_map<std::string, unsigned> executions;
+    std::uint64_t last_peer=0;
     owner.bind_rpc("@", {true, true, false}, [&](const CallIdentity& who, std::string input, Reply reply) {
+        last_peer=who.peer;
         auto call = parse_entity_call_view(input);
         require(call.has_value(), "valid router fixture envelope");
         auto value = std::string(call->payload);
@@ -50,6 +52,25 @@ void router_deadlines() {
     });
     auto port = owner.listen("127.0.0.1", 0);
     EntityRouter router(caller, db, {{"owner", "127.0.0.1", port, {"Actor"}}});
+    // Above the transport deadline, keyed requests used to retry local
+    // rejection until the remaining time fell below 30s. Reject at admission,
+    // with no database/network work or retained queue capacity.
+    for (auto timeout : {0ms, -1ms, 30001ms, 300000ms}) {
+        for (auto key : {"", "deadline-receipt"}) {
+            unsigned completions = 0;
+            router.call(id, "medium", "invalid-timeout", timeout, [&](Result result) {
+                require(result.status == Status::rejected, "invalid router deadline rejected");
+                ++completions;
+            }, key);
+            require(completions == 1 && router.pending() == 0, "invalid router call rejected before admission");
+        }
+        unsigned completions = 0;
+        router.bind_owner("Actor", id.str(), {}, timeout, [&](Result result) {
+            require(result.status == Status::rejected, "invalid owner deadline rejected");
+            ++completions;
+        });
+        require(completions == 1 && router.pending() == 0, "invalid owner call rejected before admission");
+    }
     auto pump = [&] {
         owner.poll(); caller.poll(); router.poll();
         for (std::size_t i = 0; i < delayed.size();) {
@@ -65,6 +86,12 @@ void router_deadlines() {
         until(pump, [&] { return result.has_value(); }, 4s);
         return *result;
     };
+    std::optional<Result> boundary;
+    router.call(id, "medium", "maximum-timeout", 30s,
+        [&](Result result) { boundary = std::move(result); });
+    until(pump, [&] { return boundary.has_value(); });
+    require(boundary->status == Status::ok && executions["maximum-timeout"] == 1,
+            "maximum supported router deadline executes normally");
     require(call("slow", "unkeyed").status == Status::ok, "unkeyed RPC may use a three-second deadline");
     require(executions["unkeyed"] == 1, "unkeyed slow RPC executes once");
     require(call("slow", "keyed", "slow-receipt").status == Status::ok, "keyed slow RPC succeeds");
@@ -87,6 +114,13 @@ void router_deadlines() {
     require(executions["unkeyed-disconnect"] == 1, "unkeyed possibly executed RPC is never replayed");
     require(call("drop", "keyed-disconnect", "safe-receipt").status == Status::ok, "keyed disconnect may retry within total deadline");
     require(executions["keyed-disconnect"] == 2, "keyed disconnect performs one failure retry");
+    // The connection can disappear while the router is idle. Reconnect before
+    // dispatching a NEW unkeyed call; this is not replaying an uncertain call.
+    owner.close(last_peer);
+    until(pump, [&] { return caller.stats().connections == 0; });
+    require(call("medium", "after-idle-disconnect").status == Status::ok,
+            "new unkeyed call replaces a known disconnected cached peer");
+    require(executions["after-idle-disconnect"] == 1, "new call executes once after idle disconnect");
     router.stop(); caller.stop(); owner.stop();
 }
 

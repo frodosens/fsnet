@@ -1,0 +1,448 @@
+{
+  "baseline_revision": "8e4af0c9b73445d999a9e3593c1429c63bbec882",
+  "platform": "Linux-6.18.55-x86_64-with-glibc2.41",
+  "cpu_max": "400000 100000",
+  "method": "same executables and pinned dependencies; baseline core fully recompiled from git archive; one warmup per command/variant, 5 alternating AB/BA pairs; no concurrent builds/tests",
+  "scope": "Release; native and Gateway echo; flow = Lua/Memory CAS, 2000 requests/concurrency 8, loopback without TLS",
+  "sha256": {
+    "baseline": "b74a54954e03d8267d248b7d23a2eb4302e86870b49b20eed02e8d3609ed0415",
+    "final": "dc8a06b7da815554d5845dafb8542691a230c487f792c3eec04f93a865d0a261"
+  },
+  "executable_sha256": {
+    "native": "237611185c21c5da787a199536d1535c67f08eb4fec2777cb5300561424e76df",
+    "gateway": "088baecd0c679afb6043776b46d904838515401cb57e0f8c11e0f04b58bb7060",
+    "flow": "3af63a146c0802a115b905a9dcfff951e9a18e12bf2fe421274383ef3a0f192a"
+  },
+  "runs": [
+    {
+      "repeat": 1,
+      "scenario": "native",
+      "variant": "baseline",
+      "command": [
+        "/workspace/fsnet/.dev/build/release/fsnet-benchmark",
+        "100000"
+      ],
+      "elapsed_seconds": 0.8496812990001672,
+      "stdout": "loopback TCP, one thread, two nodes, payload=128 bytes, concurrency=128\nrequests=100000 seconds=0.837156 requests_per_second=119452 p50_ms=1.067 p99_ms=1.55161\n",
+      "stderr": "",
+      "returncode": 0
+    },
+    {
+      "repeat": 1,
+      "scenario": "native",
+      "variant": "final",
+      "command": [
+        "/workspace/fsnet/.dev/build/release/fsnet-benchmark",
+        "100000"
+      ],
+      "elapsed_seconds": 0.8694069230000423,
+      "stdout": "loopback TCP, one thread, two nodes, payload=128 bytes, concurrency=128\nrequests=100000 seconds=0.857331 requests_per_second=116641 p50_ms=1.07855 p99_ms=1.74105\n",
+      "stderr": "",
+      "returncode": 0
+    },
+    {
+      "repeat": 1,
+      "scenario": "gateway",
+      "variant": "baseline",
+      "command": [
+        "/workspace/fsnet/.dev/build/release/fsnet-request-benchmark",
+        "gateway",
+        "20000",
+        "128",
+        "32"
+      ],
+      "elapsed_seconds": 0.39923517199986236,
+      "stdout": "{\"scenario\":\"gateway\",\"requests\":20000,\"payload_bytes\":128,\"concurrency\":32,\"seconds\":0.390209,\"requests_per_second\":51254.6,\"p50_us\":589.573,\"p99_us\":1048.62}\n",
+      "stderr": "",
+      "returncode": 0
+    },
+    {
+      "repeat": 1,
+      "scenario": "gateway",
+      "variant": "final",
+      "command": [
+        "/workspace/fsnet/.dev/build/release/fsnet-request-benchmark",
+        "gateway",
+        "20000",
+        "128",
+        "32"
+      ],
+      "elapsed_seconds": 0.4212087749999682,
+      "stdout": "{\"scenario\":\"gateway\",\"requests\":20000,\"payload_bytes\":128,\"concurrency\":32,\"seconds\":0.412273,\"requests_per_second\":48511.5,\"p50_us\":619.748,\"p99_us\":1204.81}\n",
+      "stderr": "",
+      "returncode": 0
+    },
+    {
+      "repeat": 1,
+      "scenario": "flow",
+      "variant": "baseline",
+      "command": [
+        "/workspace/fsnet/.dev/review/current/paired/flow-benchmark",
+        "/workspace/fsnet",
+        "--benchmark"
+      ],
+      "elapsed_seconds": 1.710223353999936,
+      "stdout": "{\"scenario\":\"global_id\",\"requests\":2000,\"concurrency\":8,\"rps\":6292.05,\"p50_us\":1157.31,\"p99_us\":1589.41}\nPASS global flow: Manager, remote LoginEntity creation, Gateway RPC, Player handoff, stable serialized ID and client view\n",
+      "stderr": "",
+      "returncode": 0
+    },
+    {
+      "repeat": 1,
+      "scenario": "flow",
+      "variant": "final",
+      "command": [
+        "/workspace/fsnet/.dev/review/current/paired/flow-benchmark",
+        "/workspace/fsnet",
+        "--benchmark"
+      ],
+      "elapsed_seconds": 1.669153943000083,
+      "stdout": "{\"scenario\":\"global_id\",\"requests\":2000,\"concurrency\":8,\"rps\":7128.42,\"p50_us\":889.381,\"p99_us\":3717.76}\nPASS global flow: Manager, remote LoginEntity creation, Gateway RPC, Player handoff, stable serialized ID and client view\n",
+      "stderr": "",
+      "returncode": 0
+    },
+    {
+      "repeat": 2,
+      "scenario": "native",
+      "variant": "final",
+      "command": [
+        "/workspace/fsnet/.dev/build/release/fsnet-benchmark",
+        "100000"
+      ],
+      "elapsed_seconds": 0.9055445129999953,
+      "stdout": "loopback TCP, one thread, two nodes, payload=128 bytes, concurrency=128\nrequests=100000 seconds=0.892578 requests_per_second=112035 p50_ms=1.09228 p99_ms=2.42378\n",
+      "stderr": "",
+      "returncode": 0
+    },
+    {
+      "repeat": 2,
+      "scenario": "native",
+      "variant": "baseline",
+      "command": [
+        "/workspace/fsnet/.dev/build/release/fsnet-benchmark",
+        "100000"
+      ],
+      "elapsed_seconds": 0.8944115929998588,
+      "stdout": "loopback TCP, one thread, two nodes, payload=128 bytes, concurrency=128\nrequests=100000 seconds=0.882553 requests_per_second=113308 p50_ms=1.09131 p99_ms=2.19934\n",
+      "stderr": "",
+      "returncode": 0
+    },
+    {
+      "repeat": 2,
+      "scenario": "gateway",
+      "variant": "final",
+      "command": [
+        "/workspace/fsnet/.dev/build/release/fsnet-request-benchmark",
+        "gateway",
+        "20000",
+        "128",
+        "32"
+      ],
+      "elapsed_seconds": 0.42904856499990274,
+      "stdout": "{\"scenario\":\"gateway\",\"requests\":20000,\"payload_bytes\":128,\"concurrency\":32,\"seconds\":0.420002,\"requests_per_second\":47618.8,\"p50_us\":639.713,\"p99_us\":1135.84}\n",
+      "stderr": "",
+      "returncode": 0
+    },
+    {
+      "repeat": 2,
+      "scenario": "gateway",
+      "variant": "baseline",
+      "command": [
+        "/workspace/fsnet/.dev/build/release/fsnet-request-benchmark",
+        "gateway",
+        "20000",
+        "128",
+        "32"
+      ],
+      "elapsed_seconds": 0.4190451409999696,
+      "stdout": "{\"scenario\":\"gateway\",\"requests\":20000,\"payload_bytes\":128,\"concurrency\":32,\"seconds\":0.407592,\"requests_per_second\":49068.7,\"p50_us\":603.507,\"p99_us\":1482.4}\n",
+      "stderr": "",
+      "returncode": 0
+    },
+    {
+      "repeat": 2,
+      "scenario": "flow",
+      "variant": "final",
+      "command": [
+        "/workspace/fsnet/.dev/review/current/paired/flow-benchmark",
+        "/workspace/fsnet",
+        "--benchmark"
+      ],
+      "elapsed_seconds": 1.7080334380000295,
+      "stdout": "{\"scenario\":\"global_id\",\"requests\":2000,\"concurrency\":8,\"rps\":6409.58,\"p50_us\":1135.16,\"p99_us\":1903.08}\nPASS global flow: Manager, remote LoginEntity creation, Gateway RPC, Player handoff, stable serialized ID and client view\n",
+      "stderr": "",
+      "returncode": 0
+    },
+    {
+      "repeat": 2,
+      "scenario": "flow",
+      "variant": "baseline",
+      "command": [
+        "/workspace/fsnet/.dev/review/current/paired/flow-benchmark",
+        "/workspace/fsnet",
+        "--benchmark"
+      ],
+      "elapsed_seconds": 1.6942967160000535,
+      "stdout": "{\"scenario\":\"global_id\",\"requests\":2000,\"concurrency\":8,\"rps\":6495.01,\"p50_us\":1161.54,\"p99_us\":1717.46}\nPASS global flow: Manager, remote LoginEntity creation, Gateway RPC, Player handoff, stable serialized ID and client view\n",
+      "stderr": "",
+      "returncode": 0
+    },
+    {
+      "repeat": 3,
+      "scenario": "native",
+      "variant": "baseline",
+      "command": [
+        "/workspace/fsnet/.dev/build/release/fsnet-benchmark",
+        "100000"
+      ],
+      "elapsed_seconds": 0.8921824709998418,
+      "stdout": "loopback TCP, one thread, two nodes, payload=128 bytes, concurrency=128\nrequests=100000 seconds=0.880877 requests_per_second=113523 p50_ms=1.09935 p99_ms=1.80014\n",
+      "stderr": "",
+      "returncode": 0
+    },
+    {
+      "repeat": 3,
+      "scenario": "native",
+      "variant": "final",
+      "command": [
+        "/workspace/fsnet/.dev/build/release/fsnet-benchmark",
+        "100000"
+      ],
+      "elapsed_seconds": 0.9044405419999748,
+      "stdout": "loopback TCP, one thread, two nodes, payload=128 bytes, concurrency=128\nrequests=100000 seconds=0.892992 requests_per_second=111983 p50_ms=1.10558 p99_ms=2.10002\n",
+      "stderr": "",
+      "returncode": 0
+    },
+    {
+      "repeat": 3,
+      "scenario": "gateway",
+      "variant": "baseline",
+      "command": [
+        "/workspace/fsnet/.dev/build/release/fsnet-request-benchmark",
+        "gateway",
+        "20000",
+        "128",
+        "32"
+      ],
+      "elapsed_seconds": 0.41384917599998516,
+      "stdout": "{\"scenario\":\"gateway\",\"requests\":20000,\"payload_bytes\":128,\"concurrency\":32,\"seconds\":0.404428,\"requests_per_second\":49452.6,\"p50_us\":627.931,\"p99_us\":1026.52}\n",
+      "stderr": "",
+      "returncode": 0
+    },
+    {
+      "repeat": 3,
+      "scenario": "gateway",
+      "variant": "final",
+      "command": [
+        "/workspace/fsnet/.dev/build/release/fsnet-request-benchmark",
+        "gateway",
+        "20000",
+        "128",
+        "32"
+      ],
+      "elapsed_seconds": 0.42266465600005176,
+      "stdout": "{\"scenario\":\"gateway\",\"requests\":20000,\"payload_bytes\":128,\"concurrency\":32,\"seconds\":0.413403,\"requests_per_second\":48379,\"p50_us\":621.891,\"p99_us\":1239.37}\n",
+      "stderr": "",
+      "returncode": 0
+    },
+    {
+      "repeat": 3,
+      "scenario": "flow",
+      "variant": "baseline",
+      "command": [
+        "/workspace/fsnet/.dev/review/current/paired/flow-benchmark",
+        "/workspace/fsnet",
+        "--benchmark"
+      ],
+      "elapsed_seconds": 1.6994137130000126,
+      "stdout": "{\"scenario\":\"global_id\",\"requests\":2000,\"concurrency\":8,\"rps\":6355.89,\"p50_us\":1152.36,\"p99_us\":1665.77}\nPASS global flow: Manager, remote LoginEntity creation, Gateway RPC, Player handoff, stable serialized ID and client view\n",
+      "stderr": "",
+      "returncode": 0
+    },
+    {
+      "repeat": 3,
+      "scenario": "flow",
+      "variant": "final",
+      "command": [
+        "/workspace/fsnet/.dev/review/current/paired/flow-benchmark",
+        "/workspace/fsnet",
+        "--benchmark"
+      ],
+      "elapsed_seconds": 1.7085964840000543,
+      "stdout": "{\"scenario\":\"global_id\",\"requests\":2000,\"concurrency\":8,\"rps\":6344.15,\"p50_us\":1139.62,\"p99_us\":1665.85}\nPASS global flow: Manager, remote LoginEntity creation, Gateway RPC, Player handoff, stable serialized ID and client view\n",
+      "stderr": "",
+      "returncode": 0
+    },
+    {
+      "repeat": 4,
+      "scenario": "native",
+      "variant": "final",
+      "command": [
+        "/workspace/fsnet/.dev/build/release/fsnet-benchmark",
+        "100000"
+      ],
+      "elapsed_seconds": 0.9063902830000643,
+      "stdout": "loopback TCP, one thread, two nodes, payload=128 bytes, concurrency=128\nrequests=100000 seconds=0.89379 requests_per_second=111883 p50_ms=1.10725 p99_ms=2.28213\n",
+      "stderr": "",
+      "returncode": 0
+    },
+    {
+      "repeat": 4,
+      "scenario": "native",
+      "variant": "baseline",
+      "command": [
+        "/workspace/fsnet/.dev/build/release/fsnet-benchmark",
+        "100000"
+      ],
+      "elapsed_seconds": 0.927285503000121,
+      "stdout": "loopback TCP, one thread, two nodes, payload=128 bytes, concurrency=128\nrequests=100000 seconds=0.913495 requests_per_second=109470 p50_ms=1.12702 p99_ms=2.15231\n",
+      "stderr": "",
+      "returncode": 0
+    },
+    {
+      "repeat": 4,
+      "scenario": "gateway",
+      "variant": "final",
+      "command": [
+        "/workspace/fsnet/.dev/build/release/fsnet-request-benchmark",
+        "gateway",
+        "20000",
+        "128",
+        "32"
+      ],
+      "elapsed_seconds": 0.41561835099992095,
+      "stdout": "{\"scenario\":\"gateway\",\"requests\":20000,\"payload_bytes\":128,\"concurrency\":32,\"seconds\":0.406709,\"requests_per_second\":49175.2,\"p50_us\":609.765,\"p99_us\":1392.69}\n",
+      "stderr": "",
+      "returncode": 0
+    },
+    {
+      "repeat": 4,
+      "scenario": "gateway",
+      "variant": "baseline",
+      "command": [
+        "/workspace/fsnet/.dev/build/release/fsnet-request-benchmark",
+        "gateway",
+        "20000",
+        "128",
+        "32"
+      ],
+      "elapsed_seconds": 0.4140122269998301,
+      "stdout": "{\"scenario\":\"gateway\",\"requests\":20000,\"payload_bytes\":128,\"concurrency\":32,\"seconds\":0.405239,\"requests_per_second\":49353.6,\"p50_us\":618.848,\"p99_us\":1131.55}\n",
+      "stderr": "",
+      "returncode": 0
+    },
+    {
+      "repeat": 4,
+      "scenario": "flow",
+      "variant": "final",
+      "command": [
+        "/workspace/fsnet/.dev/review/current/paired/flow-benchmark",
+        "/workspace/fsnet",
+        "--benchmark"
+      ],
+      "elapsed_seconds": 1.6791967540000314,
+      "stdout": "{\"scenario\":\"global_id\",\"requests\":2000,\"concurrency\":8,\"rps\":6916.54,\"p50_us\":1116.49,\"p99_us\":1831.01}\nPASS global flow: Manager, remote LoginEntity creation, Gateway RPC, Player handoff, stable serialized ID and client view\n",
+      "stderr": "",
+      "returncode": 0
+    },
+    {
+      "repeat": 4,
+      "scenario": "flow",
+      "variant": "baseline",
+      "command": [
+        "/workspace/fsnet/.dev/review/current/paired/flow-benchmark",
+        "/workspace/fsnet",
+        "--benchmark"
+      ],
+      "elapsed_seconds": 1.6947286839999833,
+      "stdout": "{\"scenario\":\"global_id\",\"requests\":2000,\"concurrency\":8,\"rps\":6551.29,\"p50_us\":1131.54,\"p99_us\":1798.44}\nPASS global flow: Manager, remote LoginEntity creation, Gateway RPC, Player handoff, stable serialized ID and client view\n",
+      "stderr": "",
+      "returncode": 0
+    },
+    {
+      "repeat": 5,
+      "scenario": "native",
+      "variant": "baseline",
+      "command": [
+        "/workspace/fsnet/.dev/build/release/fsnet-benchmark",
+        "100000"
+      ],
+      "elapsed_seconds": 0.8637824670001919,
+      "stdout": "loopback TCP, one thread, two nodes, payload=128 bytes, concurrency=128\nrequests=100000 seconds=0.852641 requests_per_second=117283 p50_ms=1.08234 p99_ms=1.58846\n",
+      "stderr": "",
+      "returncode": 0
+    },
+    {
+      "repeat": 5,
+      "scenario": "native",
+      "variant": "final",
+      "command": [
+        "/workspace/fsnet/.dev/build/release/fsnet-benchmark",
+        "100000"
+      ],
+      "elapsed_seconds": 0.8795566869998765,
+      "stdout": "loopback TCP, one thread, two nodes, payload=128 bytes, concurrency=128\nrequests=100000 seconds=0.868063 requests_per_second=115199 p50_ms=1.08407 p99_ms=1.73969\n",
+      "stderr": "",
+      "returncode": 0
+    },
+    {
+      "repeat": 5,
+      "scenario": "gateway",
+      "variant": "baseline",
+      "command": [
+        "/workspace/fsnet/.dev/build/release/fsnet-request-benchmark",
+        "gateway",
+        "20000",
+        "128",
+        "32"
+      ],
+      "elapsed_seconds": 0.4258990480000193,
+      "stdout": "{\"scenario\":\"gateway\",\"requests\":20000,\"payload_bytes\":128,\"concurrency\":32,\"seconds\":0.415727,\"requests_per_second\":48108.5,\"p50_us\":626.218,\"p99_us\":1136.83}\n",
+      "stderr": "",
+      "returncode": 0
+    },
+    {
+      "repeat": 5,
+      "scenario": "gateway",
+      "variant": "final",
+      "command": [
+        "/workspace/fsnet/.dev/build/release/fsnet-request-benchmark",
+        "gateway",
+        "20000",
+        "128",
+        "32"
+      ],
+      "elapsed_seconds": 0.39854900899990753,
+      "stdout": "{\"scenario\":\"gateway\",\"requests\":20000,\"payload_bytes\":128,\"concurrency\":32,\"seconds\":0.388278,\"requests_per_second\":51509.5,\"p50_us\":592.646,\"p99_us\":1037.07}\n",
+      "stderr": "",
+      "returncode": 0
+    },
+    {
+      "repeat": 5,
+      "scenario": "flow",
+      "variant": "baseline",
+      "command": [
+        "/workspace/fsnet/.dev/review/current/paired/flow-benchmark",
+        "/workspace/fsnet",
+        "--benchmark"
+      ],
+      "elapsed_seconds": 1.6697767129999193,
+      "stdout": "{\"scenario\":\"global_id\",\"requests\":2000,\"concurrency\":8,\"rps\":7143.9,\"p50_us\":968.741,\"p99_us\":2133.47}\nPASS global flow: Manager, remote LoginEntity creation, Gateway RPC, Player handoff, stable serialized ID and client view\n",
+      "stderr": "",
+      "returncode": 0
+    },
+    {
+      "repeat": 5,
+      "scenario": "flow",
+      "variant": "final",
+      "command": [
+        "/workspace/fsnet/.dev/review/current/paired/flow-benchmark",
+        "/workspace/fsnet",
+        "--benchmark"
+      ],
+      "elapsed_seconds": 1.6921667520000483,
+      "stdout": "{\"scenario\":\"global_id\",\"requests\":2000,\"concurrency\":8,\"rps\":6497.79,\"p50_us\":1141.1,\"p99_us\":1902.48}\nPASS global flow: Manager, remote LoginEntity creation, Gateway RPC, Player handoff, stable serialized ID and client view\n",
+      "stderr": "",
+      "returncode": 0
+    }
+  ]
+}

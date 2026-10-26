@@ -34,7 +34,7 @@ struct EntityTransfer::Impl:std::enable_shared_from_this<Impl> {
          std::vector<EntityEndpoint> e,Trust t,EntityTransferLimits l)
         :node(n),host(std::move(h)),storage(std::move(db)),endpoints(std::move(e)),trust(std::move(t)),limits(l) {
         validate_entity_endpoints(endpoints);
-        if(!host || !trust || !limits.requests || limits.requests>1024 || limits.timeout.count()<=0 || limits.timeout>std::chrono::minutes(5))
+        if(!host || !trust || !limits.requests || limits.requests>1024 || limits.timeout.count()<=0 || limits.timeout>Node::max_call_timeout)
             throw std::invalid_argument("invalid entity transfer settings");
         peers.resize(endpoints.size());
     }

@@ -6,7 +6,7 @@ struct EntityDeliveryLimits {
     std::size_t requests=32;
     // retry is the pause between complete registry sweeps; bounded chunks of
     // the same sweep continue as soon as async capacity becomes available.
-    std::chrono::milliseconds retry{100},refresh{1000},timeout{3000};
+    std::chrono::milliseconds retry{100},refresh{1000},timeout{3000}; // timeout: (0, Node::max_call_timeout]
 };
 struct EntityDeliveryStats {
     std::size_t sources=0,pending=0;

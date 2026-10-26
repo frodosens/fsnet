@@ -5,7 +5,7 @@
 namespace fsnet {
 struct EntityTransferLimits {
     std::size_t requests=64;
-    std::chrono::milliseconds timeout{10000}; // each network phase
+    std::chrono::milliseconds timeout{10000}; // each network phase; (0, Node::max_call_timeout]
 };
 // Install on each owner. Node identity must authenticate owner certificates;
 // delegated client connections never qualify. Poll alongside Node/host/VM.
